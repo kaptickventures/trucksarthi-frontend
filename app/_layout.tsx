@@ -1,6 +1,21 @@
-import { Slot } from "expo-router";
-import './global.css';
+// App.tsx
+import React from "react";
+import { StatusBar } from "expo-status-bar";
+import { ThemeProvider } from "@react-navigation/native";
+import { Stack } from "expo-router";
+import { PortalHost } from "@rn-primitives/portal";
+import { useColorScheme } from "../hooks/use-color-scheme.web";
+import { NAV_THEME } from "../theme";
+import '../global.css'
 
-export default function RootLayout() {
-  return <Slot />;
+export default function App() {
+  const colorScheme = useColorScheme(); // 'light' or 'dark'
+
+  return (
+    <ThemeProvider value={NAV_THEME[colorScheme === "dark" ? "dark" : "light"]}>      
+    <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+      <Stack />
+      <PortalHost /> 
+    </ThemeProvider>
+  );
 }

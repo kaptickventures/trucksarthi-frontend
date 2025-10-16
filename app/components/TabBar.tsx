@@ -1,3 +1,4 @@
+// components/TabBar.tsx
 import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,14 +8,15 @@ export default function TabBar() {
     <Tabs
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: "#000",    // black tab bar
-          borderTopColor: "#111",     // subtle top border
+          backgroundColor: "#000",
+          borderTopColor: "#111",
           height: 60,
         },
-        tabBarActiveTintColor: "#A855F7", // purple-500
-        tabBarInactiveTintColor: "#888",  // soft gray
+        tabBarActiveTintColor: "#A855F7",
+        tabBarInactiveTintColor: "#888",
         headerShown: false,
       }}
+      initialRouteName="home"
     >
       <Tabs.Screen
         name="home"
@@ -25,7 +27,6 @@ export default function TabBar() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="history"
         options={{
@@ -35,7 +36,6 @@ export default function TabBar() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="addtrip"
         options={{
@@ -45,7 +45,6 @@ export default function TabBar() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="manager"
         options={{
@@ -55,13 +54,16 @@ export default function TabBar() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="more"
         options={{
           title: "More",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="ellipsis-horizontal-outline" size={size} color={color} />
+            <Ionicons
+              name="ellipsis-horizontal-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
