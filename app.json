@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "trucksarthi",
-    "slug": "trucksarthi",
+    "name": "trucksarthi-frontend",
+    "slug": "trucksarthi-frontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "trucksarthi",
+    "scheme": "trucksarthifrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -23,6 +23,7 @@
     },
     "web": {
       "output": "static",
+      "bundler": "metro",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
