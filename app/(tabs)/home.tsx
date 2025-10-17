@@ -25,7 +25,7 @@ export default function HomeScreen() {
         <View className="flex-1 bg-card rounded-2xl p-4 ml-2">
           <Text className="text-muted text-xs">Number of Trips</Text>
           <Text className="text-card-foreground text-xl font-bold mt-1">142</Text>
-          <Text className="text-accent text-xs mt-1">▲ +8.2%</Text>
+          <Text className="text-accent text-xs mt-1">▲  +8.2%</Text>
         </View>
       </View>
 
