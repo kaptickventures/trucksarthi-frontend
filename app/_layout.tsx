@@ -9,7 +9,7 @@ import { NAV_THEME } from "../theme";
 import '../global.css'
 
 export default function App() {
-  const colorScheme = useColorScheme(); // 'light' or 'dark'
+  const colorScheme = useColorScheme(); 
 
   return (
     <ThemeProvider value={NAV_THEME[colorScheme === "dark" ? "dark" : "light"]}>      
