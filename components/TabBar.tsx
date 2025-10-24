@@ -16,10 +16,10 @@ export default function TabBar() {
         tabBarInactiveTintColor: "#888",
         headerShown: false,
       }}
-      initialRouteName="home"
+      initialRouteName="Home"
     >
       <Tabs.Screen
-        name="home"
+        name="Home"
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (
@@ -28,7 +28,7 @@ export default function TabBar() {
         }}
       />
       <Tabs.Screen
-        name="history"
+        name="History"
         options={{
           title: "History",
           tabBarIcon: ({ color, size }) => (
@@ -37,7 +37,7 @@ export default function TabBar() {
         }}
       />
       <Tabs.Screen
-        name="addtrip"
+        name="AddTrip"
         options={{
           title: "Add Trip",
           tabBarIcon: ({ color, size }) => (
@@ -46,7 +46,7 @@ export default function TabBar() {
         }}
       />
       <Tabs.Screen
-        name="manager"
+        name="Manager"
         options={{
           title: "Manager",
           tabBarIcon: ({ color, size }) => (
@@ -55,7 +55,7 @@ export default function TabBar() {
         }}
       />
       <Tabs.Screen
-        name="more"
+        name="More"
         options={{
           title: "More",
           tabBarIcon: ({ color, size }) => (

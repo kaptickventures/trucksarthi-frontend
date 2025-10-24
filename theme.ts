@@ -16,6 +16,7 @@ export const THEME = {
     mutedForeground: 'hsl(0 0% 45.1%)',
     accent: 'hsl(0 0% 96.1%)',
     accentForeground: 'hsl(0 0% 9%)',
+    success: 'hsl(120 61.5% 40.2%)',
     destructive: 'hsl(0 84.2% 60.2%)',
     border: 'hsl(0 0% 89.8%)',
     input: 'hsl(0 0% 89.8%)',

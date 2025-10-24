@@ -13,7 +13,9 @@ export default function App() {
 
   return (
     <ThemeProvider value={NAV_THEME[colorScheme === "dark" ? "dark" : "light"]}>      
+   
     <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+   
       <Stack />
       <PortalHost /> 
     </ThemeProvider>
