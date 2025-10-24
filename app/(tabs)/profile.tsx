@@ -47,11 +47,6 @@ export default function Profile() {
 
   return (
     <ScrollView className="flex-1 bg-background p-4">
-      <View className="bg-card border border-border py-4 mb-6 rounded-xl">
-        <Text className="text-xl font-semibold text-center text-foreground">
-          Profile
-        </Text>
-      </View>
 
       {/* Profile Picture */}
       <View className="items-center mb-6">

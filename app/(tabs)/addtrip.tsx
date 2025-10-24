@@ -28,16 +28,24 @@ export default function AddTrip() {
   });
 
   const [dropdowns, setDropdowns] = useState({
-    truck: false,
-    driver: false,
-    client: false,
-    start: false,
-    end: false,
+    truckNumber: false,
+    driverName: false,
+    clientName: false,
+    startLocation: false,
+    endLocation: false,
   });
 
   const handleSubmit = () => {
     Alert.alert("Trip Added", "New trip has been created successfully!");
   };
+
+  const dropdownData = [
+    { label: "Truck Registration Number *", key: "truckNumber", items: mockTrucks },
+    { label: "Driver Name *", key: "driverName", items: mockDrivers },
+    { label: "Client Name *", key: "clientName", items: mockClients },
+    { label: "Start Location *", key: "startLocation", items: mockLocations },
+    { label: "End Location *", key: "endLocation", items: mockLocations },
+  ];
 
   return (
     <ScrollView className="flex-1 bg-background p-4">
@@ -56,14 +64,11 @@ export default function AddTrip() {
       />
 
       {/* Dropdowns */}
-      {[
-        { label: "Truck Registration Number *", key: "truckNumber", items: mockTrucks },
-        { label: "Driver Name *", key: "driverName", items: mockDrivers },
-        { label: "Client Name *", key: "clientName", items: mockClients },
-        { label: "Start Location *", key: "startLocation", items: mockLocations },
-        { label: "End Location *", key: "endLocation", items: mockLocations },
-      ].map((d, i) => (
-        <View key={i} className="mb-3">
+      {dropdownData.map((d, i) => (
+        <View
+          key={i}
+          style={{ marginBottom: dropdowns[d.key as keyof typeof dropdowns] ? 150 : 12 }}
+        >
           <Text className="text-foreground mb-1 font-medium">{d.label}</Text>
           <DropDownPicker
             open={dropdowns[d.key as keyof typeof dropdowns]}

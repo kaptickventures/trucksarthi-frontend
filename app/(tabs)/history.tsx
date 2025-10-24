@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
+import DropDownPicker from "react-native-dropdown-picker";
 
 const mockTrips = [
   {
@@ -37,6 +37,22 @@ const mockTrips = [
 export default function ViewTrips() {
   const [filters, setFilters] = useState({ driver: "", client: "", startDate: "" });
 
+  // dropdown state
+  const [driverOpen, setDriverOpen] = useState(false);
+  const [clientOpen, setClientOpen] = useState(false);
+
+  const driverItems = [
+    { label: "All Drivers", value: "" },
+    { label: "Rajesh Kumar", value: "rajesh" },
+    { label: "Amit Sharma", value: "amit" },
+  ];
+
+  const clientItems = [
+    { label: "All Clients", value: "" },
+    { label: "ABC Logistics", value: "abc" },
+    { label: "XYZ Transport", value: "xyz" },
+  ];
+
   const totalAmount = mockTrips.reduce(
     (sum, t) => sum + t.tripCost + t.miscExpense,
     0
@@ -44,15 +60,8 @@ export default function ViewTrips() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {/* Header */}
-      <View className="bg-card border-b border-border px-4 py-3">
-        <Text className="text-xl font-semibold text-center text-foreground">
-          View Trips
-        </Text>
-      </View>
-
       <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+        contentContainerStyle={{ paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Filters */}
@@ -62,29 +71,48 @@ export default function ViewTrips() {
             <Text className="ml-2 font-semibold text-foreground">Filters</Text>
           </View>
 
-          {/* Driver */}
-          <View className="mb-3 border border-border rounded-lg">
-            <Picker
-              selectedValue={filters.driver}
-              onValueChange={(v) => setFilters({ ...filters, driver: v })}
-            >
-              <Picker.Item label="All Drivers" value="" />
-              <Picker.Item label="Rajesh Kumar" value="rajesh" />
-              <Picker.Item label="Amit Sharma" value="amit" />
-            </Picker>
-          </View>
+          {/* Driver Dropdown */}
+<View className="z-20" style={{ marginBottom: driverOpen ? 150 : 12 }}>
+  <DropDownPicker
+    open={driverOpen}
+    value={filters.driver}
+    items={driverItems}
+    setOpen={setDriverOpen}
+    setValue={(cb) =>
+      setFilters((prev) => ({ ...prev, driver: cb(prev.driver) }))
+    }
+    placeholder="Select Driver"
+    style={{
+      backgroundColor: "#fff",
+      borderColor: "#ccc",
+    }}
+    dropDownContainerStyle={{
+      borderColor: "#ccc",
+    }}
+  />
+</View>
 
-          {/* Client */}
-          <View className="mb-3 border border-border rounded-lg">
-            <Picker
-              selectedValue={filters.client}
-              onValueChange={(v) => setFilters({ ...filters, client: v })}
-            >
-              <Picker.Item label="All Clients" value="" />
-              <Picker.Item label="ABC Logistics" value="abc" />
-              <Picker.Item label="XYZ Transport" value="xyz" />
-            </Picker>
-          </View>
+{/* Client Dropdown */}
+<View className="z-10" style={{ marginBottom: clientOpen ? 150 : 12 }}>
+  <DropDownPicker
+    open={clientOpen}
+    value={filters.client}
+    items={clientItems}
+    setOpen={setClientOpen}
+    setValue={(cb) =>
+      setFilters((prev) => ({ ...prev, client: cb(prev.client) }))
+    }
+    placeholder="Select Client"
+    style={{
+      backgroundColor: "#fff",
+      borderColor: "#ccc",
+    }}
+    dropDownContainerStyle={{
+      borderColor: "#ccc",
+    }}
+  />
+</View>
+
 
           {/* Start Date */}
           <TextInput

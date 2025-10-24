@@ -32,6 +32,10 @@
     --destructive: 0 85% 55%;
     --destructive-foreground: 0 0% 98%;
 
+    --input-bg: 0 0% 98%;          
+    --input-text: 0 0% 4%;         
+    --input-border: 0 0% 88%;
+
     --border: 0 0% 88%;
     --input: 0 0% 88%;
     --ring: 220 85% 60%;
@@ -78,6 +82,10 @@
     --border: 0 0% 22%;
     --input: 0 0% 22%;
     --ring: 220 85% 60%;
+
+    --input-bg: 0 0% 12%;          
+    --input-text: 0 0% 98%;        
+    --input-border: 0 0% 40%;
 
     /* Charts */
     --chart-1: 220 70% 55%;
