@@ -7,26 +7,31 @@ export default function TabBar() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
+  const bgColor = isDark ? "#000" : "#fff";
+  const borderColor = isDark ? "#111" : "#ddd";
+  const activeTint = isDark ? "#fff" : "#000";
+  const inactiveTint = isDark ? "#888" : "#888"; // slightly grey for inactive
+
   return (
     <Tabs
       screenOptions={{
         // ✅ Header styling
         headerStyle: {
-          backgroundColor: "#000", // always black background
+          backgroundColor: bgColor,
         },
-        headerTintColor: isDark ? "#fff" : "#000", // text color switches
+        headerTintColor: activeTint,
         headerTitleStyle: {
           fontWeight: "600",
         },
 
         // ✅ Tab bar styling
         tabBarStyle: {
-          backgroundColor: "#000", // always black background
-          borderTopColor: "#111",
+          backgroundColor: bgColor,
+          borderTopColor: borderColor,
           height: 60,
         },
-        tabBarActiveTintColor: isDark ? "#fff" : "#000", // active icons text color changes
-        tabBarInactiveTintColor: isDark ? "#888" : "#666",
+        tabBarActiveTintColor: activeTint,
+        tabBarInactiveTintColor: inactiveTint,
       }}
       initialRouteName="home"
     >
