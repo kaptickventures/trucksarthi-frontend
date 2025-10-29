@@ -1,104 +1,188 @@
+// src/screens/ClientsManager.tsx
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal } from "react-native";
-import { Plus, Edit, Trash2 } from "lucide-react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  StatusBar,
+} from "react-native";
+import { Plus, Trash2, ArrowLeft } from "lucide-react-native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import useClients from "../../hooks/useClient";
 
-interface Client {
-  id: string;
-  name: string;
-  contactPerson: string;
-  contactNumber: string;
-  alternateNumber?: string;
-  email: string;
-  address: string;
-}
 
 export default function ClientsManager() {
-  const [clients, setClients] = useState<Client[]>([
-    {
-      id: "1",
-      name: "ABC Logistics",
-      contactPerson: "Amit Sharma",
-      contactNumber: "+91 98765 12345",
-      email: "contact@abclogistics.com",
-      address: "Mumbai, Maharashtra",
-    },
-  ]);
+  const navigation = useNavigation();
+  const userId = 1; 
+
+  const { clients, loading, fetchClients, addClient, deleteClient } =
+    useClients(userId);
+
   const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState<Omit<Client, "id">>({
-    name: "",
-    contactPerson: "",
-    contactNumber: "",
-    alternateNumber: "",
-    email: "",
-    address: "",
+  const [formData, setFormData] = useState({
+    client_name: "",
+    contact_person_name: "",
+    contact_number: "",
+    alternate_contact_number: "",
+    email_address: "",
+    office_address: "",
   });
 
-  const handleSubmit = () => {
-    setClients([...clients, { ...formData, id: Date.now().toString() }]);
-    setIsOpen(false);
+  // 🔁 Automatically refetch when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchClients();
+    }, [fetchClients])
+  );
+
+  const handleSubmit = async () => {
+    if (!formData.client_name || !formData.contact_number) {
+      return Alert.alert("Validation", "Please fill all required fields");
+    }
+
+    await addClient(formData);
     setFormData({
-      name: "",
-      contactPerson: "",
-      contactNumber: "",
-      alternateNumber: "",
-      email: "",
-      address: "",
+      client_name: "",
+      contact_person_name: "",
+      contact_number: "",
+      alternate_contact_number: "",
+      email_address: "",
+      office_address: "",
     });
+    setIsOpen(false);
+  };
+
+  const handleDelete = (id: number) => {
+    Alert.alert("Confirm", "Delete this client?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deleteClient(id),
+      },
+    ]);
   };
 
   return (
-    <ScrollView className="flex-1 bg-background p-4 space-y-4">
-      <TouchableOpacity
-        onPress={() => setIsOpen(true)}
-        className="bg-primary py-3 rounded-lg flex-row justify-center items-center"
+    <SafeAreaView className="flex-1 bg-white">
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+      {/* Header */}
+      <View className="flex-row items-center px-4 py-3 border-b border-gray-200 bg-white">
+        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3">
+          <ArrowLeft color="#000" size={24} />
+        </TouchableOpacity>
+        <Text className="text-lg font-semibold text-black">Clients</Text>
+      </View>
+
+      {/* Content */}
+      <ScrollView
+        className="flex-1 p-5"
+        contentContainerStyle={{ paddingBottom: 50 }}
       >
-        <Plus color="white" size={18} />
-        <Text className="text-primary-foreground ml-2 font-semibold">Add Client</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setIsOpen(true)}
+          className="bg-black py-4 rounded-2xl flex-row justify-center items-center mb-6"
+        >
+          <Plus color="white" size={20} />
+          <Text className="text-white ml-2 font-semibold">Add Client</Text>
+        </TouchableOpacity>
 
-      <Modal visible={isOpen} animationType="slide">
-        <ScrollView className="flex-1 bg-card p-5">
-          <Text className="text-xl font-semibold text-foreground mb-4">Add New Client</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#000" />
+        ) : clients.length === 0 ? (
+          <Text className="text-center text-gray-500 mt-10">
+            No clients found for this user.
+          </Text>
+        ) : (
+          clients.map((client) => (
+            <View
+              key={client.client_id}
+              className="bg-white border border-gray-200 rounded-2xl p-4 mb-3 shadow-sm"
+            >
+              <View className="flex-row justify-between items-start mb-2">
+                <Text className="text-lg font-semibold text-black">
+                  {client.client_name}
+                </Text>
+                <TouchableOpacity onPress={() => handleDelete(client.client_id)}>
+                  <Trash2 color="#666" size={20} />
+                </TouchableOpacity>
+              </View>
 
-          {Object.keys(formData).map((key) => (
-            <View key={key} className="mb-3">
-              <Text className="text-muted-foreground mb-1 capitalize">
-                {key.replace(/([A-Z])/g, " $1")}
+              <Text className="text-gray-700 mb-1">
+                👤 {client.contact_person_name || "N/A"}
               </Text>
-              <TextInput
-                className="border border-border rounded-lg p-3 text-foreground bg-background"
-                value={(formData as any)[key]}
-                onChangeText={(val) => setFormData({ ...formData, [key]: val })}
-              />
+              <Text className="text-gray-700 mb-1">
+                📞 {client.contact_number}
+              </Text>
+              {client.alternate_contact_number && (
+                <Text className="text-gray-600 mb-1">
+                  📱 {client.alternate_contact_number}
+                </Text>
+              )}
+              <Text className="text-gray-600 mb-1">
+                ✉️ {client.email_address}
+              </Text>
+              <Text className="text-gray-600">🏢 {client.office_address}</Text>
             </View>
-          ))}
+          ))
+        )}
+      </ScrollView>
 
-          <TouchableOpacity onPress={handleSubmit} className="bg-primary p-3 rounded-lg">
-            <Text className="text-center text-primary-foreground font-semibold">Add Client</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setIsOpen(false)} className="mt-4 p-3 border border-border rounded-lg">
-            <Text className="text-center text-muted-foreground font-medium">Cancel</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </Modal>
-
-      {clients.map((client) => (
-        <View key={client.id} className="bg-card border border-border rounded-lg p-4">
-          <View className="flex-row justify-between mb-2">
-            <Text className="font-semibold text-lg text-foreground">{client.name}</Text>
-            <View className="flex-row gap-2">
-              <Edit color="#666" size={20} />
-              <Trash2 color="#666" size={20} />
-            </View>
+      {/* Modal */}
+      <Modal visible={isOpen} animationType="slide">
+        <SafeAreaView className="flex-1 bg-white">
+          <View className="flex-row items-center px-4 py-3 border-b border-gray-200 bg-white">
+            <TouchableOpacity onPress={() => setIsOpen(false)} className="mr-3">
+              <ArrowLeft color="#000" size={24} />
+            </TouchableOpacity>
+            <Text className="text-lg font-semibold text-black">
+              Add New Client
+            </Text>
           </View>
 
-          <Text className="text-muted-foreground">Contact: {client.contactPerson}</Text>
-          <Text className="text-primary">{client.contactNumber}</Text>
-          <Text className="text-muted-foreground">{client.email}</Text>
-          <Text className="text-muted-foreground">{client.address}</Text>
-        </View>
-      ))}
-    </ScrollView>
+          <ScrollView className="p-5">
+            {Object.keys(formData).map((key) => (
+              <View key={key} className="mb-4">
+                <Text className="mb-1 text-gray-700 font-medium capitalize">
+                  {key.replaceAll("_", " ")}
+                </Text>
+                <TextInput
+                  className="border border-gray-300 rounded-xl p-3 text-black"
+                  value={(formData as any)[key]}
+                  onChangeText={(val) =>
+                    setFormData({ ...formData, [key]: val })
+                  }
+                />
+              </View>
+            ))}
+
+            <TouchableOpacity
+              onPress={handleSubmit}
+              className="bg-black p-4 rounded-2xl mt-2"
+            >
+              <Text className="text-center text-white font-semibold text-base">
+                Save Client
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setIsOpen(false)}
+              className="mt-5 p-4 border border-gray-300 rounded-2xl"
+            >
+              <Text className="text-center text-gray-600 font-medium text-base">
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
   );
 }

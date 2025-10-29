@@ -1,93 +1,129 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal } from "react-native";
-import { Plus, Edit, Trash2, FileText } from "lucide-react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  StatusBar,
+} from "react-native";
+import { Plus, Trash2, FileText, ArrowLeft } from "lucide-react-native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import useDrivers from "../../hooks/useDriver";
 
-interface Driver {
-  id: string;
-  name: string;
-  contactNumber: string;
-  identityCard: string;
-  licenseCard: string;
-}
 
 export default function DriversManager() {
-  const [drivers, setDrivers] = useState<Driver[]>([
-    {
-      id: "1",
-      name: "Rajesh Kumar",
-      contactNumber: "+91 98765 43210",
-      identityCard: "Aadhaar uploaded",
-      licenseCard: "License uploaded",
-    },
-  ]);
+  const navigation = useNavigation();
+  const userId = 1;
+  const { drivers, loading, fetchDrivers, addDriver, deleteDriver } = useDrivers(userId);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState<Omit<Driver, "id">>({
-    name: "",
-    contactNumber: "",
-    identityCard: "",
-    licenseCard: "",
+  const [formData, setFormData] = useState({
+    driver_name: "",
+    contact_number: "",
+    identity_card_url: "",
+    license_card_url: "",
   });
 
-  const handleSubmit = () => {
-    setDrivers([...drivers, { ...formData, id: Date.now().toString() }]);
+  useFocusEffect(React.useCallback(() => { fetchDrivers(); }, [fetchDrivers]));
+
+  const handleSubmit = async () => {
+    if (!formData.driver_name || !formData.contact_number)
+      return Alert.alert("Validation", "Please fill all required fields");
+
+    await addDriver(formData);
+    setFormData({ driver_name: "", contact_number: "", identity_card_url: "", license_card_url: "" });
     setIsOpen(false);
-    setFormData({ name: "", contactNumber: "", identityCard: "", licenseCard: "" });
+  };
+
+  const handleDelete = (id: number) => {
+    Alert.alert("Confirm", "Delete this driver?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteDriver(id) },
+    ]);
   };
 
   return (
-    <ScrollView className="flex-1 bg-background p-4 space-y-4">
-      <TouchableOpacity
-        onPress={() => setIsOpen(true)}
-        className="bg-primary py-3 rounded-lg flex-row justify-center items-center"
-      >
-        <Plus color="white" size={18} />
-        <Text className="text-primary-foreground ml-2 font-semibold">Add Driver</Text>
-      </TouchableOpacity>
+    <SafeAreaView className="flex-1 bg-white">
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
+      <View className="flex-row items-center px-4 py-3 border-b border-gray-200 bg-white">
+        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3">
+          <ArrowLeft color="#000" size={24} />
+        </TouchableOpacity>
+        <Text className="text-lg font-semibold text-black">Drivers</Text>
+      </View>
+
+      <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
+        <TouchableOpacity
+          onPress={() => setIsOpen(true)}
+          className="bg-black py-4 rounded-2xl flex-row justify-center items-center mb-6"
+        >
+          <Plus color="white" size={20} />
+          <Text className="text-white ml-2 font-semibold">Add Driver</Text>
+        </TouchableOpacity>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#000" />
+        ) : drivers.length === 0 ? (
+          <Text className="text-center text-gray-500 mt-10">No drivers found.</Text>
+        ) : (
+          drivers.map((driver) => (
+            <View key={driver.driver_id} className="bg-white border border-gray-200 rounded-2xl p-4 mb-3 shadow-sm">
+              <View className="flex-row justify-between items-start mb-2">
+                <Text className="text-lg font-semibold text-black">{driver.driver_name}</Text>
+                <TouchableOpacity onPress={() => handleDelete(driver.driver_id)}>
+                  <Trash2 color="#666" size={20} />
+                </TouchableOpacity>
+              </View>
+              <Text className="text-gray-700 mb-1">📞 {driver.contact_number}</Text>
+              <View className="flex-row items-center mb-1">
+                <FileText color="#777" size={18} />
+                <Text className="ml-2 text-gray-600">ID: {driver.identity_card_url || "Not uploaded"}</Text>
+              </View>
+              <View className="flex-row items-center">
+                <FileText color="#777" size={18} />
+                <Text className="ml-2 text-gray-600">License: {driver.license_card_url || "Not uploaded"}</Text>
+              </View>
+            </View>
+          ))
+        )}
+      </ScrollView>
+
+      {/* Modal */}
       <Modal visible={isOpen} animationType="slide">
-        <ScrollView className="flex-1 bg-card p-5">
-          <Text className="text-xl font-semibold text-foreground mb-4">Add New Driver</Text>
-          {Object.keys(formData).map((key) => (
-            <View key={key} className="mb-3">
-              <Text className="text-muted-foreground mb-1 capitalize">{key}</Text>
-              <TextInput
-                className="border border-border rounded-lg p-3 text-foreground bg-background"
-                value={(formData as any)[key]}
-                onChangeText={(val) => setFormData({ ...formData, [key]: val })}
-              />
-            </View>
-          ))}
-          <TouchableOpacity onPress={handleSubmit} className="bg-primary p-3 rounded-lg">
-            <Text className="text-center text-primary-foreground font-semibold">Add Driver</Text>
-          </TouchableOpacity>
+        <SafeAreaView className="flex-1 bg-white">
+          <View className="flex-row items-center px-4 py-3 border-b border-gray-200 bg-white">
+            <TouchableOpacity onPress={() => setIsOpen(false)} className="mr-3">
+              <ArrowLeft color="#000" size={24} />
+            </TouchableOpacity>
+            <Text className="text-lg font-semibold text-black">Add New Driver</Text>
+          </View>
 
-          <TouchableOpacity onPress={() => setIsOpen(false)} className="mt-4 p-3 border border-border rounded-lg">
-            <Text className="text-center text-muted-foreground font-medium">Cancel</Text>
-          </TouchableOpacity>
-        </ScrollView>
+          <ScrollView className="p-5">
+            {Object.keys(formData).map((key) => (
+              <View key={key} className="mb-4">
+                <Text className="mb-1 text-gray-700 font-medium capitalize">{key.replaceAll("_", " ")}</Text>
+                <TextInput
+                  className="border border-gray-300 rounded-xl p-3 text-black"
+                  value={(formData as any)[key]}
+                  onChangeText={(val) => setFormData({ ...formData, [key]: val })}
+                />
+              </View>
+            ))}
+            <TouchableOpacity onPress={handleSubmit} className="bg-black p-4 rounded-2xl mt-2">
+              <Text className="text-center text-white font-semibold text-base">Save Driver</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setIsOpen(false)} className="mt-5 p-4 border border-gray-300 rounded-2xl">
+              <Text className="text-center text-gray-600 font-medium text-base">Cancel</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
-
-      {drivers.map((driver) => (
-        <View key={driver.id} className="bg-card border border-border rounded-lg p-4">
-          <View className="flex-row justify-between items-start mb-2">
-            <Text className="font-semibold text-lg text-foreground">{driver.name}</Text>
-            <View className="flex-row gap-2">
-              <Edit color="#666" size={20} />
-              <Trash2 color="#666" size={20} />
-            </View>
-          </View>
-          <Text className="text-primary mb-1">{driver.contactNumber}</Text>
-          <View className="flex-row items-center gap-2 mb-1">
-            <FileText color="#888" size={18} />
-            <Text className="text-muted-foreground">{driver.identityCard}</Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <FileText color="#888" size={18} />
-            <Text className="text-muted-foreground">{driver.licenseCard}</Text>
-          </View>
-        </View>
-      ))}
-    </ScrollView>
+    </SafeAreaView>
   );
 }

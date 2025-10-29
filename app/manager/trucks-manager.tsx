@@ -1,115 +1,142 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal } from "react-native";
-import { Plus, Edit, Trash2 } from "lucide-react-native";
-
-interface Truck {
-  id: string;
-  registrationNumber: string;
-  chassisNumber: string;
-  engineNumber: string;
-  ownerName: string;
-  containerDimension: string;
-  loadingCapacity: string;
-}
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  StatusBar,
+} from "react-native";
+import { Plus, Trash2, Truck, ArrowLeft } from "lucide-react-native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import useTrucks from "../../hooks/useTruck";
 
 export default function TrucksManager() {
-  const [trucks, setTrucks] = useState<Truck[]>([
-    {
-      id: "1",
-      registrationNumber: "MH-01-AB-1234",
-      chassisNumber: "CH123456789",
-      engineNumber: "EN987654321",
-      ownerName: "Rajesh Transport Co.",
-      containerDimension: "20x8x8 ft",
-      loadingCapacity: "25",
-    },
-  ]);
+  const navigation = useNavigation();
+  const userId = 1; // replace with logged-in user ID
+  const { trucks, loading, fetchTrucks, addTruck, deleteTruck } = useTrucks(userId);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState<Omit<Truck, "id">>({
-    registrationNumber: "",
-    chassisNumber: "",
-    engineNumber: "",
-    ownerName: "",
-    containerDimension: "",
-    loadingCapacity: "",
+  const [formData, setFormData] = useState({
+    registration_number: "",
+    chassis_number: "",
+    engine_number: "",
+    registered_owner_name: "",
+    container_dimension: "",
+    loading_capacity: "",
   });
 
-  const handleSubmit = () => {
-    setTrucks([...trucks, { ...formData, id: Date.now().toString() }]);
-    setIsOpen(false);
+  useFocusEffect(React.useCallback(() => { fetchTrucks(); }, [fetchTrucks]));
+
+  const handleSubmit = async () => {
+    if (!formData.registration_number || !formData.registered_owner_name)
+      return Alert.alert("Validation", "Please fill all required fields");
+
+    await addTruck(formData);
     setFormData({
-      registrationNumber: "",
-      chassisNumber: "",
-      engineNumber: "",
-      ownerName: "",
-      containerDimension: "",
-      loadingCapacity: "",
+      registration_number: "",
+      chassis_number: "",
+      engine_number: "",
+      registered_owner_name: "",
+      container_dimension: "",
+      loading_capacity: "",
     });
+    setIsOpen(false);
+  };
+
+  const handleDelete = (id: number) => {
+    Alert.alert("Confirm", "Delete this truck?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteTruck(id) },
+    ]);
   };
 
   return (
-    <ScrollView className="flex-1 bg-background p-4 space-y-4">
-      <TouchableOpacity
-        onPress={() => setIsOpen(true)}
-        className="bg-primary py-3 rounded-lg flex-row justify-center items-center"
-      >
-        <Plus color="white" size={18} />
-        <Text className="text-primary-foreground ml-2 font-semibold">Add Truck</Text>
-      </TouchableOpacity>
+    <SafeAreaView className="flex-1 bg-white">
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+      <View className="flex-row items-center px-4 py-3 border-b border-gray-200 bg-white">
+        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3">
+          <ArrowLeft color="#000" size={24} />
+        </TouchableOpacity>
+        <Text className="text-lg font-semibold text-black">Trucks</Text>
+      </View>
+
+      <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
+        <TouchableOpacity
+          onPress={() => setIsOpen(true)}
+          className="bg-black py-4 rounded-2xl flex-row justify-center items-center mb-6"
+        >
+          <Plus color="white" size={20} />
+          <Text className="text-white ml-2 font-semibold">Add Truck</Text>
+        </TouchableOpacity>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#000" />
+        ) : trucks.length === 0 ? (
+          <Text className="text-center text-gray-500 mt-10">No trucks found.</Text>
+        ) : (
+          trucks.map((truck) => (
+            <View key={truck.truck_id} className="bg-white border border-gray-200 rounded-2xl p-4 mb-3 shadow-sm">
+              <View className="flex-row justify-between items-start mb-2">
+                <View className="flex-row items-center">
+                  <Truck color="#333" size={18} />
+                  <Text className="ml-2 text-lg font-semibold text-black">
+                    {truck.registration_number}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => handleDelete(truck.truck_id)}>
+                  <Trash2 color="#666" size={20} />
+                </TouchableOpacity>
+              </View>
+              <Text className="text-gray-700 mb-1">Owner: {truck.registered_owner_name}</Text>
+              <Text className="text-gray-700 mb-1">Chassis: {truck.chassis_number}</Text>
+              <Text className="text-gray-700 mb-1">Engine: {truck.engine_number}</Text>
+              <Text className="text-gray-700 mb-1">Dimension: {truck.container_dimension}</Text>
+              <Text className="text-gray-700">Capacity: {truck.loading_capacity} tons</Text>
+            </View>
+          ))
+        )}
+      </ScrollView>
 
       {/* Modal */}
       <Modal visible={isOpen} animationType="slide">
-        <ScrollView className="flex-1 bg-card p-5">
-          <Text className="text-xl font-semibold text-foreground mb-4">Add New Truck</Text>
+        <SafeAreaView className="flex-1 bg-white">
+          <View className="flex-row items-center px-4 py-3 border-b border-gray-200 bg-white">
+            <TouchableOpacity onPress={() => setIsOpen(false)} className="mr-3">
+              <ArrowLeft color="#000" size={24} />
+            </TouchableOpacity>
+            <Text className="text-lg font-semibold text-black">Add New Truck</Text>
+          </View>
 
-          {Object.keys(formData).map((key) => (
-            <View key={key} className="mb-3">
-              <Text className="text-muted-foreground mb-1 capitalize">{key.replace(/([A-Z])/g, " $1")}</Text>
-              <TextInput
-                className="border border-border rounded-lg p-3 text-foreground bg-background"
-                value={(formData as any)[key]}
-                onChangeText={(val) => setFormData({ ...formData, [key]: val })}
-              />
-            </View>
-          ))}
+          <ScrollView className="p-5">
+            {Object.keys(formData).map((key) => (
+              <View key={key} className="mb-4">
+                <Text className="mb-1 text-gray-700 font-medium capitalize">
+                  {key.replaceAll("_", " ")}
+                </Text>
+                <TextInput
+                  className="border border-gray-300 rounded-xl p-3 text-black"
+                  value={(formData as any)[key]}
+                  onChangeText={(val) => setFormData({ ...formData, [key]: val })}
+                />
+              </View>
+            ))}
 
-          <TouchableOpacity
-            onPress={handleSubmit}
-            className="bg-primary p-3 rounded-lg mt-2"
-          >
-            <Text className="text-center text-primary-foreground font-semibold">Add Truck</Text>
-          </TouchableOpacity>
+            <TouchableOpacity onPress={handleSubmit} className="bg-black p-4 rounded-2xl mt-2">
+              <Text className="text-center text-white font-semibold text-base">Save Truck</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => setIsOpen(false)}
-            className="mt-4 p-3 border border-border rounded-lg"
-          >
-            <Text className="text-center text-muted-foreground font-medium">Cancel</Text>
-          </TouchableOpacity>
-        </ScrollView>
+            <TouchableOpacity onPress={() => setIsOpen(false)} className="mt-5 p-4 border border-gray-300 rounded-2xl">
+              <Text className="text-center text-gray-600 font-medium text-base">Cancel</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
-
-      {trucks.map((truck) => (
-        <View key={truck.id} className="bg-card border border-border rounded-lg p-4">
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-lg font-semibold text-primary">{truck.registrationNumber}</Text>
-            <View className="flex-row gap-3">
-              <Edit color="#666" size={20} />
-              <Trash2 color="#666" size={20} />
-            </View>
-          </View>
-
-          <View className="grid-cols-2 gap-2">
-            <Text className="text-muted-foreground">Owner: {truck.ownerName}</Text>
-            <Text className="text-muted-foreground">Chassis: {truck.chassisNumber}</Text>
-            <Text className="text-muted-foreground">Engine: {truck.engineNumber}</Text>
-            <Text className="text-muted-foreground">
-              Capacity: {truck.loadingCapacity} tons
-            </Text>
-          </View>
-        </View>
-      ))}
-    </ScrollView>
+    </SafeAreaView>
   );
 }
