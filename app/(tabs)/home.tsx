@@ -10,7 +10,6 @@ export default function HomeScreen() {
   const userId = 1; // 👈 Replace this with actual logged-in user's ID
 
   const {
-    trips,
     loading,
     totalRevenue,
     totalTrips,

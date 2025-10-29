@@ -9,9 +9,15 @@ import {
   Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Camera } from "lucide-react-native";
+import { Camera, LogOut } from "lucide-react-native";
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebaseConfig";
+import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Profile() {
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     fullName: "",
     companyName: "",
@@ -45,9 +51,22 @@ export default function Profile() {
     Alert.alert("Profile Updated", "Your profile has been saved successfully!");
   };
 
+  // ✅ Logout function
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // Firebase logout
+      await AsyncStorage.removeItem("user"); // optional: clear user data
+      await AsyncStorage.removeItem("token");
+      Alert.alert("Logged Out", "You have been logged out successfully!");
+      router.replace("/auth/login"); // Navigate back to login
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Error", "Failed to log out. Please try again.");
+    }
+  };
+
   return (
     <ScrollView className="flex-1 bg-background p-4">
-
       {/* Profile Picture */}
       <View className="items-center mb-6">
         <View className="relative">
@@ -68,7 +87,7 @@ export default function Profile() {
         </View>
       </View>
 
-      {/* Form */}
+      {/* Form Fields */}
       <View className="space-y-4">
         {[
           { key: "fullName", label: "Full Name *" },
@@ -104,6 +123,7 @@ export default function Profile() {
         </View>
       </View>
 
+      {/* Save Button */}
       <TouchableOpacity
         onPress={handleSubmit}
         className="bg-primary p-4 rounded-xl mt-8 items-center"
@@ -111,6 +131,15 @@ export default function Profile() {
         <Text className="text-primary-foreground font-semibold text-base">
           Save Profile
         </Text>
+      </TouchableOpacity>
+
+      {/* 🔴 Logout Button */}
+      <TouchableOpacity
+        onPress={handleLogout}
+        className="flex-row items-center justify-center bg-red-600 p-4 rounded-xl mt-4"
+      >
+        <LogOut size={20} color="#fff" />
+        <Text className="text-white font-semibold text-base ml-2">Logout</Text>
       </TouchableOpacity>
     </ScrollView>
   );
