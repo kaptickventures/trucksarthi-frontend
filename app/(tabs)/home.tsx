@@ -112,23 +112,6 @@ export default function HomeScreen() {
           </Text>
         )}
       </View>
-
-      {/* Info Cards */}
-      <View className="flex-row flex-wrap justify-between">
-        {[
-          { title: "Active Vehicles", value: "24", subtitle: "2 in maintenance", icon: "bus-outline" },
-          { title: "Deliveries Today", value: "18", subtitle: "3 pending pickup", icon: "cube-outline" },
-          { title: "Avg. Delivery Time", value: "4.2h", subtitle: "15% faster", icon: "time-outline" },
-          { title: "Fuel Efficiency", value: "12 km/l", subtitle: "Fleet avg.", icon: "flame-outline" },
-        ].map((card, idx) => (
-          <View key={idx} className="w-[48%] bg-card rounded-2xl p-4 mb-4">
-            <Ionicons name={card.icon as any} size={22} color="#A855F7" />
-            <Text className="text-card-foreground font-semibold mt-2">{card.title}</Text>
-            <Text className="text-card-foreground text-lg font-bold mt-1">{card.value}</Text>
-            <Text className="text-muted-foreground text-xs">{card.subtitle}</Text>
-          </View>
-        ))}
-      </View>
     </ScrollView>
   );
 }
