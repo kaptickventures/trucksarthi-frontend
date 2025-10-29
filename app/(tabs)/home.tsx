@@ -1,17 +1,30 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import "../../global.css"; // Tailwind config & theme loaded here
-
-const recentTrips = [
-  { id: 1, date: "2024-01-15", truck: "MH-01-AB-1234", driver: "Rajesh Kumar", route: "Mumbai → Delhi", amount: 47000 },
-  { id: 2, date: "2024-01-14", truck: "MH-02-CD-5678", driver: "Amit Sharma", route: "Pune → Bangalore", amount: 39500 },
-  { id: 3, date: "2024-01-13", truck: "GJ-03-EF-9012", driver: "Suresh Patel", route: "Ahmedabad → Chennai", amount: 52000 },
-];
+import useTrips from "../../hooks/useTrip";
+import "../../global.css";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const userId = 1; // 👈 Replace this with actual logged-in user's ID
+
+  const {
+    trips,
+    loading,
+    totalRevenue,
+    totalTrips,
+    recentTrips,
+  } = useTrips(userId);
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center bg-background">
+        <ActivityIndicator size="large" color="#A855F7" />
+        <Text className="text-muted-foreground mt-2">Loading trips...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-background p-4">
@@ -19,13 +32,17 @@ export default function HomeScreen() {
       <View className="flex-row justify-between mb-4">
         <View className="flex-1 bg-card rounded-2xl p-4 mr-2">
           <Text className="text-muted-foreground text-xs">Monthly Revenue</Text>
-          <Text className="text-card-foreground text-xl font-bold mt-1">₹4,52,310</Text>
+          <Text className="text-card-foreground text-xl font-bold mt-1">
+            ₹{totalRevenue.toLocaleString()}
+          </Text>
           <Text className="text-success text-xs mt-1">▲ +12.5%</Text>
         </View>
 
         <View className="flex-1 bg-card rounded-2xl p-4 ml-2">
           <Text className="text-muted-foreground text-xs">Number of Trips</Text>
-          <Text className="text-card-foreground text-xl font-bold mt-1">142</Text>
+          <Text className="text-card-foreground text-xl font-bold mt-1">
+            {totalTrips}
+          </Text>
           <Text className="text-success text-xs mt-1">▲ +8.2%</Text>
         </View>
       </View>
@@ -36,19 +53,21 @@ export default function HomeScreen() {
         className="bg-primary rounded-full py-4 flex-row justify-center items-center mb-6"
       >
         <Ionicons name="car-outline" size={20} color="white" />
-        <Text className="text-primary-foreground font-semibold text-base ml-2">Add Trip</Text>
+        <Text className="text-primary-foreground font-semibold text-base ml-2">
+          Add Trip
+        </Text>
       </TouchableOpacity>
 
       {/* Quick Actions */}
       <View className="flex-row justify-between mb-6">
         {[
-          { title: "Location", icon: "location-outline" },
-          { title: "Driver", icon: "person-add-outline" },
-          { title: "Client", icon: "people-outline" },
+          { title: "Location", icon: "location-outline", route: "/manager/locations-manager" as const },
+          { title: "Driver", icon: "person-add-outline", route: "/manager/drivers-manager" as const },
+          { title: "Client", icon: "people-outline", route: "/manager/clients-manager" as const },
         ].map((item, idx) => (
           <TouchableOpacity
             key={idx}
-            onPress={() => router.push(`/manager`)}
+            onPress={() => router.push(item.route)}
             className="flex-1 bg-card rounded-xl p-3 items-center mx-1"
           >
             <Ionicons name={item.icon as any} size={22} color="#A855F7" />
@@ -66,25 +85,33 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {recentTrips.map((trip) => (
-          <View
-            key={trip.id}
-            className="flex-row justify-between items-center bg-secondary p-3 rounded-xl mb-2"
-          >
-            <View className="flex-1">
-              <Text className="text-card-foreground font-medium text-sm">{trip.route}</Text>
-              <Text className="text-muted-foreground text-xs mt-1">
-                {trip.truck} • {trip.driver}
-              </Text>
+        {recentTrips.length > 0 ? (
+          recentTrips.map((trip) => (
+            <View
+              key={trip.trip_id}
+              className="flex-row justify-between items-center bg-secondary p-3 rounded-xl mb-2"
+            >
+              <View className="flex-1">
+                <Text className="text-card-foreground font-medium text-sm">
+                  Trip #{trip.trip_id}
+                </Text>
+                <Text className="text-muted-foreground text-xs mt-1">
+                  Truck {trip.truck_id} • Driver {trip.driver_id}
+                </Text>
+              </View>
+              <View className="items-end">
+                <Text className="text-primary font-semibold">
+                  ₹{trip.cost_of_trip.toLocaleString()}
+                </Text>
+                <Text className="text-muted-foreground text-xs">{trip.trip_date}</Text>
+              </View>
             </View>
-            <View className="items-end">
-              <Text className="text-primary font-semibold">
-                ₹{trip.amount.toLocaleString()}
-              </Text>
-              <Text className="text-muted-foreground text-xs">{trip.date}</Text>
-            </View>
-          </View>
-        ))}
+          ))
+        ) : (
+          <Text className="text-muted-foreground text-center py-4">
+            No trips found for this user.
+          </Text>
+        )}
       </View>
 
       {/* Info Cards */}

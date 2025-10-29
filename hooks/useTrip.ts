@@ -76,5 +76,11 @@ export default function useTrips(userId: number) {
     fetchTrips();
   }, [fetchTrips]);
 
-  return { trips, loading, fetchTrips, addTrip, updateTrip, deleteTrip };
+    // ✅ Calculations
+  const totalRevenue = trips.reduce((acc, t) => acc + t.cost_of_trip, 0);
+  const totalTrips = trips.length;
+  const recentTrips = trips.slice(-3).reverse(); // show 3 most recent trips
+
+
+  return { trips, loading, totalRevenue, totalTrips, recentTrips, fetchTrips, addTrip, updateTrip, deleteTrip };
 }
