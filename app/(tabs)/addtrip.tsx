@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,22 +9,22 @@ import {
   ActivityIndicator,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
-import axios from "axios";
-
-// ✅ Replace this with your backend Render URL
-const BACKEND_URL = "https://your-backend-url.onrender.com";
+import useTrucks from "../../hooks/useTruck";
+import useDrivers from "../../hooks/useDriver";
+import useClients from "../../hooks/useClient";
+import useLocations from "../../hooks/useLocation";
+import useTrips from "../../hooks/useTrip";
 
 export default function AddTrip() {
   const userId = 1; // your logged-in user_id
-  const [loading, setLoading] = useState(true);
 
-  // Data from backend
-  const [trucks, setTrucks] = useState<any[]>([]);
-  const [drivers, setDrivers] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
+  // ✅ Custom hooks
+  const { trucks, loading: loadingTrucks } = useTrucks(userId);
+  const { drivers, loading: loadingDrivers } = useDrivers(userId);
+  const { clients, loading: loadingClients } = useClients(userId);
+  const { locations, loading: loadingLocations } = useLocations(userId);
+  const { addTrip } = useTrips(userId);
 
-  // Form data
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     truck_id: "",
@@ -37,7 +37,6 @@ export default function AddTrip() {
     notes: "",
   });
 
-  // Dropdown open states
   const [dropdowns, setDropdowns] = useState({
     truck: false,
     driver: false,
@@ -46,29 +45,8 @@ export default function AddTrip() {
     end: false,
   });
 
-  // ✅ Fetch data for dropdowns
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [t, d, c, l] = await Promise.all([
-          axios.get(`${BACKEND_URL}/api/trucks/user/${userId}`),
-          axios.get(`${BACKEND_URL}/api/drivers/user/${userId}`),
-          axios.get(`${BACKEND_URL}/api/clients/user/${userId}`),
-          axios.get(`${BACKEND_URL}/api/locations/user/${userId}`),
-        ]);
-        setTrucks(t.data);
-        setDrivers(d.data);
-        setClients(c.data);
-        setLocations(l.data);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        Alert.alert("Error", "Unable to load data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const loading =
+    loadingTrucks || loadingDrivers || loadingClients || loadingLocations;
 
   // ✅ Handle trip submission
   const handleSubmit = async () => {
@@ -94,7 +72,7 @@ export default function AddTrip() {
     }
 
     try {
-      const res = await axios.post(`${BACKEND_URL}/api/trips`, {
+      await addTrip({
         truck_id: Number(truck_id),
         driver_id: Number(driver_id),
         client_id: Number(client_id),
@@ -105,10 +83,8 @@ export default function AddTrip() {
         notes: formData.notes,
       });
 
-      console.log("Trip added:", res.data);
       Alert.alert("Success", "Trip created successfully!");
 
-      // Reset form after submission
       setFormData({
         date: new Date().toISOString().split("T")[0],
         truck_id: "",
@@ -120,9 +96,9 @@ export default function AddTrip() {
         miscellaneous_expense: "",
         notes: "",
       });
-    } catch (err: any) {
-      console.error("Error adding trip:", err.response?.data || err.message);
-      Alert.alert("Error", "Failed to create trip. Please check your inputs.");
+    } catch (err) {
+      console.error("Error adding trip:", err);
+      Alert.alert("Error", "Failed to add trip. Please try again.");
     }
   };
 
@@ -135,7 +111,7 @@ export default function AddTrip() {
     );
   }
 
-  // ✅ Dropdown configurations
+  // ✅ Dropdown data with values converted to strings
   const dropdownData = [
     {
       label: "Truck",
@@ -143,14 +119,17 @@ export default function AddTrip() {
       openKey: "truck",
       items: trucks.map((t) => ({
         label: t.registration_number,
-        value: t.truck_id,
+        value: String(t.truck_id),
       })),
     },
     {
       label: "Driver",
       key: "driver_id",
       openKey: "driver",
-      items: drivers.map((d) => ({ label: d.name, value: d.driver_id })),
+      items: drivers.map((d) => ({
+        label: d.driver_name,
+        value: String(d.driver_id),
+      })),
     },
     {
       label: "Client",
@@ -158,7 +137,7 @@ export default function AddTrip() {
       openKey: "client",
       items: clients.map((c) => ({
         label: c.client_name,
-        value: c.client_id,
+        value: String(c.client_id),
       })),
     },
     {
@@ -167,7 +146,7 @@ export default function AddTrip() {
       openKey: "start",
       items: locations.map((l) => ({
         label: l.location_name,
-        value: l.location_id,
+        value: String(l.location_id),
       })),
     },
     {
@@ -176,7 +155,7 @@ export default function AddTrip() {
       openKey: "end",
       items: locations.map((l) => ({
         label: l.location_name,
-        value: l.location_id,
+        value: String(l.location_id),
       })),
     },
   ];
