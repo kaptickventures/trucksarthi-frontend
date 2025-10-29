@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.sahilgumber7.trucksarthifrontend"
     },
     "web": {
       "output": "static",
@@ -50,6 +51,12 @@
       "eas": {
         "projectId": "65746392-bd98-48dd-ad7b-50391f8a8497"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/65746392-bd98-48dd-ad7b-50391f8a8497"
     }
   }
 }

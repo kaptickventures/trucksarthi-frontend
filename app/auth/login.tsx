@@ -160,7 +160,7 @@ export default function PhoneAuthScreen() {
             </TouchableOpacity>
           </>
         )}
-      </View>
+      </View>e
     </KeyboardAvoidingView>
   );
 }
