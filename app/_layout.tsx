@@ -12,6 +12,8 @@ export default function App() {
   const colorScheme = useColorScheme(); 
 
   return (
+
+    
     <ThemeProvider value={NAV_THEME[colorScheme === "dark" ? "dark" : "light"]}>      
    
     <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
