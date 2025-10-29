@@ -1,91 +1,126 @@
-import React from "react";
-import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme } from "react-native";
+import { Tabs } from "expo-router";
+import React from "react";
+import { useColorScheme, View } from "react-native";
 
 export default function TabBar() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const bgColor = isDark ? "#000" : "#fff";
-  const borderColor = isDark ? "#111" : "#ddd";
+  const bgClass = isDark ? "bg-black" : "bg-white";
   const activeTint = isDark ? "#fff" : "#000";
-  const inactiveTint = isDark ? "#888" : "#888"; // slightly grey for inactive
+  const inactiveTint = isDark ? "#777" : "#bbb";
 
   return (
     <Tabs
       screenOptions={{
-        // ✅ Header styling
-        headerStyle: {
-          backgroundColor: bgColor,
-        },
-        headerTintColor: activeTint,
-        headerTitleStyle: {
-          fontWeight: "600",
-        },
-
-        // ✅ Tab bar styling
+        headerShown: true,
+        tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: bgColor,
-          borderTopColor: borderColor,
-          height: 60,
+          position: "absolute",
+          bottom: 25,
+          left: 20,
+          right: 20,
+          height: 70,
+          marginHorizontal: 10,
+          marginBottom: 5,
+          borderRadius: 35,
+          backgroundColor: isDark ? "#000" : "#fff",
+          borderTopWidth: 0,
+          shadowColor: isDark ? "#000" : "#00000022",
+          shadowOpacity: 0.25,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 10,
+          paddingTop: 10,
+          paddingHorizontal: 6,
         },
         tabBarActiveTintColor: activeTint,
         tabBarInactiveTintColor: inactiveTint,
       }}
       initialRouteName="home"
     >
+      {/* HOME */}
       <Tabs.Screen
         name="home"
         options={{
           title: "Home",
-          headerTitle: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View className={`items-center justify-center ${bgClass} `}>
+              <Ionicons
+                name={focused ? "home" : "home-outline"}
+                size={26}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
 
+      {/* HISTORY */}
       <Tabs.Screen
         name="history"
         options={{
           title: "History",
-          headerTitle: "History",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View className="items-center justify-center ">
+              <Ionicons
+                name={focused ? "time" : "time-outline"}
+                size={26}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
 
+      {/* ADD TRIP (center icon) */}
       <Tabs.Screen
         name="addtrip"
         options={{
           title: "Add Trip",
-          headerTitle: "Add Trip",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View className="items-center justify-center ">
+              <Ionicons
+                name="add-circle"
+                size={30}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
 
+      {/* MANAGER */}
       <Tabs.Screen
         name="manager"
         options={{
           title: "Manager",
-          headerTitle: "Manager",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View className="items-center justify-center ">
+              <Ionicons
+                name={focused ? "people" : "people-outline"}
+                size={26}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
 
+      {/* PROFILE */}
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          headerTitle: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-circle-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View className="items-center justify-center ">
+              <Ionicons
+                name={focused ? "person" : "person-outline"}
+                size={26}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
