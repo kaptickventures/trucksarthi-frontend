@@ -7,7 +7,7 @@ export default function TabBar() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const bgClass = isDark ? "bg-black" : "bg-white";
+  const bgColor = isDark ? "#000" : "#fff";
   const activeTint = isDark ? "#fff" : "#000";
   const inactiveTint = isDark ? "#777" : "#bbb";
 
@@ -18,22 +18,23 @@ export default function TabBar() {
         tabBarShowLabel: false,
         tabBarStyle: {
           position: "absolute",
-          bottom: 25,
-          left: 20,
-          right: 20,
-          height: 70,
-          marginHorizontal: 10,
-          marginBottom: 5,
-          borderRadius: 35,
-          backgroundColor: isDark ? "#000" : "#fff",
+          bottom: 0, // 👈 stick to bottom
+          left: 0,
+          right: 0,
+          borderTopLeftRadius: 25, // 👈 only top curves
+          borderTopRightRadius: 25,
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          backgroundColor: bgColor,
           borderTopWidth: 0,
           shadowColor: isDark ? "#000" : "#00000022",
-          shadowOpacity: 0.25,
+          shadowOpacity: 0.2,
           shadowRadius: 8,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 10,
-          paddingTop: 10,
+          shadowOffset: { width: 0, height: -4 },
+          elevation: 8,
           paddingHorizontal: 6,
+          paddingBottom: 10,
+          paddingTop: 10,
         },
         tabBarActiveTintColor: activeTint,
         tabBarInactiveTintColor: inactiveTint,
@@ -46,7 +47,7 @@ export default function TabBar() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <View className={`items-center justify-center ${bgClass} `}>
+            <View className="items-center justify-center">
               <Ionicons
                 name={focused ? "home" : "home-outline"}
                 size={26}
@@ -63,7 +64,7 @@ export default function TabBar() {
         options={{
           title: "History",
           tabBarIcon: ({ color, focused }) => (
-            <View className="items-center justify-center ">
+            <View className="items-center justify-center">
               <Ionicons
                 name={focused ? "time" : "time-outline"}
                 size={26}
@@ -74,18 +75,14 @@ export default function TabBar() {
         }}
       />
 
-      {/* ADD TRIP (center icon) */}
+      {/* ADD TRIP */}
       <Tabs.Screen
         name="addtrip"
         options={{
           title: "Add Trip",
-          tabBarIcon: ({ color, focused }) => (
-            <View className="items-center justify-center ">
-              <Ionicons
-                name="add-circle"
-                size={30}
-                color={color}
-              />
+          tabBarIcon: ({ color }) => (
+            <View className="items-center justify-center">
+              <Ionicons name="add-circle" size={30} color={color} />
             </View>
           ),
         }}
@@ -97,7 +94,7 @@ export default function TabBar() {
         options={{
           title: "Manager",
           tabBarIcon: ({ color, focused }) => (
-            <View className="items-center justify-center ">
+            <View className="items-center justify-center">
               <Ionicons
                 name={focused ? "people" : "people-outline"}
                 size={26}
@@ -114,7 +111,7 @@ export default function TabBar() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <View className="items-center justify-center ">
+            <View className="items-center justify-center">
               <Ionicons
                 name={focused ? "person" : "person-outline"}
                 size={26}

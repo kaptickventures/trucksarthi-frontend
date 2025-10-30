@@ -7,6 +7,10 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import useTrucks from "../../hooks/useTruck";
@@ -16,7 +20,7 @@ import useLocations from "../../hooks/useLocation";
 import useTrips from "../../hooks/useTrip";
 
 export default function AddTrip() {
-  const userId = 1; // your logged-in user_id
+  const userId = 1; // replace with logged-in user_id
 
   // ✅ Custom hooks
   const { trucks, loading: loadingTrucks } = useTrucks(userId);
@@ -102,6 +106,7 @@ export default function AddTrip() {
     }
   };
 
+  // ✅ Show loading screen
   if (loading) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
@@ -111,7 +116,7 @@ export default function AddTrip() {
     );
   }
 
-  // ✅ Dropdown data with values converted to strings
+  // ✅ Dropdown data
   const dropdownData = [
     {
       label: "Truck",
@@ -161,96 +166,100 @@ export default function AddTrip() {
   ];
 
   return (
-    <ScrollView className="flex-1 bg-white p-4">
-      <View className="border border-gray-400 rounded-2xl p-4 mb-6">
-        <Text className="text-xl font-semibold text-center text-black">
-          Add New Trip
-        </Text>
-      </View>
-
-      {/* Date */}
-      <Text className="text-black mb-1 font-medium">Date *</Text>
-      <TextInput
-        className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
-        value={formData.date}
-        editable={false}
-      />
-
-      {/* Dropdowns */}
-      {dropdownData.map((d, i) => (
-        <View
-          key={i}
-          style={{
-            marginBottom: dropdowns[d.openKey as keyof typeof dropdowns]
-              ? 150
-              : 12,
-          }}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      className="flex-1 bg-white"
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          className="flex-1 p-4"
+          contentContainerStyle={{ paddingBottom: 120 }} // 👈 Prevent hiding under TabBar
         >
-          <Text className="text-black mb-1 font-medium">{d.label} *</Text>
-          <DropDownPicker
-            open={dropdowns[d.openKey as keyof typeof dropdowns]}
-            value={formData[d.key as keyof typeof formData]}
-            items={d.items}
-            setOpen={(o) =>
-              setDropdowns((prev) => ({ ...prev, [d.openKey]: o }))
-            }
-            setValue={(cb) =>
-              setFormData((prev) => ({
-                ...prev,
-                [d.key]: cb(prev[d.key as keyof typeof formData]),
-              }))
-            }
-            placeholder={`Select ${d.label}`}
-            style={{
-              backgroundColor: "#f8f8f8",
-              borderColor: "#ccc",
-            }}
-            dropDownContainerStyle={{ backgroundColor: "#fff" }}
+          {/* Date */}
+          <Text className="text-black mb-1 font-medium">Date *</Text>
+          <TextInput
+            className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
+            value={formData.date}
+            editable={false}
           />
-        </View>
-      ))}
 
-      {/* Cost of Trip */}
-      <Text className="text-black mb-1 font-medium">Cost of Trip (₹) *</Text>
-      <TextInput
-        keyboardType="numeric"
-        className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
-        value={formData.cost_of_trip}
-        onChangeText={(text) =>
-          setFormData({ ...formData, cost_of_trip: text })
-        }
-      />
+          {/* Dropdowns */}
+          {dropdownData.map((d, i) => (
+            <View
+              key={i}
+              style={{
+                marginBottom: dropdowns[d.openKey as keyof typeof dropdowns]
+                  ? 150
+                  : 12,
+              }}
+            >
+              <Text className="text-black mb-1 font-medium">{d.label} *</Text>
+              <DropDownPicker
+                open={dropdowns[d.openKey as keyof typeof dropdowns]}
+                value={formData[d.key as keyof typeof formData]}
+                items={d.items}
+                setOpen={(o) =>
+                  setDropdowns((prev) => ({ ...prev, [d.openKey]: o }))
+                }
+                setValue={(cb) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    [d.key]: cb(prev[d.key as keyof typeof formData]),
+                  }))
+                }
+                placeholder={`Select ${d.label}`}
+                style={{
+                  backgroundColor: "#f8f8f8",
+                  borderColor: "#ccc",
+                }}
+                dropDownContainerStyle={{ backgroundColor: "#fff" }}
+              />
+            </View>
+          ))}
 
-      {/* Miscellaneous Expense */}
-      <Text className="text-black mb-1 font-medium">
-        Miscellaneous Expense (₹)
-      </Text>
-      <TextInput
-        keyboardType="numeric"
-        className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
-        value={formData.miscellaneous_expense}
-        onChangeText={(text) =>
-          setFormData({ ...formData, miscellaneous_expense: text })
-        }
-      />
+          {/* Cost of Trip */}
+          <Text className="text-black mb-1 font-medium">Cost of Trip (₹) *</Text>
+          <TextInput
+            keyboardType="numeric"
+            className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
+            value={formData.cost_of_trip}
+            onChangeText={(text) =>
+              setFormData({ ...formData, cost_of_trip: text })
+            }
+          />
 
-      {/* Notes */}
-      <Text className="text-black mb-1 font-medium">Notes</Text>
-      <TextInput
-        multiline
-        numberOfLines={3}
-        className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-6"
-        value={formData.notes}
-        onChangeText={(text) => setFormData({ ...formData, notes: text })}
-      />
+          {/* Miscellaneous Expense */}
+          <Text className="text-black mb-1 font-medium">
+            Miscellaneous Expense (₹)
+          </Text>
+          <TextInput
+            keyboardType="numeric"
+            className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
+            value={formData.miscellaneous_expense}
+            onChangeText={(text) =>
+              setFormData({ ...formData, miscellaneous_expense: text })
+            }
+          />
 
-      {/* Submit */}
-      <TouchableOpacity
-        onPress={handleSubmit}
-        className="bg-black p-4 rounded-xl items-center"
-      >
-        <Text className="text-white font-semibold">Add Trip</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          {/* Notes */}
+          <Text className="text-black mb-1 font-medium">Notes</Text>
+          <TextInput
+            multiline
+            numberOfLines={3}
+            className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-6"
+            value={formData.notes}
+            onChangeText={(text) => setFormData({ ...formData, notes: text })}
+          />
+
+          {/* Submit */}
+          <TouchableOpacity
+            onPress={handleSubmit}
+            className="bg-black p-4 rounded-xl items-center mb-10"
+          >
+            <Text className="text-white font-semibold">Add Trip</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
