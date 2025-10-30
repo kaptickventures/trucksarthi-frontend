@@ -6,19 +6,18 @@ interface Driver {
   driver_id: number;
   driver_name: string;
   contact_number: string;
-  identity_card_url: string;
-  license_card_url: string;
-  user_id: number;
+  identity_card_url?: string;
+  license_card_url?: string;
 }
 
-export default function useDrivers(userId: number) {
+export default function useDrivers(firebase_uid: string) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchDrivers = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await API.get(`/api/drivers/user/${userId}`);
+      const res = await API.get(`/api/drivers/user/${firebase_uid}`);
       setDrivers(res.data);
     } catch (error) {
       console.error(error);
@@ -26,11 +25,14 @@ export default function useDrivers(userId: number) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [firebase_uid]);
 
   const addDriver = async (formData: any) => {
     try {
-      const res = await API.post(`/api/drivers`, { ...formData, user_id: userId });
+      const res = await API.post(`/api/drivers`, {
+        ...formData,
+        firebase_uid,
+      });
       setDrivers((prev) => [...prev, res.data]);
       return res.data;
     } catch (error) {

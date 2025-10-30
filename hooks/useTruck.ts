@@ -10,17 +10,16 @@ interface Truck {
   registered_owner_name: string;
   container_dimension: string;
   loading_capacity: number;
-  user_id: number;
 }
 
-export default function useTrucks(userId: number) {
+export default function useTrucks(firebase_uid: string) {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchTrucks = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await API.get(`/api/trucks/user/${userId}`);
+      const res = await API.get(`/api/trucks/user/${firebase_uid}`);
       setTrucks(res.data);
     } catch (error) {
       console.error(error);
@@ -28,11 +27,14 @@ export default function useTrucks(userId: number) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [firebase_uid]);
 
   const addTruck = async (formData: any) => {
     try {
-      const res = await API.post(`/api/trucks`, { ...formData, user_id: userId });
+      const res = await API.post(`/api/trucks`, {
+        ...formData,
+        firebase_uid,
+      });
       setTrucks((prev) => [...prev, res.data]);
       return res.data;
     } catch (error) {

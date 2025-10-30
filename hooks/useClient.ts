@@ -1,25 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import { Alert } from "react-native";
-import API from "../app/api/axiosInstance"
+import API from "../app/api/axiosInstance";
 
 interface Client {
   client_id: number;
   client_name: string;
-  contact_person_name: string;
   contact_number: string;
-  alternate_contact_number?: string;
-  email_address: string;
-  office_address: string;
+  email: string;
+  address: string;
+  company_name: string;
+  gst_number?: string;
 }
 
-export default function useClients(userId: number) {
+export default function useClients(firebase_uid: string) {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await API.get(`/api/clients/user/${userId}`);
+      const res = await API.get(`/api/clients/user/${firebase_uid}`);
       setClients(res.data);
     } catch (error) {
       console.error(error);
@@ -27,13 +27,13 @@ export default function useClients(userId: number) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [firebase_uid]);
 
   const addClient = async (formData: any) => {
     try {
       const res = await API.post(`/api/clients`, {
         ...formData,
-        user_id: userId,
+        firebase_uid,
       });
       setClients((prev) => [...prev, res.data]);
       return res.data;
@@ -58,11 +58,5 @@ export default function useClients(userId: number) {
     fetchClients();
   }, [fetchClients]);
 
-  return {
-    clients,
-    loading,
-    fetchClients,
-    addClient,
-    deleteClient,
-  };
+  return { clients, loading, fetchClients, addClient, deleteClient };
 }

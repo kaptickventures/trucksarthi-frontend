@@ -1,138 +1,84 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Modal,
-  SafeAreaView,
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { Plus, Trash2, MapPin, ArrowLeft } from "lucide-react-native";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import useLocations from "../../hooks/useLocation";
+import { getAuth } from "firebase/auth";
 
 export default function LocationsManager() {
-  const navigation = useNavigation();
-  const userId = 1;
-  const { locations, loading, fetchLocations, addLocation, deleteLocation } = useLocations(userId);
+  const auth = getAuth();
+  const user = auth.currentUser;
+  const firebase_uid = user?.uid;
+  const { locations, loading, fetchLocations, addLocation, deleteLocation } = useLocations(firebase_uid || "");
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    location_name: "",
-    complete_address: "",
-  });
-
-  useFocusEffect(React.useCallback(() => { fetchLocations(); }, [fetchLocations]));
+  const [form, setForm] = useState({ location_name: "", address: "" });
 
   const handleSubmit = async () => {
-    if (!formData.location_name || !formData.complete_address)
-      return Alert.alert("Validation", "Please fill all fields");
-
-    await addLocation(formData);
-    setFormData({ location_name: "", complete_address: "" });
-    setIsOpen(false);
+    if (!form.location_name) {
+      Alert.alert("Please fill location name");
+      return;
+    }
+    try {
+      await addLocation(form);
+      setForm({ location_name: "", address: "" });
+      Alert.alert("Location added successfully");
+    } catch {
+      Alert.alert("Failed to add location");
+    }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: number) =>
     Alert.alert("Confirm", "Delete this location?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deleteLocation(id) },
+      { text: "Delete", onPress: () => deleteLocation(id) },
     ]);
-  };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (firebase_uid) fetchLocations();
+    }, [firebase_uid, fetchLocations])
+  );
+
+  if (!firebase_uid) return <ActivityIndicator size="large" color="#888" />;
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      {/* Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-border bg-card">
-        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3">
-          <ArrowLeft color="#888" size={24} />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-foreground">Locations</Text>
-      </View>
+    <ScrollView className="p-4">
+      {loading && <ActivityIndicator />}
+      <Text className="text-xl font-bold mb-2">Add Location</Text>
 
-      <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
-        <TouchableOpacity
-          onPress={() => setIsOpen(true)}
-          className="bg-primary py-4 rounded-2xl flex-row justify-center items-center mb-6"
-        >
-          <Plus color="white" size={20} />
-          <Text className="text-primary-foreground ml-2 font-semibold">Add Location</Text>
-        </TouchableOpacity>
+      <TextInput
+        placeholder="Location Name"
+        value={form.location_name}
+        onChangeText={(text) => setForm((p) => ({ ...p, location_name: text }))}
+        className="border p-2 mb-2 rounded"
+      />
+      <TextInput
+        placeholder="Address"
+        value={form.address}
+        onChangeText={(text) => setForm((p) => ({ ...p, address: text }))}
+        className="border p-2 mb-2 rounded"
+      />
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#888" />
-        ) : locations.length === 0 ? (
-          <Text className="text-center text-muted-foreground mt-10">No locations found.</Text>
-        ) : (
-          locations.map((loc) => (
-            <View
-              key={loc.location_id}
-              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
-            >
-              <View className="flex-row justify-between items-start mb-2">
-                <View className="flex-row items-center">
-                  <MapPin color="#777" size={18} />
-                  <Text className="ml-2 text-lg font-semibold text-card-foreground">
-                    {loc.location_name}
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => handleDelete(loc.location_id)}>
-                  <Trash2 color="#999" size={20} />
-                </TouchableOpacity>
-              </View>
-              <Text className="text-muted-foreground">{loc.complete_address}</Text>
-            </View>
-          ))
-        )}
-      </ScrollView>
+      <TouchableOpacity onPress={handleSubmit} className="bg-blue-500 p-3 rounded">
+        <Text className="text-white text-center">Add Location</Text>
+      </TouchableOpacity>
 
-      {/* Modal */}
-      <Modal visible={isOpen} animationType="slide">
-        <SafeAreaView className="flex-1 bg-background">
-          <View className="flex-row items-center px-4 py-3 border-b border-border bg-card">
-            <TouchableOpacity onPress={() => setIsOpen(false)} className="mr-3">
-              <ArrowLeft color="#888" size={24} />
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold text-foreground">Add New Location</Text>
-          </View>
-
-          <ScrollView className="p-5">
-            {Object.keys(formData).map((key) => (
-              <View key={key} className="mb-4">
-                <Text className="mb-1 text-muted-foreground font-medium capitalize">
-                  {key.replaceAll("_", " ")}
-                </Text>
-                <TextInput
-                  className="border border-input rounded-xl p-3 bg-input-bg text-input-text"
-                  value={(formData as any)[key]}
-                  onChangeText={(val) => setFormData({ ...formData, [key]: val })}
-                />
-              </View>
-            ))}
-
-            <TouchableOpacity
-              onPress={handleSubmit}
-              className="bg-primary p-4 rounded-2xl mt-2"
-            >
-              <Text className="text-center text-primary-foreground font-semibold text-base">
-                Save Location
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setIsOpen(false)}
-              className="mt-5 p-4 border border-border rounded-2xl"
-            >
-              <Text className="text-center text-muted-foreground font-medium text-base">
-                Cancel
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    </SafeAreaView>
+      <Text className="text-xl font-bold mt-4 mb-2">Locations List</Text>
+      {locations.map((loc) => (
+        <View key={loc.location_id} className="border p-2 mb-2 rounded">
+          <Text>{loc.location_name}</Text>
+          <TouchableOpacity onPress={() => handleDelete(loc.location_id)}>
+            <Text className="text-red-500">Delete</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </ScrollView>
   );
 }

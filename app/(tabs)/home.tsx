@@ -4,17 +4,29 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import useTrips from "../../hooks/useTrip";
 import "../../global.css";
+import { getAuth } from "firebase/auth";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const userId = 1; // 👈 Replace this with actual logged-in user's ID
+  const auth = getAuth();
+  const user = auth.currentUser;
+  const firebase_uid = user?.uid;
 
   const {
     loading,
     totalRevenue,
     totalTrips,
     recentTrips,
-  } = useTrips(userId);
+  } = useTrips(firebase_uid || "");
+
+  if (!firebase_uid) {
+    return (
+      <View className="flex-1 justify-center items-center bg-background">
+        <ActivityIndicator size="large" color="#A855F7" />
+        <Text className="text-muted-foreground mt-2">Loading user...</Text>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -60,7 +72,7 @@ export default function HomeScreen() {
       {/* Quick Actions */}
       <View className="flex-row justify-between mb-6">
         {[
-          { title: "Location", icon: "location-outline", route: "/manager/locations-manager" as const },
+          { title: "Location", icon: "location-outline", route: "/manager/locations-manager" as const},
           { title: "Driver", icon: "person-add-outline", route: "/manager/drivers-manager" as const },
           { title: "Client", icon: "people-outline", route: "/manager/clients-manager" as const },
         ].map((item, idx) => (

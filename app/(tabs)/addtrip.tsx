@@ -18,16 +18,19 @@ import useDrivers from "../../hooks/useDriver";
 import useClients from "../../hooks/useClient";
 import useLocations from "../../hooks/useLocation";
 import useTrips from "../../hooks/useTrip";
+import { getAuth } from "firebase/auth";
 
 export default function AddTrip() {
-  const userId = 1; // replace with logged-in user_id
+  const auth = getAuth();
+  const user = auth.currentUser;
+  const firebase_uid = user?.uid;
 
-  // ✅ Custom hooks
-  const { trucks, loading: loadingTrucks } = useTrucks(userId);
-  const { drivers, loading: loadingDrivers } = useDrivers(userId);
-  const { clients, loading: loadingClients } = useClients(userId);
-  const { locations, loading: loadingLocations } = useLocations(userId);
-  const { addTrip } = useTrips(userId);
+
+  const { trucks, loading: loadingTrucks } = useTrucks(firebase_uid || "");
+  const { drivers, loading: loadingDrivers } = useDrivers(firebase_uid || "");
+  const { clients, loading: loadingClients } = useClients(firebase_uid || "");
+  const { locations, loading: loadingLocations } = useLocations(firebase_uid || "");
+  const { addTrip } = useTrips(firebase_uid || "");
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -50,9 +53,12 @@ export default function AddTrip() {
   });
 
   const loading =
-    loadingTrucks || loadingDrivers || loadingClients || loadingLocations;
+    !firebase_uid ||
+    loadingTrucks ||
+    loadingDrivers ||
+    loadingClients ||
+    loadingLocations;
 
-  // ✅ Handle trip submission
   const handleSubmit = async () => {
     const {
       truck_id,
@@ -63,14 +69,7 @@ export default function AddTrip() {
       cost_of_trip,
     } = formData;
 
-    if (
-      !truck_id ||
-      !driver_id ||
-      !client_id ||
-      !start_location_id ||
-      !end_location_id ||
-      !cost_of_trip
-    ) {
+    if (!truck_id || !driver_id || !client_id || !start_location_id || !end_location_id || !cost_of_trip) {
       Alert.alert("Missing Fields", "Please fill all required fields.");
       return;
     }
@@ -86,9 +85,7 @@ export default function AddTrip() {
         miscellaneous_expense: Number(formData.miscellaneous_expense || 0),
         notes: formData.notes,
       });
-
       Alert.alert("Success", "Trip created successfully!");
-
       setFormData({
         date: new Date().toISOString().split("T")[0],
         truck_id: "",
@@ -106,7 +103,6 @@ export default function AddTrip() {
     }
   };
 
-  // ✅ Show loading screen
   if (loading) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
@@ -116,14 +112,12 @@ export default function AddTrip() {
     );
   }
 
-  // ✅ Dropdown data
   const dropdownData = [
     {
       label: "Truck",
       key: "truck_id",
       openKey: "truck",
       items: trucks.map((t) => ({
-        label: t.registration_number,
         value: String(t.truck_id),
       })),
     },
@@ -171,11 +165,7 @@ export default function AddTrip() {
       className="flex-1 bg-white"
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          className="flex-1 p-4"
-          contentContainerStyle={{ paddingBottom: 120 }} // 👈 Prevent hiding under TabBar
-        >
-          {/* Date */}
+        <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 120 }}>
           <Text className="text-black mb-1 font-medium">Date *</Text>
           <TextInput
             className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
@@ -183,24 +173,14 @@ export default function AddTrip() {
             editable={false}
           />
 
-          {/* Dropdowns */}
           {dropdownData.map((d, i) => (
-            <View
-              key={i}
-              style={{
-                marginBottom: dropdowns[d.openKey as keyof typeof dropdowns]
-                  ? 150
-                  : 12,
-              }}
-            >
+            <View key={i} style={{ marginBottom: dropdowns[d.openKey as keyof typeof dropdowns] ? 150 : 12 }}>
               <Text className="text-black mb-1 font-medium">{d.label} *</Text>
               <DropDownPicker
                 open={dropdowns[d.openKey as keyof typeof dropdowns]}
                 value={formData[d.key as keyof typeof formData]}
                 items={d.items}
-                setOpen={(o) =>
-                  setDropdowns((prev) => ({ ...prev, [d.openKey]: o }))
-                }
+                setOpen={(o) => setDropdowns((p) => ({ ...p, [d.openKey]: o }))}
                 setValue={(cb) =>
                   setFormData((prev) => ({
                     ...prev,
@@ -208,40 +188,28 @@ export default function AddTrip() {
                   }))
                 }
                 placeholder={`Select ${d.label}`}
-                style={{
-                  backgroundColor: "#f8f8f8",
-                  borderColor: "#ccc",
-                }}
+                style={{ backgroundColor: "#f8f8f8", borderColor: "#ccc" }}
                 dropDownContainerStyle={{ backgroundColor: "#fff" }}
               />
             </View>
           ))}
 
-          {/* Cost of Trip */}
           <Text className="text-black mb-1 font-medium">Cost of Trip (₹) *</Text>
           <TextInput
             keyboardType="numeric"
             className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
             value={formData.cost_of_trip}
-            onChangeText={(text) =>
-              setFormData({ ...formData, cost_of_trip: text })
-            }
+            onChangeText={(text) => setFormData({ ...formData, cost_of_trip: text })}
           />
 
-          {/* Miscellaneous Expense */}
-          <Text className="text-black mb-1 font-medium">
-            Miscellaneous Expense (₹)
-          </Text>
+          <Text className="text-black mb-1 font-medium">Miscellaneous Expense (₹)</Text>
           <TextInput
             keyboardType="numeric"
             className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
             value={formData.miscellaneous_expense}
-            onChangeText={(text) =>
-              setFormData({ ...formData, miscellaneous_expense: text })
-            }
+            onChangeText={(text) => setFormData({ ...formData, miscellaneous_expense: text })}
           />
 
-          {/* Notes */}
           <Text className="text-black mb-1 font-medium">Notes</Text>
           <TextInput
             multiline
@@ -251,11 +219,7 @@ export default function AddTrip() {
             onChangeText={(text) => setFormData({ ...formData, notes: text })}
           />
 
-          {/* Submit */}
-          <TouchableOpacity
-            onPress={handleSubmit}
-            className="bg-black p-4 rounded-xl items-center mb-10"
-          >
+          <TouchableOpacity onPress={handleSubmit} className="bg-black p-4 rounded-xl items-center mb-10">
             <Text className="text-white font-semibold">Add Trip</Text>
           </TouchableOpacity>
         </ScrollView>

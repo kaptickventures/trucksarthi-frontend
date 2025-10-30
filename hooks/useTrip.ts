@@ -15,15 +15,14 @@ interface Trip {
   notes: string;
 }
 
-export default function useTrips(userId: number) {
+export default function useTrips(firebase_uid: string) {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ✅ Fetch trips for a particular user
   const fetchTrips = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await API.get(`/api/trips/user/${userId}`);
+      const res = await API.get(`/api/trips/user/${firebase_uid}`);
       setTrips(res.data);
     } catch (error) {
       console.error(error);
@@ -31,12 +30,14 @@ export default function useTrips(userId: number) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [firebase_uid]);
 
-  // ✅ Add new trip
   const addTrip = async (formData: any) => {
     try {
-      const res = await API.post(`/api/trips`, { ...formData, user_id: userId });
+      const res = await API.post(`/api/trips`, {
+        ...formData,
+        firebase_uid,
+      });
       setTrips((prev) => [...prev, res.data]);
       return res.data;
     } catch (error) {
@@ -46,7 +47,6 @@ export default function useTrips(userId: number) {
     }
   };
 
-  // ✅ Update trip
   const updateTrip = async (tripId: number, updateData: any) => {
     try {
       const res = await API.put(`/api/trips/${tripId}`, updateData);
@@ -61,7 +61,6 @@ export default function useTrips(userId: number) {
     }
   };
 
-  // ✅ Delete trip
   const deleteTrip = async (tripId: number) => {
     try {
       await API.delete(`/api/trips/${tripId}`);
@@ -76,11 +75,19 @@ export default function useTrips(userId: number) {
     fetchTrips();
   }, [fetchTrips]);
 
-    // ✅ Calculations
   const totalRevenue = trips.reduce((acc, t) => acc + t.cost_of_trip, 0);
   const totalTrips = trips.length;
-  const recentTrips = trips.slice(-3).reverse(); // show 3 most recent trips
+  const recentTrips = trips.slice(-3).reverse();
 
-
-  return { trips, loading, totalRevenue, totalTrips, recentTrips, fetchTrips, addTrip, updateTrip, deleteTrip };
+  return {
+    trips,
+    loading,
+    totalRevenue,
+    totalTrips,
+    recentTrips,
+    fetchTrips,
+    addTrip,
+    updateTrip,
+    deleteTrip,
+  };
 }
