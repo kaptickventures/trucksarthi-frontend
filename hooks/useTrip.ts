@@ -22,7 +22,7 @@ export default function useTrips(firebase_uid: string) {
   const fetchTrips = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await API.get(`/api/trips/user/${firebase_uid}`);
+      const res = await API.get(`/api/trips/user/firebase/${firebase_uid}`);
       setTrips(res.data);
     } catch (error) {
       console.error(error);

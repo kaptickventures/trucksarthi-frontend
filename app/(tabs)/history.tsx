@@ -1,120 +1,123 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
   ScrollView,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import DropDownPicker from "react-native-dropdown-picker";
-
-const mockTrips = [
-  {
-    id: 1,
-    date: "2024-01-15",
-    truck: "MH-01-AB-1234",
-    driver: "Rajesh Kumar",
-    client: "ABC Logistics",
-    startLocation: "Mumbai",
-    endLocation: "Delhi",
-    tripCost: 45000,
-    miscExpense: 2000,
-  },
-  {
-    id: 2,
-    date: "2024-01-14",
-    truck: "MH-02-CD-5678",
-    driver: "Amit Sharma",
-    client: "XYZ Transport",
-    startLocation: "Pune",
-    endLocation: "Bangalore",
-    tripCost: 38000,
-    miscExpense: 1500,
-  },
-];
+import { Ionicons } from "@expo/vector-icons";
+import useTrips from "../../hooks/useTrip";
+import { getAuth } from "firebase/auth";
 
 export default function ViewTrips() {
-  const [filters, setFilters] = useState({ driver: "", client: "", startDate: "" });
+  const auth = getAuth();
+  const user = auth.currentUser;
+  const firebase_uid = user?.uid;
 
-  // dropdown state
+
+  const { trips, loading } = useTrips(firebase_uid || "");
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    driver: "",
+    client: "",
+    startDate: "",
+  });
+
+  // Dropdown open state
   const [driverOpen, setDriverOpen] = useState(false);
   const [clientOpen, setClientOpen] = useState(false);
 
-  const driverItems = [
-    { label: "All Drivers", value: "" },
-    { label: "Rajesh Kumar", value: "rajesh" },
-    { label: "Amit Sharma", value: "amit" },
-  ];
+  // Extract unique driver & client names for filters
+  const driverItems = useMemo(() => {
+    const uniqueDrivers = Array.from(
+      new Set(trips.map((t: any) => t.driver_name || "Unknown Driver"))
+    );
+    return [{ label: "All Drivers", value: "" }].concat(
+      uniqueDrivers.map((name) => ({ label: name, value: name }))
+    );
+  }, [trips]);
 
-  const clientItems = [
-    { label: "All Clients", value: "" },
-    { label: "ABC Logistics", value: "abc" },
-    { label: "XYZ Transport", value: "xyz" },
-  ];
+  const clientItems = useMemo(() => {
+    const uniqueClients = Array.from(
+      new Set(trips.map((t: any) => t.client_name || "Unknown Client"))
+    );
+    return [{ label: "All Clients", value: "" }].concat(
+      uniqueClients.map((name) => ({ label: name, value: name }))
+    );
+  }, [trips]);
 
-  const totalAmount = mockTrips.reduce(
-    (sum, t) => sum + t.tripCost + t.miscExpense,
+  // Filter logic
+  const filteredTrips = useMemo(() => {
+    return trips.filter((t: any) => {
+      const matchesDriver =
+        !filters.driver || t.driver_name === filters.driver;
+      const matchesClient =
+        !filters.client || t.client_name === filters.client;
+      const matchesDate =
+        !filters.startDate || t.trip_date >= filters.startDate;
+      return matchesDriver && matchesClient && matchesDate;
+    });
+  }, [trips, filters]);
+
+  // Total cost
+  const totalAmount = filteredTrips.reduce(
+    (sum, t: any) =>
+      sum + (t.cost_of_trip || 0) + (t.miscellaneous_expense || 0),
     0
   );
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Filters */}
-        <View className="bg-card rounded-lg p-4 border border-border mb-4">
+        <View className="bg-card rounded-lg p-4 border border-border mb-5 mx-3">
           <View className="flex-row items-center mb-3">
             <Ionicons name="filter" size={18} color="#555" />
-            <Text className="ml-2 font-semibold text-foreground">Filters</Text>
+            <Text className="ml-2 font-semibold text-foreground text-base">
+              Filters
+            </Text>
           </View>
 
-          {/* Driver Dropdown */}
-<View className="z-20" style={{ marginBottom: driverOpen ? 150 : 12 }}>
-  <DropDownPicker
-    open={driverOpen}
-    value={filters.driver}
-    items={driverItems}
-    setOpen={setDriverOpen}
-    setValue={(cb) =>
-      setFilters((prev) => ({ ...prev, driver: cb(prev.driver) }))
-    }
-    placeholder="Select Driver"
-    style={{
-      backgroundColor: "#fff",
-      borderColor: "#ccc",
-    }}
-    dropDownContainerStyle={{
-      borderColor: "#ccc",
-    }}
-  />
-</View>
+          {/* Driver Filter */}
+          <View className="z-20" style={{ marginBottom: driverOpen ? 150 : 12 }}>
+            <DropDownPicker
+              open={driverOpen}
+              value={filters.driver}
+              items={driverItems}
+              setOpen={setDriverOpen}
+              setValue={(cb) =>
+                setFilters((prev) => ({ ...prev, driver: cb(prev.driver) }))
+              }
+              placeholder="Select Driver"
+              style={{ backgroundColor: "#fff", borderColor: "#ccc" }}
+              dropDownContainerStyle={{ borderColor: "#ccc" }}
+            />
+          </View>
 
-{/* Client Dropdown */}
-<View className="z-10" style={{ marginBottom: clientOpen ? 150 : 12 }}>
-  <DropDownPicker
-    open={clientOpen}
-    value={filters.client}
-    items={clientItems}
-    setOpen={setClientOpen}
-    setValue={(cb) =>
-      setFilters((prev) => ({ ...prev, client: cb(prev.client) }))
-    }
-    placeholder="Select Client"
-    style={{
-      backgroundColor: "#fff",
-      borderColor: "#ccc",
-    }}
-    dropDownContainerStyle={{
-      borderColor: "#ccc",
-    }}
-  />
-</View>
+          {/* Client Filter */}
+          <View className="z-10" style={{ marginBottom: clientOpen ? 150 : 12 }}>
+            <DropDownPicker
+              open={clientOpen}
+              value={filters.client}
+              items={clientItems}
+              setOpen={setClientOpen}
+              setValue={(cb) =>
+                setFilters((prev) => ({ ...prev, client: cb(prev.client) }))
+              }
+              placeholder="Select Client"
+              style={{ backgroundColor: "#fff", borderColor: "#ccc" }}
+              dropDownContainerStyle={{ borderColor: "#ccc" }}
+            />
+          </View>
 
-
-          {/* Start Date */}
+          {/* Start Date Filter */}
           <TextInput
             placeholder="Start Date (YYYY-MM-DD)"
             placeholderTextColor="#888"
@@ -124,38 +127,103 @@ export default function ViewTrips() {
           />
         </View>
 
-        {/* Trips List */}
-        {mockTrips.map((trip) => (
-          <View
-            key={trip.id}
-            className="bg-card p-4 rounded-lg border border-border mb-3"
-          >
-            <Text className="text-muted-foreground text-xs mb-1">
-              {trip.date}
-            </Text>
-            <Text className="text-foreground font-medium">
-              {trip.startLocation} → {trip.endLocation}
-            </Text>
-            <Text className="text-muted-foreground mt-1">
-              Driver: {trip.driver} | Client: {trip.client}
-            </Text>
-            <Text className="text-primary font-semibold mt-2">
-              ₹{(trip.tripCost + trip.miscExpense).toLocaleString()}
-            </Text>
-          </View>
-        ))}
+        {/* Trips Section */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#007bff" className="mt-10" />
+        ) : filteredTrips.length === 0 ? (
+          <Text className="text-center text-muted-foreground mt-10">
+            No trips found
+          </Text>
+        ) : (
+          filteredTrips
+            .sort(
+              (a: any, b: any) =>
+                new Date(b.trip_date).getTime() -
+                new Date(a.trip_date).getTime()
+            )
+            .map((trip: any) => (
+              <View
+                key={trip.trip_id}
+                className="bg-card p-5 rounded-xl border border-border shadow-sm mb-4 mx-3"
+              >
+                {/* Header */}
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text className="text-foreground font-semibold text-base">
+                    Trip #{trip.trip_id}
+                  </Text>
+                  <Text className="text-muted-foreground text-sm">
+                    {trip.trip_date}
+                  </Text>
+                </View>
 
-        {/* Total */}
-        <View className="bg-primary p-4 rounded-lg mt-4">
-          <View className="flex-row justify-between items-center">
-            <Text className="font-semibold text-lg text-primary-foreground">
-              Total Amount
-            </Text>
-            <Text className="font-bold text-xl text-primary-foreground">
-              ₹{totalAmount.toLocaleString()}
-            </Text>
+                {/* Trip Details */}
+                <Text className="text-foreground mb-1">
+                  🧍 Driver:{" "}
+                  <Text className="text-muted-foreground">
+                    {trip.driver_name || "N/A"}
+                  </Text>
+                </Text>
+                <Text className="text-foreground mb-1">
+                  🏢 Client:{" "}
+                  <Text className="text-muted-foreground">
+                    {trip.client_name || "N/A"}
+                  </Text>
+                </Text>
+                <Text className="text-foreground mb-1">
+                  🚚 Truck ID:{" "}
+                  <Text className="text-muted-foreground">
+                    {trip.truck_id || "N/A"}
+                  </Text>
+                </Text>
+                <Text className="text-foreground mb-1">
+                  📍 From:{" "}
+                  <Text className="text-muted-foreground">
+                    {trip.start_location_name || trip.start_location_id}
+                  </Text>
+                </Text>
+                <Text className="text-foreground mb-1">
+                  🏁 To:{" "}
+                  <Text className="text-muted-foreground">
+                    {trip.end_location_name || trip.end_location_id}
+                  </Text>
+                </Text>
+
+                <Text className="text-foreground mb-1">
+                  💰 Cost of Trip:{" "}
+                  <Text className="text-primary font-semibold">
+                    ₹{trip.cost_of_trip?.toLocaleString() || 0}
+                  </Text>
+                </Text>
+
+                <Text className="text-foreground mb-1">
+                  🧾 Misc Expense:{" "}
+                  <Text className="text-orange-500 font-semibold">
+                    ₹{trip.miscellaneous_expense?.toLocaleString() || 0}
+                  </Text>
+                </Text>
+
+                {trip.notes ? (
+                  <Text className="text-muted-foreground italic mt-2">
+                    🗒️ Notes: {trip.notes}
+                  </Text>
+                ) : null}
+              </View>
+            ))
+        )}
+
+        {/* Total Summary */}
+        {filteredTrips.length > 0 && (
+          <View className="bg-primary mx-3 mt-4 p-5 rounded-xl">
+            <View className="flex-row justify-between items-center">
+              <Text className="font-semibold text-lg text-primary-foreground">
+                Total Amount
+              </Text>
+              <Text className="font-bold text-xl text-primary-foreground">
+                ₹{totalAmount.toLocaleString()}
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

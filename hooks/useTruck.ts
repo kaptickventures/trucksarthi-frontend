@@ -19,7 +19,7 @@ export default function useTrucks(firebase_uid: string) {
   const fetchTrucks = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await API.get(`/api/trucks/user/${firebase_uid}`);
+      const res = await API.get(`/api/trucks/user/firebase/${firebase_uid}`);
       setTrucks(res.data);
     } catch (error) {
       console.error(error);

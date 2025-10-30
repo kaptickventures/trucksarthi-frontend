@@ -15,7 +15,7 @@ export default function useLocations(firebase_uid: string) {
   const fetchLocations = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await API.get(`/api/locations/user/${firebase_uid}`);
+      const res = await API.get(`/api/locations/user/firebase/${firebase_uid}`);
       setLocations(res.data);
     } catch (error) {
       console.error(error);

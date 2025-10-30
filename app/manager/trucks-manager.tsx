@@ -24,30 +24,45 @@ export default function TrucksManager() {
   const { trucks, loading, fetchTrucks, addTruck, deleteTruck } = useTrucks(firebase_uid || "");
 
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState({
-    truck_number: "",
-    truck_type: "",
-    capacity: "",
+  const [formData, setFormData] = useState({
+    registration_number: "",
+    chassis_number: "",
+    engine_number: "",
+    registered_owner_name: "",
+    container_dimension: "",
+    loading_capacity: "",
   });
 
-  const resetForm = () => setForm({ truck_number: "", truck_type: "", capacity: "" });
+  // Fetch trucks when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (firebase_uid) fetchTrucks();
+    }, [firebase_uid, fetchTrucks])
+  );
 
+  // Add truck
   const handleSubmit = async () => {
-    if (!form.truck_number || !form.truck_type) {
-      Alert.alert("Validation", "Please fill all required fields");
-      return;
-    }
+    if (!formData.registration_number || !formData.registered_owner_name)
+      return Alert.alert("Validation", "Please fill all required fields");
 
     try {
-      await addTruck(form);
-      resetForm();
+      await addTruck(formData);
+      setFormData({
+        registration_number: "",
+        chassis_number: "",
+        engine_number: "",
+        registered_owner_name: "",
+        container_dimension: "",
+        loading_capacity: "",
+      });
       setIsOpen(false);
-      Alert.alert("Truck added successfully");
+      Alert.alert("Success", "Truck added successfully");
     } catch {
-      Alert.alert("Failed to add truck");
+      Alert.alert("Error", "Failed to add truck");
     }
   };
 
+  // Delete truck
   const handleDelete = (id: number) => {
     Alert.alert("Confirm", "Delete this truck?", [
       { text: "Cancel", style: "cancel" },
@@ -55,16 +70,11 @@ export default function TrucksManager() {
     ]);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      if (firebase_uid) fetchTrucks();
-    }, [firebase_uid, fetchTrucks])
-  );
-
   if (!firebase_uid)
     return (
-      <View className="flex-1 items-center justify-center bg-background">
+      <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#888" />
+        <Text className="mt-3 text-gray-500">Loading user...</Text>
       </View>
     );
 
@@ -91,9 +101,7 @@ export default function TrucksManager() {
         {loading ? (
           <ActivityIndicator size="large" color="#888" />
         ) : trucks.length === 0 ? (
-          <Text className="text-center text-muted-foreground mt-10">
-            No trucks found.
-          </Text>
+          <Text className="text-center text-muted-foreground mt-10">No trucks found.</Text>
         ) : (
           trucks.map((truck) => (
             <View
@@ -103,19 +111,36 @@ export default function TrucksManager() {
               <View className="flex-row justify-between items-start mb-2">
                 <View className="flex-row items-center">
                   <Truck color="#888" size={18} />
+                  <Text className="ml-2 text-lg font-semibold text-card-foreground">
+                    {truck.registration_number}
+                  </Text>
                 </View>
                 <TouchableOpacity onPress={() => handleDelete(truck.truck_id)}>
                   <Trash2 color="#999" size={20} />
                 </TouchableOpacity>
               </View>
 
-              
+              <Text className="text-muted-foreground mb-1">
+                🧍 Owner: {truck.registered_owner_name}
+              </Text>
+              <Text className="text-muted-foreground mb-1">
+                🪧 Chassis: {truck.chassis_number || "N/A"}
+              </Text>
+              <Text className="text-muted-foreground mb-1">
+                ⚙️ Engine: {truck.engine_number || "N/A"}
+              </Text>
+              <Text className="text-muted-foreground mb-1">
+                📦 Dimension: {truck.container_dimension || "N/A"}
+              </Text>
+              <Text className="text-muted-foreground">
+                🚚 Capacity: {truck.loading_capacity || "N/A"}
+              </Text>
             </View>
           ))
         )}
       </ScrollView>
 
-      {/* Modal for Add Truck */}
+      {/* Modal for Adding a Truck */}
       <Modal visible={isOpen} animationType="slide">
         <SafeAreaView className="flex-1 bg-background">
           <View className="flex-row items-center px-4 py-3 border-b border-border bg-card">
@@ -126,16 +151,15 @@ export default function TrucksManager() {
           </View>
 
           <ScrollView className="p-5">
-            {Object.keys(form).map((key) => (
+            {Object.keys(formData).map((key) => (
               <View key={key} className="mb-4">
                 <Text className="mb-1 text-muted-foreground font-medium capitalize">
                   {key.replaceAll("_", " ")}
                 </Text>
                 <TextInput
                   className="border border-input rounded-xl p-3 bg-input-bg text-input-text"
-                  placeholder={key.replaceAll("_", " ")}
-                  value={(form as any)[key]}
-                  onChangeText={(val) => setForm({ ...form, [key]: val })}
+                  value={(formData as any)[key]}
+                  onChangeText={(val) => setFormData({ ...formData, [key]: val })}
                 />
               </View>
             ))}

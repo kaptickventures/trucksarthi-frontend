@@ -18,7 +18,7 @@ export default function useDrivers(firebase_uid: string) {
   const fetchDrivers = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await API.get(`/api/drivers/user/${firebase_uid}`);
+      const res = await API.get(`/api/drivers/user/firebase/${firebase_uid}`);
       setDrivers(res.data);
     } catch (error) {
       console.error(error);
