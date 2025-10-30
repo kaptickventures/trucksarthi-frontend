@@ -6,8 +6,9 @@ interface Driver {
   driver_id: number;
   driver_name: string;
   contact_number: string;
-  identity_card_url?: string;
-  license_card_url?: string;
+  identity_card_url: string;
+  license_card_url: string;
+  firebase_uid: string;
 }
 
 export default function useDrivers(firebase_uid: string) {

@@ -5,12 +5,14 @@ import API from "../app/api/axiosInstance";
 interface Client {
   client_id: number;
   client_name: string;
+  contact_person_name: string;
   contact_number: string;
-  email: string;
-  address: string;
-  company_name: string;
-  gst_number?: string;
+  alternate_contact_number?: string;
+  email_address: string;
+  office_address: string;
+  firebase_uid: string;
 }
+
 
 export default function useClients(firebase_uid: string) {
   const [clients, setClients] = useState<Client[]>([]);
@@ -19,7 +21,7 @@ export default function useClients(firebase_uid: string) {
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await API.get(`/api/clients/user/${firebase_uid}`);
+      const res = await API.get(`/api/clients/user/firebase/${firebase_uid}`);
       setClients(res.data);
     } catch (error) {
       console.error(error);
