@@ -22,14 +22,15 @@ export default function DriversManager() {
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
 
-  const { drivers, loading, fetchDrivers, addDriver, deleteDriver } = useDrivers(firebase_uid || "");
+  const { drivers, loading, fetchDrivers, addDriver, deleteDriver } =
+    useDrivers(firebase_uid || "");
 
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     driver_name: "",
-    license_number: "",
     contact_number: "",
-    address: "",
+    identity_card_url: "",
+    license_card_url: "",
   });
 
   useFocusEffect(
@@ -39,16 +40,16 @@ export default function DriversManager() {
   );
 
   const handleSubmit = async () => {
-    if (!formData.driver_name || !formData.license_number) {
+    if (!formData.driver_name || !formData.contact_number) {
       return Alert.alert("Validation", "Please fill all required fields");
     }
     try {
       await addDriver(formData);
       setFormData({
         driver_name: "",
-        license_number: "",
         contact_number: "",
-        address: "",
+        identity_card_url: "",
+        license_card_url: "",
       });
       setIsOpen(false);
       Alert.alert("Success", "Driver added successfully!");
@@ -85,7 +86,7 @@ export default function DriversManager() {
       </View>
 
       {/* Main content */}
-        <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
+      <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
         <TouchableOpacity
           onPress={() => setIsOpen(true)}
           className="bg-primary py-4 rounded-2xl flex-row justify-center items-center mb-6"
@@ -105,7 +106,9 @@ export default function DriversManager() {
               className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
             >
               <View className="flex-row justify-between items-start mb-2">
-                <Text className="text-lg font-semibold text-card-foreground">{driver.driver_name}</Text>
+                <Text className="text-lg font-semibold text-card-foreground">
+                  {driver.driver_name}
+                </Text>
                 <TouchableOpacity onPress={() => handleDelete(driver.driver_id)}>
                   <Trash2 color="#999" size={20} />
                 </TouchableOpacity>
@@ -114,13 +117,13 @@ export default function DriversManager() {
               <View className="flex-row items-center mb-1">
                 <FileText color="#777" size={18} />
                 <Text className="ml-2 text-muted-foreground">
-                  ID: {driver.identity_card_url || "Not uploaded"}
+                  Identity Card: {driver.identity_card_url || "Not uploaded"}
                 </Text>
               </View>
               <View className="flex-row items-center">
                 <FileText color="#777" size={18} />
                 <Text className="ml-2 text-muted-foreground">
-                  License: {driver.license_card_url || "Not uploaded"}
+                  License Card: {driver.license_card_url || "Not uploaded"}
                 </Text>
               </View>
             </View>
