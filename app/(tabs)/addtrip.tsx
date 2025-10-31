@@ -13,18 +13,18 @@ import {
   Platform,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
+import { getAuth } from "firebase/auth";
 import useTrucks from "../../hooks/useTruck";
 import useDrivers from "../../hooks/useDriver";
 import useClients from "../../hooks/useClient";
 import useLocations from "../../hooks/useLocation";
 import useTrips from "../../hooks/useTrip";
-import { getAuth } from "firebase/auth";
+import "../../global.css"; // ✅ ensures tailwind + theme vars apply
 
 export default function AddTrip() {
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
-
 
   const { trucks, loading: loadingTrucks } = useTrucks(firebase_uid || "");
   const { drivers, loading: loadingDrivers } = useDrivers(firebase_uid || "");
@@ -69,7 +69,14 @@ export default function AddTrip() {
       cost_of_trip,
     } = formData;
 
-    if (!truck_id || !driver_id || !client_id || !start_location_id || !end_location_id || !cost_of_trip) {
+    if (
+      !truck_id ||
+      !driver_id ||
+      !client_id ||
+      !start_location_id ||
+      !end_location_id ||
+      !cost_of_trip
+    ) {
       Alert.alert("Missing Fields", "Please fill all required fields.");
       return;
     }
@@ -85,7 +92,8 @@ export default function AddTrip() {
         miscellaneous_expense: Number(formData.miscellaneous_expense || 0),
         notes: formData.notes,
       });
-      Alert.alert("Success", "Trip created successfully!");
+
+      Alert.alert("✅ Success", "Trip created successfully!");
       setFormData({
         date: new Date().toISOString().split("T")[0],
         truck_id: "",
@@ -105,9 +113,9 @@ export default function AddTrip() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator size="large" />
-        <Text className="mt-2 text-black">Loading data...</Text>
+      <View className="flex-1 bg-background items-center justify-center">
+        <ActivityIndicator size="large" color="#007bff" />
+        <Text className="mt-2 text-foreground">Loading data...</Text>
       </View>
     );
   }
@@ -118,6 +126,7 @@ export default function AddTrip() {
       key: "truck_id",
       openKey: "truck",
       items: trucks.map((t) => ({
+        label: t.registration_number,
         value: String(t.truck_id),
       })),
     },
@@ -162,25 +171,39 @@ export default function AddTrip() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-white"
+      className="flex-1 bg-background"
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 120 }}>
-          <Text className="text-black mb-1 font-medium">Date *</Text>
+        <ScrollView className="flex-1 bg-background p-4" contentContainerStyle={{ paddingBottom: 120 }}>
+
+          {/* Date */}
+          <Text className="text-foreground mb-1 font-medium">Date *</Text>
           <TextInput
-            className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
+            className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-3"
             value={formData.date}
             editable={false}
           />
 
+          {/* Dropdowns */}
           {dropdownData.map((d, i) => (
-            <View key={i} style={{ marginBottom: dropdowns[d.openKey as keyof typeof dropdowns] ? 150 : 12 }}>
-              <Text className="text-black mb-1 font-medium">{d.label} *</Text>
+            <View
+              key={i}
+              style={{
+                marginBottom: dropdowns[d.openKey as keyof typeof dropdowns]
+                  ? 150
+                  : 12,
+              }}
+            >
+              <Text className="text-foreground mb-1 font-medium">
+                {d.label} *
+              </Text>
               <DropDownPicker
                 open={dropdowns[d.openKey as keyof typeof dropdowns]}
                 value={formData[d.key as keyof typeof formData]}
                 items={d.items}
-                setOpen={(o) => setDropdowns((p) => ({ ...p, [d.openKey]: o }))}
+                setOpen={(o) =>
+                  setDropdowns((prev) => ({ ...prev, [d.openKey]: o }))
+                }
                 setValue={(cb) =>
                   setFormData((prev) => ({
                     ...prev,
@@ -188,39 +211,64 @@ export default function AddTrip() {
                   }))
                 }
                 placeholder={`Select ${d.label}`}
-                style={{ backgroundColor: "#f8f8f8", borderColor: "#ccc" }}
-                dropDownContainerStyle={{ backgroundColor: "#fff" }}
+                style={{
+                  backgroundColor: "hsl(var(--input-bg))",
+                  borderColor: "hsl(var(--input-border))",
+                }}
+                dropDownContainerStyle={{
+                  backgroundColor: "hsl(var(--card))",
+                  borderColor: "hsl(var(--border))",
+                }}
+                textStyle={{ color: "hsl(var(--input-text))" }}
+                placeholderStyle={{ color: "hsl(var(--muted-foreground))" }}
               />
             </View>
           ))}
 
-          <Text className="text-black mb-1 font-medium">Cost of Trip (₹) *</Text>
+          {/* Cost of Trip */}
+          <Text className="text-foreground mb-1 font-medium">
+            Cost of Trip (₹) *
+          </Text>
           <TextInput
             keyboardType="numeric"
-            className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
+            className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-3"
             value={formData.cost_of_trip}
-            onChangeText={(text) => setFormData({ ...formData, cost_of_trip: text })}
+            onChangeText={(text) =>
+              setFormData({ ...formData, cost_of_trip: text })
+            }
           />
 
-          <Text className="text-black mb-1 font-medium">Miscellaneous Expense (₹)</Text>
+          {/* Miscellaneous Expense */}
+          <Text className="text-foreground mb-1 font-medium">
+            Miscellaneous Expense (₹)
+          </Text>
           <TextInput
             keyboardType="numeric"
-            className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-3"
+            className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-3"
             value={formData.miscellaneous_expense}
-            onChangeText={(text) => setFormData({ ...formData, miscellaneous_expense: text })}
+            onChangeText={(text) =>
+              setFormData({ ...formData, miscellaneous_expense: text })
+            }
           />
 
-          <Text className="text-black mb-1 font-medium">Notes</Text>
+          {/* Notes */}
+          <Text className="text-foreground mb-1 font-medium">Notes</Text>
           <TextInput
             multiline
             numberOfLines={3}
-            className="border border-gray-400 rounded-lg p-3 bg-gray-50 text-black mb-6"
+            className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
             value={formData.notes}
             onChangeText={(text) => setFormData({ ...formData, notes: text })}
           />
 
-          <TouchableOpacity onPress={handleSubmit} className="bg-black p-4 rounded-xl items-center mb-10">
-            <Text className="text-white font-semibold">Add Trip</Text>
+          {/* Submit */}
+          <TouchableOpacity
+            onPress={handleSubmit}
+            className="bg-primary rounded-xl p-4 items-center"
+          >
+            <Text className="text-primary-foreground font-semibold text-base">
+              Add Trip
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>

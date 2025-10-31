@@ -7,9 +7,14 @@ export default function TabBar() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const bgColor = isDark ? "#000" : "#fff";
-  const activeTint = isDark ? "#fff" : "#000";
-  const inactiveTint = isDark ? "#777" : "#bbb";
+  // 🎨 Adaptive color palette
+  const colors = {
+    background: isDark ? "#0E1116" : "#FFFFFF",
+    border: isDark ? "#1F242B" : "#E5E5E5",
+    active: isDark ? "#3B82F6" : "#1D4ED8", // blue for active icons
+    inactive: isDark ? "#6B7280" : "#9CA3AF", // muted gray
+    shadow: isDark ? "#00000080" : "#00000022",
+  };
 
   return (
     <Tabs
@@ -18,26 +23,25 @@ export default function TabBar() {
         tabBarShowLabel: false,
         tabBarStyle: {
           position: "absolute",
-          bottom: 0, // 👈 stick to bottom
+          bottom: 0,
           left: 0,
           right: 0,
-          borderTopLeftRadius: 25, // 👈 only top curves
+          borderTopLeftRadius: 25,
           borderTopRightRadius: 25,
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          backgroundColor: bgColor,
-          borderTopWidth: 0,
-          shadowColor: isDark ? "#000" : "#00000022",
-          shadowOpacity: 0.2,
+          backgroundColor: colors.background,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          shadowColor: colors.shadow,
+          shadowOpacity: 0.3,
           shadowRadius: 8,
-          shadowOffset: { width: 0, height: -4 },
+          shadowOffset: { width: 0, height: -3 },
           elevation: 8,
           paddingHorizontal: 6,
           paddingBottom: 10,
           paddingTop: 10,
         },
-        tabBarActiveTintColor: activeTint,
-        tabBarInactiveTintColor: inactiveTint,
+        tabBarActiveTintColor: colors.active,
+        tabBarInactiveTintColor: colors.inactive,
       }}
       initialRouteName="home"
     >
@@ -82,7 +86,17 @@ export default function TabBar() {
           title: "Add Trip",
           tabBarIcon: ({ color }) => (
             <View className="items-center justify-center">
-              <Ionicons name="add-circle" size={30} color={color} />
+              <Ionicons
+                name="add-circle"
+                size={30}
+                color={colors.active}
+                style={{
+                  shadowColor: colors.active,
+                  shadowOpacity: 0.4,
+                  shadowRadius: 5,
+                  shadowOffset: { width: 0, height: 2 },
+                }}
+              />
             </View>
           ),
         }}

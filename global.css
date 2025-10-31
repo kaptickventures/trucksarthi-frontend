@@ -49,49 +49,50 @@
     --chart-5: 27 87% 67%;
   }
 
-  .dark:root {
-    /* === Dark Mode === */
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
+ .dark:root {
+  /* === Dark Mode === */
+  --background: 220 15% 8%;          /* Deep slate background */
+  --foreground: 0 0% 98%;            /* White text */
 
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 98%;
+  --card: 220 15% 12%;               /* Slightly lighter than background */
+  --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 98%;
+  --popover: 220 15% 14%;
+  --popover-foreground: 0 0% 98%;
 
-    --primary: 220 85% 60%;
-    --primary-foreground: 0 0% 100%;
+  --primary: 217 90% 60%;            /* Vibrant blue */
+  --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 98%;
+  --secondary: 220 15% 20%;
+  --secondary-foreground: 0 0% 95%;
 
-    /* ✅ Muted and Accent improved */
-    --muted: 0 0% 22%;               /* Softer gray, used for subtle UI surfaces */
-    --muted-foreground: 0 0% 70%;    /* Lighter gray text on muted surfaces */
+  --muted: 220 10% 20%;              /* Softer gray for input bg */
+  --muted-foreground: 0 0% 75%;      /* Muted gray text */
 
-    --accent: 220 15% 20%;           /* Neutral blue-gray background for hover/highlight */
-    --accent-foreground: 0 0% 98%;   /* White text on accent */
+  --accent: 217 25% 25%;
+  --accent-foreground: 0 0% 98%;
 
-    --success: 142 70% 45%;
-    --success-foreground: 0 0% 98%;
+  --success: 142 70% 45%;
+  --success-foreground: 0 0% 98%;
 
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 0 0% 98%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 22%;
-    --input: 0 0% 22%;
-    --ring: 220 85% 60%;
+  /* === Borders and Inputs === */
+  --border: 220 10% 28%;
+  --input: 220 10% 28%;
+  --ring: 217 90% 60%;
 
-    --input-bg: 0 0% 12%;          
-    --input-text: 0 0% 98%;        
-    --input-border: 0 0% 40%;
+  /* Input customization */
+  --input-bg: 220 10% 18%;          /* Dark gray background */
+  --input-text: 0 0% 98%;           /* White text */
+  --input-border: 220 10% 35%;      /* Medium gray border */
 
-    /* Charts */
-    --chart-1: 220 70% 55%;
-    --chart-2: 160 60% 50%;
-    --chart-3: 30 80% 60%;
-    --chart-4: 280 65% 65%;
-    --chart-5: 340 75% 60%;
-  }
+  /* === Chart / Brand === */
+  --chart-1: 217 90% 60%;
+  --chart-2: 160 70% 45%;
+  --chart-3: 45 90% 55%;
+  --chart-4: 280 70% 65%;
+  --chart-5: 340 80% 60%;
 }
+} 

@@ -81,7 +81,7 @@ export default function HomeScreen() {
             onPress={() => router.push(item.route)}
             className="flex-1 bg-card rounded-xl p-3 items-center mx-1"
           >
-            <Ionicons name={item.icon as any} size={22} color="#A855F7" />
+            <Ionicons name={item.icon as any} size={22} color="#2563EB" />
             <Text className="text-muted-foreground text-xs mt-2">{item.title}</Text>
           </TouchableOpacity>
         ))}
@@ -92,7 +92,7 @@ export default function HomeScreen() {
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-card-foreground font-semibold text-lg">Recent Trips</Text>
           <TouchableOpacity onPress={() => router.push("/history")}>
-            <Text className="text-success text-sm">View All →</Text>
+            <Text className="text-muted-foreground text-sm">View All →</Text>
           </TouchableOpacity>
         </View>
 
