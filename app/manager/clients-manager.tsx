@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   StatusBar,
 } from "react-native";
-import { Plus, Trash2, ArrowLeft } from "lucide-react-native";
+import { Plus, Trash2, ArrowLeft, Edit3 } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
 import useClients from "../../hooks/useClient";
@@ -22,9 +22,11 @@ export default function ClientsManager() {
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
 
-  const { clients, loading, fetchClients, addClient, deleteClient } = useClients(firebase_uid || "");
+  const { clients, loading, fetchClients, addClient, updateClient, deleteClient } =
+    useClients(firebase_uid || "");
 
   const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     client_name: "",
     contact_person_name: "",
@@ -44,8 +46,16 @@ export default function ClientsManager() {
     if (!formData.client_name || !formData.contact_number) {
       return Alert.alert("Validation", "Please fill all required fields");
     }
+
     try {
-      await addClient(formData);
+      if (editingId) {
+        await updateClient(editingId, formData);
+        Alert.alert("Success", "Client updated successfully!");
+      } else {
+        await addClient(formData);
+        Alert.alert("Success", "Client added successfully!");
+      }
+
       setFormData({
         client_name: "",
         contact_person_name: "",
@@ -54,10 +64,10 @@ export default function ClientsManager() {
         email_address: "",
         office_address: "",
       });
+      setEditingId(null);
       setIsOpen(false);
-      Alert.alert("Success", "Client added successfully!");
     } catch (err) {
-      Alert.alert("Error", "Failed to add client");
+      Alert.alert("Error", "Failed to save client");
     }
   };
 
@@ -66,6 +76,19 @@ export default function ClientsManager() {
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: () => deleteClient(id) },
     ]);
+  };
+
+  const handleEdit = (client: any) => {
+    setFormData({
+      client_name: client.client_name,
+      contact_person_name: client.contact_person_name,
+      contact_number: client.contact_number,
+      alternate_contact_number: client.alternate_contact_number || "",
+      email_address: client.email_address,
+      office_address: client.office_address,
+    });
+    setEditingId(client.client_id);
+    setIsOpen(true);
   };
 
   if (!firebase_uid)
@@ -91,7 +114,18 @@ export default function ClientsManager() {
       {/* Client List */}
       <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
         <TouchableOpacity
-          onPress={() => setIsOpen(true)}
+          onPress={() => {
+            setFormData({
+              client_name: "",
+              contact_person_name: "",
+              contact_number: "",
+              alternate_contact_number: "",
+              email_address: "",
+              office_address: "",
+            });
+            setEditingId(null);
+            setIsOpen(true);
+          }}
           className="bg-primary py-4 rounded-2xl flex-row justify-center items-center mb-6"
         >
           <Plus color="white" size={20} />
@@ -112,9 +146,14 @@ export default function ClientsManager() {
                 <Text className="text-lg font-semibold text-card-foreground">
                   {client.client_name}
                 </Text>
-                <TouchableOpacity onPress={() => handleDelete(client.client_id)}>
-                  <Trash2 color="#999" size={20} />
-                </TouchableOpacity>
+                <View className="flex-row space-x-3 gap-2">
+                  <TouchableOpacity onPress={() => handleEdit(client)}>
+                    <Edit3 color="#999" size={20} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(client.client_id)}>
+                    <Trash2 color="#999" size={20} />
+                  </TouchableOpacity>
+                </View>
               </View>
               <Text className="text-muted-foreground mb-1">
                 👤 {client.contact_person_name || "N/A"}
@@ -136,14 +175,16 @@ export default function ClientsManager() {
         )}
       </ScrollView>
 
-      {/* Add Client Modal */}
+      {/* Add/Edit Modal */}
       <Modal visible={isOpen} animationType="slide">
         <SafeAreaView className="flex-1 bg-background">
           <View className="flex-row items-center px-4 py-3 border-b border-border bg-card">
             <TouchableOpacity onPress={() => setIsOpen(false)} className="mr-3">
               <ArrowLeft color="#888" size={24} />
             </TouchableOpacity>
-            <Text className="text-lg font-semibold text-foreground">Add New Client</Text>
+            <Text className="text-lg font-semibold text-foreground">
+              {editingId ? "Edit Client" : "Add New Client"}
+            </Text>
           </View>
 
           <ScrollView className="p-5">
@@ -165,7 +206,7 @@ export default function ClientsManager() {
               className="bg-primary p-4 rounded-2xl mt-2"
             >
               <Text className="text-center text-primary-foreground font-semibold text-base">
-                Save Client
+                {editingId ? "Update Client" : "Save Client"}
               </Text>
             </TouchableOpacity>
 

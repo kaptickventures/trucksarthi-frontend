@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   StatusBar,
 } from "react-native";
-import { Plus, Trash2, MapPin, ArrowLeft } from "lucide-react-native";
+import { Plus, Trash2, MapPin, ArrowLeft, Edit3 } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
 import useLocations from "../../hooks/useLocation";
@@ -22,15 +22,11 @@ export default function LocationsManager() {
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
 
-  const {
-    locations,
-    loading,
-    fetchLocations,
-    addLocation,
-    deleteLocation,
-  } = useLocations(firebase_uid || "");
+  const { locations, loading, fetchLocations, addLocation, updateLocation, deleteLocation } =
+    useLocations(firebase_uid || "");
 
   const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     location_name: "",
     complete_address: "",
@@ -47,12 +43,19 @@ export default function LocationsManager() {
       return Alert.alert("Validation", "Please fill all fields");
 
     try {
-      await addLocation(formData);
+      if (editingId) {
+        await updateLocation(editingId, formData);
+        Alert.alert("Success", "Location updated successfully!");
+      } else {
+        await addLocation(formData);
+        Alert.alert("Success", "Location added successfully!");
+      }
       setFormData({ location_name: "", complete_address: "" });
+      setEditingId(null);
       setIsOpen(false);
-      Alert.alert("Success", "Location added successfully");
+      fetchLocations();
     } catch (error) {
-      Alert.alert("Error", "Failed to add location");
+      Alert.alert("Error", "Failed to save location");
     }
   };
 
@@ -84,7 +87,11 @@ export default function LocationsManager() {
 
       <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
         <TouchableOpacity
-          onPress={() => setIsOpen(true)}
+          onPress={() => {
+            setEditingId(null);
+            setFormData({ location_name: "", complete_address: "" });
+            setIsOpen(true);
+          }}
           className="bg-primary py-4 rounded-2xl flex-row justify-center items-center mb-6"
         >
           <Plus color="white" size={20} />
@@ -110,9 +117,24 @@ export default function LocationsManager() {
                     {loc.location_name}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => handleDelete(loc.location_id)}>
-                  <Trash2 color="#999" size={20} />
-                </TouchableOpacity>
+                <View className="flex-row">
+                  <TouchableOpacity
+                    onPress={() => {
+                      setFormData({
+                        location_name: loc.location_name,
+                        complete_address: loc.complete_address || "",
+                      });
+                      setEditingId(loc.location_id);
+                      setIsOpen(true);
+                    }}
+                    className="mr-3"
+                  >
+                    <Edit3 color="#999" size={20} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(loc.location_id)}>
+                    <Trash2 color="#999" size={20} />
+                  </TouchableOpacity>
+                </View>
               </View>
               <Text className="text-muted-foreground">{loc.complete_address}</Text>
             </View>
@@ -120,7 +142,7 @@ export default function LocationsManager() {
         )}
       </ScrollView>
 
-      {/* Modal for Add Location */}
+      {/* Add/Edit Location Modal */}
       <Modal visible={isOpen} animationType="slide">
         <SafeAreaView className="flex-1 bg-background">
           <View className="flex-row items-center px-4 py-3 border-b border-border bg-card">
@@ -128,7 +150,7 @@ export default function LocationsManager() {
               <ArrowLeft color="#888" size={24} />
             </TouchableOpacity>
             <Text className="text-lg font-semibold text-foreground">
-              Add New Location
+              {editingId ? "Edit Location" : "Add New Location"}
             </Text>
           </View>
 
@@ -153,7 +175,7 @@ export default function LocationsManager() {
               className="bg-primary p-4 rounded-2xl mt-2"
             >
               <Text className="text-center text-primary-foreground font-semibold text-base">
-                Save Location
+                {editingId ? "Update Location" : "Save Location"}
               </Text>
             </TouchableOpacity>
 

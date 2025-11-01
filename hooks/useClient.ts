@@ -13,7 +13,6 @@ interface Client {
   firebase_uid: string;
 }
 
-
 export default function useClients(firebase_uid: string) {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,15 +32,26 @@ export default function useClients(firebase_uid: string) {
 
   const addClient = async (formData: any) => {
     try {
-      const res = await API.post(`/api/clients`, {
-        ...formData,
-        firebase_uid,
-      });
+      const res = await API.post(`/api/clients`, { ...formData, firebase_uid });
       setClients((prev) => [...prev, res.data]);
       return res.data;
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to add client");
+      throw error;
+    }
+  };
+
+  const updateClient = async (id: number, updatedData: any) => {
+    try {
+      const res = await API.put(`/api/clients/${id}`, updatedData);
+      setClients((prev) =>
+        prev.map((c) => (c.client_id === id ? res.data : c))
+      );
+      return res.data;
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to update client");
       throw error;
     }
   };
@@ -60,5 +70,5 @@ export default function useClients(firebase_uid: string) {
     fetchClients();
   }, [fetchClients]);
 
-  return { clients, loading, fetchClients, addClient, deleteClient };
+  return { clients, loading, fetchClients, addClient, updateClient, deleteClient };
 }

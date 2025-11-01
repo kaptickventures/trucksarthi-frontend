@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   StatusBar,
 } from "react-native";
-import { Plus, Trash2, FileText, ArrowLeft } from "lucide-react-native";
+import { Plus, Trash2, FileText, ArrowLeft, Edit3 } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
 import useDrivers from "../../hooks/useDriver";
@@ -22,10 +22,11 @@ export default function DriversManager() {
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
 
-  const { drivers, loading, fetchDrivers, addDriver, deleteDriver } =
+  const { drivers, loading, fetchDrivers, addDriver, updateDriver, deleteDriver } =
     useDrivers(firebase_uid || "");
 
   const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     driver_name: "",
     contact_number: "",
@@ -44,17 +45,24 @@ export default function DriversManager() {
       return Alert.alert("Validation", "Please fill all required fields");
     }
     try {
-      await addDriver(formData);
+      if (editingId) {
+        await updateDriver(editingId, formData);
+        Alert.alert("Success", "Driver updated successfully!");
+      } else {
+        await addDriver(formData);
+        Alert.alert("Success", "Driver added successfully!");
+      }
       setFormData({
         driver_name: "",
         contact_number: "",
         identity_card_url: "",
         license_card_url: "",
       });
+      setEditingId(null);
       setIsOpen(false);
-      Alert.alert("Success", "Driver added successfully!");
+      fetchDrivers();
     } catch (err) {
-      Alert.alert("Error", "Failed to add driver");
+      Alert.alert("Error", "Failed to save driver");
     }
   };
 
@@ -88,7 +96,16 @@ export default function DriversManager() {
       {/* Main content */}
       <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
         <TouchableOpacity
-          onPress={() => setIsOpen(true)}
+          onPress={() => {
+            setEditingId(null);
+            setFormData({
+              driver_name: "",
+              contact_number: "",
+              identity_card_url: "",
+              license_card_url: "",
+            });
+            setIsOpen(true);
+          }}
           className="bg-primary py-4 rounded-2xl flex-row justify-center items-center mb-6"
         >
           <Plus color="white" size={20} />
@@ -109,9 +126,26 @@ export default function DriversManager() {
                 <Text className="text-lg font-semibold text-card-foreground">
                   {driver.driver_name}
                 </Text>
-                <TouchableOpacity onPress={() => handleDelete(driver.driver_id)}>
-                  <Trash2 color="#999" size={20} />
-                </TouchableOpacity>
+                <View className="flex-row">
+                  <TouchableOpacity
+                    onPress={() => {
+                      setFormData({
+                        driver_name: driver.driver_name,
+                        contact_number: driver.contact_number,
+                        identity_card_url: driver.identity_card_url || "",
+                        license_card_url: driver.license_card_url || "",
+                      });
+                      setEditingId(driver.driver_id);
+                      setIsOpen(true);
+                    }}
+                    className="mr-3"
+                  >
+                    <Edit3 color="#999" size={20} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(driver.driver_id)}>
+                    <Trash2 color="#999" size={20} />
+                  </TouchableOpacity>
+                </View>
               </View>
               <Text className="text-muted-foreground mb-1">📞 {driver.contact_number}</Text>
               <View className="flex-row items-center mb-1">
@@ -131,14 +165,16 @@ export default function DriversManager() {
         )}
       </ScrollView>
 
-      {/* Add Driver Modal */}
+      {/* Add/Edit Driver Modal */}
       <Modal visible={isOpen} animationType="slide">
         <SafeAreaView className="flex-1 bg-background">
           <View className="flex-row items-center px-4 py-3 border-b border-border bg-card">
             <TouchableOpacity onPress={() => setIsOpen(false)} className="mr-3">
               <ArrowLeft color="#888" size={24} />
             </TouchableOpacity>
-            <Text className="text-lg font-semibold text-foreground">Add New Driver</Text>
+            <Text className="text-lg font-semibold text-foreground">
+              {editingId ? "Edit Driver" : "Add New Driver"}
+            </Text>
           </View>
 
           <ScrollView className="p-5">
@@ -160,7 +196,7 @@ export default function DriversManager() {
               className="bg-primary p-4 rounded-2xl mt-2"
             >
               <Text className="text-center text-primary-foreground font-semibold text-base">
-                Save Driver
+                {editingId ? "Update Driver" : "Save Driver"}
               </Text>
             </TouchableOpacity>
 

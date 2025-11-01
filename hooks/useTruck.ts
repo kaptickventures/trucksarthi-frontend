@@ -31,15 +31,26 @@ export default function useTrucks(firebase_uid: string) {
 
   const addTruck = async (formData: any) => {
     try {
-      const res = await API.post(`/api/trucks`, {
-        ...formData,
-        firebase_uid,
-      });
+      const res = await API.post(`/api/trucks`, { ...formData, firebase_uid });
       setTrucks((prev) => [...prev, res.data]);
       return res.data;
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to add truck");
+      throw error;
+    }
+  };
+
+  const updateTruck = async (id: number, updatedData: any) => {
+    try {
+      const res = await API.put(`/api/trucks/${id}`, updatedData);
+      setTrucks((prev) =>
+        prev.map((t) => (t.truck_id === id ? res.data : t))
+      );
+      return res.data;
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to update truck");
       throw error;
     }
   };
@@ -58,5 +69,5 @@ export default function useTrucks(firebase_uid: string) {
     fetchTrucks();
   }, [fetchTrucks]);
 
-  return { trucks, loading, fetchTrucks, addTruck, deleteTruck };
+  return { trucks, loading, fetchTrucks, addTruck, updateTruck, deleteTruck };
 }

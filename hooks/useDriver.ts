@@ -30,15 +30,26 @@ export default function useDrivers(firebase_uid: string) {
 
   const addDriver = async (formData: any) => {
     try {
-      const res = await API.post(`/api/drivers`, {
-        ...formData,
-        firebase_uid,
-      });
+      const res = await API.post(`/api/drivers`, { ...formData, firebase_uid });
       setDrivers((prev) => [...prev, res.data]);
       return res.data;
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to add driver");
+      throw error;
+    }
+  };
+
+  const updateDriver = async (id: number, updatedData: any) => {
+    try {
+      const res = await API.put(`/api/drivers/${id}`, updatedData);
+      setDrivers((prev) =>
+        prev.map((d) => (d.driver_id === id ? res.data : d))
+      );
+      return res.data;
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to update driver");
       throw error;
     }
   };
@@ -57,5 +68,5 @@ export default function useDrivers(firebase_uid: string) {
     fetchDrivers();
   }, [fetchDrivers]);
 
-  return { drivers, loading, fetchDrivers, addDriver, deleteDriver };
+  return { drivers, loading, fetchDrivers, addDriver, updateDriver, deleteDriver };
 }

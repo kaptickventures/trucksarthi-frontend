@@ -6,9 +6,6 @@ interface Location {
   location_id: number;
   location_name: string;
   complete_address: string;
-
-
-  
 }
 
 export default function useLocations(firebase_uid: string) {
@@ -30,15 +27,26 @@ export default function useLocations(firebase_uid: string) {
 
   const addLocation = async (formData: any) => {
     try {
-      const res = await API.post(`/api/locations`, {
-        ...formData,
-        firebase_uid,
-      });
+      const res = await API.post(`/api/locations`, { ...formData, firebase_uid });
       setLocations((prev) => [...prev, res.data]);
       return res.data;
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to add location");
+      throw error;
+    }
+  };
+
+  const updateLocation = async (id: number, updatedData: any) => {
+    try {
+      const res = await API.put(`/api/locations/${id}`, updatedData);
+      setLocations((prev) =>
+        prev.map((l) => (l.location_id === id ? res.data : l))
+      );
+      return res.data;
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to update location");
       throw error;
     }
   };
@@ -57,5 +65,5 @@ export default function useLocations(firebase_uid: string) {
     fetchLocations();
   }, [fetchLocations]);
 
-  return { locations, loading, fetchLocations, addLocation, deleteLocation };
+  return { locations, loading, fetchLocations, addLocation, updateLocation, deleteLocation };
 }

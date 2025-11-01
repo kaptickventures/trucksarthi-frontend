@@ -48,7 +48,7 @@ export default function TripHistory() {
     client: false,
   });
 
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<{
     field: "startDate" | "endDate" | null;
   }>({ field: null });
@@ -118,17 +118,14 @@ export default function TripHistory() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1 bg-background ">
       <ScrollView
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-center text-2xl font-bold mt-4 text-foreground">
-          Trip History
-        </Text>
 
         {/* ========== FILTERS ========== */}
-        <View className="mx-3 mt-5 mb-6 p-5 bg-card rounded-2xl border border-border shadow-md">
+        <View className="mx-3 mb-6 p-5 bg-card rounded-2xl border border-border shadow-md">
           {/* Header */}
           <TouchableOpacity
             onPress={toggleFilters}
