@@ -20,8 +20,8 @@ export default function BasicDetails() {
   const user = auth.currentUser;
 
   const [full_name, setFullName] = useState(user?.displayName ?? "");
-  const [email_address] = useState(user?.email ?? ""); // ❌ not editable
-  const [phone_number] = useState(user?.phoneNumber ?? ""); // ❌ not editable
+  const [email_address] = useState(user?.email ?? "");
+  const [phone_number] = useState(user?.phoneNumber ?? "");
   const [company_name, setCompany] = useState("");
   const [address, setAddress] = useState("");
   const [date_of_birth, setDob] = useState("");
@@ -29,8 +29,8 @@ export default function BasicDetails() {
   const [loading, setLoading] = useState(false);
 
   const pickImage = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
+    const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!granted) {
       Alert.alert("Permission required", "Please allow photo access.");
       return;
     }
@@ -56,7 +56,7 @@ export default function BasicDetails() {
       setLoading(true);
       await syncFirebaseUser({
         full_name,
-        email_address, // still send but not editable here
+        email_address,
         phone_number,
         company_name,
         address,
@@ -124,7 +124,7 @@ export default function BasicDetails() {
         placeholderTextColor="#999"
       />
 
-      {/* Phone Number (Not Editable) */}
+      {/* Phone Number (Read Only) */}
       <Text className="text-gray-700 dark:text-gray-300 mb-1">Phone Number *</Text>
       <TextInput
         value={phone_number}
@@ -135,7 +135,7 @@ export default function BasicDetails() {
         placeholderTextColor="#999"
       />
 
-      {/* Email (Not Editable) */}
+      {/* Email (Read Only) */}
       <Text className="text-gray-700 dark:text-gray-300 mb-1">Email Address *</Text>
       <TextInput
         value={email_address}

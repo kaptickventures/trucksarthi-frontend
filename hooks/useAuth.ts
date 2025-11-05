@@ -25,7 +25,7 @@ export async function syncFirebaseUser(payload: SyncPayload) {
     firebase_uid: user.uid, // ✅ Attach UID automatically
   };
 
-  const res = await API.post("/users/sync", finalPayload);
+  const res = await API.post("/api/users/sync", finalPayload);
   return res.data;
 }
 
@@ -33,7 +33,7 @@ export async function syncFirebaseUser(payload: SyncPayload) {
  * Checks if profile is completed for the logged-in user
  */
 export async function checkProfileCompleted(firebaseUid: string): Promise<boolean> {
-  const res = await API.get(`/users/check-profile/${firebaseUid}`);
+  const res = await API.get(`/api/users/check-profile/${firebaseUid}`);
   return Boolean(res.data?.profileCompleted);
 }
 

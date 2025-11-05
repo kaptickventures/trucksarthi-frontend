@@ -10,9 +10,7 @@ import {
   Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Camera, LogOut, Pencil } from "lucide-react-native";
-import { signOut } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
+import { Camera, Pencil, Settings, HelpCircle } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useUser } from "../../hooks/useUser";
 
@@ -35,16 +33,14 @@ export default function Profile() {
 
   useEffect(() => {
     if (user) {
-      const initialData = {
+      setFormData({
         full_name: user.full_name ?? "",
         company_name: user.company_name ?? "",
-        date_of_birth: user.date_of_birth ?? "",
+        date_of_birth: user.date_of_birth?.substring(0, 10) ?? "",
         phone_number: user.phone_number ?? "",
         email_address: user.email_address ?? "",
         address: user.address ?? "",
-      };
-
-      setFormData(initialData);
+      });
       setProfileImage(user.profile_picture_url ?? null);
     }
   }, [user]);
@@ -57,8 +53,8 @@ export default function Profile() {
   const handleImagePick = async () => {
     if (!isEditing) return;
 
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
+    const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!granted) {
       Alert.alert("Permission required", "Please allow photo access.");
       return;
     }
@@ -78,7 +74,10 @@ export default function Profile() {
   const handleSave = async () => {
     try {
       await updateUser({
-        ...formData,
+        full_name: formData.full_name,
+        company_name: formData.company_name,
+        date_of_birth: formData.date_of_birth,
+        address: formData.address,
         profile_picture_url: profileImage ?? undefined,
       });
 
@@ -91,22 +90,16 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      Alert.alert("Logged Out", "You have been logged out successfully!");
-      router.replace("/auth/login");
-    } catch (error) {
-      Alert.alert("Error", "Failed to log out. Try again.");
-    }
-  };
-
   return (
     <ScrollView className="flex-1 bg-background p-4">
       {/* Profile Picture */}
       <View className="items-center mb-6">
         <View className="relative">
-          <View className={`w-28 h-28 rounded-full bg-muted items-center justify-center overflow-hidden ${!isEditing && "opacity-90"}`}>
+          <View
+            className={`w-28 h-28 rounded-full bg-muted items-center justify-center overflow-hidden ${
+              !isEditing && "opacity-90"
+            }`}
+          >
             {profileImage ? (
               <Image source={{ uri: profileImage }} className="w-full h-full" />
             ) : (
@@ -132,34 +125,40 @@ export default function Profile() {
           <Text className="text-blue-600 ml-1 font-medium">Edit Profile</Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity className="self-end mb-3 flex-row items-center" onPress={() => { setIsEditing(false); setHasChanges(false); }}>
+        <TouchableOpacity
+          className="self-end mb-3 flex-row items-center"
+          onPress={() => {
+            setIsEditing(false);
+            setHasChanges(false);
+          }}
+        >
           <Text className="text-red-600 ml-1 font-medium">Cancel</Text>
         </TouchableOpacity>
       )}
 
       {/* Fields */}
       <View className="space-y-4">
-       {[
-  { key: "full_name", label: "Full Name *", editable: true },
-  { key: "company_name", label: "Company Name *", editable: true },
-  { key: "date_of_birth", label: "Date of Birth *", placeholder: "YYYY-MM-DD", editable: true },
-  { key: "phone_number", label: "Phone Number *", keyboardType: "phone-pad" as const, editable: false },
-  { key: "email_address", label: "Email Address *", keyboardType: "email-address" as const, editable: false },
-].map((field) => (
-  <View key={field.key}>
-    <Text className="text-foreground mb-1 font-medium">{field.label}</Text>
-    <TextInput
-      placeholder={field.placeholder}
-      editable={isEditing && field.editable}
-      keyboardType={field.keyboardType}
-      className={`border border-border rounded-lg p-3 bg-card text-foreground ${
-        (!isEditing || !field.editable) && "opacity-60"
-      }`}
-      value={formData[field.key as keyof typeof formData]}
-      onChangeText={(text) => markChanged(field.key, text)}
-    />
-  </View>
-))}
+        {[
+          { key: "full_name", label: "Full Name *", editable: true },
+          { key: "company_name", label: "Company Name *", editable: true },
+          { key: "date_of_birth", label: "Date of Birth *", placeholder: "YYYY-MM-DD", editable: true },
+          { key: "phone_number", label: "Phone Number", keyboardType: "phone-pad" as const, editable: false },
+          { key: "email_address", label: "Email Address", keyboardType: "email-address" as const, editable: false },
+        ].map((field) => (
+          <View key={field.key}>
+            <Text className="text-foreground mb-1 font-medium">{field.label}</Text>
+            <TextInput
+              placeholder={field.placeholder}
+              editable={isEditing && field.editable}
+              keyboardType={field.keyboardType}
+              className={`border border-border rounded-lg p-3 bg-card text-foreground ${
+                !field.editable && "opacity-60"
+              }`}
+              value={formData[field.key as keyof typeof formData]}
+              onChangeText={(text) => markChanged(field.key, text)}
+            />
+          </View>
+        ))}
 
         {/* Address */}
         <View>
@@ -182,10 +181,21 @@ export default function Profile() {
         </TouchableOpacity>
       )}
 
-      {/* Logout */}
-      <TouchableOpacity onPress={handleLogout} className="flex-row items-center justify-center bg-red-600 p-4 rounded-xl mt-6">
-        <LogOut size={20} color="#fff" />
-        <Text className="text-white font-semibold text-base ml-2">Logout</Text>
+      {/* Navigation Buttons */}
+      <TouchableOpacity
+        onPress={() => router.push("/settings")}
+        className="flex-row items-center justify-center bg-blue-600 p-4 rounded-xl mt-8"
+      >
+        <Settings size={20} color="#fff" />
+        <Text className="text-white font-semibold text-base ml-2">Settings</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => router.push("/helpCenter")}
+        className="flex-row items-center justify-center bg-green-600 p-4 rounded-xl mt-4 mb-6"
+      >
+        <HelpCircle size={20} color="#fff" />
+        <Text className="text-white font-semibold text-base ml-2">Help Center</Text>
       </TouchableOpacity>
     </ScrollView>
   );
