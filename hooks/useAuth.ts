@@ -1,6 +1,6 @@
-// services/authService.ts
 import API from "../app/api/axiosInstance";
 import { auth } from "../firebaseConfig";
+import { AxiosError } from "axios";
 
 type SyncPayload = {
   full_name?: string;
@@ -12,46 +12,57 @@ type SyncPayload = {
   date_of_birth?: string;
 };
 
-/**
- * Syncs Firebase logged-in user with backend
- * Creates the user if not exists, else updates it
- */
+// 🔹 Create row immediately after Firebase signup
+export async function initUser() {
+  const u = auth.currentUser;
+  if (!u) throw new Error("No authenticated user");
+
+  // Include whatever is available (use undefined, not null)
+  await API.post("/api/users/init", {
+    firebase_uid: u.uid,
+    email_address: u.email || undefined,
+    phone_number: u.phoneNumber || undefined,
+    full_name: u.displayName || undefined,
+    profile_picture_url: (u.photoURL as string) || undefined,
+  });
+}
+
+// 🔹 Create/Update merge (used on Basic Details screen)
 export async function syncFirebaseUser(payload: SyncPayload) {
-  const user = auth.currentUser;
-  if (!user) throw new Error("No authenticated user");
+  const u = auth.currentUser;
+  if (!u) throw new Error("No authenticated user");
 
-  const finalPayload = {
+  const res = await API.post("/api/users/sync", {
     ...payload,
-    firebase_uid: user.uid, // ✅ Attach UID automatically
-  };
-
-  const res = await API.post("/api/users/sync", finalPayload);
+    firebase_uid: u.uid,
+  });
   return res.data;
 }
 
-/**
- * Checks if profile is completed for the logged-in user
- */
 export async function checkProfileCompleted(firebaseUid: string): Promise<boolean> {
-  const res = await API.get(`/api/users/check-profile/${firebaseUid}`);
-  return Boolean(res.data?.profileCompleted);
+  try {
+    const res = await API.get(`/api/users/check-profile/${firebaseUid}`);
+    return Boolean(res.data?.profileCompleted);
+  } catch (err: unknown) {
+    const error = err as AxiosError;
+    if (error.response?.status === 404) return false;
+    return false;
+  }
 }
 
-/**
- * Call this right after Firebase sign-in.
- * Decides where to send the user:
- *  - If profile incomplete -> /profile/basic-details
- *  - If profile complete   -> /home
- */
+// 🔹 Call after any successful sign-in
 export async function postLoginFlow(router: any) {
-  const user = auth.currentUser;
-  if (!user) throw new Error("No authenticated user");
+  const u = auth.currentUser;
+  if (!u) throw new Error("No authenticated user");
 
-  const completed = await checkProfileCompleted(user.uid);
+  // 1) Ensure row exists and prefilled with what we have
+  await initUser();
 
+  // 2) Decide destination
+  const completed = await checkProfileCompleted(u.uid);
   if (completed) {
     router.replace("/home");
   } else {
-    router.replace("/basic-details");
+    router.replace("/basicDetails");
   }
 }

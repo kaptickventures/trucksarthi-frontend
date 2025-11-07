@@ -11,8 +11,8 @@ export default function LoginOptions() {
       
       {/* Header / Logo */}
       <Image
-        source={{ uri: "https://cdn-icons-png.flaticon.com/512/3039/3039383.png" }}
-        className="w-24 h-24 mb-6"
+        source={require("../../assets/images/Trucksarthi-Logo.png")}
+        className="w-24 h-24 mb-6 rounded-12"
       />
 
       <Text className="text-3xl font-bold text-black dark:text-white">

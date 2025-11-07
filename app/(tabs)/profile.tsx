@@ -13,7 +13,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Camera, Pencil, Settings, HelpCircle } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useUser } from "../../hooks/useUser";
-
+  
 export default function Profile() {
   const router = useRouter();
   const { user, updateUser, refreshUser } = useUser();

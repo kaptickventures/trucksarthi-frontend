@@ -4,7 +4,7 @@
     "slug": "trucksarthi-frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/Trucksarthi-Logo.png",
     "scheme": "trucksarthifrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

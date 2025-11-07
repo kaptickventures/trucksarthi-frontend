@@ -1,9 +1,11 @@
 // app/auth/signup-email.tsx
+// app/auth/signup-email.tsx
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
+import { initUser } from "../../hooks/useAuth"; // ⬅️ add
 
 export default function SignupEmail() {
   const router = useRouter();
@@ -19,14 +21,19 @@ export default function SignupEmail() {
       if (fullName) {
         await updateProfile(cred.user, { displayName: fullName });
       }
-      // After signup -> go to Basic Details (we'll sync from that screen)
-      router.replace("../basicDetails");
+
+      // 🔹 Create DB row immediately with what we have
+      await initUser();
+
+      // 🔹 Then go fill Basic Details
+      router.replace("/basicDetails");
     } catch (e: any) {
       Alert.alert("Signup failed", e?.message ?? "Try again.");
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <View className="flex-1 bg-white dark:bg-black px-6 justify-center">

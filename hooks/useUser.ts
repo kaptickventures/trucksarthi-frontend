@@ -1,4 +1,3 @@
-// hooks/useUser.ts
 import { useState, useEffect, useCallback } from "react";
 import { auth } from "../firebaseConfig";
 import API from "../app/api/axiosInstance";
@@ -30,8 +29,7 @@ export function useUser() {
       const current = auth.currentUser;
       if (!current) throw new Error("User not authenticated");
 
-      // ✅ Only include editable fields
-      const payload: any = {
+      const payload = {
         full_name: data.full_name,
         company_name: data.company_name,
         date_of_birth: data.date_of_birth,
@@ -40,7 +38,6 @@ export function useUser() {
       };
 
       const res = await API.put(`/api/users/${current.uid}`, payload);
-
       setUser(res.data);
       return res.data;
     } catch (err) {
