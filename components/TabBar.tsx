@@ -11,8 +11,8 @@ export default function TabBar() {
   const colors = {
     background: isDark ? "#0E1116" : "#FFFFFF",
     border: isDark ? "#1F242B" : "#E5E5E5",
-    active: isDark ? "#3B82F6" : "#1D4ED8", // blue for active icons
-    inactive: isDark ? "#6B7280" : "#9CA3AF", // muted gray
+    active: isDark ? "#3B82F6" : "#1D4ED8",
+    inactive: isDark ? "#6B7280" : "#9CA3AF",
     shadow: isDark ? "#00000080" : "#00000022",
   };
 
@@ -26,6 +26,7 @@ export default function TabBar() {
           bottom: 0,
           left: 0,
           right: 0,
+          height: 65,
           borderTopLeftRadius: 25,
           borderTopRightRadius: 25,
           backgroundColor: colors.background,
@@ -62,6 +63,23 @@ export default function TabBar() {
         }}
       />
 
+      {/* ADD TRIP */}
+      <Tabs.Screen
+        name="addtrip"
+        options={{
+          title: "Add Trip",
+          tabBarIcon: ({ color, focused }) => (
+            <View className="items-center justify-center">
+              <Ionicons
+                name={focused ? "add-circle" : "add-circle-outline"}
+                size={28}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+
       {/* HISTORY */}
       <Tabs.Screen
         name="history"
@@ -71,63 +89,6 @@ export default function TabBar() {
             <View className="items-center justify-center">
               <Ionicons
                 name={focused ? "time" : "time-outline"}
-                size={26}
-                color={color}
-              />
-            </View>
-          ),
-        }}
-      />
-
-      {/* ADD TRIP */}
-      <Tabs.Screen
-        name="addtrip"
-        options={{
-          title: "Add Trip",
-          tabBarIcon: ({ color }) => (
-            <View className="items-center justify-center">
-              <Ionicons
-                name="add-circle"
-                size={30}
-                color={colors.active}
-                style={{
-                  shadowColor: colors.active,
-                  shadowOpacity: 0.4,
-                  shadowRadius: 5,
-                  shadowOffset: { width: 0, height: 2 },
-                }}
-              />
-            </View>
-          ),
-        }}
-      />
-
-      {/* MANAGER */}
-      <Tabs.Screen
-        name="manager"
-        options={{
-          title: "Manager",
-          tabBarIcon: ({ color, focused }) => (
-            <View className="items-center justify-center">
-              <Ionicons
-                name={focused ? "people" : "people-outline"}
-                size={26}
-                color={color}
-              />
-            </View>
-          ),
-        }}
-      />
-
-      {/* PROFILE */}
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, focused }) => (
-            <View className="items-center justify-center">
-              <Ionicons
-                name={focused ? "person" : "person-outline"}
                 size={26}
                 color={color}
               />
