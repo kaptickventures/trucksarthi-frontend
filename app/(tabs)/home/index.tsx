@@ -1,18 +1,18 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRouter } from "expo-router";
+import { getAuth } from "firebase/auth";
 import React, { useLayoutEffect, useState } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
   useColorScheme,
+  View,
 } from "react-native";
-import { useRouter, useNavigation } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { getAuth } from "firebase/auth";
-import useTrips from "../../hooks/useTrip";
-import "../../global.css";
-import SideMenu from "../../components/SideMenu";
+import SideMenu from "../../../components/SideMenu";
+import "../../../global.css";
+import useTrips from "../../../hooks/useTrip";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -32,20 +32,14 @@ export default function HomeScreen() {
   // 🧭 Header setup
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: () => (
-        <Text
-          className={`text-3xl font-black tracking-wide ${
-            isDark ? "text-primary-foreground" : "text-primary"
-          }`}
-        >
-          Trucksarthi
-        </Text>
-      ),
+      headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
+      headerLargeTitleStyle: {
+        fontWeight: "100000",
+      },
       headerLeft: () => (
         <TouchableOpacity
           onPress={() => setMenuVisible(true)}
-          className="pl-5 pr-2 py-1"
         >
           <Ionicons
             name="menu"
@@ -57,11 +51,10 @@ export default function HomeScreen() {
       headerRight: () => (
         <TouchableOpacity
           onPress={() => router.push("/profile")}
-          className="pr-5 pl-2 py-1"
         >
           <Ionicons
             name="person-circle-outline"
-            size={30}
+            size={28}
             color={isDark ? "#E5E7EB" : "#111827"}
           />
         </TouchableOpacity>
@@ -137,22 +130,22 @@ export default function HomeScreen() {
             {
               title: "Locations",
               icon: "location-outline",
-              route: "/manager/locations-manager" as const,
+              route: "/locations-manager" as const,
             },
             {
               title: "Drivers",
               icon: "person-add-outline",
-              route: "/manager/drivers-manager" as const,
+              route: "/drivers-manager" as const,
             },
             {
               title: "Clients",
               icon: "people-outline",
-              route: "/manager/clients-manager" as const,
+              route: "/clients-manager" as const,
             },
             {
               title: "Trucks",
               icon: "bus-outline",
-              route: "/manager/trucks-manager" as const,
+              route: "/trucks-manager" as const,
             },
           ].map((item, idx) => (
             <TouchableOpacity

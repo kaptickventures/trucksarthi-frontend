@@ -1,76 +1,97 @@
-import React, { useState, useCallback } from "react";
+// app/trucks/TrucksManager.tsx
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { getAuth } from "firebase/auth";
+import { ArrowLeft, Edit3, Plus, Trash2 } from "lucide-react-native";
+import React, { useCallback, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Modal,
-  SafeAreaView,
-  Alert,
-  ActivityIndicator,
-  StatusBar,
+  View,
 } from "react-native";
-import { Plus, Trash2, FileText, ArrowLeft, Edit3 } from "lucide-react-native";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { getAuth } from "firebase/auth";
-import useDrivers from "../../hooks/useDriver";
+import useTrucks from "../../hooks/useTruck";
 
-export default function DriversManager() {
+export default function TrucksManager() {
   const navigation = useNavigation();
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
 
-  const { drivers, loading, fetchDrivers, addDriver, updateDriver, deleteDriver } =
-    useDrivers(firebase_uid || "");
+  const { trucks, loading, fetchTrucks, addTruck, updateTruck, deleteTruck } =
+    useTrucks(firebase_uid || "");
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    driver_name: "",
-    contact_number: "",
-    identity_card_url: "",
-    license_card_url: "",
+    registration_number: "",
+    chassis_number: "",
+    engine_number: "",
+    registered_owner_name: "",
+    container_dimension: "",
+    loading_capacity: "",
   });
 
+  // Refresh trucks when returning to page
   useFocusEffect(
     useCallback(() => {
-      if (firebase_uid) fetchDrivers();
-    }, [firebase_uid, fetchDrivers])
+      if (firebase_uid) fetchTrucks();
+    }, [firebase_uid, fetchTrucks])
   );
 
   const handleSubmit = async () => {
-    if (!formData.driver_name || !formData.contact_number) {
+    if (!formData.registration_number || !formData.registered_owner_name) {
       return Alert.alert("Validation", "Please fill all required fields");
     }
+
     try {
       if (editingId) {
-        await updateDriver(editingId, formData);
-        Alert.alert("Success", "Driver updated successfully!");
+        await updateTruck(editingId, formData);
+        Alert.alert("Success", "Truck updated successfully!");
       } else {
-        await addDriver(formData);
-        Alert.alert("Success", "Driver added successfully!");
+        await addTruck(formData);
+        Alert.alert("Success", "Truck added successfully!");
       }
+
+      // Reset form
       setFormData({
-        driver_name: "",
-        contact_number: "",
-        identity_card_url: "",
-        license_card_url: "",
+        registration_number: "",
+        chassis_number: "",
+        engine_number: "",
+        registered_owner_name: "",
+        container_dimension: "",
+        loading_capacity: "",
       });
       setEditingId(null);
       setIsOpen(false);
-      fetchDrivers();
     } catch (err) {
-      Alert.alert("Error", "Failed to save driver");
+      Alert.alert("Error", "Failed to save truck");
     }
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert("Confirm", "Delete this driver?", [
+    Alert.alert("Confirm", "Delete this truck?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deleteDriver(id) },
+      { text: "Delete", style: "destructive", onPress: () => deleteTruck(id) },
     ]);
+  };
+
+  const handleEdit = (truck: any) => {
+    setFormData({
+      registration_number: truck.registration_number,
+      chassis_number: truck.chassis_number || "",
+      engine_number: truck.engine_number || "",
+      registered_owner_name: truck.registered_owner_name,
+      container_dimension: truck.container_dimension || "",
+      loading_capacity: String(truck.loading_capacity || ""),
+    });
+    setEditingId(truck.truck_id);
+    setIsOpen(true);
   };
 
   if (!firebase_uid)
@@ -85,87 +106,79 @@ export default function DriversManager() {
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
-      {/* Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-border bg-card">
-        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3">
-          <ArrowLeft color="#888" size={24} />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-foreground">Drivers</Text>
-      </View>
-
-      {/* Main content */}
+  
+      {/* Truck List */}
       <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
         <TouchableOpacity
           onPress={() => {
-            setEditingId(null);
             setFormData({
-              driver_name: "",
-              contact_number: "",
-              identity_card_url: "",
-              license_card_url: "",
+              registration_number: "",
+              chassis_number: "",
+              engine_number: "",
+              registered_owner_name: "",
+              container_dimension: "",
+              loading_capacity: "",
             });
+            setEditingId(null);
             setIsOpen(true);
           }}
           className="bg-primary py-4 rounded-2xl flex-row justify-center items-center mb-6"
         >
           <Plus color="white" size={20} />
-          <Text className="text-primary-foreground ml-2 font-semibold">Add Driver</Text>
+          <Text className="text-primary-foreground ml-2 font-semibold">Add Truck</Text>
         </TouchableOpacity>
 
         {loading ? (
           <ActivityIndicator size="large" color="#888" />
-        ) : drivers.length === 0 ? (
-          <Text className="text-center text-muted-foreground mt-10">No drivers found.</Text>
+        ) : trucks.length === 0 ? (
+          <Text className="text-center text-muted-foreground mt-10">No trucks found.</Text>
         ) : (
-          drivers.map((driver) => (
+          trucks.map((truck) => (
             <View
-              key={driver.driver_id}
+              key={truck.truck_id}
               className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
             >
               <View className="flex-row justify-between items-start mb-2">
                 <Text className="text-lg font-semibold text-card-foreground">
-                  {driver.driver_name}
+                  {truck.registration_number}
                 </Text>
-                <View className="flex-row">
-                  <TouchableOpacity
-                    onPress={() => {
-                      setFormData({
-                        driver_name: driver.driver_name,
-                        contact_number: driver.contact_number,
-                        identity_card_url: driver.identity_card_url || "",
-                        license_card_url: driver.license_card_url || "",
-                      });
-                      setEditingId(driver.driver_id);
-                      setIsOpen(true);
-                    }}
-                    className="mr-3"
-                  >
+                <View className="flex-row space-x-3 gap-2">
+                  <TouchableOpacity onPress={() => handleEdit(truck)}>
                     <Edit3 color="#999" size={20} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDelete(driver.driver_id)}>
+                  <TouchableOpacity onPress={() => handleDelete(truck.truck_id)}>
                     <Trash2 color="#999" size={20} />
                   </TouchableOpacity>
                 </View>
               </View>
-              <Text className="text-muted-foreground mb-1">📞 {driver.contact_number}</Text>
-              <View className="flex-row items-center mb-1">
-                <FileText color="#777" size={18} />
-                <Text className="ml-2 text-muted-foreground">
-                  Identity Card: {driver.identity_card_url || "Not uploaded"}
+
+              <Text className="text-muted-foreground mb-1">
+                🚛 Owner: {truck.registered_owner_name}
+              </Text>
+              {truck.chassis_number && (
+                <Text className="text-muted-foreground mb-1">
+                  🔩 Chassis: {truck.chassis_number}
                 </Text>
-              </View>
-              <View className="flex-row items-center">
-                <FileText color="#777" size={18} />
-                <Text className="ml-2 text-muted-foreground">
-                  License Card: {driver.license_card_url || "Not uploaded"}
+              )}
+              {truck.engine_number && (
+                <Text className="text-muted-foreground mb-1">
+                  ⚙️ Engine: {truck.engine_number}
                 </Text>
-              </View>
+              )}
+              {truck.container_dimension && (
+                <Text className="text-muted-foreground mb-1">
+                  📏 Container: {truck.container_dimension}
+                </Text>
+              )}
+              <Text className="text-muted-foreground">
+                🧱 Capacity: {truck.loading_capacity || "N/A"}
+              </Text>
             </View>
           ))
         )}
       </ScrollView>
 
-      {/* Add/Edit Driver Modal */}
+      {/* Add/Edit Modal */}
       <Modal visible={isOpen} animationType="slide">
         <SafeAreaView className="flex-1 bg-background">
           <View className="flex-row items-center px-4 py-3 border-b border-border bg-card">
@@ -173,7 +186,7 @@ export default function DriversManager() {
               <ArrowLeft color="#888" size={24} />
             </TouchableOpacity>
             <Text className="text-lg font-semibold text-foreground">
-              {editingId ? "Edit Driver" : "Add New Driver"}
+              {editingId ? "Edit Truck" : "Add New Truck"}
             </Text>
           </View>
 
@@ -196,7 +209,7 @@ export default function DriversManager() {
               className="bg-primary p-4 rounded-2xl mt-2"
             >
               <Text className="text-center text-primary-foreground font-semibold text-base">
-                {editingId ? "Update Driver" : "Save Driver"}
+                {editingId ? "Update Truck" : "Save Truck"}
               </Text>
             </TouchableOpacity>
 

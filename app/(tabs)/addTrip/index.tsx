@@ -1,25 +1,25 @@
+import { getAuth } from "firebase/auth";
 import React, { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
   TouchableWithoutFeedback,
-  Keyboard,
-  Platform,
+  View,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
-import { getAuth } from "firebase/auth";
-import useTrucks from "../../hooks/useTruck";
-import useDrivers from "../../hooks/useDriver";
-import useClients from "../../hooks/useClient";
-import useLocations from "../../hooks/useLocation";
-import useTrips from "../../hooks/useTrip";
-import "../../global.css"; // ✅ ensures tailwind + theme vars apply
+import "../../../global.css"; // ✅ ensures tailwind + theme vars apply
+import useClients from "../../../hooks/useClient";
+import useDrivers from "../../../hooks/useDriver";
+import useLocations from "../../../hooks/useLocation";
+import useTrips from "../../../hooks/useTrip";
+import useTrucks from "../../../hooks/useTruck";
 
 export default function AddTrip() {
   const auth = getAuth();
@@ -169,6 +169,9 @@ export default function AddTrip() {
   ];
 
   return (
+
+
+    
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       className="flex-1 bg-background"

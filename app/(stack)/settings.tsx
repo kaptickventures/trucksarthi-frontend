@@ -1,9 +1,9 @@
 // app/settings/index.tsx
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
-import { LogOut, HelpCircle, User } from "lucide-react-native";
 import { signOut } from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { HelpCircle, LogOut, User } from "lucide-react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { auth } from "../../firebaseConfig";
 
 export default function Settings() {
   const router = useRouter();

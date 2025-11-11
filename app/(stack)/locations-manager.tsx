@@ -1,23 +1,22 @@
-import React, { useState, useCallback } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { getAuth } from "firebase/auth";
+import { ArrowLeft, Edit3, MapPin, Plus, Trash2 } from "lucide-react-native";
+import React, { useCallback, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Modal,
-  SafeAreaView,
-  Alert,
-  ActivityIndicator,
-  StatusBar,
+  View,
 } from "react-native";
-import { Plus, Trash2, MapPin, ArrowLeft, Edit3 } from "lucide-react-native";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { getAuth } from "firebase/auth";
 import useLocations from "../../hooks/useLocation";
 
 export default function LocationsManager() {
-  const navigation = useNavigation();
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
@@ -76,14 +75,6 @@ export default function LocationsManager() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-
-      {/* Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-border bg-card">
-        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3">
-          <ArrowLeft color="#888" size={24} />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-foreground">Locations</Text>
-      </View>
 
       <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
         <TouchableOpacity

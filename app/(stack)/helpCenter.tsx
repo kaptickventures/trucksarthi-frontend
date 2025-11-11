@@ -22,13 +22,6 @@ export default function HelpCenter() {
   return (
     <ScrollView className="flex-1 bg-background px-5 pt-10">
       
-      {/* Header */}
-      <View className="flex-row items-center mb-6">
-        <TouchableOpacity onPress={() => router.back()} className="mr-3">
-          <ChevronLeft size={26} color="#007AFF" />
-        </TouchableOpacity>
-        <Text className="text-3xl font-bold text-foreground">Help Center</Text>
-      </View>
 
       <Text className="text-foreground text-base mb-6">
         We are available 24×7 to help you with any issues or questions.

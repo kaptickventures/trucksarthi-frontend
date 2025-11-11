@@ -1,25 +1,25 @@
-import React, { useEffect, useRef } from "react";
-import {
-  Animated,
-  Dimensions,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-  Text,
-  PanResponder,
-  useColorScheme,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import React, { useEffect, useRef } from "react";
+import {
+    Animated,
+    Dimensions,
+    PanResponder,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    useColorScheme,
+    View,
+} from "react-native";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const LINKS = [
   { title: "Add Trip", icon: "car-outline", route: "/addtrip" },
   { title: "History", icon: "time-outline", route: "/history" },
-  { title: "Drivers", icon: "person-outline", route: "/manager/drivers-manager" },
-  { title: "Clients", icon: "people-outline", route: "/manager/clients-manager" },
-  { title: "Locations", icon: "location-outline", route: "/manager/locations-manager" },
+  { title: "Drivers", icon: "person-outline", route: "/drivers-manager" },
+  { title: "Clients", icon: "people-outline", route: "/clients-manager" },
+  { title: "Locations", icon: "location-outline", route: "/locations-manager" },
 ] as const;
 
 type RoutePath = (typeof LINKS)[number]["route"];

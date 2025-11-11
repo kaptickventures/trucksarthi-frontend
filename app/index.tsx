@@ -1,9 +1,9 @@
 // app/index.tsx
-import React, { useEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebaseConfig";
 import { useRouter } from "expo-router";
+import { onAuthStateChanged } from "firebase/auth";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { auth } from "../firebaseConfig";
 
 export default function Index() {
   const [loading, setLoading] = useState(true);

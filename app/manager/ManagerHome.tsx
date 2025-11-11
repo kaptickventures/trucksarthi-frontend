@@ -23,12 +23,7 @@ export default function ManagerHome() {
 
   return (
     <View className="flex-1 bg-background pb-20">
-      {/* Header */}
-      <View className="bg-card border-b border-border px-4 py-4">
-        <Text className="text-xl font-semibold text-center text-foreground">
-          Data Manager
-        </Text>
-      </View>
+
 
       {/* Root view */}
       {isRoot ? (

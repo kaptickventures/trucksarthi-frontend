@@ -1,22 +1,22 @@
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import { Camera } from "lucide-react-native";
 import React, { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
-  ScrollView,
-  ActivityIndicator,
-  Image,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
+  View,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { auth } from "../firebaseConfig";
-import { syncFirebaseUser } from "../hooks/useAuth";
-import { Camera } from "lucide-react-native";
+import { auth } from "../../firebaseConfig";
+import { syncFirebaseUser } from "../../hooks/useAuth";
 
 export default function BasicDetails() {
   const router = useRouter();
@@ -159,24 +159,39 @@ export default function BasicDetails() {
 
           {/* Fields */}
           <View>
+
             {/* Full Name */}
-            <View className="mb-6">
-              <Text className="text-foreground mb-2 font-medium">Full Name *</Text>
-              <TextInput
-                value={full_name}
-                onChangeText={setFullName}
-                className="border border-border rounded-xl p-4 bg-card text-foreground"
-                placeholder="Enter your full name"
-                placeholderTextColor="#888"
-              />
-            </View>
+        <View className="mb-6">
+  <Text className="text-foreground mb-2 font-medium">Full Name *</Text>
+  <TextInput
+    value={full_name}
+    onChangeText={(text) => {
+      // Capitalize only the first character, leave rest as typed
+      if (text.length === 0) {
+        setFullName("");
+      } else {
+        setFullName(text.charAt(0).toUpperCase() + text.slice(1));
+      }
+    }}
+    autoCapitalize="none" // disable auto word capitalization    className="border border-border rounded-xl p-4 bg-card text-foreground"
+    placeholder="Enter your full name"
+    placeholderTextColor="#888"
+  />
+        </View>
 
             {/* Company Name */}
             <View className="mb-6">
               <Text className="text-foreground mb-2 font-medium">Company Name *</Text>
               <TextInput
                 value={company_name}
-                onChangeText={setCompany}
+                onChangeText={(text) => {
+                  if (text.length === 0) {
+                    setCompany("");
+                  } else {
+                    setCompany(text.charAt(0).toUpperCase() + text.slice(1));
+                  }
+                }}
+                autoCapitalize="none" // disable auto word capitalization
                 className="border border-border rounded-xl p-4 bg-card text-foreground"
                 placeholder="Enter your company name"
                 placeholderTextColor="#888"

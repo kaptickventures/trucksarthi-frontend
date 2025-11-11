@@ -1,24 +1,24 @@
-import React, { useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  ActivityIndicator,
-  TouchableOpacity,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import DropDownPicker from "react-native-dropdown-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { getAuth } from "firebase/auth";
+import React, { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  LayoutAnimation,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  View,
+} from "react-native";
+import DropDownPicker from "react-native-dropdown-picker";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import useTrips from "../../hooks/useTrip";
-import useDrivers from "../../hooks/useDriver";
 import useClients from "../../hooks/useClient";
-import useTrucks from "../../hooks/useTruck";
+import useDrivers from "../../hooks/useDriver";
 import useLocations from "../../hooks/useLocation";
+import useTrips from "../../hooks/useTrip";
+import useTrucks from "../../hooks/useTruck";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
