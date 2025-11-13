@@ -4,16 +4,16 @@ import { getAuth } from "firebase/auth";
 import { ArrowLeft, Edit3, Plus, Trash2 } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import useTrucks from "../../hooks/useTruck";
 
@@ -142,7 +142,7 @@ export default function TrucksManager() {
                 <Text className="text-lg font-semibold text-card-foreground">
                   {truck.registration_number}
                 </Text>
-                <View className="flex-row space-x-3 gap-2">
+                <View className="flex-row gap-2 gap-2">
                   <TouchableOpacity onPress={() => handleEdit(truck)}>
                     <Edit3 color="#999" size={20} />
                   </TouchableOpacity>

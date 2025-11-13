@@ -1,18 +1,18 @@
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
 import { ArrowLeft, Edit3, Plus, Trash2 } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import useClients from "../../hooks/useClient";
 
@@ -139,7 +139,7 @@ export default function ClientsManager() {
                 <Text className="text-lg font-semibold text-card-foreground">
                   {client.client_name}
                 </Text>
-                <View className="flex-row space-x-3 gap-2">
+                <View className="flex-row gap-2">
                   <TouchableOpacity onPress={() => handleEdit(client)}>
                     <Edit3 color="#999" size={20} />
                   </TouchableOpacity>

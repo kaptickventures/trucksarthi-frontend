@@ -1,4 +1,5 @@
-// app/(tabs)/history-stack/index.tsx
+// app/(tabs)/history/index.tsx
+
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { getAuth } from "firebase/auth";
 import React, { useMemo, useState } from "react";
@@ -21,6 +22,7 @@ import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
 
+// Enable layout animation on Android
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -40,8 +42,8 @@ export default function TripHistory() {
   const { locations } = useLocations(firebase_uid || "");
 
   const [filters, setFilters] = useState({
-    driver_id: "",
-    client_id: "",
+    driver_id: "" as string | null,
+    client_id: "" as string | null,
     startDate: null as Date | null,
     endDate: null as Date | null,
   });
@@ -56,6 +58,7 @@ export default function TripHistory() {
     field: "startDate" | "endDate" | null;
   }>({ field: null });
 
+  // Helpers
   const getDriverName = (id: number) =>
     drivers.find((d) => d.driver_id === id)?.driver_name || "Unknown Driver";
 
@@ -63,11 +66,13 @@ export default function TripHistory() {
     clients.find((c) => c.client_id === id)?.client_name || "Unknown Client";
 
   const getTruckReg = (id: number) =>
-    trucks.find((t) => t.truck_id === id)?.registration_number || "Unknown Truck";
+    trucks.find((t) => t.truck_id === id)?.registration_number ||
+    "Unknown Truck";
 
   const getLocationName = (id: number) =>
     locations.find((l) => l.location_id === id)?.location_name || "Unknown";
 
+  // Filter + Sort
   const sortedTrips = useMemo(() => {
     let filtered = [...trips];
 
@@ -118,8 +123,8 @@ export default function TripHistory() {
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Filters Card */}
-        <View className="mx-3 mb-6 p-5 bg-card rounded-2xl border border-border shadow-md">
+        {/* FILTER BOX */}
+        <View className="mx-3 mb-6 p-5 bg-card rounded-2xl border border-border shadow-sm">
           <TouchableOpacity
             onPress={toggleFilters}
             className="flex-row items-center justify-between"
@@ -132,86 +137,93 @@ export default function TripHistory() {
 
           {showFilters && (
             <>
-              {/* Dropdowns */}
-              <View className="flex-row space-x-3 mt-5">
+              {/* DROPDOWNS */}
+              <View className="flex-row gap-3 mt-5">
+                
+                {/* DRIVER */}
                 <View className="flex-1">
                   <Text className="text-sm text-muted-foreground mb-1 ml-1">
                     Driver
                   </Text>
+
                   <DropDownPicker
                     open={dropdowns.driver}
                     value={filters.driver_id}
                     items={driverItems}
-                    setOpen={(callback) =>
+                    setOpen={(open) =>
                       setDropdowns((prev) => ({
                         ...prev,
                         driver:
-                          typeof callback === "function"
-                            ? callback(prev.driver)
-                            : callback,
+                          typeof open === "function" ? open(prev.driver) : open,
                       }))
                     }
-                    setValue={(callback) =>
+                    setValue={(val) =>
                       setFilters((prev) => ({
                         ...prev,
                         driver_id:
-                          typeof callback === "function"
-                            ? callback(prev.driver_id)
-                            : callback,
+                          typeof val === "function" ? val(prev.driver_id) : val,
                       }))
                     }
                     placeholder="Select Driver"
                     style={{
                       backgroundColor: "hsl(var(--input-bg))",
                       borderColor: "hsl(var(--input-border))",
+                      minHeight: 48,
+                      borderRadius: 12,
                     }}
                     dropDownContainerStyle={{
                       backgroundColor: "hsl(var(--card))",
                       borderColor: "hsl(var(--border))",
                     }}
-                    textStyle={{ color: "hsl(var(--input-text))" }}
+                    textStyle={{
+                      color: "hsl(var(--input-text))",
+                      fontSize: 15,
+                    }}
                     placeholderStyle={{
                       color: "hsl(var(--muted-foreground))",
                     }}
                   />
                 </View>
 
+                {/* CLIENT */}
                 <View className="flex-1">
                   <Text className="text-sm text-muted-foreground mb-1 ml-1">
                     Client
                   </Text>
+
                   <DropDownPicker
                     open={dropdowns.client}
                     value={filters.client_id}
                     items={clientItems}
-                    setOpen={(callback) =>
+                    setOpen={(open) =>
                       setDropdowns((prev) => ({
                         ...prev,
                         client:
-                          typeof callback === "function"
-                            ? callback(prev.client)
-                            : callback,
+                          typeof open === "function" ? open(prev.client) : open,
                       }))
                     }
-                    setValue={(callback) =>
+                    setValue={(val) =>
                       setFilters((prev) => ({
                         ...prev,
                         client_id:
-                          typeof callback === "function"
-                            ? callback(prev.client_id)
-                            : callback,
+                          typeof val === "function" ? val(prev.client_id) : val,
                       }))
                     }
                     placeholder="Select Client"
                     style={{
                       backgroundColor: "hsl(var(--input-bg))",
                       borderColor: "hsl(var(--input-border))",
+                      minHeight: 48,
+                      borderRadius: 12,
                     }}
                     dropDownContainerStyle={{
                       backgroundColor: "hsl(var(--card))",
                       borderColor: "hsl(var(--border))",
                     }}
-                    textStyle={{ color: "hsl(var(--input-text))" }}
+                    textStyle={{
+                      color: "hsl(var(--input-text))",
+                      fontSize: 15,
+                    }}
                     placeholderStyle={{
                       color: "hsl(var(--muted-foreground))",
                     }}
@@ -219,11 +231,11 @@ export default function TripHistory() {
                 </View>
               </View>
 
-              {/* Date Range */}
-              <View className="flex-row justify-between space-x-3 mt-4">
+              {/* DATE RANGE */}
+              <View className="flex-row gap-3 mt-4">
                 <TouchableOpacity
                   onPress={() => setShowDatePicker({ field: "startDate" })}
-                  className="flex-1 border border-border rounded-xl px-4 py-3 bg-input-bg"
+                  className="flex-1 border border-input-border rounded-xl px-4 py-3 bg-input-bg"
                 >
                   <Text className="text-sm text-muted-foreground mb-1">From</Text>
                   <Text className="text-foreground font-medium">
@@ -233,7 +245,7 @@ export default function TripHistory() {
 
                 <TouchableOpacity
                   onPress={() => setShowDatePicker({ field: "endDate" })}
-                  className="flex-1 border border-border rounded-xl px-4 py-3 bg-input-bg"
+                  className="flex-1 border border-input-border rounded-xl px-4 py-3 bg-input-bg"
                 >
                   <Text className="text-sm text-muted-foreground mb-1">To</Text>
                   <Text className="text-foreground font-medium">
@@ -242,7 +254,7 @@ export default function TripHistory() {
                 </TouchableOpacity>
               </View>
 
-              {/* Reset */}
+              {/* RESET */}
               <TouchableOpacity
                 onPress={() =>
                   setFilters({
@@ -252,7 +264,7 @@ export default function TripHistory() {
                     endDate: null,
                   })
                 }
-                className="bg-primary mt-5 rounded-lg py-3"
+                className="bg-primary mt-5 rounded-xl py-3"
               >
                 <Text className="text-center text-primary-foreground font-semibold">
                   Reset Filters
@@ -262,7 +274,7 @@ export default function TripHistory() {
           )}
         </View>
 
-        {/* Date Picker */}
+        {/* DATE PICKER */}
         {showDatePicker.field && (
           <DateTimePicker
             value={filters[showDatePicker.field] || new Date()}
@@ -271,8 +283,8 @@ export default function TripHistory() {
             onChange={(e, selected) => {
               setShowDatePicker({ field: null });
               if (selected) {
-                setFilters((p) => ({
-                  ...p,
+                setFilters((prev) => ({
+                  ...prev,
                   [showDatePicker.field!]: selected,
                 }));
               }
@@ -280,7 +292,20 @@ export default function TripHistory() {
           />
         )}
 
-        {/* Trip List */}
+        {/* SUMMARY */}
+        <View className="mx-3 mb-4 mt-1 bg-accent border border-border p-4 rounded-2xl">
+          <Text className="text-base text-foreground font-medium">
+            {sortedTrips.length} trips found
+          </Text>
+          <Text className="text-2xl font-extrabold text-primary mt-1">
+            ₹
+            {sortedTrips
+              .reduce((t, x) => t + (x.cost_of_trip || 0), 0)
+              .toLocaleString()}
+          </Text>
+        </View>
+
+        {/* TRIP CARDS */}
         {loading ? (
           <ActivityIndicator size="large" className="mt-10" />
         ) : sortedTrips.length === 0 ? (
@@ -291,64 +316,53 @@ export default function TripHistory() {
           sortedTrips.map((trip: any) => (
             <View
               key={trip.trip_id}
-              className="bg-card border border-border rounded-xl mx-3 mb-4 p-5 shadow-sm"
+              className="bg-card border border-border rounded-2xl mx-3 mb-4 p-5 shadow-sm"
             >
-              <View className="flex-row justify-between items-center mb-2">
-                <Text className="font-semibold text-base text-foreground">
-                  {getClientName(trip.client_id)}
+              <View className="flex-row justify-between items-center mb-3">
+                <Text className="text-sm text-muted-foreground">
+                  {new Date(trip.trip_date).toDateString()}
                 </Text>
-                <Text className="text-muted-foreground text-sm">
-                  {trip.trip_date}
+                <Text className="text-xl font-bold text-primary">
+                  ₹{trip.cost_of_trip?.toLocaleString() || 0}
                 </Text>
               </View>
 
-              <Text className="text-foreground mb-1">
-                🧍 Driver:{" "}
-                <Text className="text-muted-foreground">
-                  {getDriverName(trip.driver_id)}
-                </Text>
+              <Text className="text-lg font-semibold text-foreground mb-2">
+                {getLocationName(trip.start_location_id)} →{" "}
+                {getLocationName(trip.end_location_id)}
               </Text>
 
-              <Text className="text-foreground mb-1">
-                🚚 Truck:{" "}
-                <Text className="text-muted-foreground">
+              <View className="flex-row items-center mb-2">
+                <Text className="mr-2">🏢</Text>
+                <Text className="text-foreground font-medium">
+                  {getClientName(trip.client_id)}
+                </Text>
+              </View>
+
+              <View className="flex-row items-center mb-2">
+                <Text className="mr-2">🚚</Text>
+                <Text className="text-foreground font-medium">
                   {getTruckReg(trip.truck_id)}
                 </Text>
-              </Text>
+              </View>
 
-              <Text className="text-foreground mb-1">
-                📍 From:{" "}
-                <Text className="text-muted-foreground">
-                  {getLocationName(trip.start_location_id)}
+              <View className="flex-row items-center mb-3">
+                <Text className="mr-2">👤</Text>
+                <Text className="text-foreground font-medium">
+                  {getDriverName(trip.driver_id)}
                 </Text>
-              </Text>
-
-              <Text className="text-foreground mb-1">
-                🏁 To:{" "}
-                <Text className="text-muted-foreground">
-                  {getLocationName(trip.end_location_id)}
-                </Text>
-              </Text>
-
-              <Text className="text-foreground mb-1">
-                💰 Cost:{" "}
-                <Text className="text-primary font-semibold">
-                  ₹{trip.cost_of_trip?.toLocaleString() || 0}
-                </Text>
-              </Text>
+              </View>
 
               {trip.miscellaneous_expense > 0 && (
-                <Text className="text-foreground mb-1">
-                  🧾 Misc Expense:{" "}
-                  <Text className="text-orange-500 font-semibold">
-                    ₹{trip.miscellaneous_expense?.toLocaleString()}
-                  </Text>
+                <Text className="text-orange-500 font-semibold">
+                  Misc Expense: ₹
+                  {trip.miscellaneous_expense?.toLocaleString()}
                 </Text>
               )}
 
               {trip.notes ? (
                 <Text className="text-muted-foreground italic mt-2">
-                  🗒️ {trip.notes}
+                  📝 {trip.notes}
                 </Text>
               ) : null}
             </View>

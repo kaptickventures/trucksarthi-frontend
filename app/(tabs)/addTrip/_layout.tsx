@@ -15,8 +15,8 @@ export default function AddTripStack() {
       <NativeStack.Screen
         name="index"
         options={{
-          title: "Add Trip",
-          headerLargeTitle: true,
+          headerTitle: "Add New Trip",
+          headerTitleAlign: "center",
         }}
       />
       <NativeStack.Screen

@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useLayoutEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { useNavigation, useRouter } from "expo-router";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
   useColorScheme,
+  View,
 } from "react-native";
-import { useRouter, useNavigation } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "../../hooks/useUser";
 
 export default function Profile() {
@@ -143,7 +143,7 @@ export default function Profile() {
   if (!user) {
     return (
       <View className="flex-1 justify-center items-center bg-background">
-        <ActivityIndicator size="large" color="#A855F7" />
+        <ActivityIndicator size="large" color="#007bff" />
         <Text className="text-muted-foreground mt-2">Loading profile...</Text>
       </View>
     );
