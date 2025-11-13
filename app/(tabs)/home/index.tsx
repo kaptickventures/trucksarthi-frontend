@@ -29,43 +29,39 @@ export default function HomeScreen() {
     firebase_uid || ""
   );
 
-  // 🧭 Header setup
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitle: "Trucksarthi",
-      headerTitleAlign: "center",
-      headerLargeTitleStyle: {
-        fontWeight: "100000",
-      },
-      headerLeft: () => (
-        <TouchableOpacity
-          onPress={() => setMenuVisible(true)}
-        >
-          <Ionicons
-            name="menu"
-            size={28}
-            color={isDark ? "#E5E7EB" : "#111827"}
-          />
-        </TouchableOpacity>
-      ),
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => router.push("/profile")}
-        >
-          <Ionicons
-            name="person-circle-outline"
-            size={28}
-            color={isDark ? "#E5E7EB" : "#111827"}
-          />
-        </TouchableOpacity>
-      ),
-      headerStyle: {
-        backgroundColor: isDark
-          ? "hsl(var(--background))"
-          : "hsl(var(--background))",
-      },
-    });
-  }, [navigation, isDark]);
+useLayoutEffect(() => {
+  navigation.setOptions({
+    headerTitle: "Trucksarthi",
+    headerTitleAlign: "center",
+    headerLargeTitleStyle: {
+      fontWeight: "100000",
+    },
+    headerLeft: () => (
+      <TouchableOpacity onPress={() => setMenuVisible(true)}>
+        <Ionicons
+          name="menu"
+          size={28}
+          color={isDark ? "#E5E7EB" : "#111827"}
+        />
+      </TouchableOpacity>
+    ),
+    headerRight: () => (
+      <TouchableOpacity onPress={() => router.push("/profile")}>
+        <Ionicons
+          name="notifications-outline"
+          size={26}
+          color={isDark ? "#E5E7EB" : "#111827"}
+        />
+      </TouchableOpacity>
+    ),
+    headerStyle: {
+      backgroundColor: isDark
+        ? "hsl(var(--background))"
+        : "hsl(var(--background))",
+    },
+  });
+}, [navigation, isDark]);
+
 
   if (!firebase_uid) {
     return (
@@ -115,7 +111,7 @@ export default function HomeScreen() {
 
         {/* ====== Add Trip Button ====== */}
         <TouchableOpacity
-          onPress={() => router.push("/addtrip")}
+          onPress={() => router.push("/addTrip")}
           className="bg-primary rounded-full py-4 flex-row justify-center items-center mb-6"
         >
           <Ionicons name="car-outline" size={20} color="white" />

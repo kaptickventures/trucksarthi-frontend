@@ -1,3 +1,4 @@
+// app/(tabs)/history-stack/index.tsx
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { getAuth } from "firebase/auth";
 import React, { useMemo, useState } from "react";
@@ -14,13 +15,16 @@ import {
 import DropDownPicker from "react-native-dropdown-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import useClients from "../../hooks/useClient";
-import useDrivers from "../../hooks/useDriver";
-import useLocations from "../../hooks/useLocation";
-import useTrips from "../../hooks/useTrip";
-import useTrucks from "../../hooks/useTruck";
+import useClients from "../../../hooks/useClient";
+import useDrivers from "../../../hooks/useDriver";
+import useLocations from "../../../hooks/useLocation";
+import useTrips from "../../../hooks/useTrip";
+import useTrucks from "../../../hooks/useTruck";
 
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -35,7 +39,6 @@ export default function TripHistory() {
   const { trucks } = useTrucks(firebase_uid || "");
   const { locations } = useLocations(firebase_uid || "");
 
-  // --- Filter states ---
   const [filters, setFilters] = useState({
     driver_id: "",
     client_id: "",
@@ -53,7 +56,6 @@ export default function TripHistory() {
     field: "startDate" | "endDate" | null;
   }>({ field: null });
 
-  // === Mapping helper functions ===
   const getDriverName = (id: number) =>
     drivers.find((d) => d.driver_id === id)?.driver_name || "Unknown Driver";
 
@@ -66,7 +68,6 @@ export default function TripHistory() {
   const getLocationName = (id: number) =>
     locations.find((l) => l.location_id === id)?.location_name || "Unknown";
 
-  // === Sorting & Filtering ===
   const sortedTrips = useMemo(() => {
     let filtered = [...trips];
 
@@ -74,17 +75,14 @@ export default function TripHistory() {
       filtered = filtered.filter(
         (t) => String(t.driver_id) === String(filters.driver_id)
       );
-
     if (filters.client_id)
       filtered = filtered.filter(
         (t) => String(t.client_id) === String(filters.client_id)
       );
-
     if (filters.startDate)
       filtered = filtered.filter(
         (t) => new Date(t.trip_date) >= filters.startDate!
       );
-
     if (filters.endDate)
       filtered = filtered.filter(
         (t) => new Date(t.trip_date) <= filters.endDate!
@@ -96,7 +94,6 @@ export default function TripHistory() {
     );
   }, [trips, filters]);
 
-  // === Dropdown items ===
   const driverItems = drivers.map((d) => ({
     label: d.driver_name,
     value: String(d.driver_id),
@@ -107,33 +104,27 @@ export default function TripHistory() {
     value: String(c.client_id),
   }));
 
-  // === Date formatting helper ===
   const formatDate = (date: Date | null) =>
     date ? date.toISOString().split("T")[0] : "Select Date";
 
-  // === Toggle Filters Animation ===
   const toggleFilters = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setShowFilters((prev) => !prev);
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background ">
+    <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-
-        {/* ========== FILTERS ========== */}
+        {/* Filters Card */}
         <View className="mx-3 mb-6 p-5 bg-card rounded-2xl border border-border shadow-md">
-          {/* Header */}
           <TouchableOpacity
             onPress={toggleFilters}
             className="flex-row items-center justify-between"
           >
-            <Text className="text-xl font-semibold text-foreground">
-              Filters
-            </Text>
+            <Text className="text-xl font-semibold text-foreground">Filters</Text>
             <Text className="text-primary font-medium">
               {showFilters ? "Hide ▲" : "Show ▼"}
             </Text>
@@ -141,7 +132,7 @@ export default function TripHistory() {
 
           {showFilters && (
             <>
-              {/* Dropdown Row */}
+              {/* Dropdowns */}
               <View className="flex-row space-x-3 mt-5">
                 <View className="flex-1">
                   <Text className="text-sm text-muted-foreground mb-1 ml-1">
@@ -179,7 +170,9 @@ export default function TripHistory() {
                       borderColor: "hsl(var(--border))",
                     }}
                     textStyle={{ color: "hsl(var(--input-text))" }}
-                    placeholderStyle={{ color: "hsl(var(--muted-foreground))" }}
+                    placeholderStyle={{
+                      color: "hsl(var(--muted-foreground))",
+                    }}
                   />
                 </View>
 
@@ -232,9 +225,7 @@ export default function TripHistory() {
                   onPress={() => setShowDatePicker({ field: "startDate" })}
                   className="flex-1 border border-border rounded-xl px-4 py-3 bg-input-bg"
                 >
-                  <Text className="text-sm text-muted-foreground mb-1">
-                    From
-                  </Text>
+                  <Text className="text-sm text-muted-foreground mb-1">From</Text>
                   <Text className="text-foreground font-medium">
                     {formatDate(filters.startDate)}
                   </Text>
@@ -251,7 +242,7 @@ export default function TripHistory() {
                 </TouchableOpacity>
               </View>
 
-              {/* Reset Filters */}
+              {/* Reset */}
               <TouchableOpacity
                 onPress={() =>
                   setFilters({
@@ -271,7 +262,7 @@ export default function TripHistory() {
           )}
         </View>
 
-        {/* === DATE PICKER === */}
+        {/* Date Picker */}
         {showDatePicker.field && (
           <DateTimePicker
             value={filters[showDatePicker.field] || new Date()}
@@ -289,7 +280,7 @@ export default function TripHistory() {
           />
         )}
 
-        {/* === Trip List === */}
+        {/* Trip List */}
         {loading ? (
           <ActivityIndicator size="large" className="mt-10" />
         ) : sortedTrips.length === 0 ? (
@@ -340,7 +331,7 @@ export default function TripHistory() {
               </Text>
 
               <Text className="text-foreground mb-1">
-                💰 Cost of Trip:{" "}
+                💰 Cost:{" "}
                 <Text className="text-primary font-semibold">
                   ₹{trip.cost_of_trip?.toLocaleString() || 0}
                 </Text>
