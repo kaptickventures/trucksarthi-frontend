@@ -17,7 +17,6 @@ import {
 import useDrivers from "../../hooks/useDriver";
 
 export default function DriversManager() {
-  const navigation = useNavigation();
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;

@@ -1,5 +1,5 @@
 import { getAuth } from "firebase/auth";
-import React, { useState } from "react";
+import React, { useState, useLayoutEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,10 @@ import {
   useColorScheme,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
+import { useNavigation, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import "../../../global.css";
+import SideMenu from "../../../components/SideMenu";
 
 import useClients from "../../../hooks/useClient";
 import useDrivers from "../../../hooks/useDriver";
@@ -46,27 +49,78 @@ type TripForm = Record<TripFormKeys, string>;
 type NewItemForm = Record<string, string>;
 
 /* -------------------------------------------------
-   INLINE THEME COLORS (DARK/LIGHT)
---------------------------------------------------*/
-function useInlineThemeColors() {
-  const dark = useColorScheme() === "dark";
-
-  return {
-    inputBg: dark ? "hsl(220 10% 18%)" : "hsl(0 0% 98%)",
-    inputText: dark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)",
-    inputBorder: dark ? "hsl(220 10% 35%)" : "hsl(0 0% 88%)",
-    cardBg: dark ? "hsl(220 15% 12%)" : "hsl(0 0% 98%)",
-    cardBorder: dark ? "hsl(220 10% 28%)" : "hsl(0 0% 88%)",
-    placeholder: dark ? "hsl(0 0% 75%)" : "hsl(0 0% 40%)",
-  };
-}
-
-/* -------------------------------------------------
    MAIN COMPONENT
 --------------------------------------------------*/
 export default function AddTrip() {
-  const colors = useInlineThemeColors();
+  const navigation = useNavigation();
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const isDark = colorScheme === "dark";
 
+  /* THEME COLORS — SAME AS HOME + HISTORY */
+  const backgroundColor = isDark
+    ? "hsl(220 15% 8%)"
+    : "hsl(0 0% 100%)";
+
+  const foregroundColor = isDark
+    ? "hsl(0 0% 98%)"
+    : "hsl(0 0% 4%)";
+
+  /* HEADER */
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: "Trucksarthi",
+      headerTitleAlign: "left",
+
+      headerStyle: {
+        backgroundColor,
+      },
+
+      headerTitleStyle: {
+        color: foregroundColor,
+        fontWeight: "600",
+      },
+
+      headerTintColor: foregroundColor,
+
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => setMenuVisible(true)}
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 4,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Ionicons name="menu" size={24} color={foregroundColor} />
+        </TouchableOpacity>
+      ),
+
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => router.push("/profile")}
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 4,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Ionicons
+            name="notifications-outline"
+            size={24}
+            color={foregroundColor}
+          />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, isDark]);
+
+  /* -------------------------------------------------
+     DATA + STATE
+  --------------------------------------------------*/
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
@@ -103,8 +157,6 @@ export default function AddTrip() {
     start: false,
     end: false,
   });
-
-  
 
   /* ---------------------- Modal ---------------------- */
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -153,7 +205,7 @@ export default function AddTrip() {
     setIsModalVisible(true);
   };
 
-  /* --------------- ADD NEW ENTITY ---------------- */
+  /* ---------------------- ADD NEW ENTITY ---------------------- */
   const handleAddNew = async () => {
     try {
       let created: any = null;
@@ -262,8 +314,8 @@ export default function AddTrip() {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView className="p-4" contentContainerStyle={{ paddingBottom: 200 }}>
-          
-          {/* ---------------- Date ---------------- */}
+
+          {/* DATE */}
           <Text className="text-foreground mb-2 font-medium">Date *</Text>
           <TextInput
             editable={false}
@@ -271,27 +323,33 @@ export default function AddTrip() {
             className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
           />
 
-          {/* ---------------- Dropdowns with Square Button ---------------- */}
+          {/* DROPDOWNS */}
           {dropdownData.map((d, index) => (
             <View
               key={d.key}
               style={{
                 marginBottom: 30,
-                zIndex: 5000 - index, // IMPORTANT: no overlap
+                zIndex: 5000 - index,
               }}
             >
               <Text className="text-foreground mb-2 font-medium">{d.label} *</Text>
 
               <View className="flex-row items-center">
-                
-                {/* Dropdown */}
+
+                {/* DROPDOWN */}
                 <View style={{ flex: 1, marginRight: 10 }}>
                   <DropDownPicker
                     open={dropdowns[d.openKey]}
                     value={formData[d.key]}
                     items={d.items}
-                    setOpen={(o) =>
-                      setDropdowns((prev) => ({ ...prev, [d.openKey]: o }))
+                    setOpen={(open) =>
+                      setDropdowns((prev) => ({
+                        ...prev,
+                        [d.openKey]:
+                          typeof open === "function"
+                            ? open(prev[d.openKey])
+                            : open,
+                      }))
                     }
                     setValue={(cb) =>
                       setFormData((prev) => ({
@@ -300,43 +358,45 @@ export default function AddTrip() {
                       }))
                     }
                     placeholder={`Select ${d.label}`}
-
-                    // LIMIT HEIGHT + SCROLL
                     listMode="SCROLLVIEW"
                     maxHeight={150}
                     scrollViewProps={{ nestedScrollEnabled: true }}
-
                     style={{
                       height: 48,
-                      backgroundColor: colors.inputBg,
-                      borderColor: colors.inputBorder,
+                      backgroundColor: "hsl(var(--input-bg))",
+                      borderColor: "hsl(var(--input))",
                     }}
                     dropDownContainerStyle={{
-                      backgroundColor: colors.cardBg,
-                      borderColor: colors.cardBorder,
+                      backgroundColor: "hsl(var(--card))",
+                      borderColor: "hsl(var(--border))",
                     }}
-                    textStyle={{ color: colors.inputText }}
-                    placeholderStyle={{ color: colors.placeholder }}
+                    textStyle={{
+                      color: "hsl(var(--input-text))",
+                      fontSize: 15,
+                    }}
+                    placeholderStyle={{
+                      color: "hsl(var(--muted-foreground))",
+                    }}
                   />
                 </View>
 
-                {/* Square ADD button */}
+                {/* ADD BUTTON */}
                 <TouchableOpacity
                   onPress={() => openAddModal(d.addType)}
                   style={{
                     width: 48,
                     height: 48,
-                    borderRadius: 10,
-                    backgroundColor: colors.inputBg,
+                    borderRadius: 12,
+                    backgroundColor: "hsl(var(--input-bg))",
                     borderWidth: 1,
-                    borderColor: colors.inputBorder,
+                    borderColor: "hsl(var(--input))",
                     justifyContent: "center",
                     alignItems: "center",
                   }}
                 >
                   <Text
                     style={{
-                      color: colors.inputText,
+                      color: "hsl(var(--input-text))",
                       fontSize: 22,
                       fontWeight: "600",
                       marginTop: -2,
@@ -345,12 +405,11 @@ export default function AddTrip() {
                     +
                   </Text>
                 </TouchableOpacity>
-
               </View>
             </View>
           ))}
 
-          {/* ---------------- Cost ---------------- */}
+          {/* COST */}
           <Text className="text-foreground mb-2 font-medium">Cost of Trip (₹) *</Text>
           <TextInput
             keyboardType="numeric"
@@ -359,7 +418,7 @@ export default function AddTrip() {
             className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
           />
 
-          {/* ---------------- Misc ---------------- */}
+          {/* MISC */}
           <Text className="text-foreground mb-2 font-medium">Miscellaneous Expense (₹)</Text>
           <TextInput
             keyboardType="numeric"
@@ -370,7 +429,7 @@ export default function AddTrip() {
             className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
           />
 
-          {/* ---------------- Notes ---------------- */}
+          {/* NOTES */}
           <Text className="text-foreground mb-2 font-medium">Notes</Text>
           <TextInput
             multiline
@@ -380,7 +439,7 @@ export default function AddTrip() {
             className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-10"
           />
 
-          {/* ---------------- Submit ---------------- */}
+          {/* SUBMIT */}
           <TouchableOpacity
             onPress={async () => {
               try {
@@ -418,14 +477,15 @@ export default function AddTrip() {
               Add Trip
             </Text>
           </TouchableOpacity>
-
         </ScrollView>
       </TouchableWithoutFeedback>
 
-      {/* ---------------- Modal ---------------- */}
+      {/* Slide-in Menu — MUST BE OUTSIDE SCROLLVIEW */}
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
+
+      {/* MODAL */}
       <Modal visible={isModalVisible} animationType="slide">
         <ScrollView className="flex-1 bg-background p-5">
-          
           <Text className="text-2xl font-semibold text-foreground mb-8">
             Add New {currentType}
           </Text>
@@ -464,10 +524,8 @@ export default function AddTrip() {
               Cancel
             </Text>
           </TouchableOpacity>
-
         </ScrollView>
       </Modal>
-
     </KeyboardAvoidingView>
   );
 }

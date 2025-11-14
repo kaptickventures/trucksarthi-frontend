@@ -29,38 +29,71 @@ export default function HomeScreen() {
     firebase_uid || ""
   );
 
+  // ====================================
+  // APPLY TAILWIND THEME COLORS TO HEADER
+  // ====================================
+
+  const backgroundColor = isDark
+    ? "hsl(220 15% 8%)" // dark --background
+    : "hsl(0 0% 100%)"; // light --background
+
+  const foregroundColor = isDark
+    ? "hsl(0 0% 98%)" // dark --foreground
+    : "hsl(0 0% 4%)"; // light --foreground
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
-      headerTitleAlign: "center",
-      headerLargeTitleStyle: {
-        fontWeight: "100000",
+      headerTitleAlign: "l",
+
+      headerStyle: {
+        backgroundColor,
       },
+
+      headerTitleStyle: {
+        color: foregroundColor,
+        fontWeight: "600",
+      },
+
+      headerTintColor: foregroundColor, // icons
+
       headerLeft: () => (
-        <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <Ionicons
-            name="menu"
-            size={28}
-            color={isDark ? "#E5E7EB" : "#111827"}
-          />
+        <TouchableOpacity
+          onPress={() => setMenuVisible(true)}
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 4,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Ionicons name="menu" size={24} color={foregroundColor} />
         </TouchableOpacity>
       ),
+
       headerRight: () => (
-        <TouchableOpacity onPress={() => router.push("/profile")}>
+        <TouchableOpacity
+          onPress={() => router.push("/profile")}
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 4,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
           <Ionicons
             name="notifications-outline"
-            size={26}
-            color={isDark ? "#E5E7EB" : "#111827"}
+            size={24}
+            color={foregroundColor}
           />
         </TouchableOpacity>
       ),
-      headerStyle: {
-        backgroundColor: isDark
-          ? "hsl(var(--background))"
-          : "hsl(var(--background))",
-      },
     });
   }, [navigation, isDark]);
+
+  // ================================
+  // LOADING STATES
+  // ================================
 
   if (!firebase_uid) {
     return (
@@ -79,6 +112,10 @@ export default function HomeScreen() {
       </View>
     );
   }
+
+  // ================================
+  // MAIN SCREEN
+  // ================================
 
   return (
     <>
@@ -117,79 +154,60 @@ export default function HomeScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* ====== Quick Actions — Single Row (4 Buttons) ====== */}
-        {/* ====== Quick Actions — Single Row (4 Buttons) ====== */}
-<View className="flex-row gap-2 justify-between mb-6">
-  {[
-    {
-      title: "Locations",
-      icon: "location-outline",
-      route: "/locations-manager" as const,
-    },
-    {
-      title: "Drivers",
-      icon: "person-add-outline",
-      route: "/drivers-manager" as const,
-    },
-    {
-      title: "Clients",
-      icon: "people-outline",
-      route: "/clients-manager" as const,
-    },
-    {
-      title: "Trucks",
-      icon: "bus-outline",
-      route: "/trucks-manager" as const,
-    },
-  ].map((item, idx) => (
-    <TouchableOpacity
-      key={idx}
-      onPress={() => router.push(item.route as any)}
-      className="flex-1 bg-card rounded-2xl items-center justify-center"
-    >
-      <View className="p-2 py-4 items-center">
-        <Ionicons name={item.icon as any} size={18} color="#2563EB" />
-        <Text className="text-muted-foreground text-[8px] mt-1 font-medium">
-          {item.title}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  ))}
-</View>
+        {/* ====== Quick Actions ====== */}
+        <View className="flex-row gap-2 justify-between mb-6">
+          {[
+            { title: "Locations", icon: "location-outline", route: "/locations-manager" },
+            { title: "Drivers", icon: "person-add-outline", route: "/drivers-manager" },
+            { title: "Clients", icon: "people-outline", route: "/clients-manager" },
+            { title: "Trucks", icon: "bus-outline", route: "/trucks-manager" },
+          ].map((item, idx) => (
+            <TouchableOpacity
+              key={idx}
+              onPress={() => router.push(item.route as any)}
+              className="flex-1 bg-card rounded-2xl items-center justify-center"
+            >
+              <View className="p-2 py-4 items-center">
+                <Ionicons name={item.icon as any} size={18} color="#2563EB" />
+                <Text className="text-muted-foreground text-[8px] mt-1 font-medium">
+                  {item.title}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-{/* ====== Reminders ====== */}
-<View className="bg-card rounded-2xl p-4 mb-6">
-  <View className="flex-row justify-between items-center mb-3">
-    <Text className="text-card-foreground font-semibold text-lg">
-      Reminders
-    </Text>
-    <TouchableOpacity onPress={() => router.push("/")}>
-      <Text className="text-muted-foreground text-sm">View All →</Text>
-    </TouchableOpacity>
-  </View>
+        {/* ====== Reminders ====== */}
+        <View className="bg-card rounded-2xl p-4 mb-6">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-card-foreground font-semibold text-lg">
+              Reminders
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/")}>
+              <Text className="text-muted-foreground text-sm">View All →</Text>
+            </TouchableOpacity>
+          </View>
 
-  {/* Example reminders (replace with real data later) */}
-  {[
-    { id: 1, text: "RC renewal due soon", date: "Feb 15, 2025" },
-    { id: 2, text: "Insurance expires", date: "Mar 01, 2025" },
-  ].map((reminder) => (
-    <View
-      key={reminder.id}
-      className="flex-row justify-between items-center bg-secondary p-3 rounded-xl mb-2"
-    >
-      <View className="flex-1">
-        <Text className="text-card-foreground font-medium text-sm">
-          {reminder.text}
-        </Text>
-        <Text className="text-muted-foreground text-xs mt-1">
-          Due: {reminder.date}
-        </Text>
-      </View>
-      <Ionicons name="alert-circle-outline" size={20} color="#2563EB" />
-    </View>
-  ))}
-</View>
-
+          {[
+            { id: 1, text: "RC renewal due soon", date: "Feb 15, 2025" },
+            { id: 2, text: "Insurance expires", date: "Mar 01, 2025" },
+          ].map((reminder) => (
+            <View
+              key={reminder.id}
+              className="flex-row justify-between items-center bg-secondary p-3 rounded-xl mb-2"
+            >
+              <View className="flex-1">
+                <Text className="text-card-foreground font-medium text-sm">
+                  {reminder.text}
+                </Text>
+                <Text className="text-muted-foreground text-xs mt-1">
+                  Due: {reminder.date}
+                </Text>
+              </View>
+              <Ionicons name="alert-circle-outline" size={20} color="#2563EB" />
+            </View>
+          ))}
+        </View>
 
         {/* ====== Recent Trips ====== */}
         <View className="bg-card rounded-2xl p-4 mb-6">
@@ -234,7 +252,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* 🧭 Slide-in Menu */}
+      {/* Slide-in Menu */}
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
     </>
   );
