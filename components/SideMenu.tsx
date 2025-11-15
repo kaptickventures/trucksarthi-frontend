@@ -129,6 +129,7 @@ export default function SideMenu({
       >
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header */}
+          <TouchableOpacity onPress={() => navigate("/profile")}>
           <View className="flex-row items-center mb-10">
             <View
               style={{
@@ -154,6 +155,7 @@ export default function SideMenu({
               )}
             </View>
 
+
             <View className="ml-4">
               <Text className="text-xl font-semibold" style={{ color: colors.text }}>
                 {loading ? "Loading..." : user?.full_name || "Guest"}
@@ -167,6 +169,7 @@ export default function SideMenu({
               <Ionicons name="close" size={24} color={colors.icon} />
             </TouchableOpacity>
           </View>
+          </TouchableOpacity>
 
           {/* Theme toggle */}
           <View className="mb-10">

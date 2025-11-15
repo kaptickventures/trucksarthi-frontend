@@ -44,7 +44,7 @@ export default function HomeScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
-      headerTitleAlign: "l",
+      headerTitleAlign: "center",
 
       headerStyle: {
         backgroundColor,

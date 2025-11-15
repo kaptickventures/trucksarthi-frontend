@@ -26,6 +26,7 @@ import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
 
+/* ------------------ Types ------------------ */
 type EntityType = "Client" | "Driver" | "Truck" | "Location";
 type DropdownKeys = "truck" | "driver" | "client" | "start" | "end";
 
@@ -50,9 +51,17 @@ export default function AddTrip() {
   const [menuVisible, setMenuVisible] = useState(false);
   const isDark = colorScheme === "dark";
 
+  /* ------------ Theme Colors (JS variables)  ------------ */
+  const inputBg = isDark ? "hsl(220 10% 18%)" : "hsl(0 0% 98%)";
+  const inputBorder = isDark ? "hsl(220 10% 35%)" : "hsl(0 0% 88%)";
+  const inputText = isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)";
+  const placeholder = isDark ? "hsl(0 0% 75%)" : "hsl(0 0% 40%)";
+  const cardBg = isDark ? "hsl(220 15% 12%)" : "hsl(0 0% 98%)";
+
   const backgroundColor = isDark ? "hsl(220 15% 8%)" : "hsl(0 0% 100%)";
   const foregroundColor = isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)";
 
+  /* ---------------- Header ---------------- */
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
@@ -64,12 +73,7 @@ export default function AddTrip() {
       headerLeft: () => (
         <TouchableOpacity
           onPress={() => setMenuVisible(true)}
-          style={{
-            paddingHorizontal: 6,
-            paddingVertical: 4,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
+          style={{ paddingHorizontal: 6, paddingVertical: 4 }}
         >
           <Ionicons name="menu" size={24} color={foregroundColor} />
         </TouchableOpacity>
@@ -78,12 +82,7 @@ export default function AddTrip() {
       headerRight: () => (
         <TouchableOpacity
           onPress={() => router.push("/profile")}
-          style={{
-            paddingHorizontal: 6,
-            paddingVertical: 4,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
+          style={{ paddingHorizontal: 6, paddingVertical: 4 }}
         >
           <Ionicons name="notifications-outline" size={24} color={foregroundColor} />
         </TouchableOpacity>
@@ -91,6 +90,7 @@ export default function AddTrip() {
     });
   }, [navigation, isDark]);
 
+  /* ---------------- Data Hooks ---------------- */
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
@@ -128,6 +128,7 @@ export default function AddTrip() {
     end: false,
   });
 
+  /* ---------------- Modal ---------------- */
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentType, setCurrentType] = useState<EntityType>("Client");
   const [newItemForm, setNewItemForm] = useState<NewItemForm>({});
@@ -209,6 +210,7 @@ export default function AddTrip() {
     }
   };
 
+  /* ---------------- Loading UI ---------------- */
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
@@ -218,6 +220,7 @@ export default function AddTrip() {
     );
   }
 
+  /* ---------------- Dropdown Data ---------------- */
   const dropdownData = [
     {
       label: "Truck",
@@ -271,242 +274,230 @@ export default function AddTrip() {
     },
   ];
 
+  /* ---------------- UI ---------------- */
   return (
-    <KeyboardAwareScrollView
-      enableOnAndroid
-      extraScrollHeight={70}
-      extraHeight={150}
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ padding: 16, paddingBottom: 300 }}
-      className="bg-background"
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View>
+    <View className="flex-1 bg-background">
+      <KeyboardAwareScrollView
+        enableOnAndroid
+        extraScrollHeight={70}
+        extraHeight={150}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ padding: 16, paddingBottom: 250 }}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View>
 
-          {/* DATE */}
-          <Text className="text-foreground mb-2 font-medium">Date *</Text>
-          <TextInput
-            editable={false}
-            value={formData.date}
-            className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
-          />
+            {/* DATE */}
+            <Text className="text-foreground mb-2 font-medium">Date *</Text>
+            <TextInput
+              editable={false}
+              value={formData.date}
+              className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
+            />
 
-          {/* DROPDOWNS */}
-          {dropdownData.map((d, index) => (
-            <View
-              key={d.key}
-              style={{ marginBottom: 30, zIndex: 5000 - index }}
-            >
-              <Text className="text-foreground mb-2 font-medium">
-                {d.label} *
-              </Text>
+            {/* DROPDOWNS */}
+            {dropdownData.map((d, index) => (
+              <View key={d.key} style={{ marginBottom: 30, zIndex: 5000 - index }}>
+                <Text className="text-foreground mb-2 font-medium">{d.label} *</Text>
 
-              <View className="flex-row items-center">
-                <View style={{ flex: 1, marginRight: 10 }}>
-                  <DropDownPicker
-                    open={dropdowns[d.openKey]}
-                    value={formData[d.key]}
-                    items={d.items}
-                    setOpen={(open) =>
-                      setDropdowns((prev) => ({
-                        ...prev,
-                        [d.openKey]:
-                          typeof open === "function"
-                            ? open(prev[d.openKey])
-                            : open,
-                      }))
-                    }
-                    setValue={(cb) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        [d.key]: cb(prev[d.key]),
-                      }))
-                    }
-                    placeholder={`Select ${d.label}`}
-                    listMode="SCROLLVIEW"
-                    maxHeight={150}
-                    scrollViewProps={{ nestedScrollEnabled: true }}
+                <View className="flex-row items-center">
+                  {/* Dropdown */}
+                  <View style={{ flex: 1, marginRight: 10 }}>
+                    <DropDownPicker
+                      open={dropdowns[d.openKey]}
+                      value={formData[d.key]}
+                      items={d.items}
+                      setOpen={(open) =>
+                        setDropdowns((prev) => ({
+                          ...prev,
+                          [d.openKey]:
+                            typeof open === "function"
+                              ? open(prev[d.openKey])
+                              : open,
+                        }))
+                      }
+                      setValue={(cb) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          [d.key]: cb(prev[d.key]),
+                        }))
+                      }
+                      placeholder={`Select ${d.label}`}
+                      listMode="SCROLLVIEW"
+                      maxHeight={150}
+                      scrollViewProps={{ nestedScrollEnabled: true }}
+                      style={{
+                        height: 48,
+                        backgroundColor: inputBg,
+                        borderColor: inputBorder,
+                      }}
+                      dropDownContainerStyle={{
+                        backgroundColor: cardBg,
+                        borderColor: inputBorder,
+                      }}
+                      textStyle={{
+                        color: inputText,
+                        fontSize: 15,
+                      }}
+                      placeholderStyle={{
+                        color: placeholder,
+                      }}
+                    />
+                  </View>
+
+                  {/* ADD BUTTON */}
+                  <TouchableOpacity
+                    onPress={() => openAddModal(d.addType)}
                     style={{
+                      width: 48,
                       height: 48,
-                      backgroundColor: "hsl(var(--input-bg))",
-                      borderColor: "hsl(var(--input))",
-                    }}
-                    dropDownContainerStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      borderColor: "hsl(var(--border))",
-                    }}
-                    textStyle={{
-                      color: "hsl(var(--input-text))",
-                      fontSize: 15,
-                    }}
-                    placeholderStyle={{
-                      color: "hsl(var(--muted-foreground))",
-                    }}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => openAddModal(d.addType)}
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    backgroundColor: "hsl(var(--input-bg))",
-                    borderWidth: 1,
-                    borderColor: "hsl(var(--input))",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "hsl(var(--input-text))",
-                      fontSize: 22,
-                      fontWeight: "600",
-                      marginTop: -2,
+                      borderRadius: 12,
+                      backgroundColor: inputBg,
+                      borderWidth: 1,
+                      borderColor: inputBorder,
+                      justifyContent: "center",
+                      alignItems: "center",
                     }}
                   >
-                    +
-                  </Text>
-                </TouchableOpacity>
+                    <Text
+                      style={{
+                        color: inputText,
+                        fontSize: 22,
+                        fontWeight: "600",
+                        marginTop: -2,
+                      }}
+                    >
+                      +
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ))}
+            ))}
 
-          {/* COST */}
-          <Text className="text-foreground mb-2 font-medium">
-            Cost of Trip (₹) *
-          </Text>
-          <TextInput
-            keyboardType="numeric"
-            value={formData.cost_of_trip}
-            onChangeText={(text) =>
-              setFormData({ ...formData, cost_of_trip: text })
-            }
-            className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
-          />
+            {/* COST */}
+            <Text className="text-foreground mb-2 font-medium">Cost of Trip (₹) *</Text>
+            <TextInput
+              keyboardType="numeric"
+              value={formData.cost_of_trip}
+              onChangeText={(text) => setFormData({ ...formData, cost_of_trip: text })}
+              className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
+            />
 
-          {/* MISC EXPENSE */}
-          <Text className="text-foreground mb-2 font-medium">
-            Miscellaneous Expense (₹)
-          </Text>
-          <TextInput
-            keyboardType="numeric"
-            value={formData.miscellaneous_expense}
-            onChangeText={(text) =>
-              setFormData({ ...formData, miscellaneous_expense: text })
-            }
-            className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
-          />
-
-          {/* NOTES */}
-          <Text className="text-foreground mb-2 font-medium">Notes</Text>
-          <TextInput
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-            value={formData.notes}
-            onChangeText={(text) =>
-              setFormData({ ...formData, notes: text })
-            }
-            className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-10"
-          />
-
-          {/* SUBMIT */}
-          <TouchableOpacity
-            onPress={async () => {
-              try {
-                await addTrip({
-                  truck_id: Number(formData.truck_id),
-                  driver_id: Number(formData.driver_id),
-                  client_id: Number(formData.client_id),
-                  start_location_id: Number(formData.start_location_id),
-                  end_location_id: Number(formData.end_location_id),
-                  cost_of_trip: Number(formData.cost_of_trip),
-                  miscellaneous_expense: Number(
-                    formData.miscellaneous_expense || 0
-                  ),
-                  notes: formData.notes,
-                });
-
-                Alert.alert("Success", "Trip created successfully!");
-
-                setFormData({
-                  date: new Date().toISOString().split("T")[0],
-                  truck_id: "",
-                  driver_id: "",
-                  client_id: "",
-                  start_location_id: "",
-                  end_location_id: "",
-                  cost_of_trip: "",
-                  miscellaneous_expense: "",
-                  notes: "",
-                });
-              } catch {
-                Alert.alert("Error", "Failed to add trip");
+            {/* MISC */}
+            <Text className="text-foreground mb-2 font-medium">Miscellaneous Expense (₹)</Text>
+            <TextInput
+              keyboardType="numeric"
+              value={formData.miscellaneous_expense}
+              onChangeText={(text) =>
+                setFormData({ ...formData, miscellaneous_expense: text })
               }
-            }}
-            className="bg-primary rounded-xl p-4 items-center mt-2"
-          >
-            <Text className="text-primary-foreground font-semibold text-base">
-              Add Trip
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableWithoutFeedback>
+              className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
+            />
 
-      {/* Side Menu */}
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
+            {/* NOTES */}
+            <Text className="text-foreground mb-2 font-medium">Notes</Text>
+            <TextInput
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              value={formData.notes}
+              onChangeText={(text) => setFormData({ ...formData, notes: text })}
+              className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-10"
+            />
 
-      {/* Modal */}
-      <Modal visible={isModalVisible} animationType="slide">
-        <KeyboardAwareScrollView
-          enableOnAndroid
-          extraScrollHeight={70}
-          contentContainerStyle={{ padding: 20 }}
-          className="bg-background"
-        >
-          <Text className="text-2xl font-semibold text-foreground mb-8">
-            Add New {currentType}
-          </Text>
+            {/* SUBMIT */}
+            <TouchableOpacity
+              onPress={async () => {
+                try {
+                  await addTrip({
+                    truck_id: Number(formData.truck_id),
+                    driver_id: Number(formData.driver_id),
+                    client_id: Number(formData.client_id),
+                    start_location_id: Number(formData.start_location_id),
+                    end_location_id: Number(formData.end_location_id),
+                    cost_of_trip: Number(formData.cost_of_trip),
+                    miscellaneous_expense: Number(
+                      formData.miscellaneous_expense || 0
+                    ),
+                    notes: formData.notes,
+                  });
 
-          {Object.keys(newItemForm).map((key) => (
-            <View key={key} className="mb-6">
-              <Text className="mb-2 text-muted-foreground font-medium capitalize">
-                {key.replaceAll("_", " ")}
-              </Text>
-              <TextInput
-                value={newItemForm[key]}
-                onChangeText={(val) =>
-                  setNewItemForm((prev) => ({ ...prev, [key]: val }))
+                  Alert.alert("Success", "Trip created successfully!");
+
+                  setFormData({
+                    date: new Date().toISOString().split("T")[0],
+                    truck_id: "",
+                    driver_id: "",
+                    client_id: "",
+                    start_location_id: "",
+                    end_location_id: "",
+                    cost_of_trip: "",
+                    miscellaneous_expense: "",
+                    notes: "",
+                  });
+                } catch {
+                  Alert.alert("Error", "Failed to add trip");
                 }
-                className="border border-input rounded-xl p-3 bg-input-bg text-input-text"
-              />
-            </View>
-          ))}
+              }}
+              className="bg-primary rounded-xl p-4 items-center mt-2"
+            >
+              <Text className="text-primary-foreground font-semibold text-base">
+                Add Trip
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableWithoutFeedback>
 
-          <TouchableOpacity
-            onPress={handleAddNew}
-            className="bg-primary p-4 rounded-2xl mt-4"
-          >
-            <Text className="text-center text-primary-foreground font-semibold text-base">
-              Save {currentType}
-            </Text>
-          </TouchableOpacity>
+        {/* Slide-in Menu */}
+        <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
 
-          <TouchableOpacity
-            onPress={() => setIsModalVisible(false)}
-            className="mt-6 p-4 border border-border rounded-2xl"
+        {/* MODAL */}
+        <Modal visible={isModalVisible} animationType="slide">
+          <KeyboardAwareScrollView
+            enableOnAndroid
+            extraScrollHeight={70}
+            contentContainerStyle={{ padding: 20 }}
+            className="bg-background"
           >
-            <Text className="text-center text-muted-foreground font-medium text-base">
-              Cancel
+            <Text className="text-2xl font-semibold text-foreground mb-8">
+              Add New {currentType}
             </Text>
-          </TouchableOpacity>
-        </KeyboardAwareScrollView>
-      </Modal>
-    </KeyboardAwareScrollView>
+
+            {Object.keys(newItemForm).map((key) => (
+              <View key={key} className="mb-6">
+                <Text className="mb-2 text-muted-foreground font-medium capitalize">
+                  {key.replaceAll("_", " ")}
+                </Text>
+                <TextInput
+                  value={newItemForm[key]}
+                  onChangeText={(val) =>
+                    setNewItemForm((prev) => ({ ...prev, [key]: val }))
+                  }
+                  className="border border-input rounded-xl p-3 bg-input-bg text-input-text"
+                />
+              </View>
+            ))}
+
+            <TouchableOpacity
+              onPress={handleAddNew}
+              className="bg-primary p-4 rounded-2xl mt-4"
+            >
+              <Text className="text-center text-primary-foreground font-semibold text-base">
+                Save {currentType}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setIsModalVisible(false)}
+              className="mt-6 p-4 border border-border rounded-2xl"
+            >
+              <Text className="text-center text-muted-foreground font-medium text-base">
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </KeyboardAwareScrollView>
+        </Modal>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
