@@ -1,34 +1,75 @@
 // app/(stack)/_layout.tsx
 import { Stack, useRouter } from "expo-router";
-import { useColorScheme, TouchableOpacity } from "react-native";
+import { useColorScheme, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 
 export default function StackLayout() {
   const isDark = useColorScheme() === "dark";
   const router = useRouter();
 
+  // Same theme logic as Home
+  const backgroundColor = isDark
+    ? "hsl(220 15% 8%)"     // dark --background
+    : "hsl(0 0% 100%)";     // light --background
+
+  const foregroundColor = isDark
+    ? "hsl(0 0% 98%)"       // dark --foreground
+    : "hsl(0 0% 4%)";       // light --foreground
+
   return (
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: isDark
-            ? "hsl(var(--background))"
-            : "hsl(var(--background))",
-        },
-        headerTintColor: isDark ? "#E5E7EB" : "#111827",
-        headerTitleAlign: "center",
+        // 🌟 copied from home header
+        headerTransparent: false,
+        headerBlurEffect: "systemMaterial",
         headerShadowVisible: false,
-        // ✅ Default back icon for all screens
+        autoHideHomeIndicator: true,
+
+        // 🌟 matching colors exactly like home
+        headerStyle: {
+          backgroundColor,
+        },
+        headerTintColor: foregroundColor,
+        headerTitleAlign: "center",
+        headerTitleStyle: {
+          color: foregroundColor,
+          fontWeight: "600",
+        },
+
+        // 🌟 Left: Back icon (but looks like Home's icons)
         headerLeft: () => (
           <TouchableOpacity
             onPress={() => router.back()}
-            style={{ paddingHorizontal: 4, paddingVertical: 4 }}
+            style={{
+              paddingHorizontal: 6,
+              paddingVertical: 4,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
           >
             <Ionicons
               name="chevron-back"
               size={24}
-              color={isDark ? "#E5E7EB" : "#111827"}
+              color={foregroundColor}
+            />
+          </TouchableOpacity>
+        ),
+
+        // 🌟 Right: Profile icon same as Home
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => router.push("/profile")}
+            style={{
+              paddingHorizontal: 6,
+              paddingVertical: 4,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Ionicons
+              name="person-circle-outline"
+              size={26}
+              color={foregroundColor}
             />
           </TouchableOpacity>
         ),
@@ -39,6 +80,12 @@ export default function StackLayout() {
         name="profile"
         options={{
           title: "Profile",
+        }}
+      />
+      <Stack.Screen
+        name="settings"
+        options={{
+          title: "Trucksarthi",
         }}
       />
 

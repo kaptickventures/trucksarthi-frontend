@@ -489,17 +489,6 @@ export default function Profile() {
                 )}
               </TouchableOpacity>
             )}
-
-            {/* SETTINGS */}
-            <TouchableOpacity
-              onPress={() => router.push("/settings")}
-              className="flex-row items-center justify-center bg-blue-600 p-4 rounded-xl mt-10"
-            >
-              <Ionicons name="settings-outline" size={20} color="#fff" />
-              <Text className="text-white font-semibold text-base ml-2">
-                Settings
-              </Text>
-            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </KeyboardAwareScrollView>
