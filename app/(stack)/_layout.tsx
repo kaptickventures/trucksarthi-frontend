@@ -1,6 +1,6 @@
 // app/(stack)/_layout.tsx
 import { Stack, useRouter } from "expo-router";
-import { useColorScheme, TouchableOpacity, View } from "react-native";
+import { useColorScheme, TouchableOpacity} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function StackLayout() {

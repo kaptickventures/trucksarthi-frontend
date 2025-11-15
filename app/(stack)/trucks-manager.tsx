@@ -1,20 +1,19 @@
-// app/trucks/TrucksManager.tsx
 import { useFocusEffect } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
-import { ArrowLeft, Edit3, Plus, Trash2 } from "lucide-react-native";
-import React, { useCallback, useState } from "react";
+import { Edit3, MapPin, Plus, Trash2 } from "lucide-react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import BottomSheet from "@gorhom/bottom-sheet";
 
 import useTrucks from "../../hooks/useTruck";
 
@@ -26,7 +25,6 @@ export default function TrucksManager() {
   const { trucks, loading, fetchTrucks, addTruck, updateTruck, deleteTruck } =
     useTrucks(firebase_uid || "");
 
-  const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     registration_number: "",
@@ -37,12 +35,42 @@ export default function TrucksManager() {
     loading_capacity: "",
   });
 
-  // Refresh trucks when returning to page
+  // Bottom Sheet Reference
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ["35%", "65%"], []);
+
   useFocusEffect(
     useCallback(() => {
       if (firebase_uid) fetchTrucks();
     }, [firebase_uid, fetchTrucks])
   );
+
+  const openSheet = (editing = false, data?: any) => {
+    if (editing && data) {
+      setEditingId(data.truck_id);
+      setFormData({
+        registration_number: data.registration_number || "",
+        chassis_number: data.chassis_number || "",
+        engine_number: data.engine_number || "",
+        registered_owner_name: data.registered_owner_name || "",
+        container_dimension: data.container_dimension || "",
+        loading_capacity: data.loading_capacity ? String(data.loading_capacity) : "",
+      });
+    } else {
+      setEditingId(null);
+      setFormData({
+        registration_number: "",
+        chassis_number: "",
+        engine_number: "",
+        registered_owner_name: "",
+        container_dimension: "",
+        loading_capacity: "",
+      });
+    }
+    bottomSheetRef.current?.expand();
+  };
+
+  const closeSheet = () => bottomSheetRef.current?.close();
 
   const handleSubmit = async () => {
     if (!formData.registration_number || !formData.registered_owner_name) {
@@ -58,7 +86,6 @@ export default function TrucksManager() {
         Alert.alert("Success", "Truck added successfully!");
       }
 
-      // Reset form
       setFormData({
         registration_number: "",
         chassis_number: "",
@@ -68,7 +95,8 @@ export default function TrucksManager() {
         loading_capacity: "",
       });
       setEditingId(null);
-      setIsOpen(false);
+      closeSheet();
+      fetchTrucks();
     } catch {
       Alert.alert("Error", "Failed to save truck");
     }
@@ -79,19 +107,6 @@ export default function TrucksManager() {
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: () => deleteTruck(id) },
     ]);
-  };
-
-  const handleEdit = (truck: any) => {
-    setFormData({
-      registration_number: truck.registration_number,
-      chassis_number: truck.chassis_number || "",
-      engine_number: truck.engine_number || "",
-      registered_owner_name: truck.registered_owner_name,
-      container_dimension: truck.container_dimension || "",
-      loading_capacity: String(truck.loading_capacity || ""),
-    });
-    setEditingId(truck.truck_id);
-    setIsOpen(true);
   };
 
   if (!firebase_uid)
@@ -106,28 +121,8 @@ export default function TrucksManager() {
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
-  
       {/* Truck List */}
-      <ScrollView className="flex-1 p-5" contentContainerStyle={{ paddingBottom: 50 }}>
-        <TouchableOpacity
-          onPress={() => {
-            setFormData({
-              registration_number: "",
-              chassis_number: "",
-              engine_number: "",
-              registered_owner_name: "",
-              container_dimension: "",
-              loading_capacity: "",
-            });
-            setEditingId(null);
-            setIsOpen(true);
-          }}
-          className="bg-primary py-4 rounded-2xl flex-row justify-center items-center mb-6"
-        >
-          <Plus color="white" size={20} />
-          <Text className="text-primary-foreground ml-2 font-semibold">Add Truck</Text>
-        </TouchableOpacity>
-
+      <ScrollView className="flex-1 px-5 pt-2" contentContainerStyle={{ paddingBottom: 120 }}>
         {loading ? (
           <ActivityIndicator size="large" color="#888" />
         ) : trucks.length === 0 ? (
@@ -136,94 +131,85 @@ export default function TrucksManager() {
           trucks.map((truck) => (
             <View
               key={truck.truck_id}
-              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
+              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
             >
-              <View className="flex-row justify-between items-start mb-2">
-                <Text className="text-lg font-semibold text-card-foreground">
-                  {truck.registration_number}
-                </Text>
-                <View className="flex-row gap-2 ">
-                  <TouchableOpacity onPress={() => handleEdit(truck)}>
-                    <Edit3 color="#999" size={20} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDelete(truck.truck_id)}>
-                    <Trash2 color="#999" size={20} />
-                  </TouchableOpacity>
+              {/* LEFT SIDE */}
+              <View className="flex-row items-start flex-1">
+                <View className="p-2 bg-secondary rounded-xl mr-3">
+                  <MapPin size={18} color="#2563EB" />
+                </View>
+
+                <View className="flex-1">
+                  <Text className="text-card-foreground font-semibold text-base">
+                    {truck.registration_number}
+                  </Text>
+                  <Text className="text-muted-foreground text-xs mt-1">
+                    {truck.registered_owner_name}
+                  </Text>
                 </View>
               </View>
 
-              <Text className="text-muted-foreground mb-1">
-                🚛 Owner: {truck.registered_owner_name}
-              </Text>
-              {truck.chassis_number && (
-                <Text className="text-muted-foreground mb-1">
-                  🔩 Chassis: {truck.chassis_number}
-                </Text>
-              )}
-              {truck.engine_number && (
-                <Text className="text-muted-foreground mb-1">
-                  ⚙️ Engine: {truck.engine_number}
-                </Text>
-              )}
-              {truck.container_dimension && (
-                <Text className="text-muted-foreground mb-1">
-                  📏 Container: {truck.container_dimension}
-                </Text>
-              )}
-              <Text className="text-muted-foreground">
-                🧱 Capacity: {truck.loading_capacity || "N/A"}
-              </Text>
+              {/* RIGHT SIDE ICONS */}
+              <View className="flex-row items-center ml-3">
+                <TouchableOpacity onPress={() => openSheet(true, truck)} className="p-2">
+                  <Edit3 size={20} color="#999" />
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => handleDelete(truck.truck_id)} className="p-2">
+                  <Trash2 size={20} color="#999" />
+                </TouchableOpacity>
+              </View>
             </View>
           ))
         )}
       </ScrollView>
 
-      {/* Add/Edit Modal */}
-      <Modal visible={isOpen} animationType="slide">
-        <SafeAreaView className="flex-1 bg-background">
-          <View className="flex-row items-center px-4 py-3 border-b border-border bg-card">
-            <TouchableOpacity onPress={() => setIsOpen(false)} className="mr-3">
-              <ArrowLeft color="#888" size={24} />
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold text-foreground">
-              {editingId ? "Edit Truck" : "Add New Truck"}
+      {/* Floating Add Button */}
+      <TouchableOpacity
+        onPress={() => openSheet(false)}
+        className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full justify-center items-center"
+        style={{
+          elevation: 8,
+          shadowColor: "#000",
+          shadowOpacity: 0.25,
+          shadowRadius: 4,
+          shadowOffset: { width: 0, height: 2 },
+        }}
+      >
+        <Plus color="white" size={28} />
+      </TouchableOpacity>
+
+      {/* Bottom Sheet */}
+      <BottomSheet ref={bottomSheetRef} index={-1} snapPoints={snapPoints}>
+        <View className="px-5 py-3">
+          <Text className="text-xl font-semibold text-foreground mb-4">
+            {editingId ? "Edit Truck" : "Add Truck"}
+          </Text>
+
+          {Object.keys(formData).map((key) => (
+            <View key={key} className="mb-4">
+              <Text className="text-muted-foreground mb-1 font-medium capitalize">
+                {key.replaceAll("_", " ")}
+              </Text>
+              <TextInput
+                className="border border-input rounded-xl p-3 mb-0"
+                value={(formData as any)[key]}
+                onChangeText={(val) => setFormData({ ...formData, [key]: val })}
+              />
+            </View>
+          ))}
+
+          <TouchableOpacity onPress={handleSubmit} className="bg-primary p-4 rounded-xl">
+            <Text className="text-center text-primary-foreground font-semibold">
+              {editingId ? "Update" : "Save"}
             </Text>
-          </View>
+          </TouchableOpacity>
 
-          <ScrollView className="p-5">
-            {Object.keys(formData).map((key) => (
-              <View key={key} className="mb-4">
-                <Text className="mb-1 text-muted-foreground font-medium capitalize">
-                  {key.replaceAll("_", " ")}
-                </Text>
-                <TextInput
-                  className="border border-input rounded-xl p-3 bg-input-bg text-input-text"
-                  value={(formData as any)[key]}
-                  onChangeText={(val) => setFormData({ ...formData, [key]: val })}
-                />
-              </View>
-            ))}
-
-            <TouchableOpacity
-              onPress={handleSubmit}
-              className="bg-primary p-4 rounded-2xl mt-2"
-            >
-              <Text className="text-center text-primary-foreground font-semibold text-base">
-                {editingId ? "Update Truck" : "Save Truck"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setIsOpen(false)}
-              className="mt-5 p-4 border border-border rounded-2xl"
-            >
-              <Text className="text-center text-muted-foreground font-medium text-base">
-                Cancel
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
+          <TouchableOpacity onPress={closeSheet} className="border border-border p-4 rounded-xl mt-3">
+            <Text className="text-center text-muted-foreground">Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
