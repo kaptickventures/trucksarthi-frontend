@@ -2,20 +2,15 @@
 import React from "react";
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { PlatformColor, useColorScheme } from "react-native";
-import { useRouter } from "expo-router";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const router = useRouter();
 
   // Choose adaptive colors based on theme
   const isDark = colorScheme === "dark";
   const tintColor = isDark
     ? PlatformColor("systemBlueColor") // iOS dynamic system color
     : PlatformColor("systemBlueColor");
-  const inactiveColor = isDark
-    ? PlatformColor("systemGray3Color")
-    : PlatformColor("systemGray2Color");
 
   return (
     <NativeTabs

@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   Text,
@@ -14,6 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import useLocations from "../../hooks/useLocation";
 
 export default function LocationsManager() {
@@ -53,7 +54,7 @@ export default function LocationsManager() {
       setEditingId(null);
       setIsOpen(false);
       fetchLocations();
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to save location");
     }
   };

@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
 import { ArrowLeft, Edit3, FileText, Plus, Trash2 } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   Text,
@@ -14,6 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import useDrivers from "../../hooks/useDriver";
 
 export default function DriversManager() {
@@ -60,7 +61,7 @@ export default function DriversManager() {
       setEditingId(null);
       setIsOpen(false);
       fetchDrivers();
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Failed to save driver");
     }
   };

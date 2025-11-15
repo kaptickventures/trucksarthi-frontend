@@ -1,5 +1,5 @@
 // app/trucks/TrucksManager.tsx
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
 import { ArrowLeft, Edit3, Plus, Trash2 } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
@@ -7,7 +7,6 @@ import {
     ActivityIndicator,
     Alert,
     Modal,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     Text,
@@ -15,10 +14,11 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import useTrucks from "../../hooks/useTruck";
 
 export default function TrucksManager() {
-  const navigation = useNavigation();
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
@@ -69,7 +69,7 @@ export default function TrucksManager() {
       });
       setEditingId(null);
       setIsOpen(false);
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Failed to save truck");
     }
   };
@@ -142,7 +142,7 @@ export default function TrucksManager() {
                 <Text className="text-lg font-semibold text-card-foreground">
                   {truck.registration_number}
                 </Text>
-                <View className="flex-row gap-2 gap-2">
+                <View className="flex-row gap-2 ">
                   <TouchableOpacity onPress={() => handleEdit(truck)}>
                     <Edit3 color="#999" size={20} />
                   </TouchableOpacity>

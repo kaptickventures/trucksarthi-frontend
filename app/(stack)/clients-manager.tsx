@@ -6,7 +6,6 @@ import {
     ActivityIndicator,
     Alert,
     Modal,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     Text,
@@ -14,6 +13,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import useClients from "../../hooks/useClient";
 
 export default function ClientsManager() {
@@ -65,7 +65,7 @@ export default function ClientsManager() {
       });
       setEditingId(null);
       setIsOpen(false);
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Failed to save client");
     }
   };

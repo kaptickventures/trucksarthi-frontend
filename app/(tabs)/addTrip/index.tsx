@@ -4,9 +4,6 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -20,18 +17,16 @@ import { useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import "../../../global.css";
 import SideMenu from "../../../components/SideMenu";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
+// Hooks
 import useClients from "../../../hooks/useClient";
 import useDrivers from "../../../hooks/useDriver";
 import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
 
-/* -------------------------------------------------
-   TYPES
---------------------------------------------------*/
 type EntityType = "Client" | "Driver" | "Truck" | "Location";
-
 type DropdownKeys = "truck" | "driver" | "client" | "start" | "end";
 
 type TripFormKeys =
@@ -48,9 +43,6 @@ type TripFormKeys =
 type TripForm = Record<TripFormKeys, string>;
 type NewItemForm = Record<string, string>;
 
-/* -------------------------------------------------
-   MAIN COMPONENT
---------------------------------------------------*/
 export default function AddTrip() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -58,30 +50,15 @@ export default function AddTrip() {
   const [menuVisible, setMenuVisible] = useState(false);
   const isDark = colorScheme === "dark";
 
-  /* THEME COLORS — SAME AS HOME + HISTORY */
-  const backgroundColor = isDark
-    ? "hsl(220 15% 8%)"
-    : "hsl(0 0% 100%)";
+  const backgroundColor = isDark ? "hsl(220 15% 8%)" : "hsl(0 0% 100%)";
+  const foregroundColor = isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)";
 
-  const foregroundColor = isDark
-    ? "hsl(0 0% 98%)"
-    : "hsl(0 0% 4%)";
-
-  /* HEADER */
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "left",
-
-      headerStyle: {
-        backgroundColor,
-      },
-
-      headerTitleStyle: {
-        color: foregroundColor,
-        fontWeight: "600",
-      },
-
+      headerStyle: { backgroundColor },
+      headerTitleStyle: { color: foregroundColor, fontWeight: "600" },
       headerTintColor: foregroundColor,
 
       headerLeft: () => (
@@ -108,19 +85,12 @@ export default function AddTrip() {
             alignItems: "center",
           }}
         >
-          <Ionicons
-            name="notifications-outline"
-            size={24}
-            color={foregroundColor}
-          />
+          <Ionicons name="notifications-outline" size={24} color={foregroundColor} />
         </TouchableOpacity>
       ),
     });
   }, [navigation, isDark]);
 
-  /* -------------------------------------------------
-     DATA + STATE
-  --------------------------------------------------*/
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
@@ -158,7 +128,6 @@ export default function AddTrip() {
     end: false,
   });
 
-  /* ---------------------- Modal ---------------------- */
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentType, setCurrentType] = useState<EntityType>("Client");
   const [newItemForm, setNewItemForm] = useState<NewItemForm>({});
@@ -205,7 +174,6 @@ export default function AddTrip() {
     setIsModalVisible(true);
   };
 
-  /* ---------------------- ADD NEW ENTITY ---------------------- */
   const handleAddNew = async () => {
     try {
       let created: any = null;
@@ -236,13 +204,11 @@ export default function AddTrip() {
 
       Alert.alert("Success", `${currentType} added successfully!`);
       setIsModalVisible(false);
-
     } catch {
       Alert.alert("Error", `Failed to add ${currentType}`);
     }
   };
 
-  /* ---------------------- Loading UI ---------------------- */
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
@@ -252,7 +218,6 @@ export default function AddTrip() {
     );
   }
 
-  /* ---------------------- Dropdown Data ---------------------- */
   const dropdownData = [
     {
       label: "Truck",
@@ -306,14 +271,17 @@ export default function AddTrip() {
     },
   ];
 
-  /* ---------------------- UI ---------------------- */
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-background"
+    <KeyboardAwareScrollView
+      enableOnAndroid
+      extraScrollHeight={70}
+      extraHeight={150}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ padding: 16, paddingBottom: 300 }}
+      className="bg-background"
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView className="p-4" contentContainerStyle={{ paddingBottom: 200 }}>
+        <View>
 
           {/* DATE */}
           <Text className="text-foreground mb-2 font-medium">Date *</Text>
@@ -327,16 +295,13 @@ export default function AddTrip() {
           {dropdownData.map((d, index) => (
             <View
               key={d.key}
-              style={{
-                marginBottom: 30,
-                zIndex: 5000 - index,
-              }}
+              style={{ marginBottom: 30, zIndex: 5000 - index }}
             >
-              <Text className="text-foreground mb-2 font-medium">{d.label} *</Text>
+              <Text className="text-foreground mb-2 font-medium">
+                {d.label} *
+              </Text>
 
               <View className="flex-row items-center">
-
-                {/* DROPDOWN */}
                 <View style={{ flex: 1, marginRight: 10 }}>
                   <DropDownPicker
                     open={dropdowns[d.openKey]}
@@ -380,7 +345,6 @@ export default function AddTrip() {
                   />
                 </View>
 
-                {/* ADD BUTTON */}
                 <TouchableOpacity
                   onPress={() => openAddModal(d.addType)}
                   style={{
@@ -410,16 +374,22 @@ export default function AddTrip() {
           ))}
 
           {/* COST */}
-          <Text className="text-foreground mb-2 font-medium">Cost of Trip (₹) *</Text>
+          <Text className="text-foreground mb-2 font-medium">
+            Cost of Trip (₹) *
+          </Text>
           <TextInput
             keyboardType="numeric"
             value={formData.cost_of_trip}
-            onChangeText={(text) => setFormData({ ...formData, cost_of_trip: text })}
+            onChangeText={(text) =>
+              setFormData({ ...formData, cost_of_trip: text })
+            }
             className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
           />
 
-          {/* MISC */}
-          <Text className="text-foreground mb-2 font-medium">Miscellaneous Expense (₹)</Text>
+          {/* MISC EXPENSE */}
+          <Text className="text-foreground mb-2 font-medium">
+            Miscellaneous Expense (₹)
+          </Text>
           <TextInput
             keyboardType="numeric"
             value={formData.miscellaneous_expense}
@@ -434,8 +404,11 @@ export default function AddTrip() {
           <TextInput
             multiline
             numberOfLines={3}
+            textAlignVertical="top"
             value={formData.notes}
-            onChangeText={(text) => setFormData({ ...formData, notes: text })}
+            onChangeText={(text) =>
+              setFormData({ ...formData, notes: text })
+            }
             className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-10"
           />
 
@@ -450,7 +423,9 @@ export default function AddTrip() {
                   start_location_id: Number(formData.start_location_id),
                   end_location_id: Number(formData.end_location_id),
                   cost_of_trip: Number(formData.cost_of_trip),
-                  miscellaneous_expense: Number(formData.miscellaneous_expense || 0),
+                  miscellaneous_expense: Number(
+                    formData.miscellaneous_expense || 0
+                  ),
                   notes: formData.notes,
                 });
 
@@ -477,15 +452,23 @@ export default function AddTrip() {
               Add Trip
             </Text>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
       </TouchableWithoutFeedback>
 
-      {/* Slide-in Menu — MUST BE OUTSIDE SCROLLVIEW */}
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
+      {/* Side Menu */}
+      <SideMenu
+        isVisible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
 
-      {/* MODAL */}
+      {/* Modal */}
       <Modal visible={isModalVisible} animationType="slide">
-        <ScrollView className="flex-1 bg-background p-5">
+        <KeyboardAwareScrollView
+          enableOnAndroid
+          extraScrollHeight={70}
+          contentContainerStyle={{ padding: 20 }}
+          className="bg-background"
+        >
           <Text className="text-2xl font-semibold text-foreground mb-8">
             Add New {currentType}
           </Text>
@@ -505,7 +488,6 @@ export default function AddTrip() {
             </View>
           ))}
 
-          {/* Save */}
           <TouchableOpacity
             onPress={handleAddNew}
             className="bg-primary p-4 rounded-2xl mt-4"
@@ -515,7 +497,6 @@ export default function AddTrip() {
             </Text>
           </TouchableOpacity>
 
-          {/* Cancel */}
           <TouchableOpacity
             onPress={() => setIsModalVisible(false)}
             className="mt-6 p-4 border border-border rounded-2xl"
@@ -524,8 +505,8 @@ export default function AddTrip() {
               Cancel
             </Text>
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </Modal>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollView>
   );
 }
