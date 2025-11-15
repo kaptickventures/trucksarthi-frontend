@@ -1,4 +1,4 @@
-// app/(tabs)/history/index.tsx
+// app/(tabs)/tripLog/index.tsx
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { getAuth } from "firebase/auth";
 import React, { useLayoutEffect, useMemo, useState } from "react";
@@ -16,15 +16,15 @@ import {
 import DropDownPicker from "react-native-dropdown-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useRouter, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRouter } from "expo-router";
 
+import SideMenu from "../../../components/SideMenu";
 import useClients from "../../../hooks/useClient";
 import useDrivers from "../../../hooks/useDriver";
 import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
-import SideMenu from "../../../components/SideMenu";
 
 // Enable layout animation on Android
 if (
@@ -36,7 +36,7 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export default function TripHistory() {
+export default function TriptripLog() {
   const router = useRouter();
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -174,7 +174,7 @@ useLayoutEffect(() => {
 
     headerRight: () => (
       <TouchableOpacity
-        onPress={() => router.push("/profile")}
+        onPress={() => router.push("/notifications")}
         style={{
           paddingHorizontal: 6,
           paddingVertical: 4,

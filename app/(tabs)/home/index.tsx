@@ -73,7 +73,7 @@ export default function HomeScreen() {
 
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/profile")}
+          onPress={() => router.push("/notifications")}
           style={{
             paddingHorizontal: 6,
             paddingVertical: 4,
@@ -130,7 +130,6 @@ export default function HomeScreen() {
             <Text className="text-card-foreground text-xl font-bold mt-1">
               ₹{totalRevenue.toLocaleString()}
             </Text>
-            <Text className="text-success text-xs mt-1">▲ +12.5%</Text>
           </View>
 
           {/* Total Trips */}
@@ -139,7 +138,6 @@ export default function HomeScreen() {
             <Text className="text-card-foreground text-xl font-bold mt-1">
               {totalTrips}
             </Text>
-            <Text className="text-success text-xs mt-1">▲ +8.2%</Text>
           </View>
         </View>
 
@@ -157,10 +155,11 @@ export default function HomeScreen() {
         {/* ====== Quick Actions ====== */}
         <View className="flex-row gap-2 justify-between mb-6">
           {[
-            { title: "Locations", icon: "location-outline", route: "/locations-manager" },
+            { title: "Trucks", icon: "bus-outline", route: "/trucks-manager" },
             { title: "Drivers", icon: "person-add-outline", route: "/drivers-manager" },
             { title: "Clients", icon: "people-outline", route: "/clients-manager" },
-            { title: "Trucks", icon: "bus-outline", route: "/trucks-manager" },
+            { title: "Locations", icon: "location-outline", route: "/locations-manager" },
+
           ].map((item, idx) => (
             <TouchableOpacity
               key={idx}
@@ -215,7 +214,7 @@ export default function HomeScreen() {
             <Text className="text-card-foreground font-semibold text-lg">
               Recent Trips
             </Text>
-            <TouchableOpacity onPress={() => router.push("/history")}>
+            <TouchableOpacity onPress={() => router.push("/tripLog/index")}>
               <Text className="text-muted-foreground text-sm">View All →</Text>
             </TouchableOpacity>
           </View>

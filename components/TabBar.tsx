@@ -80,11 +80,11 @@ export default function TabBar() {
         }}
       />
 
-      {/* HISTORY */}
+      {/* tripLog */}
       <Tabs.Screen
-        name="history"
+        name="tripLog/index"
         options={{
-          title: "History",
+          title: "Trip Log",
           tabBarIcon: ({ color, focused }) => (
             <View className="items-center justify-center">
               <Ionicons

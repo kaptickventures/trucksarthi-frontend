@@ -1,23 +1,23 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
-import React, { useState, useLayoutEffect } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Modal,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
-  Modal,
   useColorScheme,
+  View,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
-import { useNavigation, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import "../../../global.css";
-import SideMenu from "../../../components/SideMenu";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import SideMenu from "../../../components/SideMenu";
+import "../../../global.css";
 
 // Hooks
 import useClients from "../../../hooks/useClient";
@@ -81,7 +81,7 @@ export default function AddTrip() {
 
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/profile")}
+          onPress={() => router.push("/notifications")}
           style={{ paddingHorizontal: 6, paddingVertical: 4 }}
         >
           <Ionicons name="notifications-outline" size={24} color={foregroundColor} />

@@ -1,6 +1,6 @@
 // app/(tabs)/_layout.tsx
+import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
-import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { PlatformColor, useColorScheme } from "react-native";
 
 export default function TabLayout() {
@@ -31,10 +31,10 @@ export default function TabLayout() {
         <Label>Add Trip</Label>
       </NativeTabs.Trigger>
 
-      {/* 🕒 HISTORY */}
-      <NativeTabs.Trigger name="history">
-        <Icon sf="clock.fill" drawable="custom_history_drawable" />
-        <Label>History</Label>
+      {/* 🕒 Trip Log */}
+      <NativeTabs.Trigger name="tripLog">
+        <Icon sf="clock.fill" drawable="custom_tripLog_drawable" />
+        <Label>Trip Log</Label>
       </NativeTabs.Trigger>
 
       {/* ⚙️ SETTINGS (optional) */}

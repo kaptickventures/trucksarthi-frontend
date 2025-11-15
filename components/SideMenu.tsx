@@ -1,42 +1,42 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { signOut } from "firebase/auth";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
   Dimensions,
+  Image,
   PanResponder,
+  ScrollView,
+  Switch,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
   useColorScheme,
   View,
-  Image,
-  Switch,
-  ScrollView,
 } from "react-native";
-import { useUser } from "../hooks/useUser";
-import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
+import { useUser } from "../hooks/useUser";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const LINKS = [
-  { title: "Home", icon: "home-outline", route: "/home" as const },
-  { title: "Profile", icon: "person-outline", route: "/profile" as const },
-  { title: "History", icon: "time-outline", route: "/history" as const },
+  { title: "Trip Log", icon: "time", route: "/tripLog/index" as const },
   { title: "Settings", icon: "settings-outline", route: "/settings" as const },
 ] as const;
 
 const MANAGER_LINKS = [
+  { title: "Trucks", icon: "bus-outline", route: "/trucks-manager" as const },
+  { title: "Drivers", icon: "person-add-outline", route: "/drivers-manager" as const },
   { title: "Clients", icon: "people-outline", route: "/clients-manager" as const },
-  { title: "Trucks", icon: "car-outline", route: "/trucks-manager" as const },
   { title: "Locations", icon: "location-outline", route: "/locations-manager" as const },
-  { title: "Drivers", icon: "man-outline", route: "/drivers-manager" as const },
 ] as const;
 
 type RoutePath =
+  | "/profile"
   | (typeof LINKS)[number]["route"]
   | (typeof MANAGER_LINKS)[number]["route"];
+
 
 export default function SideMenu({
   isVisible,
