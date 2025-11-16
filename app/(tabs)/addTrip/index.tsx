@@ -65,7 +65,7 @@ export default function AddTrip() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
-      headerTitleAlign: "left",
+      headerTitleAlign: "center",
       headerStyle: { backgroundColor },
       headerTitleStyle: { color: foregroundColor, fontWeight: "600" },
       headerTintColor: foregroundColor,

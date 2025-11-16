@@ -136,7 +136,7 @@ export default function TripLog() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
-      headerTitleAlign: "left",
+      headerTitleAlign: "center",
 
       headerStyle: {
         backgroundColor,
