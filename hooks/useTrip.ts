@@ -75,7 +75,7 @@ export default function useTrips(firebase_uid: string) {
     fetchTrips();
   }, [fetchTrips]);
 
-  const totalRevenue = trips.reduce((acc, t) => acc + t.cost_of_trip, 0);
+  const totalRevenue = trips.reduce((acc, t) => acc + Number(t.cost_of_trip), 0);
   const totalTrips = trips.length;
   const recentTrips = trips.slice(-3).reverse();
 

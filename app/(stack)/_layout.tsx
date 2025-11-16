@@ -2,6 +2,8 @@
 import { Stack, useRouter } from "expo-router";
 import { useColorScheme, TouchableOpacity} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 export default function StackLayout() {
   const isDark = useColorScheme() === "dark";
@@ -17,6 +19,8 @@ export default function StackLayout() {
     : "hsl(0 0% 4%)";       // light --foreground
 
   return (
+    <BottomSheetModalProvider>
+    <GestureHandlerRootView>
     <Stack
       screenOptions={{
         // 🌟 copied from home header
@@ -58,7 +62,7 @@ export default function StackLayout() {
         // 🌟 Right: Profile icon same as Home
         headerRight: () => (
           <TouchableOpacity
-            onPress={() => router.push("/profile")}
+            onPress={() => router.push("/notifications")}
             style={{
               paddingHorizontal: 6,
               paddingVertical: 4,
@@ -67,8 +71,8 @@ export default function StackLayout() {
             }}
           >
             <Ionicons
-              name="person-circle-outline"
-              size={26}
+              name="notifications-outline"
+              size={24}
               color={foregroundColor}
             />
           </TouchableOpacity>
@@ -94,6 +98,9 @@ export default function StackLayout() {
       <Stack.Screen name="trucks-manager" options={{ title: "Trucks" }} />
       <Stack.Screen name="drivers-manager" options={{ title: "Drivers" }} />
       <Stack.Screen name="locations-manager" options={{ title: "Locations" }} />
+
     </Stack>
+    </GestureHandlerRootView>
+    </BottomSheetModalProvider>
   );
 }

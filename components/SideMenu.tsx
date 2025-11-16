@@ -21,7 +21,7 @@ import { useUser } from "../hooks/useUser";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const LINKS = [
-  { title: "Trip Log", icon: "time", route: "/tripLog/index" as const },
+  { title: "Trip Log", icon: "time", route: "/tripLog" as const },
   { title: "Settings", icon: "settings-outline", route: "/settings" as const },
 ] as const;
 

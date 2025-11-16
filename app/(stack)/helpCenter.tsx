@@ -1,13 +1,11 @@
 // app/settings/help-center.tsx
-import { View, Text, TouchableOpacity, ScrollView, Linking, Alert } from "react-native";
-import { useRouter } from "expo-router";
-import { Phone, Mail, MessageCircle, ChevronLeft } from "lucide-react-native";
+import {  Text, TouchableOpacity, ScrollView, Linking, Alert } from "react-native";
+import { Phone, Mail, MessageCircle } from "lucide-react-native";
 
 const PHONE = "9319595984";
 const EMAIL = "trucksarthi@gmail.com";
 
 export default function HelpCenter() {
-  const router = useRouter();
 
   const openWhatsApp = async () => {
     const url = `https://wa.me/91${PHONE}`;

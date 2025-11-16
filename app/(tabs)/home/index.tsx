@@ -144,16 +144,16 @@ export default function HomeScreen() {
         {/* ====== Add Trip Button ====== */}
         <TouchableOpacity
           onPress={() => router.push("/addTrip")}
-          className="bg-primary rounded-full py-4 flex-row justify-center items-center mb-3"
+          className="bg-primary rounded-full p-4 flex-row justify-center items-center mb-3"
         >
-          <Ionicons name="car-outline" size={20} color="white" />
+          <Ionicons name="bus-outline" size={20} color="white" />
           <Text className="text-primary-foreground font-semibold text-base ml-2">
             Add Trip
           </Text>
         </TouchableOpacity>
 
         {/* ====== Quick Actions ====== */}
-        <View className="flex-row gap-2 justify-between mb-6">
+        <View className="flex-row gap-2 justify-between mt-2 mb-6">
           {[
             { title: "Trucks", icon: "bus-outline", route: "/trucks-manager" },
             { title: "Drivers", icon: "person-add-outline", route: "/drivers-manager" },
@@ -182,7 +182,7 @@ export default function HomeScreen() {
             <Text className="text-card-foreground font-semibold text-lg">
               Reminders
             </Text>
-            <TouchableOpacity onPress={() => router.push("/")}>
+            <TouchableOpacity onPress={() => router.push("/notifications")}>
               <Text className="text-muted-foreground text-sm">View All →</Text>
             </TouchableOpacity>
           </View>
@@ -214,7 +214,7 @@ export default function HomeScreen() {
             <Text className="text-card-foreground font-semibold text-lg">
               Recent Trips
             </Text>
-            <TouchableOpacity onPress={() => router.push("/tripLog/index")}>
+            <TouchableOpacity onPress={() => router.push("/tripLog")}>
               <Text className="text-muted-foreground text-sm">View All →</Text>
             </TouchableOpacity>
           </View>

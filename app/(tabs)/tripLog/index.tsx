@@ -1,4 +1,5 @@
 // app/(tabs)/tripLog/index.tsx
+
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { getAuth } from "firebase/auth";
 import React, { useLayoutEffect, useMemo, useState } from "react";
@@ -36,19 +37,18 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export default function TriptripLog() {
+export default function TripLog() {
   const router = useRouter();
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
 
-  const { trips, loading } = useTrips(firebase_uid || "");
+  const { trips, loading, totalRevenue } = useTrips(firebase_uid || "");
   const { drivers } = useDrivers(firebase_uid || "");
   const { clients } = useClients(firebase_uid || "");
   const { trucks } = useTrucks(firebase_uid || "");
@@ -129,74 +129,66 @@ export default function TriptripLog() {
     setShowFilters((prev) => !prev);
   };
 
-// ====================================
-// APPLY TAILWIND THEME COLORS TO HEADER
-// (Same as HomeScreen)
-// ====================================
+  // Header styling with Tailwind theme colors
+  const backgroundColor = isDark ? "hsl(220 15% 8%)" : "hsl(0 0% 100%)";
+  const foregroundColor = isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)";
 
-const backgroundColor = isDark
-  ? "hsl(220 15% 8%)" // dark --background
-  : "hsl(0 0% 100%)"; // light --background
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: "Trucksarthi",
+      headerTitleAlign: "left",
 
-const foregroundColor = isDark
-  ? "hsl(0 0% 98%)" // dark --foreground
-  : "hsl(0 0% 4%)"; // light --foreground
+      headerStyle: {
+        backgroundColor,
+      },
 
-useLayoutEffect(() => {
-  navigation.setOptions({
-    headerTitle: "Trucksarthi",
-    headerTitleAlign: "left",
+      headerTitleStyle: {
+        color: foregroundColor,
+        fontWeight: "600",
+      },
 
-    headerStyle: {
-      backgroundColor,
-    },
+      headerTintColor: foregroundColor,
 
-    headerTitleStyle: {
-      color: foregroundColor,
-      fontWeight: "600",
-    },
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => setMenuVisible(true)}
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 4,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Ionicons name="menu" size={24} color={foregroundColor} />
+        </TouchableOpacity>
+      ),
 
-    headerTintColor: foregroundColor,
-
-    headerLeft: () => (
-      <TouchableOpacity
-        onPress={() => setMenuVisible(true)}
-        style={{
-          paddingHorizontal: 6,
-          paddingVertical: 4,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Ionicons name="menu" size={24} color={foregroundColor} />
-      </TouchableOpacity>
-    ),
-
-    headerRight: () => (
-      <TouchableOpacity
-        onPress={() => router.push("/notifications")}
-        style={{
-          paddingHorizontal: 6,
-          paddingVertical: 4,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Ionicons
-          name="notifications-outline"
-          size={24}
-          color={foregroundColor}
-        />
-      </TouchableOpacity>
-    ),
-  });
-}, [navigation, isDark]);
-
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => router.push("/notifications")}
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 4,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Ionicons
+            name="notifications-outline"
+            size={24}
+            color={foregroundColor}
+          />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, isDark]);
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* FILTER BOX */}
         <View className="mx-3 mb-6 p-5 bg-card rounded-2xl border border-border shadow-sm">
           <TouchableOpacity
@@ -215,23 +207,25 @@ useLayoutEffect(() => {
               <View className="flex-row gap-3 mt-5">
                 {/* DRIVER */}
                 <View className="flex-1">
-                  <Text className="text-sm text-muted-foreground mb-1 ml-1">Driver</Text>
+                  <Text className="text-sm text-muted-foreground mb-1 ml-1">
+                    Driver
+                  </Text>
 
                   <DropDownPicker
                     open={dropdowns.driver}
                     value={filters.driver_id}
                     items={driverItems}
-                    setOpen={(open) =>
-  setDropdowns((prev) => ({
-    ...prev,
-    driver: typeof open === "function" ? open(prev.driver) : open,
-  }))
-}
-
+                    setOpen={(val) =>
+                      setDropdowns((prev) => ({
+                        ...prev,
+                        driver: typeof val === "function" ? val(prev.driver) : val,
+                      }))
+                    }
                     setValue={(val) =>
                       setFilters((prev) => ({
                         ...prev,
-                        driver_id: typeof val === "function" ? val(prev.driver_id) : val,
+                        driver_id:
+                          typeof val === "function" ? val(prev.driver_id) : val,
                       }))
                     }
                     placeholder="Select Driver"
@@ -257,23 +251,25 @@ useLayoutEffect(() => {
 
                 {/* CLIENT */}
                 <View className="flex-1">
-                  <Text className="text-sm text-muted-foreground mb-1 ml-1">Client</Text>
+                  <Text className="text-sm text-muted-foreground mb-1 ml-1">
+                    Client
+                  </Text>
 
                   <DropDownPicker
                     open={dropdowns.client}
                     value={filters.client_id}
                     items={clientItems}
-                    setOpen={(open) =>
-  setDropdowns((prev) => ({
-    ...prev,
-    client: (typeof open === "function" ? open(prev.client) : open) as boolean,
-  }))
-}
-
+                    setOpen={(val) =>
+                      setDropdowns((prev) => ({
+                        ...prev,
+                        client: typeof val === "function" ? val(prev.client) : val,
+                      }))
+                    }
                     setValue={(val) =>
                       setFilters((prev) => ({
                         ...prev,
-                        client_id: typeof val === "function" ? val(prev.client_id) : val,
+                        client_id:
+                          typeof val === "function" ? val(prev.client_id) : val,
                       }))
                     }
                     placeholder="Select Client"
@@ -305,7 +301,9 @@ useLayoutEffect(() => {
                   className="flex-1 bg-input-bg border border-input rounded-xl px-4 py-3"
                 >
                   <Text className="text-sm text-muted-foreground mb-1">From</Text>
-                  <Text className="text-foreground font-medium">{formatDate(filters.startDate)}</Text>
+                  <Text className="text-foreground font-medium">
+                    {formatDate(filters.startDate)}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -313,7 +311,9 @@ useLayoutEffect(() => {
                   className="flex-1 bg-input-bg border border-input rounded-xl px-4 py-3"
                 >
                   <Text className="text-sm text-muted-foreground mb-1">To</Text>
-                  <Text className="text-foreground font-medium">{formatDate(filters.endDate)}</Text>
+                  <Text className="text-foreground font-medium">
+                    {formatDate(filters.endDate)}
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -356,12 +356,12 @@ useLayoutEffect(() => {
         )}
 
         {/* SUMMARY */}
-        <View className="mx-3 mb-4 mt-1 bg-card border border-border p-4 rounded-2xl">
-          <Text className="text-base text-foreground font-medium">
+        <View className="mx-3 mt-2 mb-6 bg-card border border-border p-4 rounded-2xl shadow-sm">
+          <Text className="text-lg font-semibold text-foreground">
             {sortedTrips.length} trips found
           </Text>
-          <Text className="text-2xl font-extrabold text-primary mt-1">
-            ₹{sortedTrips.reduce((t, x) => t + (x.cost_of_trip || 0), 0).toLocaleString()}
+          <Text className="text-3xl font-extrabold text-primary mt-1">
+            ₹{totalRevenue.toLocaleString()}
           </Text>
         </View>
 
@@ -376,52 +376,55 @@ useLayoutEffect(() => {
           sortedTrips.map((trip: any) => (
             <View
               key={trip.trip_id}
-              className="bg-card border border-border rounded-2xl mx-3 mb-4 p-5 shadow-sm"
+              className="bg-card border border-border rounded-2xl mx-3 mb-5 p-5 shadow-sm"
             >
-              <View className="flex-row justify-between items-center mb-3">
+              <View className="flex-row justify-between items-center mb-2">
                 <Text className="text-sm text-muted-foreground">
-                  {new Date(trip.trip_date).toDateString()}
+                  {new Date(trip.trip_date).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
                 </Text>
                 <Text className="text-xl font-bold text-primary">
                   ₹{trip.cost_of_trip?.toLocaleString() || 0}
                 </Text>
               </View>
 
-              <Text className="text-lg font-semibold text-foreground mb-2">
-                {getLocationName(trip.start_location_id)} → {getLocationName(trip.end_location_id)}
+              <Text className="text-lg font-semibold text-foreground mb-3">
+                {getLocationName(trip.start_location_id)} →{" "}
+                {getLocationName(trip.end_location_id)}
               </Text>
-
-              <View className="flex-row items-center mb-2">
-                <Text className="mr-2">🏢</Text>
-                <Text className="text-foreground font-medium">{getClientName(trip.client_id)}</Text>
+              <View className="mb-4 gap-1">
+              <Text className="text-foreground mb-1">🏢 {getClientName(trip.client_id)}</Text>
+              <Text className="text-foreground mb-1">🚚 {getTruckReg(trip.truck_id)}</Text>
+              <Text className="text-foreground ">👤 {getDriverName(trip.driver_id)}</Text>
               </View>
 
-              <View className="flex-row items-center mb-2">
-                <Text className="mr-2">🚚</Text>
-                <Text className="text-foreground font-medium">{getTruckReg(trip.truck_id)}</Text>
-              </View>
+              {/* SEPARATOR */}
+              <View className="m-2 border-t-2 border border-border opacity-80" />
 
-              <View className="flex-row items-center mb-3">
-                <Text className="mr-2">👤</Text>
-                <Text className="text-foreground font-medium">{getDriverName(trip.driver_id)}</Text>
-              </View>
-
-              {trip.miscellaneous_expense > 0 && (
-                <Text className="text-orange-500 font-semibold">
-                  Misc Expense: ₹{trip.miscellaneous_expense?.toLocaleString()}
+              <View className="flex-row justify-between mt-2">
+                <Text className="text-muted-foreground">
+                  Trip Cost: ₹{trip.cost_of_trip.toLocaleString()}
                 </Text>
-              )}
+                <Text className="text-muted-foreground">
+                  Misc: ₹{trip.miscellaneous_expense.toLocaleString()}
+                </Text>
+              </View>
 
               {trip.notes ? (
-                <Text className="text-muted-foreground italic mt-2">📝 {trip.notes}</Text>
+                <Text className="text-sm text-muted-foreground italic mt-2">
+                  📝 {trip.notes}
+                </Text>
               ) : null}
             </View>
           ))
         )}
       </ScrollView>
 
-            {/* Slide-in Menu */}
-            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
+      {/* Slide-in Menu */}
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
     </SafeAreaView>
   );
 }

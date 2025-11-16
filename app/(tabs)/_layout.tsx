@@ -1,16 +1,18 @@
 // app/(tabs)/_layout.tsx
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
-import { PlatformColor, useColorScheme } from "react-native";
+import { PlatformColor, useColorScheme, Platform } from "react-native";
+
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   // Choose adaptive colors based on theme
   const isDark = colorScheme === "dark";
-  const tintColor = isDark
-    ? PlatformColor("systemBlueColor") // iOS dynamic system color
-    : PlatformColor("systemBlueColor");
+  const tintColor =
+  Platform.OS === "ios"
+    ? PlatformColor("systemBlueColor") // iOS system color
+    : "#007aff";                      // default iOS blue as hex for Android
 
   return (
     <NativeTabs
@@ -37,11 +39,6 @@ export default function TabLayout() {
         <Label>Trip Log</Label>
       </NativeTabs.Trigger>
 
-      {/* ⚙️ SETTINGS (optional) */}
-      <NativeTabs.Trigger name="settings">
-        <Icon sf="gearshape.fill" drawable="custom_settings_drawable" />
-        <Label>Settings</Label>
-      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

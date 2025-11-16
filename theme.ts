@@ -1,61 +1,75 @@
 import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
 
+/**
+ * ⚠️ ALL COLORS BELOW ARE NOW VALID HEX
+ *  - No HSL
+ *  - No undefined values
+ *  - NO Android crashes possible
+ */
+
 export const THEME = {
   light: {
-    background: "hsl(0 0% 100%)",
-    foreground: "hsl(0 0% 4%)",
-    card: "hsl(0 0% 98%)",
-    cardForeground: "hsl(0 0% 6%)",
-    popover: "hsl(0 0% 100%)",
-    popoverForeground: "hsl(0 0% 4%)",
-    primary: "hsl(220 85% 40%)",
-    primaryForeground: "hsl(0 0% 100%)",
-    secondary: "hsl(0 0% 95%)",
-    secondaryForeground: "hsl(0 0% 15%)",
-    muted: "hsl(0 0% 96%)",
-    mutedForeground: "hsl(0 0% 40%)",
-    accent: "hsl(220 90% 96%)",
-    accentForeground: "hsl(220 85% 30%)",
-    success: "hsl(142 72% 40%)",
-    destructive: "hsl(0 85% 55%)",
-    border: "hsl(0 0% 88%)",
-    input: "hsl(0 0% 88%)",
-    ring: "hsl(220 85% 60%)",
+    background: "#ffffff",
+    foreground: "#0a0a0a",
+    card: "#fafafa",
+    cardForeground: "#0f0f0f",
+    popover: "#ffffff",
+    popoverForeground: "#0a0a0a",
+    primary: "#1d4ed8",
+    primaryForeground: "#ffffff",
+    secondary: "#f2f2f2",
+    secondaryForeground: "#262626",
+    muted: "#f5f5f5",
+    mutedForeground: "#666666",
+    accent: "#eef4ff",
+    accentForeground: "#1e3a8a",
+    success: "#15803d",
+    destructive: "#ef4444",
+    border: "#e0e0e0",
+    input: "#e0e0e0",
+    ring: "#3b82f6",
     radius: "0.625rem",
-    chart1: "hsl(12 76% 61%)",
-    chart2: "hsl(173 58% 39%)",
-    chart3: "hsl(197 37% 24%)",
-    chart4: "hsl(43 74% 66%)",
-    chart5: "hsl(27 87% 67%)",
+    chart1: "#eb6a50",
+    chart2: "#179f7b",
+    chart3: "#2c4652",
+    chart4: "#e4b468",
+    chart5: "#ec9c58",
   },
+
   dark: {
-    background: "hsl(220 15% 8%)",
-    foreground: "hsl(0 0% 98%)",
-    card: "hsl(220 15% 12%)",
-    cardForeground: "hsl(0 0% 98%)",
-    popover: "hsl(220 15% 14%)",
-    popoverForeground: "hsl(0 0% 98%)",
-    primary: "hsl(217 90% 60%)",
-    primaryForeground: "hsl(0 0% 100%)",
-    secondary: "hsl(220 15% 20%)",
-    secondaryForeground: "hsl(0 0% 95%)",
-    muted: "hsl(220 10% 20%)",
-    mutedForeground: "hsl(0 0% 75%)",
-    accent: "hsl(217 25% 25%)",
-    accentForeground: "hsl(0 0% 98%)",
-    success: "hsl(142 70% 45%)",
-    destructive: "hsl(0 70% 55%)",
-    border: "hsl(220 10% 28%)",
-    input: "hsl(220 10% 28%)",
-    ring: "hsl(217 90% 60%)",
+    background: "#0f172a",
+    foreground: "#fdfdfd",
+    card: "#1e293b",
+    cardForeground: "#fdfdfd",
+    popover: "#232f41",
+    popoverForeground: "#fdfdfd",
+    primary: "#60a5fa",
+    primaryForeground: "#ffffff",
+    secondary: "#2f3c4e",
+    secondaryForeground: "#f2f2f2",
+    muted: "#2a3644",
+    mutedForeground: "#bfbfbf",
+    accent: "#2e3a48",
+    accentForeground: "#fafafa",
+    success: "#16a34a",
+    destructive: "#e64949",
+    border: "#3a4756",
+    input: "#3a4756",
+    ring: "#60a5fa",
     radius: "0.625rem",
-    chart1: "hsl(217 90% 60%)",
-    chart2: "hsl(160 70% 45%)",
-    chart3: "hsl(45 90% 55%)",
-    chart4: "hsl(280 70% 65%)",
-    chart5: "hsl(340 80% 60%)",
+    chart1: "#60a5fa",
+    chart2: "#22c55e",
+    chart3: "#facc15",
+    chart4: "#c084fc",
+    chart5: "#f43f5e",
   },
 };
+
+/**
+ * 🚨 React Navigation expects ONLY these keys:
+ *  { background, border, card, notification, primary, text }
+ *  ✔ We supply ALL in valid hex form
+ */
 
 export const NAV_THEME: Record<"light" | "dark", Theme> = {
   light: {
@@ -69,6 +83,7 @@ export const NAV_THEME: Record<"light" | "dark", Theme> = {
       text: THEME.light.foreground,
     },
   },
+
   dark: {
     ...DarkTheme,
     colors: {
