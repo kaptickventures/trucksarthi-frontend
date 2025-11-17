@@ -34,12 +34,12 @@ export default function HomeScreen() {
   // ====================================
 
   const backgroundColor = isDark
-    ? "hsl(220 15% 8%)" // dark --background
-    : "hsl(0 0% 100%)"; // light --background
+    ? "hsl(220 15% 8%)"
+    : "hsl(0 0% 100%)";
 
   const foregroundColor = isDark
-    ? "hsl(0 0% 98%)" // dark --foreground
-    : "hsl(0 0% 4%)"; // light --foreground
+    ? "hsl(0 0% 98%)"
+    : "hsl(0 0% 4%)";
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -55,11 +55,11 @@ export default function HomeScreen() {
         fontWeight: "600",
       },
 
-      headerTintColor: foregroundColor, // icons
+      headerTintColor: foregroundColor,
 
       headerLeft: () => (
         <TouchableOpacity
-          onPress={() => setMenuVisible(true)}
+          onPress={() => setMenuVisible((prev) => !prev)} // Toggle menu
           style={{
             paddingHorizontal: 6,
             paddingVertical: 4,
@@ -67,13 +67,17 @@ export default function HomeScreen() {
             alignItems: "center",
           }}
         >
-          <Ionicons name="menu" size={24} color={foregroundColor} />
+          <Ionicons
+            name={menuVisible ? "close" : "menu"} // Switch icon
+            size={24}
+            color={foregroundColor}
+          />
         </TouchableOpacity>
       ),
 
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/notifications")}
+          onPress={() => router.push("/testScreen")}
           style={{
             paddingHorizontal: 6,
             paddingVertical: 4,
@@ -89,7 +93,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       ),
     });
-  }, [navigation, isDark]);
+  }, [navigation, isDark, menuVisible, backgroundColor, foregroundColor]);
 
   // ================================
   // LOADING STATES
@@ -159,7 +163,6 @@ export default function HomeScreen() {
             { title: "Drivers", icon: "person-add-outline", route: "/drivers-manager" },
             { title: "Clients", icon: "people-outline", route: "/clients-manager" },
             { title: "Locations", icon: "location-outline", route: "/locations-manager" },
-
           ].map((item, idx) => (
             <TouchableOpacity
               key={idx}

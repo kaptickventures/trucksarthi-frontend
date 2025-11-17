@@ -164,10 +164,6 @@ export default function SideMenu({
                 {user?.email_address || ""}
               </Text>
             </View>
-
-            <TouchableOpacity onPress={onClose} className="absolute right-0 p-2">
-              <Ionicons name="close" size={24} color={colors.icon} />
-            </TouchableOpacity>
           </View>
           </TouchableOpacity>
 

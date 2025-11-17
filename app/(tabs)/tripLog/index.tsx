@@ -133,55 +133,61 @@ export default function TripLog() {
   const backgroundColor = isDark ? "hsl(220 15% 8%)" : "hsl(0 0% 100%)";
   const foregroundColor = isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)";
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitle: "Trucksarthi",
-      headerTitleAlign: "center",
+useLayoutEffect(() => {
+  navigation.setOptions({
+    headerTitle: "Trucksarthi",
+    headerTitleAlign: "center",
 
-      headerStyle: {
-        backgroundColor,
-      },
+    headerStyle: {
+      backgroundColor,
+    },
 
-      headerTitleStyle: {
-        color: foregroundColor,
-        fontWeight: "600",
-      },
+    headerTitleStyle: {
+      color: foregroundColor,
+      fontWeight: "600",
+    },
 
-      headerTintColor: foregroundColor,
+    headerTintColor: foregroundColor,
 
-      headerLeft: () => (
-        <TouchableOpacity
-          onPress={() => setMenuVisible(true)}
-          style={{
-            paddingHorizontal: 6,
-            paddingVertical: 4,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Ionicons name="menu" size={24} color={foregroundColor} />
-        </TouchableOpacity>
-      ),
+    // UPDATED: Toggle menu icon
+    headerLeft: () => (
+      <TouchableOpacity
+        onPress={() => setMenuVisible((prev) => !prev)}
+        style={{
+          paddingHorizontal: 6,
+          paddingVertical: 4,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Ionicons
+          name={menuVisible ? "close" : "menu"}
+          size={24}
+          color={foregroundColor}
+        />
+      </TouchableOpacity>
+    ),
 
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => router.push("/notifications")}
-          style={{
-            paddingHorizontal: 6,
-            paddingVertical: 4,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Ionicons
-            name="notifications-outline"
-            size={24}
-            color={foregroundColor}
-          />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, isDark]);
+    headerRight: () => (
+      <TouchableOpacity
+        onPress={() => router.push("/notifications")}
+        style={{
+          paddingHorizontal: 6,
+          paddingVertical: 4,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Ionicons
+          name="notifications-outline"
+          size={24}
+          color={foregroundColor}
+        />
+      </TouchableOpacity>
+    ),
+  });
+}, [navigation, isDark, menuVisible, backgroundColor, foregroundColor]);
+
 
   return (
     <SafeAreaView className="flex-1 bg-background">

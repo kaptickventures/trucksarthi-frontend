@@ -62,33 +62,43 @@ export default function AddTrip() {
   const foregroundColor = isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)";
 
   /* ---------------- Header ---------------- */
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitle: "Trucksarthi",
-      headerTitleAlign: "center",
-      headerStyle: { backgroundColor },
-      headerTitleStyle: { color: foregroundColor, fontWeight: "600" },
-      headerTintColor: foregroundColor,
+useLayoutEffect(() => {
+  navigation.setOptions({
+    headerTitle: "Trucksarthi",
+    headerTitleAlign: "center",
+    headerStyle: { backgroundColor },
+    headerTitleStyle: { color: foregroundColor, fontWeight: "600" },
+    headerTintColor: foregroundColor,
 
-      headerLeft: () => (
-        <TouchableOpacity
-          onPress={() => setMenuVisible(true)}
-          style={{ paddingHorizontal: 6, paddingVertical: 4 }}
-        >
-          <Ionicons name="menu" size={24} color={foregroundColor} />
-        </TouchableOpacity>
-      ),
+    // UPDATED: Toggle menu icon
+    headerLeft: () => (
+      <TouchableOpacity
+        onPress={() => setMenuVisible((prev) => !prev)}
+        style={{ paddingHorizontal: 6, paddingVertical: 4 }}
+      >
+        <Ionicons
+          name={menuVisible ? "close" : "menu"}
+          size={24}
+          color={foregroundColor}
+        />
+      </TouchableOpacity>
+    ),
 
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => router.push("/notifications")}
-          style={{ paddingHorizontal: 6, paddingVertical: 4 }}
-        >
-          <Ionicons name="notifications-outline" size={24} color={foregroundColor} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, isDark]);
+    headerRight: () => (
+      <TouchableOpacity
+        onPress={() => router.push("/notifications")}
+        style={{ paddingHorizontal: 6, paddingVertical: 4 }}
+      >
+        <Ionicons
+          name="notifications-outline"
+          size={24}
+          color={foregroundColor}
+        />
+      </TouchableOpacity>
+    ),
+  });
+}, [navigation, isDark, menuVisible, backgroundColor, foregroundColor]);
+
 
   /* ---------------- Data Hooks ---------------- */
   const auth = getAuth();

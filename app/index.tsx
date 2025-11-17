@@ -1,5 +1,6 @@
 // app/index.tsx
 import { useRouter } from "expo-router";
+import "react-native-reanimated";
 import { onAuthStateChanged } from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
