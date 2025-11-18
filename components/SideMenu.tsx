@@ -52,13 +52,13 @@ export default function SideMenu({
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
 
-  const colors = {
-    background: isDark ? "hsl(222 14% 10%)" : "hsl(0 0% 100%)",
-    text: isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 10%)",
-    subtext: isDark ? "hsl(0 0% 70%)" : "hsl(0 0% 40%)",
-    icon: isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 10%)",
-    accent: isDark ? "hsl(217 25% 20%)" : "hsl(220 90% 96%)",
-  };
+const colors = {
+  background: isDark ? "hsl(222 14% 10%)" : "hsl(0 0% 100%)",
+  text: isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 10%)",
+  subtext: isDark ? "hsl(0 0% 70%)" : "hsl(0 0% 40%)",
+  icon: isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 10%)",
+  accent: isDark ? "hsl(217 25% 20%)" : "hsl(100 33% 59%)", // 🔄 Updated light accent
+};
 
   const panResponder = useRef(
     PanResponder.create({

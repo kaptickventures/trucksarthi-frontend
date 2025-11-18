@@ -1,7 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
-import { Edit3, MapPin, Plus, Trash2 } from "lucide-react-native";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import { Edit3, MapPin, Plus, Trash2, X } from "lucide-react-native";
+import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,10 +11,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Modal,
+  Pressable,
+  Animated,
+  PanResponder,
+  useColorScheme,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import BottomSheet from "@gorhom/bottom-sheet";
-
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import useDrivers from "../../hooks/useDriver";
 
 export default function DriversManager() {
@@ -25,7 +28,10 @@ export default function DriversManager() {
   const { drivers, loading, fetchDrivers, addDriver, updateDriver, deleteDriver } =
     useDrivers(firebase_uid || "");
 
+  const isDark = useColorScheme() === "dark";
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
   const [formData, setFormData] = useState({
     driver_name: "",
     contact_number: "",
@@ -33,9 +39,9 @@ export default function DriversManager() {
     license_card_url: "",
   });
 
-  // BottomSheet
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["35%", "65%"], []);
+  const translateY = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
+  const SCROLL_THRESHOLD = 40;
 
   useFocusEffect(
     useCallback(() => {
@@ -43,7 +49,25 @@ export default function DriversManager() {
     }, [firebase_uid, fetchDrivers])
   );
 
-  const openSheet = (editing = false, data?: any) => {
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (_, state) => state.y0 < SCROLL_THRESHOLD,
+      onPanResponderMove: (_, state) => {
+        if (state.dy > 0) translateY.setValue(state.dy);
+      },
+      onPanResponderRelease: (_, state) => {
+        if (state.dy > 120) closeModal();
+        else
+          Animated.timing(translateY, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+          }).start();
+      },
+    })
+  ).current;
+
+  const openModal = (editing = false, data?: any) => {
     if (editing && data) {
       setEditingId(data.driver_id);
       setFormData({
@@ -61,69 +85,85 @@ export default function DriversManager() {
         license_card_url: "",
       });
     }
-    bottomSheetRef.current?.expand();
+    setModalVisible(true);
   };
 
-  const closeSheet = () => bottomSheetRef.current?.close();
+  const closeModal = () => {
+    Animated.timing(translateY, {
+      toValue: 800,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      translateY.setValue(0);
+      setModalVisible(false);
+    });
+  };
 
   const handleSubmit = async () => {
     if (!formData.driver_name || !formData.contact_number) {
-      return Alert.alert("Validation", "Please fill all required fields");
+      Alert.alert("⚠️ Missing Fields", "Please fill all required fields.");
+      return;
     }
+
     try {
       if (editingId) {
         await updateDriver(editingId, formData);
-        Alert.alert("Success", "Driver updated successfully!");
+        Alert.alert("Success", "Driver updated successfully.");
       } else {
         await addDriver(formData);
-        Alert.alert("Success", "Driver added successfully!");
+        Alert.alert("Success", "Driver added successfully.");
       }
-      setFormData({
-        driver_name: "",
-        contact_number: "",
-        identity_card_url: "",
-        license_card_url: "",
-      });
-      setEditingId(null);
-      closeSheet();
+      closeModal();
       fetchDrivers();
-    } catch {
-      Alert.alert("Error", "Failed to save driver");
+    } catch (err) {
+      Alert.alert("Error", "Failed to save driver.");
     }
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert("Confirm", "Delete this driver?", [
+    Alert.alert("Confirm Delete", "Delete this driver?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deleteDriver(id) },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await deleteDriver(id);
+          fetchDrivers();
+        },
+      },
     ]);
   };
 
-  if (!firebase_uid)
+  if (!firebase_uid) {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#888" />
-        <Text className="mt-2 text-muted-foreground">Loading user...</Text>
+        <Text className="mt-2 text-muted-foreground">Loading user info...</Text>
       </View>
     );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* Driver List */}
-      <ScrollView className="flex-1 px-5 pt-2" contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        className="flex-1 px-5 pt-2"
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
         {loading ? (
           <ActivityIndicator size="large" color="#888" />
         ) : drivers.length === 0 ? (
-          <Text className="text-center text-muted-foreground mt-10">No drivers found.</Text>
+          <Text className="text-center text-muted-foreground mt-10">
+            No drivers found.
+          </Text>
         ) : (
           drivers.map((driver) => (
             <View
               key={driver.driver_id}
               className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
             >
-              {/* LEFT SIDE */}
               <View className="flex-row items-start flex-1">
                 <View className="p-2 bg-secondary rounded-xl mr-3">
                   <MapPin size={18} color="#2563EB" />
@@ -139,13 +179,17 @@ export default function DriversManager() {
                 </View>
               </View>
 
-              {/* RIGHT SIDE ICONS */}
               <View className="flex-row items-center ml-3">
-                <TouchableOpacity onPress={() => openSheet(true, driver)} className="p-2">
+                <TouchableOpacity
+                  onPress={() => openModal(true, driver)}
+                  className="p-2"
+                >
                   <Edit3 size={20} color="#999" />
                 </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => handleDelete(driver.driver_id)} className="p-2">
+                <TouchableOpacity
+                  onPress={() => handleDelete(driver.driver_id)}
+                  className="p-2"
+                >
                   <Trash2 size={20} color="#999" />
                 </TouchableOpacity>
               </View>
@@ -156,7 +200,7 @@ export default function DriversManager() {
 
       {/* Floating Add Button */}
       <TouchableOpacity
-        onPress={() => openSheet(false)}
+        onPress={() => openModal(false)}
         className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full justify-center items-center"
         style={{
           elevation: 8,
@@ -169,37 +213,69 @@ export default function DriversManager() {
         <Plus color="white" size={28} />
       </TouchableOpacity>
 
-      {/* Bottom Sheet */}
-      <BottomSheet ref={bottomSheetRef} index={-1} snapPoints={snapPoints}>
-        <View className="px-5 py-3">
-          <Text className="text-xl font-semibold text-foreground mb-4">
-            {editingId ? "Edit Driver" : "Add Driver"}
-          </Text>
+      {/* Full-screen Modal */}
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
+          <Animated.View
+            {...panResponder.panHandlers}
+            className="absolute bottom-0 w-full bg-background rounded-t-3xl"
+            style={{
+              height: "100%",
+              paddingHorizontal: 20,
+              paddingTop: insets.top + 20,
+              transform: [{ translateY }],
+            }}
+          >
+            <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
 
-          {Object.keys(formData).map((key) => (
-            <View key={key} className="mb-4">
-              <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                {key.replaceAll("_", " ")}
+            <View className="flex-row justify-between items-center mb-5">
+              <Text
+                className={`text-2xl font-semibold ${
+                  isDark ? "text-white" : "text-black"
+                }`}
+              >
+                {editingId ? "Edit Driver" : "Add Driver"}
               </Text>
-              <TextInput
-                className="border border-input rounded-xl p-3 mb-0"
-                value={(formData as any)[key]}
-                onChangeText={(val) => setFormData({ ...formData, [key]: val })}
-              />
+              <TouchableOpacity onPress={closeModal}>
+                <X size={28} color={isDark ? "#AAA" : "#666"} />
+              </TouchableOpacity>
             </View>
-          ))}
 
-          <TouchableOpacity onPress={handleSubmit} className="bg-primary p-4 rounded-xl">
-            <Text className="text-center text-primary-foreground font-semibold">
-              {editingId ? "Update" : "Save"}
-            </Text>
-          </TouchableOpacity>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {Object.keys(formData).map((key) => (
+                <View key={key} className="mb-4">
+                  <Text className="text-muted-foreground mb-1 font-medium capitalize">
+                    {key.replaceAll("_", " ")}
+                  </Text>
+                  <TextInput
+                    className="border border-input text-input-text rounded-xl p-3"
+                    value={(formData as any)[key]}
+                    onChangeText={(val) =>
+                      setFormData({ ...formData, [key]: val })
+                    }
+                  />
+                </View>
+              ))}
 
-          <TouchableOpacity onPress={closeSheet} className="border border-border p-4 rounded-xl mt-3">
-            <Text className="text-center text-muted-foreground">Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </BottomSheet>
+              <TouchableOpacity
+                onPress={handleSubmit}
+                className="bg-primary p-4 rounded-xl mb-3"
+              >
+                <Text className="text-center text-primary-foreground font-semibold">
+                  {editingId ? "Update" : "Save"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={closeModal}
+                className="border border-border p-4 rounded-xl"
+              >
+                <Text className="text-center text-muted-foreground">Cancel</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Animated.View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
