@@ -4,13 +4,13 @@ import API from "../app/api/axiosInstance";
 
 interface Client {
   client_id: number;
+  firebase_uid: string;
   client_name: string;
   contact_person_name: string;
   contact_number: string;
   alternate_contact_number?: string;
   email_address: string;
-  office_address: string;
-  firebase_uid: string;
+  office_address?: string;
 }
 
 export default function useClients(firebase_uid: string) {
@@ -30,28 +30,29 @@ export default function useClients(firebase_uid: string) {
     }
   }, [firebase_uid]);
 
-  const addClient = async (formData: any) => {
+  const addClient = async (data: Partial<Client>) => {
     try {
-      const res = await API.post(`/api/clients`, { ...formData, firebase_uid });
+      const payload = { ...data, firebase_uid };
+      const res = await API.post(`/api/clients`, payload);
       setClients((prev) => [...prev, res.data]);
       return res.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", "Failed to add client");
+      Alert.alert("Error", error.response?.data?.error || "Failed to add client");
       throw error;
     }
   };
 
-  const updateClient = async (id: number, updatedData: any) => {
+  const updateClient = async (id: number, updatedData: Partial<Client>) => {
     try {
       const res = await API.put(`/api/clients/${id}`, updatedData);
       setClients((prev) =>
         prev.map((c) => (c.client_id === id ? res.data : c))
       );
       return res.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", "Failed to update client");
+      Alert.alert("Error", error.response?.data?.error || "Failed to update client");
       throw error;
     }
   };

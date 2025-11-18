@@ -2,14 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
-interface Driver {
+export interface Driver {
   driver_id: number;
+  firebase_uid: string;
   driver_name: string;
   contact_number: string;
-  identity_card_url: string;
-  license_card_url: string;
-  firebase_uid: string;
+  identity_card_url?: string;  
+  license_card_url?: string;   
 }
+
 
 export default function useDrivers(firebase_uid: string) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -28,28 +29,29 @@ export default function useDrivers(firebase_uid: string) {
     }
   }, [firebase_uid]);
 
-  const addDriver = async (formData: any) => {
+  const addDriver = async (data: Partial<Driver>) => {
     try {
-      const res = await API.post(`/api/drivers`, { ...formData, firebase_uid });
+      const payload = { ...data, firebase_uid };
+      const res = await API.post(`/api/drivers`, payload);
       setDrivers((prev) => [...prev, res.data]);
       return res.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", "Failed to add driver");
+      Alert.alert("Error", error.response?.data?.error || "Failed to add driver");
       throw error;
     }
   };
 
-  const updateDriver = async (id: number, updatedData: any) => {
+  const updateDriver = async (id: number, updatedData: Partial<Driver>) => {
     try {
       const res = await API.put(`/api/drivers/${id}`, updatedData);
       setDrivers((prev) =>
         prev.map((d) => (d.driver_id === id ? res.data : d))
       );
       return res.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", "Failed to update driver");
+      Alert.alert("Error", error.response?.data?.error || "Failed to update driver");
       throw error;
     }
   };
