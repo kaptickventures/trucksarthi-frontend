@@ -14,18 +14,21 @@ import {
   View,
   useColorScheme,
 } from "react-native";
-import DropDownPicker from "react-native-dropdown-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
+import DropDownPicker from "react-native-dropdown-picker";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
 
 import SideMenu from "../../../components/SideMenu";
+
 import useClients from "../../../hooks/useClient";
 import useDrivers from "../../../hooks/useDriver";
 import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
+
+import TripFilters from "../../../components/FilterSection";
 
 // Enable layout animation on Android
 if (
@@ -129,65 +132,56 @@ export default function TripLog() {
     setShowFilters((prev) => !prev);
   };
 
-  // Header styling with Tailwind theme colors
+  // Header styling
   const backgroundColor = isDark ? "hsl(220 15% 8%)" : "hsl(0 0% 100%)";
   const foregroundColor = isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)";
 
-useLayoutEffect(() => {
-  navigation.setOptions({
-    headerTitle: "Trucksarthi",
-    headerTitleAlign: "center",
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: "Trucksarthi",
+      headerTitleAlign: "center",
 
-    headerStyle: {
-      backgroundColor,
-    },
+      headerStyle: { backgroundColor },
+      headerTitleStyle: { color: foregroundColor, fontWeight: "600" },
+      headerTintColor: foregroundColor,
 
-    headerTitleStyle: {
-      color: foregroundColor,
-      fontWeight: "600",
-    },
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => setMenuVisible((prev) => !prev)}
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 4,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Ionicons
+            name={menuVisible ? "close" : "menu"}
+            size={24}
+            color={foregroundColor}
+          />
+        </TouchableOpacity>
+      ),
 
-    headerTintColor: foregroundColor,
-
-    // UPDATED: Toggle menu icon
-    headerLeft: () => (
-      <TouchableOpacity
-        onPress={() => setMenuVisible((prev) => !prev)}
-        style={{
-          paddingHorizontal: 6,
-          paddingVertical: 4,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Ionicons
-          name={menuVisible ? "close" : "menu"}
-          size={24}
-          color={foregroundColor}
-        />
-      </TouchableOpacity>
-    ),
-
-    headerRight: () => (
-      <TouchableOpacity
-        onPress={() => router.push("/notifications")}
-        style={{
-          paddingHorizontal: 6,
-          paddingVertical: 4,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Ionicons
-          name="notifications-outline"
-          size={24}
-          color={foregroundColor}
-        />
-      </TouchableOpacity>
-    ),
-  });
-}, [navigation, isDark, menuVisible, backgroundColor, foregroundColor]);
-
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => router.push("/notifications")}
+          style={{
+            paddingHorizontal: 6,
+            paddingVertical: 4,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Ionicons
+            name="notifications-outline"
+            size={24}
+            color={foregroundColor}
+          />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, isDark, menuVisible, backgroundColor, foregroundColor]);
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -195,171 +189,20 @@ useLayoutEffect(() => {
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* FILTER BOX */}
-        <View className="mx-3 mb-6 p-5 bg-card rounded-2xl border border-border shadow-sm">
-          <TouchableOpacity
-            onPress={toggleFilters}
-            className="flex-row items-center justify-between"
-          >
-            <Text className="text-xl font-semibold text-foreground">Filters</Text>
-            <Text className="text-primary font-medium">
-              {showFilters ? "Hide ▲" : "Show ▼"}
-            </Text>
-          </TouchableOpacity>
-
-          {showFilters && (
-            <>
-              {/* DROPDOWNS */}
-              <View className="flex-row gap-3 mt-5">
-                {/* DRIVER */}
-                <View className="flex-1">
-                  <Text className="text-sm text-muted-foreground mb-1 ml-1">
-                    Driver
-                  </Text>
-
-                  <DropDownPicker
-                    open={dropdowns.driver}
-                    value={filters.driver_id}
-                    items={driverItems}
-                    setOpen={(val) =>
-                      setDropdowns((prev) => ({
-                        ...prev,
-                        driver: typeof val === "function" ? val(prev.driver) : val,
-                      }))
-                    }
-                    setValue={(val) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        driver_id:
-                          typeof val === "function" ? val(prev.driver_id) : val,
-                      }))
-                    }
-                    placeholder="Select Driver"
-                    style={{
-                      backgroundColor: "hsl(var(--input-bg))",
-                      borderColor: "hsl(var(--input-border))",
-                      minHeight: 48,
-                      borderRadius: 12,
-                    }}
-                    dropDownContainerStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      borderColor: "hsl(var(--border))",
-                    }}
-                    textStyle={{
-                      color: "hsl(var(--input-text))",
-                      fontSize: 15,
-                    }}
-                    placeholderStyle={{
-                      color: "hsl(var(--muted-foreground))",
-                    }}
-                  />
-                </View>
-
-                {/* CLIENT */}
-                <View className="flex-1">
-                  <Text className="text-sm text-muted-foreground mb-1 ml-1">
-                    Client
-                  </Text>
-
-                  <DropDownPicker
-                    open={dropdowns.client}
-                    value={filters.client_id}
-                    items={clientItems}
-                    setOpen={(val) =>
-                      setDropdowns((prev) => ({
-                        ...prev,
-                        client: typeof val === "function" ? val(prev.client) : val,
-                      }))
-                    }
-                    setValue={(val) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        client_id:
-                          typeof val === "function" ? val(prev.client_id) : val,
-                      }))
-                    }
-                    placeholder="Select Client"
-                    style={{
-                      backgroundColor: "hsl(var(--input-bg))",
-                      borderColor: "hsl(var(--input-border))",
-                      minHeight: 48,
-                      borderRadius: 12,
-                    }}
-                    dropDownContainerStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      borderColor: "hsl(var(--border))",
-                    }}
-                    textStyle={{
-                      color: "hsl(var(--input-text))",
-                      fontSize: 15,
-                    }}
-                    placeholderStyle={{
-                      color: "hsl(var(--muted-foreground))",
-                    }}
-                  />
-                </View>
-              </View>
-
-              {/* DATE RANGE */}
-              <View className="flex-row gap-3 mt-4">
-                <TouchableOpacity
-                  onPress={() => setShowDatePicker({ field: "startDate" })}
-                  className="flex-1 bg-input-bg border border-input rounded-xl px-4 py-3"
-                >
-                  <Text className="text-sm text-muted-foreground mb-1">From</Text>
-                  <Text className="text-foreground font-medium">
-                    {formatDate(filters.startDate)}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setShowDatePicker({ field: "endDate" })}
-                  className="flex-1 bg-input-bg border border-input rounded-xl px-4 py-3"
-                >
-                  <Text className="text-sm text-muted-foreground mb-1">To</Text>
-                  <Text className="text-foreground font-medium">
-                    {formatDate(filters.endDate)}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* RESET */}
-              <TouchableOpacity
-                onPress={() =>
-                  setFilters({
-                    driver_id: "",
-                    client_id: "",
-                    startDate: null,
-                    endDate: null,
-                  })
-                }
-                className="bg-primary mt-5 rounded-xl py-3"
-              >
-                <Text className="text-center text-primary-foreground font-semibold">
-                  Reset Filters
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-
-        {/* DATE PICKER */}
-        {showDatePicker.field && (
-          <DateTimePicker
-            value={filters[showDatePicker.field] || new Date()}
-            mode="date"
-            display="default"
-            onChange={(e, selected) => {
-              setShowDatePicker({ field: null });
-              if (selected) {
-                setFilters((prev) => ({
-                  ...prev,
-                  [showDatePicker.field!]: selected,
-                }));
-              }
-            }}
-          />
-        )}
+        {/* FILTERS COMPONENT */}
+        <TripFilters
+          filters={filters}
+          setFilters={setFilters}
+          dropdowns={dropdowns}
+          setDropdowns={setDropdowns}
+          driverItems={driverItems}
+          clientItems={clientItems}
+          showFilters={showFilters}
+          toggleFilters={toggleFilters}
+          showDatePicker={showDatePicker}
+          setShowDatePicker={setShowDatePicker}
+          formatDate={formatDate}
+        />
 
         {/* SUMMARY */}
         <View className="mx-3 mt-2 mb-6 bg-card border border-border p-4 rounded-2xl shadow-sm">
@@ -401,10 +244,17 @@ useLayoutEffect(() => {
                 {getLocationName(trip.start_location_id)} →{" "}
                 {getLocationName(trip.end_location_id)}
               </Text>
+
               <View className="mb-4 gap-1">
-              <Text className="text-foreground mb-1">🏢 {getClientName(trip.client_id)}</Text>
-              <Text className="text-foreground mb-1">🚚 {getTruckReg(trip.truck_id)}</Text>
-              <Text className="text-foreground ">👤 {getDriverName(trip.driver_id)}</Text>
+                <Text className="text-foreground mb-1">
+                  🏢 {getClientName(trip.client_id)}
+                </Text>
+                <Text className="text-foreground mb-1">
+                  🚚 {getTruckReg(trip.truck_id)}
+                </Text>
+                <Text className="text-foreground">
+                  👤 {getDriverName(trip.driver_id)}
+                </Text>
               </View>
 
               {/* SEPARATOR */}

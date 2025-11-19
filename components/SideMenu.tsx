@@ -8,7 +8,6 @@ import {
   Image,
   PanResponder,
   ScrollView,
-  Switch,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
