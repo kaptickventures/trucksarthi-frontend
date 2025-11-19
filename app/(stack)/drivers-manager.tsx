@@ -18,7 +18,9 @@ import {
   useColorScheme,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import useDrivers from "../../hooks/useDriver";
 
@@ -41,7 +43,6 @@ export default function DriversManager() {
   const [modalVisible, setModalVisible] = useState(false);
 
   const requiredFields = ["driver_name", "contact_number"];
-  const optionalFields = ["identity_card_url", "license_card_url"];
 
   const [formData, setFormData] = useState({
     driver_name: "",
@@ -59,6 +60,27 @@ export default function DriversManager() {
       if (firebase_uid) fetchDrivers();
     }, [firebase_uid, fetchDrivers])
   );
+
+  const pickImage = async (field: string) => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission needed", "Allow gallery access to upload images.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsEditing: true,
+    });
+
+    if (!result.canceled) {
+      setFormData({
+        ...formData,
+        [field]: result.assets[0].uri,
+      });
+    }
+  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -208,7 +230,6 @@ export default function DriversManager() {
         )}
       </ScrollView>
 
-      {/* Floating Add Button */}
       <TouchableOpacity
         onPress={() => openModal(false)}
         className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full justify-center items-center"
@@ -223,7 +244,6 @@ export default function DriversManager() {
         <Plus color="white" size={28} />
       </TouchableOpacity>
 
-      {/* Full-screen Modal */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
           <Animated.View
@@ -255,14 +275,13 @@ export default function DriversManager() {
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false}>
-                {[...requiredFields, ...optionalFields].map((key) => {
+                {/* Required fields */}
+                {requiredFields.map((key) => {
                   const label = key.replaceAll("_", " ");
-                  const isRequired = requiredFields.includes(key);
                   return (
                     <View key={key} className="mb-4">
                       <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                        {label}
-                        {isRequired && <Text className="text-red-500"> *</Text>}
+                        {label} <Text className="text-red-500">*</Text>
                       </Text>
                       <TextInput
                         className="border border-input text-input-text rounded-xl p-3"
@@ -273,16 +292,74 @@ export default function DriversManager() {
                         placeholder={`Enter ${label}`}
                         placeholderTextColor="#888"
                         keyboardType={
-                          key.includes("number")
-                            ? "phone-pad"
-                            : key.includes("url")
-                            ? "url"
-                            : "default"
+                          key.includes("number") ? "phone-pad" : "default"
                         }
                       />
                     </View>
                   );
                 })}
+
+                {/* Identity card image */}
+                <View className="mb-4">
+                  <Text className="text-muted-foreground mb-1 font-medium">
+                    Identity Card Photo
+                  </Text>
+
+                  {formData.identity_card_url !== "" && (
+                    <Image
+                      source={{ uri: formData.identity_card_url }}
+                      style={{
+                        width: "100%",
+                        height: 160,
+                        borderRadius: 12,
+                        marginBottom: 10,
+                      }}
+                      resizeMode="cover"
+                    />
+                  )}
+
+                  <TouchableOpacity
+                    onPress={() => pickImage("identity_card_url")}
+                    className="bg-secondary p-3 rounded-xl"
+                  >
+                    <Text className="text-center text-secondary-foreground">
+                      {formData.identity_card_url
+                        ? "Change Photo"
+                        : "Upload Photo"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* License card image */}
+                <View className="mb-4">
+                  <Text className="text-muted-foreground mb-1 font-medium">
+                    License Card Photo
+                  </Text>
+
+                  {formData.license_card_url !== "" && (
+                    <Image
+                      source={{ uri: formData.license_card_url }}
+                      style={{
+                        width: "100%",
+                        height: 160,
+                        borderRadius: 12,
+                        marginBottom: 10,
+                      }}
+                      resizeMode="cover"
+                    />
+                  )}
+
+                  <TouchableOpacity
+                    onPress={() => pickImage("license_card_url")}
+                    className="bg-secondary p-3 rounded-xl"
+                  >
+                    <Text className="text-center text-secondary-foreground">
+                      {formData.license_card_url
+                        ? "Change Photo"
+                        : "Upload Photo"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity
                   onPress={handleSubmit}
