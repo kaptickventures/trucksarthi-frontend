@@ -52,7 +52,7 @@ export default function TripFilters({
       {/* FILTER BOX */}
       <View
         style={{ backgroundColor: cardBg, borderColor: border }}
-        className="mx-3 mb-6 p-5 rounded-2xl border shadow-sm"
+        className="mx-3  mb-6 p-5 rounded-2xl border shadow-sm"
       >
         <TouchableOpacity
           onPress={toggleFilters}

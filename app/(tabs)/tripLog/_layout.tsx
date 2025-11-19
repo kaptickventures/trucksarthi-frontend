@@ -1,8 +1,8 @@
 // app/(tabs)/home/_layout.tsx
-import NativeStack from "expo-router/stack";
 import React from "react";
+import NativeStack from "expo-router/stack";
 
-export default function tripLogStack() {
+export default function TripLogStack() {
   return (
     <NativeStack
       screenOptions={{
