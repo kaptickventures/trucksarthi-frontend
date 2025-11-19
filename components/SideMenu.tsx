@@ -53,12 +53,13 @@ export default function SideMenu({
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
 
 const colors = {
-  background: isDark ? "hsl(222 14% 10%)" : "hsl(0 0% 100%)",
-  text: isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 10%)",
+  background: isDark ? "hsl(220 15% 8%)" : "hsl(0 0% 100%)",
+  text: isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)",
   subtext: isDark ? "hsl(0 0% 70%)" : "hsl(0 0% 40%)",
-  icon: isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 10%)",
-  accent: isDark ? "hsl(217 25% 20%)" : "hsl(100 33% 59%)", // 🔄 Updated light accent
+  icon: isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)",
+  accent: isDark ? "hsl(217 25% 20%)" : "hsl(100 33% 59%)",
 };
+
 
   const panResponder = useRef(
     PanResponder.create({
@@ -166,21 +167,6 @@ const colors = {
             </View>
           </View>
           </TouchableOpacity>
-
-          {/* Theme toggle */}
-          <View className="mb-10">
-            <Text className="mb-2 font-medium" style={{ color: colors.text }}>
-              Theme
-            </Text>
-
-            <View
-              className="flex-row items-center justify-between py-3 px-4 rounded-xl"
-              style={{ backgroundColor: colors.accent }}
-            >
-              <Text style={{ color: colors.text }}>Dark Mode</Text>
-              <Switch value={isDark} />
-            </View>
-          </View>
 
           {/* Main menu */}
           <Text className="text-base font-semibold mb-3" style={{ color: colors.subtext }}>

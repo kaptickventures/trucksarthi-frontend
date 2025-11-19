@@ -16,8 +16,13 @@ export default function StackLayout() {
   const isAndroid = Platform.OS === "android";
 
   // Theme palette
-  const backgroundColor = isDark ? "#0D1117" : "#FFFFFF"; // matching surface colors
-  const foregroundColor = isDark ? "#E6EDF3" : "#050505";
+  const backgroundColor = isDark
+    ? "hsl(220 15% 8%)"
+    : "hsl(0 0% 100%)";
+
+  const foregroundColor = isDark
+    ? "hsl(0 0% 98%)"
+    : "hsl(0 0% 4%)";
 
   return (
     <BottomSheetModalProvider>
@@ -86,9 +91,7 @@ export default function StackLayout() {
           <Stack.Screen name="clients-manager" options={{ title: "Clients" }} />
           <Stack.Screen name="trucks-manager" options={{ title: "Trucks" }} />
           <Stack.Screen name="drivers-manager" options={{ title: "Drivers" }} />
-          <Stack.Screen
-            name="locations-manager"
-            options={{ title: "Locations" }}
+          <Stack.Screen name="locations-manager" options={{ title: "Locations" }}
           />
         </Stack>
       </GestureHandlerRootView>

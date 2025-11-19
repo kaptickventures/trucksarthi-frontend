@@ -21,7 +21,7 @@ export default function NotificationsScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: "Notifications",
+      headerTitle: "Reminders",
       headerTitleAlign: "center",
       headerStyle: { backgroundColor },
       headerTitleStyle: { color: foregroundColor, fontWeight: "600" },

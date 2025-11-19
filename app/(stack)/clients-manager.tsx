@@ -165,7 +165,7 @@ export default function ClientsManager() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
-        className="flex-1 px-5 pt-2"
+        className="flex-1 px-5 pt-2 bg-background"
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         {loading ? (
@@ -231,7 +231,7 @@ export default function ClientsManager() {
 
       {/* Full-screen Modal */}
       <Modal visible={modalVisible} transparent animationType="fade">
-        <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
+        <Pressable className="flex-1 bg-background" onPress={closeModal}>
           <Animated.View
             {...panResponder.panHandlers}
             className="absolute bottom-0 w-full bg-background rounded-t-3xl"

@@ -26,14 +26,13 @@ export default function Profile() {
   const { user, updateUser, refreshUser } = useUser();
 
   const theme = {
-  card: isDark ? "hsl(220 15% 12%)" : "hsl(0 0% 98%)",
-  border: isDark ? "hsl(220 10% 28%)" : "hsl(0 0% 88%)",
-  muted: isDark ? "hsl(220 10% 20%)" : "hsl(0 0% 96%)",
-  mutedForeground: isDark ? "hsl(0 0% 75%)" : "hsl(0 0% 40%)",
-  primary: isDark ? "hsl(217 90% 60%)" : "hsl(220 85% 40%)",
-  primaryForeground: "#fff",
-};
-
+    card: isDark ? "hsl(220 15% 12%)" : "hsl(0 0% 98%)",
+    border: isDark ? "hsl(220 10% 28%)" : "hsl(0 0% 88%)",
+    muted: isDark ? "hsl(220 10% 20%)" : "hsl(0 0% 96%)",
+    mutedForeground: isDark ? "hsl(0 0% 75%)" : "hsl(0 0% 40%)",
+    primary: isDark ? "hsl(217 90% 60%)" : "hsl(220 85% 40%)",
+    primaryForeground: "#fff",
+  };
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -42,6 +41,10 @@ export default function Profile() {
     phone_number: "",
     email_address: "",
     address: "",
+    gstin: "",
+    bank_name: "",
+    account_holder_name: "",
+    ifsc_code: "",
   });
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -54,40 +57,7 @@ export default function Profile() {
 
   const addressRef = useRef<TextInput | null>(null);
 
-  /* HEADER */
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitle: () => (
-        <Text className="text-lg font-semibold text-foreground">Profile</Text>
-      ),
-      headerTitleAlign: "center",
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            style={{ paddingHorizontal: 6, paddingVertical: 4 }}
-            color={isDark ? "#E5E7EB" : "#111827"}
-          />
-        </TouchableOpacity>
-      ),
-      headerRight: () => (
-        <TouchableOpacity onPress={() => router.push("/helpCenter")}>
-          <Ionicons
-            name="help-circle-outline"
-            size={26}
-            style={{ paddingHorizontal: 6, paddingVertical: 4 }}
-            color={isDark ? "#E5E7EB" : "#007AFF"}
-          />
-        </TouchableOpacity>
-      ),
-      headerStyle: {
-        backgroundColor: "hsl(var(--background))",
-      },
-    });
-  }, [navigation, isDark]);
 
-  /* LOAD USER */
   useEffect(() => {
     if (user) {
       setFormData({
@@ -97,6 +67,10 @@ export default function Profile() {
         phone_number: user.phone_number ?? "+91 ",
         email_address: user.email_address ?? "",
         address: user.address ?? "",
+        gstin: user.gstin ?? "",
+        bank_name: user.bank_name ?? "",
+        account_holder_name: user.account_holder_name ?? "",
+        ifsc_code: user.ifsc_code ?? "",
       });
 
       setProfileImage(user.profile_picture_url ?? null);
@@ -113,7 +87,6 @@ export default function Profile() {
     setHasChanges(true);
   };
 
-  /* IMAGE PICKER */
   const pickFromLibrary = async () => {
     const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!granted)
@@ -174,7 +147,6 @@ export default function Profile() {
     );
   };
 
-  /* DATE PICKER */
   const onChangeDate = (event: any, selected?: Date) => {
     if (Platform.OS === "android") setShowDatePicker(false);
 
@@ -185,7 +157,6 @@ export default function Profile() {
     }
   };
 
-  /* SAVE */
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -195,6 +166,10 @@ export default function Profile() {
         company_name: formData.company_name,
         date_of_birth: formData.date_of_birth,
         address: formData.address,
+        gstin: formData.gstin,
+        bank_name: formData.bank_name,
+        account_holder_name: formData.account_holder_name,
+        ifsc_code: formData.ifsc_code,
         profile_picture_url: profileImage ?? undefined,
       });
 
@@ -202,7 +177,7 @@ export default function Profile() {
       setIsEditing(false);
       setHasChanges(false);
       refreshUser();
-    } catch  {
+    } catch {
       Alert.alert("Error", "Could not update profile");
     } finally {
       setLoading(false);
@@ -229,25 +204,23 @@ export default function Profile() {
       >
         <TouchableOpacity activeOpacity={1} onPress={Keyboard.dismiss}>
           <View>
-
-            {/* ================= TOP CARD ================= */}
+            {/* TOP CARD */}
             <View
               className="rounded-3xl p-6 mb-8"
-  style={{
-    backgroundColor: theme.card,
-    borderWidth: 1,
-    borderColor: theme.border,
-    padding: 24,
-    borderRadius: 26,
-    marginBottom: 32,
-    shadowColor: isDark ? "#000" : "#1f2937",
-    shadowOpacity: isDark ? 0.4 : 0.15,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  }}
->
-
+              style={{
+                backgroundColor: theme.card,
+                borderWidth: 1,
+                borderColor: theme.border,
+                padding: 24,
+                borderRadius: 26,
+                marginBottom: 32,
+                shadowColor: isDark ? "#000" : "#1f2937",
+                shadowOpacity: isDark ? 0.4 : 0.15,
+                shadowRadius: 14,
+                shadowOffset: { width: 0, height: 6 },
+                elevation: 8,
+              }}
+            >
               <View className="flex-row items-center">
                 {/* IMAGE */}
                 <View>
@@ -352,39 +325,29 @@ export default function Profile() {
               </View>
             </View>
 
-            {/* ================= FORM FIELDS ================= */}
+            {/* FORM FIELDS */}
             <View className="space-y-5">
-
               {/* FULL NAME */}
-              <View>
-                <Text className="text-foreground   mb-2 mt-2  font-medium">Full Name *</Text>
-                <TextInput
-                  editable={isEditing}
-                  className={`border border-border rounded-lg p-3 bg-card text-foreground ${
-                    !isEditing && "opacity-60"
-                  }`}
-                  value={formData.full_name}
-                  onChangeText={(t) => markChanged("full_name", t)}
-                />
-              </View>
+              <InputField
+                label="Full Name *"
+                editable={isEditing}
+                value={formData.full_name}
+                onChange={(t) => markChanged("full_name", t)}
+              />
 
               {/* COMPANY NAME */}
-              <View>
-                <Text className="text-foreground  mb-2 mt-2  font-medium">Company Name *</Text>
-                <TextInput
-                  editable={isEditing}
-                  className={`border border-border rounded-lg p-3 bg-card text-foreground ${
-                    !isEditing && "opacity-60"
-                  }`}
-                  value={formData.company_name}
-                  onChangeText={(t) => markChanged("company_name", t)}
-                />
-              </View>
+              <InputField
+                label="Company Name *"
+                editable={isEditing}
+                value={formData.company_name}
+                onChange={(t) => markChanged("company_name", t)}
+              />
 
               {/* DATE OF BIRTH */}
               <View>
-                <Text className="text-foreground  mb-2 mt-2 font-medium">Date of Birth *</Text>
-
+                <Text className="text-foreground mb-2 mt-2 font-medium">
+                  Date of Birth *
+                </Text>
                 <TouchableOpacity
                   activeOpacity={0.9}
                   onPress={() => isEditing && setShowDatePicker(true)}
@@ -405,8 +368,6 @@ export default function Profile() {
                       maximumDate={new Date()}
                       onChange={onChangeDate}
                     />
-
-                    {/* DONE BUTTON */}
                     {Platform.OS === "ios" && (
                       <TouchableOpacity
                         onPress={() => setShowDatePicker(false)}
@@ -434,44 +395,64 @@ export default function Profile() {
               </View>
 
               {/* PHONE */}
-              <View>
-                <Text className="text-foreground  mb-2 mt-2 font-medium">Phone Number</Text>
-                <TextInput
-                  editable={false}
-                  className="border border-border rounded-lg p-3 bg-card text-foreground opacity-60"
-                  value={formData.phone_number}
-                />
-              </View>
+              <InputField
+                label="Phone Number"
+                editable={false}
+                value={formData.phone_number}
+              />
 
               {/* EMAIL */}
-              <View>
-                <Text className="text-foreground  mb-2 mt-2 font-medium">Email Address</Text>
-                <TextInput
-                  editable={false}
-                  className="border border-border rounded-lg p-3 bg-card text-foreground opacity-60"
-                  value={formData.email_address}
-                />
-              </View>
+              <InputField
+                label="Email Address"
+                editable={false}
+                value={formData.email_address}
+              />
 
               {/* ADDRESS */}
-              <View>
-                <Text className="text-foreground  mb-2 mt-2 font-medium">Address *</Text>
-                <TextInput
-                  ref={addressRef}
-                  editable={isEditing}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  className={`border border-border rounded-lg p-3 bg-card text-foreground ${
-                    !isEditing && "opacity-60"
-                  }`}
-                  value={formData.address}
-                  onChangeText={(t) => markChanged("address", t)}
-                />
-              </View>
+              <InputField
+                label="Address *"
+                editable={isEditing}
+                value={formData.address}
+                onChange={(t) => markChanged("address", t)}
+                multiline
+                numberOfLines={4}
+              />
+
+              {/* GSTIN */}
+              <InputField
+                label="GSTIN"
+                editable={isEditing}
+                value={formData.gstin}
+                onChange={(t) => markChanged("gstin", t)}
+              />
+
+              {/* BANK NAME */}
+              <InputField
+                label="Bank Name"
+                editable={isEditing}
+                value={formData.bank_name}
+                onChange={(t) => markChanged("bank_name", t)}
+              />
+
+              {/* ACCOUNT HOLDER NAME */}
+              <InputField
+                label="Account Holder Name"
+                editable={isEditing}
+                value={formData.account_holder_name}
+                onChange={(t) => markChanged("account_holder_name", t)}
+              />
+
+              {/* IFSC CODE */}
+              <InputField
+                label="IFSC Code"
+                editable={isEditing}
+                value={formData.ifsc_code}
+                onChange={(t) => markChanged("ifsc_code", t)}
+                autoCapitalize="characters"
+              />
             </View>
 
-            {/* ================= SAVE BUTTON ================= */}
+            {/* SAVE BUTTON */}
             {isEditing && hasChanges && (
               <TouchableOpacity
                 onPress={handleSave}
@@ -495,3 +476,36 @@ export default function Profile() {
     </View>
   );
 }
+
+const InputField = ({
+  label,
+  editable,
+  value,
+  onChange,
+  multiline = false,
+  numberOfLines = 1,
+  autoCapitalize = "none",
+}: {
+  label: string;
+  editable: boolean;
+  value: string;
+  onChange?: (t: string) => void;
+  multiline?: boolean;
+  numberOfLines?: number;
+  autoCapitalize?: "none" | "characters" | "words" | "sentences";
+}) => (
+  <View>
+    <Text className="text-foreground mb-2 mt-2 font-medium">{label}</Text>
+    <TextInput
+      editable={editable}
+      multiline={multiline}
+      numberOfLines={numberOfLines}
+      autoCapitalize={autoCapitalize}
+      className={`border border-border rounded-lg p-3 bg-card text-foreground ${
+        !editable && "opacity-60"
+      }`}
+      value={value}
+      onChangeText={onChange}
+    />
+  </View>
+);

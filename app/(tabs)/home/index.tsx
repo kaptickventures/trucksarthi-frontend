@@ -77,7 +77,7 @@ export default function HomeScreen() {
 
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/testScreen")}
+          onPress={() => router.push("/notifications")}
           style={{
             paddingHorizontal: 6,
             paddingVertical: 4,
