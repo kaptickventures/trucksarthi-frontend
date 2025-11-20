@@ -4,20 +4,24 @@ import React, { useLayoutEffect } from "react";
 import {
   ScrollView,
   Text,
-  TouchableOpacity,
   useColorScheme,
   View,
 } from "react-native";
 import "../../global.css";
+import { THEME } from "../../theme"; // <-- theme import
 
 export default function NotificationsScreen() {
   const navigation = useNavigation();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const isDark = useColorScheme() === "dark";
 
-  // Header theme
-  const backgroundColor = isDark ? "hsl(210 28% 10%)" : "hsl(0 0% 100%)";
-  const foregroundColor = isDark ? "hsl(0 0% 95%)" : "hsl(210 15% 6%)";
+  // Header theme from THEME tokens
+  const backgroundColor = isDark
+    ? THEME.dark.background
+    : THEME.light.background;
+
+  const foregroundColor = isDark
+    ? THEME.dark.foreground
+    : THEME.light.foreground;
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -29,27 +33,37 @@ export default function NotificationsScreen() {
     });
   }, [navigation, isDark]);
 
-  // Mock notifications
-  const notifications: any[] = []; // ← Empty so it shows the empty state
+  // Mock notifications (empty → show "no notifications")
+  const notifications: any[] = [];
 
-  // Dot Badge Colors
+  // Dot badge theme colors (Tailwind tokens)
   const dotColors: Record<string, string> = {
-    high: "bg-red-600",
-    medium: "bg-amber-500",
-    low: "bg-primary", // your WhatsApp green
+    high: "bg-destructive",
+    medium: "bg-accent",
+    low: "bg-primary",
   };
 
+  // Icon colors (using THEME tokens)
   const iconColors: Record<string, string> = {
-    high: "#DC2626",
-    medium: "#D97706",
-    low: "#25D366", // WhatsApp green
+    high: isDark ? THEME.dark.destructive : THEME.light.destructive,
+    medium: isDark ? THEME.dark.accentForeground : THEME.light.accentForeground,
+    low: isDark ? THEME.dark.primary : THEME.light.primary,
   };
+
+  // Empty icon color
+  const emptyIconColor = isDark
+    ? THEME.dark.mutedForeground
+    : THEME.light.mutedForeground;
 
   return (
     <ScrollView className="flex-1 bg-background p-4">
       {notifications.length === 0 ? (
         <View className="flex-1 items-center justify-center mt-32">
-          <Ionicons name="notifications-off-outline" size={60} color="#999" />
+          <Ionicons
+            name="notifications-off-outline"
+            size={60}
+            color={emptyIconColor}
+          />
           <Text className="text-muted-foreground text-lg font-medium mt-4">
             No notifications found
           </Text>
@@ -82,7 +96,7 @@ export default function NotificationsScreen() {
                   {n.title}
                 </Text>
 
-                {/* COLORED DOT ONLY */}
+                {/* Colored dot */}
                 <View
                   className={`w-3 h-3 rounded-full ml-2 ${dotColors[n.type]}`}
                 />

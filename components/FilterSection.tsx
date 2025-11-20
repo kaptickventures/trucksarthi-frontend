@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { THEME } from "../theme"; // adjust path
 
 interface Props {
   filters: any;
@@ -36,30 +37,35 @@ export default function TripFilters({
   formatDate,
 }: Props) {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  // FIXED COLORS (Nativewind tokens in raw RGB form)
-  const inputBg = isDark ? "#1C1C1E" : "#F5F5F5";
-  const inputBorder = isDark ? "#3A3A3C" : "#D4D4D8";
-  const inputText = isDark ? "#FFFFFF" : "#000000";
-  const placeholderText = isDark ? "#9E9E9E" : "#6B7280";
-
-  const cardBg = isDark ? "#18181B" : "#FFFFFF";
-  const border = isDark ? "#3F3F46" : "#E4E4E7";
+  const t = THEME[colorScheme === "dark" ? "dark" : "light"];
 
   return (
     <>
       {/* FILTER BOX */}
       <View
-        style={{ backgroundColor: cardBg, borderColor: border }}
-        className="mx-3  mb-6 p-5 rounded-2xl border shadow-sm"
+        style={{
+          backgroundColor: t.card,
+          borderColor: t.border,
+          borderWidth: 1,
+          marginHorizontal: 12,
+          marginBottom: 24,
+          padding: 20,
+          borderRadius: 18,
+        }}
       >
         <TouchableOpacity
           onPress={toggleFilters}
-          className="flex-row items-center justify-between"
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
         >
-          <Text className="text-xl font-semibold text-foreground">Filters</Text>
-          <Text className="text-primary font-medium">
+          <Text style={{ fontSize: 20, fontWeight: "600", color: t.foreground }}>
+            Filters
+          </Text>
+
+          <Text style={{ color: t.primary, fontWeight: "600" }}>
             {showFilters ? "Hide ▲" : "Show ▼"}
           </Text>
         </TouchableOpacity>
@@ -67,10 +73,16 @@ export default function TripFilters({
         {showFilters && (
           <>
             {/* DROPDOWNS */}
-            <View className="flex-row gap-3 mt-5">
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 20 }}>
               {/* DRIVER */}
-              <View className="flex-1">
-                <Text className="text-sm text-muted-foreground mb-1 ml-1">
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    marginBottom: 6,
+                    color: t.mutedForeground,
+                  }}
+                >
                   Driver
                 </Text>
 
@@ -81,7 +93,8 @@ export default function TripFilters({
                   setOpen={(val) =>
                     setDropdowns((prev: any) => ({
                       ...prev,
-                      driver: typeof val === "function" ? val(prev.driver) : val,
+                      driver:
+                        typeof val === "function" ? val(prev.driver) : val,
                     }))
                   }
                   setValue={(val) =>
@@ -93,28 +106,34 @@ export default function TripFilters({
                   }
                   placeholder="Select Driver"
                   style={{
-                    backgroundColor: inputBg,
-                    borderColor: inputBorder,
+                    backgroundColor: t.input,
+                    borderColor: t.border,
                     minHeight: 48,
                     borderRadius: 12,
                   }}
                   dropDownContainerStyle={{
-                    backgroundColor: cardBg,
-                    borderColor: border,
+                    backgroundColor: t.card,
+                    borderColor: t.border,
                   }}
                   textStyle={{
-                    color: inputText,
+                    color: t.foreground,
                     fontSize: 15,
                   }}
                   placeholderStyle={{
-                    color: placeholderText,
+                    color: t.mutedForeground,
                   }}
                 />
               </View>
 
               {/* CLIENT */}
-              <View className="flex-1">
-                <Text className="text-sm text-muted-foreground mb-1 ml-1">
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    marginBottom: 6,
+                    color: t.mutedForeground,
+                  }}
+                >
                   Client
                 </Text>
 
@@ -133,51 +152,71 @@ export default function TripFilters({
                     setFilters((prev: any) => ({
                       ...prev,
                       client_id:
-                        typeof val === "function" ? val(prev.client_id) : val,
+                        typeof val === "function"
+                          ? val(prev.client_id)
+                          : val,
                     }))
                   }
                   placeholder="Select Client"
                   style={{
-                    backgroundColor: inputBg,
-                    borderColor: inputBorder,
+                    backgroundColor: t.input,
+                    borderColor: t.border,
                     minHeight: 48,
                     borderRadius: 12,
                   }}
                   dropDownContainerStyle={{
-                    backgroundColor: cardBg,
-                    borderColor: border,
+                    backgroundColor: t.card,
+                    borderColor: t.border,
                   }}
                   textStyle={{
-                    color: inputText,
+                    color: t.foreground,
                     fontSize: 15,
                   }}
                   placeholderStyle={{
-                    color: placeholderText,
+                    color: t.mutedForeground,
                   }}
                 />
               </View>
             </View>
 
             {/* DATE RANGE */}
-            <View className="flex-row gap-3 mt-4">
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
               <TouchableOpacity
                 onPress={() => setShowDatePicker({ field: "startDate" })}
-                style={{ backgroundColor: inputBg, borderColor: inputBorder }}
-                className="flex-1 border rounded-xl px-4 py-3"
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: t.border,
+                  backgroundColor: t.input,
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                }}
               >
-                <Text className="text-sm text-muted-foreground mb-1">From</Text>
-                <Text className="text-foreground font-medium">
+                <Text style={{ color: t.mutedForeground, fontSize: 13 }}>
+                  From
+                </Text>
+                <Text style={{ color: t.foreground, fontWeight: "600" }}>
                   {formatDate(filters.startDate)}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => setShowDatePicker({ field: "endDate" })}
-                style={{ backgroundColor: inputBg, borderColor: inputBorder }}
-                className="flex-1 border rounded-xl px-4 py-3"
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: t.border,
+                  backgroundColor: t.input,
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                }}
               >
-                <Text className="text-sm text-muted-foreground mb-1">To</Text>
-                <Text className="text-foreground font-medium">
+                <Text style={{ color: t.mutedForeground, fontSize: 13 }}>
+                  To
+                </Text>
+                <Text style={{ color: t.foreground, fontWeight: "600" }}>
                   {formatDate(filters.endDate)}
                 </Text>
               </TouchableOpacity>
@@ -193,9 +232,20 @@ export default function TripFilters({
                   endDate: null,
                 })
               }
-              className="bg-primary mt-5 rounded-xl py-3"
+              style={{
+                backgroundColor: t.primary,
+                marginTop: 20,
+                borderRadius: 12,
+                paddingVertical: 12,
+              }}
             >
-              <Text className="text-center text-primary-foreground font-semibold">
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: t.primaryForeground,
+                  fontWeight: "600",
+                }}
+              >
                 Reset Filters
               </Text>
             </TouchableOpacity>
@@ -209,7 +259,7 @@ export default function TripFilters({
           value={filters[showDatePicker.field] || new Date()}
           mode="date"
           display="default"
-                    onChange={(e, selected) => {
+          onChange={(e, selected) => {
             setShowDatePicker({ field: null });
             if (selected) {
               setFilters((prev: any) => ({

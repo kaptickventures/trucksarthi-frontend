@@ -15,6 +15,8 @@ import {
 import DropDownPicker from "react-native-dropdown-picker";
 import { X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { THEME } from "../theme"; // ← make sure this path matches your project
+import "../global.css";
 
 /* ---------------- Types ---------------- */
 type DropdownKey = "truck" | "driver" | "client" | "start" | "end";
@@ -54,10 +56,13 @@ export default function EditTripModal({
 }: Props) {
   const isDark = useColorScheme() === "dark";
   const insets = useSafeAreaInsets();
+
+  const theme = isDark ? THEME.dark : THEME.light;
+
   const translateY = useRef(new Animated.Value(0)).current;
   const SCROLL_THRESHOLD = 40;
 
-  // Dropdown open state
+  /* ---------------- Dropdown State ---------------- */
   const [dropdowns, setDropdowns] = useState<Record<DropdownKey, boolean>>({
     truck: false,
     driver: false,
@@ -69,7 +74,7 @@ export default function EditTripModal({
   const closeAllDropdowns = () =>
     setDropdowns({ truck: false, driver: false, client: false, start: false, end: false });
 
-  // Form fields (excluding raw trip_date which we keep separately)
+  /* ---------------- Form State ---------------- */
   const [form, setForm] = useState<Record<FormKey, string>>({
     truck_id: "",
     driver_id: "",
@@ -81,25 +86,23 @@ export default function EditTripModal({
     notes: "",
   });
 
-  // Keep raw trip_date returned by backend (send this exact string back)
   const [rawTripDate, setRawTripDate] = useState<string>("");
 
-  // Derived display date (human-friendly). Will be read-only.
   const getDisplayDate = (raw: string) => {
     try {
       if (!raw) return "";
       const d = new Date(raw);
-      if (isNaN(d.getTime())) return raw;
-      return d.toISOString().split("T")[0]; // YYYY-MM-DD display
+      return isNaN(d.getTime()) ? raw : d.toISOString().split("T")[0];
     } catch {
       return raw;
     }
   };
 
-  // Prefill when trip changes
   useEffect(() => {
     if (!trip) return;
+
     setRawTripDate(String(trip.trip_date ?? ""));
+
     setForm({
       truck_id: String(trip.truck_id ?? ""),
       driver_id: String(trip.driver_id ?? ""),
@@ -110,11 +113,11 @@ export default function EditTripModal({
       miscellaneous_expense: String(trip.miscellaneous_expense ?? ""),
       notes: trip.notes ?? "",
     });
-    // close dropdowns on open
+
     closeAllDropdowns();
   }, [trip]);
 
-  // PanResponder for dragging modal down
+  /* ---------------- Modal Pan Gestures ---------------- */
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: (_, g) => g.y0 < SCROLL_THRESHOLD,
@@ -124,14 +127,22 @@ export default function EditTripModal({
       onPanResponderRelease: (_, g) => {
         if (g.dy > 120) closeModal();
         else
-          Animated.timing(translateY, { toValue: 0, duration: 150, useNativeDriver: true }).start();
+          Animated.timing(translateY, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+          }).start();
       },
     })
   ).current;
 
   const closeModal = () => {
     closeAllDropdowns();
-    Animated.timing(translateY, { toValue: 800, duration: 200, useNativeDriver: true }).start(() => {
+    Animated.timing(translateY, {
+      toValue: 800,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
       translateY.setValue(0);
       onClose();
     });
@@ -139,6 +150,7 @@ export default function EditTripModal({
 
   if (!trip) return null;
 
+  /* ---------------- Dropdown Config ---------------- */
   const dropdownConfig = [
     {
       label: "Truck",
@@ -172,8 +184,8 @@ export default function EditTripModal({
     },
   ] as const;
 
+  /* ---------------- Action Handlers ---------------- */
   const handleSavePress = async () => {
-    // validation
     if (
       !form.truck_id ||
       !form.driver_id ||
@@ -182,13 +194,12 @@ export default function EditTripModal({
       !form.end_location_id ||
       !form.cost_of_trip
     ) {
-      Alert.alert("Missing fields", "Please fill required fields (truck, driver, client, start, end, cost).");
+      Alert.alert("Missing fields", "Please fill all required fields.");
       return;
     }
 
-    // Payload: include trip_date exactly as returned by backend (rawTripDate)
     const payload = {
-      trip_date: rawTripDate, // send EXACT backend value (Option C)
+      trip_date: rawTripDate,
       truck_id: Number(form.truck_id),
       driver_id: Number(form.driver_id),
       client_id: Number(form.client_id),
@@ -201,14 +212,13 @@ export default function EditTripModal({
 
     try {
       await onSave(trip.trip_id, payload);
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Error", "Failed to save changes");
+    } catch {
+      Alert.alert("Error", "Failed to save trip");
     }
   };
 
   const handleDeletePress = () => {
-    Alert.alert("Confirm Delete", "Delete this trip?", [
+    Alert.alert("Delete Trip", "Are you sure?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -216,8 +226,7 @@ export default function EditTripModal({
         onPress: async () => {
           try {
             await onDelete(trip.trip_id);
-          } catch (e) {
-            console.error(e);
+          } catch {
             Alert.alert("Error", "Failed to delete trip");
           }
         },
@@ -225,27 +234,38 @@ export default function EditTripModal({
     ]);
   };
 
+  /* ---------------- UI ---------------- */
   return (
     <Modal transparent visible={visible} animationType="fade">
       <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
         <Animated.View
           {...panResponder.panHandlers}
           className="absolute bottom-0 w-full bg-background rounded-t-3xl"
-          style={{ height: "100%", paddingHorizontal: 20, paddingTop: insets.top + 20, transform: [{ translateY }] }}
+          style={{
+            height: "100%",
+            paddingHorizontal: 20,
+            paddingTop: insets.top + 20,
+            transform: [{ translateY }],
+          }}
         >
           <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
 
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className={`text-2xl font-semibold ${isDark ? "text-white" : "text-black"}`}>Edit Trip</Text>
+          {/* Header */}
+          <View className="flex-row justify-between items-center mb-5">
+            <Text className="text-2xl font-semibold text-foreground">Edit Trip</Text>
             <TouchableOpacity onPress={closeModal}>
-              <X size={28} color={isDark ? "#AAA" : "#666"} />
+              <X size={28} color={theme.mutedForeground} />
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Read-only date display (human-friendly) */}
+            {/* Date (readonly) */}
             <Text className="text-muted-foreground mb-1 font-medium">Trip Date</Text>
-            <TextInput value={getDisplayDate(rawTripDate)} editable={false} className="border border-input text-input-text rounded-xl p-3 mb-4 bg-input-bg opacity-90" />
+            <TextInput
+              editable={false}
+              value={getDisplayDate(rawTripDate)}
+              className="border border-input text-input-text rounded-xl p-3 mb-4 bg-input-bg opacity-90"
+            />
 
             {/* Dropdowns */}
             {dropdownConfig.map((d, i) => (
@@ -263,45 +283,63 @@ export default function EditTripModal({
                       [d.openKey]: typeof open === "function" ? open(prev[d.openKey]) : open,
                     }));
                   }}
-                  setValue={(cb) => setForm((prev) => ({ ...prev, [d.key]: cb(prev[d.key]) }))}
+                  setValue={(cb) =>
+                    setForm((prev) => ({ ...prev, [d.key]: cb(prev[d.key]) }))
+                  }
                   placeholder={`Select ${d.label}`}
                   listMode="SCROLLVIEW"
                   maxHeight={150}
                   scrollViewProps={{ nestedScrollEnabled: true }}
                   style={{
                     height: 48,
-                    backgroundColor: isDark ? "hsl(220 10% 18%)" : "hsl(0 0% 98%)",
-                    borderColor: isDark ? "hsl(220 10% 35%)" : "hsl(0 0% 88%)",
+                    backgroundColor: theme.input,
+                    borderColor: theme.border,
                   }}
                   dropDownContainerStyle={{
-                    backgroundColor: isDark ? "hsl(220 15% 12%)" : "hsl(0 0% 98%)",
-                    borderColor: isDark ? "hsl(220 10% 35%)" : "hsl(0 0% 88%)",
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
                   }}
-                  textStyle={{ color: isDark ? "white" : "black" }}
-                  placeholderStyle={{ color: isDark ? "#AAA" : "#555" }}
+                  textStyle={{ color: theme.foreground }}
+                  placeholderStyle={{ color: theme.mutedForeground }}
                 />
               </View>
             ))}
 
             {/* Cost */}
             <Text className="text-muted-foreground mb-1 font-medium">Cost of Trip (₹)</Text>
-            <TextInput keyboardType="numeric" value={form.cost_of_trip} onChangeText={(v) => setForm((p) => ({ ...p, cost_of_trip: v }))} className="border border-input text-input-text rounded-xl p-3 mb-4 bg-input-bg" />
+            <TextInput
+              keyboardType="numeric"
+              value={form.cost_of_trip}
+              onChangeText={(v: string) => setForm((p) => ({ ...p, cost_of_trip: v }))}
+              className="border border-input text-input-text rounded-xl p-3 mb-4 bg-input-bg"
+            />
 
             {/* Misc */}
             <Text className="text-muted-foreground mb-1 font-medium">Miscellaneous Expense (₹)</Text>
-            <TextInput keyboardType="numeric" value={form.miscellaneous_expense} onChangeText={(v) => setForm((p) => ({ ...p, miscellaneous_expense: v }))} className="border border-input text-input-text rounded-xl p-3 mb-4 bg-input-bg" />
+            <TextInput
+              keyboardType="numeric"
+              value={form.miscellaneous_expense}
+              onChangeText={(v: string) => setForm((p) => ({ ...p, miscellaneous_expense: v }))}
+              className="border border-input text-input-text rounded-xl p-3 mb-4 bg-input-bg"
+            />
 
             {/* Notes */}
             <Text className="text-muted-foreground mb-1 font-medium">Notes</Text>
-            <TextInput multiline numberOfLines={3} value={form.notes} onChangeText={(v) => setForm((p) => ({ ...p, notes: v }))} className="border border-input text-input-text rounded-xl p-3 mb-6 bg-input-bg" />
+            <TextInput
+              multiline
+              numberOfLines={3}
+              value={form.notes}
+              onChangeText={(v: string) => setForm((p) => ({ ...p, notes: v }))}
+              className="border border-input text-input-text rounded-xl p-3 mb-6 bg-input-bg"
+            />
 
             {/* Actions */}
             <TouchableOpacity onPress={handleSavePress} className="bg-primary p-4 rounded-xl mb-3">
               <Text className="text-center text-primary-foreground font-semibold">Save Changes</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleDeletePress} className="bg-red-500 p-4 rounded-xl mb-3">
-              <Text className="text-center text-white font-semibold">Delete Trip</Text>
+            <TouchableOpacity onPress={handleDeletePress} className="bg-destructive p-4 rounded-xl mb-3">
+              <Text className="text-center text-destructive-foreground font-semibold">Delete Trip</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={closeModal} className="border border-border p-4 rounded-xl">

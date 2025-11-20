@@ -16,6 +16,8 @@ import {
 } from "react-native";
 import { auth } from "../firebaseConfig";
 import { useUser } from "../hooks/useUser";
+import { THEME } from "../theme"; // ← USE THE GLOBAL THEME
+import "../global.css";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -36,7 +38,6 @@ type RoutePath =
   | (typeof LINKS)[number]["route"]
   | (typeof MANAGER_LINKS)[number]["route"];
 
-
 export default function SideMenu({
   isVisible,
   onClose,
@@ -46,19 +47,22 @@ export default function SideMenu({
 }) {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const theme = THEME[colorScheme === "dark" ? "dark" : "light"];
   const { user, loading } = useUser();
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
 
-const colors = {
-  background: isDark ? "hsl(220 15% 8%)" : "hsl(0 0% 100%)",
-  text: isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)",
-  subtext: isDark ? "hsl(0 0% 70%)" : "hsl(0 0% 40%)",
-  icon: isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)",
-  accent: isDark ? "hsl(217 25% 20%)" : "hsl(100 33% 59%)",
-};
-
+  /** 👇 Theme-driven color map */
+  const colors = {
+    background: theme.background,
+    overlay: "rgba(0,0,0,0.45)",
+    text: theme.foreground,
+    subtext: theme.mutedForeground,
+    icon: theme.foreground,
+    avatarBg: theme.muted,
+    divider: theme.border,
+    highlight: theme.primary,
+  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -72,7 +76,7 @@ const colors = {
   useEffect(() => {
     Animated.timing(slideAnim, {
       toValue: isVisible ? 0 : -SCREEN_WIDTH,
-      duration: 250,
+      duration: 240,
       useNativeDriver: false,
     }).start();
   }, [isVisible]);
@@ -100,11 +104,8 @@ const colors = {
           <View
             style={{
               position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(0,0,0,0.4)",
+              inset: 0,
+              backgroundColor: colors.overlay,
               zIndex: 9998,
             }}
           />
@@ -116,7 +117,7 @@ const colors = {
         {...panResponder.panHandlers}
         style={{
           transform: [{ translateX: slideAnim }],
-          width: SCREEN_WIDTH,
+          width: SCREEN_WIDTH * 0.82,
           height: "100%",
           position: "absolute",
           top: 0,
@@ -128,47 +129,44 @@ const colors = {
         }}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Header */}
+          {/* Profile Header */}
           <TouchableOpacity onPress={() => navigate("/profile")}>
-          <View className="flex-row items-center mb-10">
-            <View
-              style={{
-                width: 58,
-                height: 58,
-                borderRadius: 29,
-                overflow: "hidden",
-                backgroundColor: "#ccc",
-              }}
-            >
-              {user?.profile_picture_url ? (
-                <Image
-                  source={{ uri: user.profile_picture_url }}
-                  className="w-full h-full"
-                />
-              ) : (
-                <Ionicons
-                  name="person-circle-outline"
-                  size={58}
-                  color={colors.icon}
-                  style={{ opacity: 0.6 }}
-                />
-              )}
-            </View>
+            <View className="flex-row items-center mb-10">
+              <View
+                className="w-16 h-16 rounded-full overflow-hidden items-center justify-center"
+                style={{ backgroundColor: colors.avatarBg }}
+              >
+                {user?.profile_picture_url ? (
+                  <Image
+                    source={{ uri: user.profile_picture_url }}
+                    className="w-full h-full"
+                  />
+                ) : (
+                  <Ionicons
+                    name="person-circle-outline"
+                    size={58}
+                    color={colors.icon}
+                    style={{ opacity: 0.6 }}
+                  />
+                )}
+              </View>
 
-
-            <View className="ml-4">
-              <Text className="text-xl font-semibold" style={{ color: colors.text }}>
-                {loading ? "Loading..." : user?.full_name || "Guest"}
-              </Text>
-              <Text className="text-sm" style={{ color: colors.subtext }}>
-                {user?.email_address || ""}
-              </Text>
+              <View className="ml-4">
+                <Text className="text-xl font-semibold" style={{ color: colors.text }}>
+                  {loading ? "Loading..." : user?.full_name || "Guest"}
+                </Text>
+                <Text className="text-sm" style={{ color: colors.subtext }}>
+                  {user?.email_address || ""}
+                </Text>
+              </View>
             </View>
-          </View>
           </TouchableOpacity>
 
-          {/* Main menu */}
-          <Text className="text-base font-semibold mb-3" style={{ color: colors.subtext }}>
+          {/* Main Menu */}
+          <Text
+            className="text-base font-semibold mb-3"
+            style={{ color: colors.subtext }}
+          >
             MAIN MENU
           </Text>
 
@@ -185,9 +183,12 @@ const colors = {
             </TouchableOpacity>
           ))}
 
-          {/* Manager section */}
+          {/* Manager Section */}
           <View className="mt-8 mb-6">
-            <Text className="text-base font-semibold mb-3" style={{ color: colors.subtext }}>
+            <Text
+              className="text-base font-semibold mb-3"
+              style={{ color: colors.subtext }}
+            >
               MANAGER
             </Text>
 
@@ -205,16 +206,10 @@ const colors = {
             ))}
           </View>
 
-          {/* Logout — now NORMAL position (not fixed) */}
-          <TouchableOpacity
-            onPress={handleLogout}
-            className="flex-row items-center py-4"
-          >
+          {/* Logout */}
+          <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4">
             <Ionicons name="log-out-outline" size={26} color={colors.icon} />
-            <Text
-              className="ml-4 text-lg font-medium"
-              style={{ color: colors.text }}
-            >
+            <Text className="ml-4 text-lg font-medium" style={{ color: colors.text }}>
               Logout
             </Text>
           </TouchableOpacity>
