@@ -4,94 +4,94 @@
 
 @layer base {
   :root {
-    /* === Light Mode === */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 4%;
+    /* === WhatsApp Light Mode === */
+    --background: 0 0% 100%;                  /* #FFFFFF */
+    --foreground: 210 15% 6%;                 /* #111B21 */
 
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 6%;
+    --card: 0 0% 98%;                         /* #F7F7F7 */
+    --card-foreground: 210 15% 6%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 4%;
-    --primary: 220 85% 40%;
+    --popover-foreground: 210 15% 6%;
+
+    --primary: 142 63% 47%;                   /* WhatsApp Green #25D366 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 95%;
-    --secondary-foreground: 0 0% 15%;
+    --secondary: 150 12% 93%;                 /* Light gray #ECECEC */
+    --secondary-foreground: 210 15% 10%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 40%;
+    --muted: 0 0% 96%;                        /* input bg */
+    --muted-foreground: 210 6% 40%;           /* gray text */
 
-    --accent: 220 90% 96%;
-    --accent-foreground: 220 85% 30%;
+    --accent: 142 63% 90%;                    /* light green tint */
+    --accent-foreground: 142 63% 35%;
 
-    --success: 142 72% 40%;
-    --success-foreground: 0 0% 98%;
+    --success: 142 63% 47%;                   /* WhatsApp green */
+    --success-foreground: 0 0% 100%;
 
     --destructive: 0 85% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --input-bg: 0 0% 98%;          
-    --input-text: 0 0% 4%;         
-    --input-border: 0 0% 88%;
+    /* Inputs */
+    --input-bg: 0 0% 94%;                    /* #F0F0F0 */
+    --input-text: 210 15% 6%;
+    --input-border: 0 0% 82%;                /* light border */
 
-    --border: 0 0% 88%;
-    --input: 0 0% 88%;
-    --ring: 220 85% 60%;
-    --radius: 0.625rem;
+    --border: 0 0% 82%;                      /* #D1D1D1 */
+    --input: 0 0% 82%;
+    --ring: 142 63% 47%;
 
-    /* Chart colors */
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    /* Charts (WhatsApp aesthetic) */
+    --chart-1: 142 63% 47%;
+    --chart-2: 166 45% 45%;
+    --chart-3: 32 80% 55%;
+    --chart-4: 199 50% 48%;
+    --chart-5: 0 70% 55%;
   }
 
- .dark:root {
-  /* === Dark Mode === */
-  --background: 220 15% 8%;          /* Deep slate background */
-  --foreground: 0 0% 98%;            /* White text */
+  .dark:root {
+    /* === WhatsApp Dark Mode === */
+    --background: 210 28% 10%;               /* #111B21 */
+    --foreground: 0 0% 95%;                  /* #EDEDED */
 
-  --card: 220 15% 12%;               /* Slightly lighter than background */
-  --card-foreground: 0 0% 98%;
+    --card: 210 25% 13%;                     /* #1A2230 */
+    --card-foreground: 0 0% 95%;
 
-  --popover: 220 15% 14%;
-  --popover-foreground: 0 0% 98%;
+    --popover: 210 25% 15%;
+    --popover-foreground: 0 0% 95%;
 
-  --primary: 217 90% 60%;            /* Vibrant blue */
-  --primary-foreground: 0 0% 100%;
+    --primary: 142 53% 40%;                  /* Dark WhatsApp Green #1FA855 */
+    --primary-foreground: 0 0% 100%;
 
-  --secondary: 220 15% 20%;
-  --secondary-foreground: 0 0% 95%;
+    --secondary: 210 20% 16%;                /* Chat bubble bg (dark) */
+    --secondary-foreground: 0 0% 90%;
 
-  --muted: 220 10% 20%;              /* Softer gray for input bg */
-  --muted-foreground: 0 0% 75%;      /* Muted gray text */
+    --muted: 210 15% 18%;                    /* Input area dark */
+    --muted-foreground: 0 0% 75%;
 
-  --accent: 217 25% 25%;
-  --accent-foreground: 0 0% 98%;
+    --accent: 165 32% 22%;                   /* WhatsApp dark teal */
+    --accent-foreground: 0 0% 95%;
 
-  --success: 142 70% 45%;
-  --success-foreground: 0 0% 98%;
+    --success: 142 53% 40%;
+    --success-foreground: 0 0% 98%;
 
-  --destructive: 0 70% 55%;
-  --destructive-foreground: 0 0% 98%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 98%;
 
-  /* === Borders and Inputs === */
-  --border: 220 10% 28%;
-  --input: 220 10% 28%;
-  --ring: 217 90% 60%;
+    /* Borders / Inputs */
+    --border: 210 15% 22%;                   /* subtle border */
+    --input: 210 15% 22%;
+    --ring: 142 53% 40%;
 
-  /* Input customization */
-  --input-bg: 220 10% 18%;          /* Dark gray background */
-  --input-text: 0 0% 98%;           /* White text */
-  --input-border: 220 10% 35%;      /* Medium gray border */
+    --input-bg: 210 20% 16%;                 /* #202C33 */
+    --input-text: 0 0% 95%;
+    --input-border: 210 15% 30%;
 
-  /* === Chart / Brand === */
-  --chart-1: 217 90% 60%;
-  --chart-2: 160 70% 45%;
-  --chart-3: 45 90% 55%;
-  --chart-4: 280 70% 65%;
-  --chart-5: 340 80% 60%;
+    /* Charts */
+    --chart-1: 142 53% 40%;
+    --chart-2: 160 50% 45%;
+    --chart-3: 45 85% 55%;
+    --chart-4: 280 45% 60%;
+    --chart-5: 350 65% 60%;
+  }
 }
-} 

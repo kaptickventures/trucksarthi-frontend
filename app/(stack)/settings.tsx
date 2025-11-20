@@ -1,4 +1,3 @@
-// app/settings/index.tsx
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import {
@@ -13,11 +12,26 @@ import {
   User,
   Wallet,
 } from "lucide-react-native";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from "react-native";
+
 import { auth } from "../../firebaseConfig";
+
+import { THEME } from "../../theme";
+
 
 export default function Settings() {
   const router = useRouter();
+  const isDark = useColorScheme() === "dark";
+
+  // 💚 WhatsApp Green icons
+  const primaryColor = isDark ? THEME.dark.primary : THEME.light.primary;
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -31,24 +45,13 @@ export default function Settings() {
       {/* ===================== ACCOUNT ===================== */}
       <Text className="text-lg font-semibold text-foreground mb-3">Account</Text>
 
-      {/* Edit Profile */}
-      <TouchableOpacity
-        onPress={() => router.push("/profile")}
-        className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
-      >
-        <View className="flex-row items-center gap-2">
-          <User size={20} color="#007AFF" />
-          <Text className="text-foreground text-base">Edit Profile</Text>
-        </View>
-      </TouchableOpacity>
-
       {/* Plans & Pricing */}
       <TouchableOpacity
         onPress={() => Alert.alert("Coming Soon", "Plans and Pricing placeholder")}
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
       >
         <View className="flex-row items-center gap-2">
-          <Wallet size={20} color="#007AFF" />
+          <Wallet size={20} color={primaryColor} />
           <Text className="text-foreground text-base">Plans & Pricing</Text>
         </View>
       </TouchableOpacity>
@@ -59,13 +62,15 @@ export default function Settings() {
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-6"
       >
         <View className="flex-row items-center gap-2">
-          <FileDown size={20} color="#007AFF" />
+          <FileDown size={20} color={primaryColor} />
           <Text className="text-foreground text-base">Export Data</Text>
         </View>
       </TouchableOpacity>
 
       {/* ===================== APP PREFERENCES ===================== */}
-      <Text className="text-lg font-semibold text-foreground mb-3">App Preferences</Text>
+      <Text className="text-lg font-semibold text-foreground mb-3">
+        App Preferences
+      </Text>
 
       {/* Biometric Authentication */}
       <TouchableOpacity
@@ -75,29 +80,31 @@ export default function Settings() {
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
       >
         <View className="flex-row items-center gap-2">
-          <Fingerprint size={20} color="#007AFF" />
-          <Text className="text-foreground text-base">Biometric Authentication</Text>
+          <Fingerprint size={20} color={primaryColor} />
+          <Text className="text-foreground text-base">
+            Biometric Authentication
+          </Text>
         </View>
       </TouchableOpacity>
 
       {/* App Language */}
       <TouchableOpacity
-        onPress={() => Alert.alert("Coming Soon", "Language Selection Placeholder")}
+        onPress={() => Alert.alert("Coming Soon", "Language Selection placeholder")}
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
       >
         <View className="flex-row items-center gap-2">
-          <Languages size={20} color="#007AFF" />
+          <Languages size={20} color={primaryColor} />
           <Text className="text-foreground text-base">App Language</Text>
         </View>
       </TouchableOpacity>
 
       {/* Theme */}
       <TouchableOpacity
-        onPress={() => Alert.alert("Coming Soon", "Theme Selection Placeholder")}
+        onPress={() => Alert.alert("Coming Soon", "Theme Selection placeholder")}
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
       >
         <View className="flex-row items-center gap-2">
-          <Palette size={20} color="#007AFF" />
+          <Palette size={20} color={primaryColor} />
           <Text className="text-foreground text-base">Theme</Text>
         </View>
       </TouchableOpacity>
@@ -105,17 +112,17 @@ export default function Settings() {
       {/* Notification Settings */}
       <TouchableOpacity
         onPress={() =>
-          Alert.alert("Coming Soon", "Notification Settings Placeholder")
+          Alert.alert("Coming Soon", "Notification Settings placeholder")
         }
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-6"
       >
         <View className="flex-row items-center gap-2">
-          <Bell size={20} color="#007AFF" />
+          <Bell size={20} color={primaryColor} />
           <Text className="text-foreground text-base">Notification Settings</Text>
         </View>
       </TouchableOpacity>
 
-      {/* ===================== USE ON DESKTOP ===================== */}
+      {/* ===================== DESKTOP ===================== */}
       <Text className="text-lg font-semibold text-foreground mb-3">Desktop</Text>
 
       <TouchableOpacity
@@ -123,7 +130,7 @@ export default function Settings() {
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-8"
       >
         <View className="flex-row items-center gap-2">
-          <MonitorSmartphone size={20} color="#007AFF" />
+          <MonitorSmartphone size={20} color={primaryColor} />
           <Text className="text-foreground text-base">
             Use Truck Sarthi on Desktop
           </Text>
@@ -133,13 +140,12 @@ export default function Settings() {
       {/* ===================== SUPPORT ===================== */}
       <Text className="text-lg font-semibold text-foreground mb-3">Support</Text>
 
-      {/* Help Center */}
       <TouchableOpacity
         onPress={() => router.push("/helpCenter")}
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-10"
       >
         <View className="flex-row items-center gap-2">
-          <HelpCircle size={20} color="#007AFF" />
+          <HelpCircle size={20} color={primaryColor} />
           <Text className="text-foreground text-base">Help Center</Text>
         </View>
       </TouchableOpacity>

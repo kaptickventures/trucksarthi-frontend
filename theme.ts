@@ -1,75 +1,82 @@
 import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
 
-/**
- * ⚠️ ALL COLORS BELOW ARE NOW VALID HEX
- *  - No HSL
- *  - No undefined values
- *  - NO Android crashes possible
- */
-
 export const THEME = {
   light: {
-    background: "#ffffff",
-    foreground: "#0a0a0a",
-    card: "#fafafa",
-    cardForeground: "#0f0f0f",
-    popover: "#ffffff",
-    popoverForeground: "#0a0a0a",
-    primary: "#1d4ed8",
-    primaryForeground: "#ffffff",
-    secondary: "#f2f2f2",
-    secondaryForeground: "#262626",
-    muted: "#f5f5f5",
+    background: "#FFFFFF",
+    foreground: "#111B21",
+
+    card: "#F7F7F7",
+    cardForeground: "#111B21",
+
+    popover: "#FFFFFF",
+    popoverForeground: "#111B21",
+
+    primary: "#25D366",           // WhatsApp green
+    primaryForeground: "#FFFFFF",
+
+    secondary: "#ECECEC",
+    secondaryForeground: "#1A1A1A",
+
+    muted: "#F0F0F0",
     mutedForeground: "#666666",
-    accent: "#eef4ff",
-    accentForeground: "#1e3a8a",
-    success: "#15803d",
-    destructive: "#ef4444",
-    border: "#e0e0e0",
-    input: "#e0e0e0",
-    ring: "#3b82f6",
+
+    accent: "#E6FFEE",           // light green tint
+    accentForeground: "#128C7E",
+
+    success: "#25D366",
+    destructive: "#FF4B4B",
+
+    border: "#D1D1D1",
+    input: "#F0F0F0",
+    ring: "#25D366",
+
     radius: "0.625rem",
-    chart1: "#eb6a50",
-    chart2: "#179f7b",
-    chart3: "#2c4652",
-    chart4: "#e4b468",
-    chart5: "#ec9c58",
+
+    chart1: "#25D366",
+    chart2: "#1DAA61",
+    chart3: "#F4B400",
+    chart4: "#34B7F1",
+    chart5: "#FF6D6D",
   },
 
   dark: {
-    background: "#0f172a",
-    foreground: "#fdfdfd",
-    card: "#1e293b",
-    cardForeground: "#fdfdfd",
-    popover: "#232f41",
-    popoverForeground: "#fdfdfd",
-    primary: "#60a5fa",
-    primaryForeground: "#ffffff",
-    secondary: "#2f3c4e",
-    secondaryForeground: "#f2f2f2",
-    muted: "#2a3644",
-    mutedForeground: "#bfbfbf",
-    accent: "#2e3a48",
-    accentForeground: "#fafafa",
-    success: "#16a34a",
-    destructive: "#e64949",
-    border: "#3a4756",
-    input: "#3a4756",
-    ring: "#60a5fa",
+    background: "#111B21",
+    foreground: "#EDEDED",
+
+    card: "#1A2230",
+    cardForeground: "#EDEDED",
+
+    popover: "#1E2A33",
+    popoverForeground: "#EDEDED",
+
+    primary: "#1FA855",         // WhatsApp green dark
+    primaryForeground: "#FFFFFF",
+
+    secondary: "#202C33",
+    secondaryForeground: "#EDEDED",
+
+    muted: "#1F2A30",
+    mutedForeground: "#BFBFBF",
+
+    accent: "#1F3A37",          // dark teal accent
+    accentForeground: "#FFFFFF",
+
+    success: "#1FA855",
+    destructive: "#FF5C5C",
+
+    border: "#2A343C",
+    input: "#202C33",
+    ring: "#1FA855",
+
     radius: "0.625rem",
-    chart1: "#60a5fa",
-    chart2: "#22c55e",
-    chart3: "#facc15",
-    chart4: "#c084fc",
-    chart5: "#f43f5e",
+
+    chart1: "#1FA855",
+    chart2: "#3DDC84",
+    chart3: "#F4C430",
+    chart4: "#7A5CFA",
+    chart5: "#FF4F6D",
   },
 };
-
-/**
- * 🚨 React Navigation expects ONLY these keys:
- *  { background, border, card, notification, primary, text }
- *  ✔ We supply ALL in valid hex form
- */
 
 export const NAV_THEME: Record<"light" | "dark", Theme> = {
   light: {

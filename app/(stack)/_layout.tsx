@@ -10,23 +10,24 @@ import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
+import { THEME } from "../../theme";
+
 export default function StackLayout() {
   const isDark = useColorScheme() === "dark";
   const router = useRouter();
   const isAndroid = Platform.OS === "android";
 
-  // Theme palette
+  // Use proper theme colors
   const backgroundColor = isDark
-    ? "hsl(220 15% 8%)"
-    : "hsl(0 0% 100%)";
+    ? THEME.dark.background
+    : THEME.light.background;
 
   const foregroundColor = isDark
-    ? "hsl(0 0% 98%)"
-    : "hsl(0 0% 4%)";
+    ? THEME.dark.foreground
+    : THEME.light.foreground;
 
   return (
     <BottomSheetModalProvider>
-      {/* 🔹 StatusBar Setup */}
       <StatusBar
         backgroundColor={backgroundColor}
         barStyle={isDark ? "light-content" : "dark-content"}
@@ -42,12 +43,10 @@ export default function StackLayout() {
             contentStyle: { backgroundColor },
             headerStyle: { backgroundColor },
 
-            // iOS blur
             ...(Platform.OS === "ios" && {
               headerBlurEffect: "systemMaterial",
             }),
 
-            // Back button
             headerLeft: () => (
               <TouchableOpacity
                 onPress={() => router.back()}
@@ -61,7 +60,6 @@ export default function StackLayout() {
               </TouchableOpacity>
             ),
 
-            // Right icon
             headerRight: () => (
               <TouchableOpacity
                 onPress={() => router.push("/notifications")}
@@ -76,7 +74,6 @@ export default function StackLayout() {
             ),
           }}
         >
-          {/* Internal screens wrapped in their own SafeAreaView */}
           <Stack.Screen
             name="profile"
             options={{
@@ -91,7 +88,9 @@ export default function StackLayout() {
           <Stack.Screen name="clients-manager" options={{ title: "Clients" }} />
           <Stack.Screen name="trucks-manager" options={{ title: "Trucks" }} />
           <Stack.Screen name="drivers-manager" options={{ title: "Drivers" }} />
-          <Stack.Screen name="locations-manager" options={{ title: "Locations" }}
+          <Stack.Screen
+            name="locations-manager"
+            options={{ title: "Locations" }}
           />
         </Stack>
       </GestureHandlerRootView>

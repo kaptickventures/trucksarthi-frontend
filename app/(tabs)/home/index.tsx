@@ -13,6 +13,8 @@ import {
 import SideMenu from "../../../components/SideMenu";
 import "../../../global.css";
 import useTrips from "../../../hooks/useTrip";
+import { THEME } from "../../../theme";
+
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -33,13 +35,13 @@ export default function HomeScreen() {
   // APPLY TAILWIND THEME COLORS TO HEADER
   // ====================================
 
-  const backgroundColor = isDark
-    ? "hsl(220 15% 8%)"
-    : "hsl(0 0% 100%)";
+const backgroundColor = isDark
+  ? THEME.dark.background
+  : THEME.light.background;
 
-  const foregroundColor = isDark
-    ? "hsl(0 0% 98%)"
-    : "hsl(0 0% 4%)";
+const foregroundColor = isDark
+  ? THEME.dark.foreground
+  : THEME.light.foreground;
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -170,7 +172,7 @@ export default function HomeScreen() {
               className="flex-1 bg-card rounded-2xl items-center justify-center"
             >
               <View className="p-2 py-4 items-center">
-                <Ionicons name={item.icon as any} size={18} color="#2563EB" />
+                <Ionicons name={item.icon as any} size={18} color="#25D366" />
                 <Text className="text-muted-foreground text-[8px] mt-1 font-medium">
                   {item.title}
                 </Text>
@@ -190,7 +192,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {[
+          {/* {[
             { id: 1, text: "RC renewal due soon", date: "Feb 15, 2025" },
             { id: 2, text: "Insurance expires", date: "Mar 01, 2025" },
           ].map((reminder) => (
@@ -206,9 +208,9 @@ export default function HomeScreen() {
                   Due: {reminder.date}
                 </Text>
               </View>
-              <Ionicons name="alert-circle-outline" size={20} color="#2563EB" />
+              <Ionicons name="alert-circle-outline" size={20} color="#25D366" />
             </View>
-          ))}
+          ))} */}
         </View>
 
         {/* ====== Recent Trips ====== */}

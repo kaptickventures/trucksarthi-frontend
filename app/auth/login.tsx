@@ -2,27 +2,43 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { useRouter, Link } from "expo-router";
+import { AntDesign } from "@expo/vector-icons";
 
 export default function LoginOptions() {
   const router = useRouter();
 
   return (
-    <View className="flex-1 bg-white dark:bg-black justify-center items-center px-6">
+    <View className="flex-1 bg-white dark:bg-black justify-center items-center px-8">
       
-      {/* Header / Logo */}
+      {/* Logo */}
       <Image
         source={require("../../assets/images/Trucksarthi-Logo.png")}
-        className="w-24 h-24 mb-6 rounded-12"
+        className="w-28 h-28 mb-8"
+        resizeMode="contain"
       />
 
-      <Text className="text-3xl font-bold text-black dark:text-white">
+      {/* Header */}
+      <Text className="text-3xl font-extrabold text-black dark:text-white tracking-tight">
         Welcome 👋
       </Text>
-      <Text className="text-gray-500 dark:text-gray-400 mt-1 mb-10">
-        Choose how you want to continue
+
+      <Text className="text-gray-500 dark:text-gray-400 text-center mt-2 mb-10">
+        Login or create a new account to continue
       </Text>
 
-      {/* Login with Phone */}
+      {/* Google Sign-in */}
+      <TouchableOpacity
+        onPress={() => router.push("/auth/login-google")}
+        className="flex-row items-center justify-center border border-gray-300 dark:border-gray-700 py-4 rounded-xl w-full mb-5 bg-white dark:bg-neutral-900"
+        activeOpacity={0.7}
+      >
+        <AntDesign name="google" size={22} color="#DB4437" />
+        <Text className="text-black dark:text-white font-medium text-lg ml-3">
+          Continue with Google
+        </Text>
+      </TouchableOpacity>
+
+      {/* Phone Login */}
       <TouchableOpacity
         onPress={() => router.push("/auth/login-phone")}
         className="bg-blue-600 py-4 rounded-xl w-full mb-4 items-center"
@@ -32,23 +48,26 @@ export default function LoginOptions() {
         </Text>
       </TouchableOpacity>
 
-      {/* Login with Email */}
+      {/* Email Login */}
       <TouchableOpacity
         onPress={() => router.push("/auth/login-email")}
-        className="bg-green-600 py-4 rounded-xl w-full mb-4 items-center"
+        className="bg-green-600 py-4 rounded-xl w-full mb-2 items-center"
       >
         <Text className="text-white font-semibold text-lg">
           Continue with Email
         </Text>
       </TouchableOpacity>
 
-      {/* Signup Redirect */}
-      <View className="mt-6 flex-row">
+      {/* Footer */}
+      <View className="mt-8 flex-row">
         <Text className="text-gray-600 dark:text-gray-300">
-          Dont have an account?
+          Don’t have an account?
         </Text>
 
-        <Link href="/auth/signup-email" className="text-blue-600 dark:text-blue-400 ml-2">
+        <Link
+          href="/auth/signup-email"
+          className="text-blue-600 dark:text-blue-400 font-semibold ml-2"
+        >
           Sign Up
         </Link>
       </View>

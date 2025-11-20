@@ -32,6 +32,9 @@ import TripFilters from "../../../components/FilterSection";
 
 import { Edit3, Trash2 } from "lucide-react-native";
 
+import { THEME } from "../../../theme";
+
+
 // Enable layout animation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   // @ts-ignore
@@ -105,8 +108,13 @@ export default function TripLog() {
   };
 
   // Header styling
-  const backgroundColor = isDark ? "hsl(220 15% 8%)" : "hsl(0 0% 100%)";
-  const foregroundColor = isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)";
+const backgroundColor = isDark
+  ? THEME.dark.background
+  : THEME.light.background;
+
+const foregroundColor = isDark
+  ? THEME.dark.foreground
+  : THEME.light.foreground;
 
   useLayoutEffect(() => {
     navigation.setOptions({

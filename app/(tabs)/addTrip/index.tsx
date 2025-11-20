@@ -31,7 +31,10 @@ import useClients from "../../../hooks/useClient";
 import useDrivers from "../../../hooks/useDriver";
 import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
+
 import useTrucks from "../../../hooks/useTruck";
+
+import { THEME } from "../../../theme";
 
 /* ------------------ Types ------------------ */
 type EntityType = "Client" | "Driver" | "Truck" | "Location";
@@ -58,14 +61,33 @@ export default function AddTrip() {
   const [menuVisible, setMenuVisible] = useState(false);
   const isDark = colorScheme === "dark";
 
-  /* ------------ Theme Colors  ------------ */
-  const inputBg = isDark ? "hsl(220 10% 18%)" : "hsl(0 0% 98%)";
-  const inputBorder = isDark ? "hsl(220 10% 35%)" : "hsl(0 0% 88%)";
-  const inputText = isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)";
-  const placeholder = isDark ? "hsl(0 0% 75%)" : "hsl(0 0% 40%)";
-  const cardBg = isDark ? "hsl(220 15% 12%)" : "hsl(0 0% 98%)";
-  const backgroundColor = isDark ? "hsl(220 15% 8%)" : "hsl(0 0% 100%)";
-  const foregroundColor = isDark ? "hsl(0 0% 98%)" : "hsl(0 0% 4%)";
+const backgroundColor = isDark
+  ? THEME.dark.background
+  : THEME.light.background;
+
+const foregroundColor = isDark
+  ? THEME.dark.foreground
+  : THEME.light.foreground;
+
+const inputBg = isDark
+  ? THEME.dark.input
+  : THEME.light.input;
+
+const inputBorder = isDark
+  ? THEME.dark.border
+  : THEME.light.border;
+
+const inputText = isDark
+  ? THEME.dark.foreground        // because RN has no inputText field
+  : THEME.light.foreground;
+
+const placeholder = isDark
+  ? THEME.dark.mutedForeground
+  : THEME.light.mutedForeground;
+
+const cardBg = isDark
+  ? THEME.dark.card
+  : THEME.light.card;
 
   /* ---------------- Header ---------------- */
   useLayoutEffect(() => {
@@ -283,7 +305,6 @@ export default function AddTrip() {
     },
   ];
 
-  /* ---------------- UI ---------------- */
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
@@ -295,8 +316,7 @@ export default function AddTrip() {
 
   return (
     <View className="flex-1 bg-background">
-      {/* Sidemenu and Body */}
-      <KeyboardAwareScrollView
+        <KeyboardAwareScrollView
         enableOnAndroid
         extraScrollHeight={70}
         keyboardShouldPersistTaps="handled"
