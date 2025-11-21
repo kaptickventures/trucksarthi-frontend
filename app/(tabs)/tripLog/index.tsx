@@ -31,11 +31,12 @@ import useTrucks from "../../../hooks/useTruck";
 import TripFilters from "../../../components/FilterSection";
 
 import { Edit3, Trash2 } from "lucide-react-native";
-
 import { THEME } from "../../../theme";
 
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy"; // legacy FS for stability
 
-// Enable layout animation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   // @ts-ignore
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -52,15 +53,19 @@ export default function TripLog() {
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
 
-  const { trips, loading, totalRevenue, fetchTrips, updateTrip, deleteTrip } = useTrips(firebase_uid || "");
+  const { trips, loading, fetchTrips, updateTrip, deleteTrip } =
+    useTrips(firebase_uid || "");
   const { drivers } = useDrivers(firebase_uid || "");
   const { clients } = useClients(firebase_uid || "");
   const { trucks } = useTrucks(firebase_uid || "");
   const { locations } = useLocations(firebase_uid || "");
 
+  // FILTER STATE
   const [filters, setFilters] = useState({
     driver_id: "" as string | null,
     client_id: "" as string | null,
+    truck_id: "" as string | null,
+    location_id: "" as string | null,
     startDate: null as Date | null,
     endDate: null as Date | null,
   });
@@ -68,31 +73,60 @@ export default function TripLog() {
   const [dropdowns, setDropdowns] = useState({
     driver: false,
     client: false,
+    truck: false,
+    location: false,
   });
 
   const [showFilters, setShowFilters] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState<{ field: "startDate" | "endDate" | null }>({ field: null });
+  const [showDatePicker, setShowDatePicker] = useState<{
+    field: "startDate" | "endDate" | null;
+  }>({ field: null });
 
-  // Edit modal state (external component)
   const [isEditVisible, setEditVisible] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<any | null>(null);
 
-  // Helpers to map ids to names
-  const getDriverName = (id: number) => drivers.find((d) => d.driver_id === id)?.driver_name || "Unknown Driver";
-  const getClientName = (id: number) => clients.find((c) => c.client_id === id)?.client_name || "Unknown Client";
-  const getTruckReg = (id: number) => trucks.find((t) => t.truck_id === id)?.registration_number || "Unknown Truck";
-  const getLocationName = (id: number) => locations.find((l) => l.location_id === id)?.location_name || "Unknown";
+  // Helper functions
+  const getDriverName = (id: number) =>
+    drivers.find((d) => d.driver_id === id)?.driver_name || "Unknown Driver";
 
-  // Filter + Sort
+  const getClientName = (id: number) =>
+    clients.find((c) => c.client_id === id)?.client_name || "Unknown Client";
+
+  const getTruckReg = (id: number) =>
+    trucks.find((t) => t.truck_id === id)?.registration_number || "Unknown Truck";
+
+  const getLocationName = (id: number) =>
+    locations.find((l) => l.location_id === id)?.location_name || "Unknown";
+
+  // FILTER + SORT
   const sortedTrips = useMemo(() => {
     let filtered = [...(trips || [])];
 
-    if (filters.driver_id) filtered = filtered.filter((t) => String(t.driver_id) === String(filters.driver_id));
-    if (filters.client_id) filtered = filtered.filter((t) => String(t.client_id) === String(filters.client_id));
-    if (filters.startDate) filtered = filtered.filter((t) => new Date(t.trip_date) >= filters.startDate!);
-    if (filters.endDate) filtered = filtered.filter((t) => new Date(t.trip_date) <= filters.endDate!);
+    if (filters.driver_id)
+      filtered = filtered.filter((t) => String(t.driver_id) === filters.driver_id);
 
-    return filtered.sort((a, b) => new Date(b.trip_date).getTime() - new Date(a.trip_date).getTime());
+    if (filters.client_id)
+      filtered = filtered.filter((t) => String(t.client_id) === filters.client_id);
+
+    if (filters.truck_id)
+      filtered = filtered.filter((t) => String(t.truck_id) === filters.truck_id);
+
+    if (filters.location_id)
+      filtered = filtered.filter(
+        (t) =>
+          String(t.start_location_id) === filters.location_id ||
+          String(t.end_location_id) === filters.location_id
+      );
+
+    if (filters.startDate)
+      filtered = filtered.filter((t) => new Date(t.trip_date) >= filters.startDate!);
+
+    if (filters.endDate)
+      filtered = filtered.filter((t) => new Date(t.trip_date) <= filters.endDate!);
+
+    return filtered.sort(
+      (a, b) => new Date(b.trip_date).getTime() - new Date(a.trip_date).getTime()
+    );
   }, [trips, filters]);
 
   const driverItems = drivers.map((d) => ({ label: d.driver_name, value: String(d.driver_id) }));
@@ -100,103 +134,235 @@ export default function TripLog() {
   const truckItems = trucks.map((t) => ({ label: t.registration_number, value: String(t.truck_id) }));
   const locationItems = locations.map((l) => ({ label: l.location_name, value: String(l.location_id) }));
 
-  const formatDate = (date: Date | null) => (date ? date.toISOString().split("T")[0] : "Select Date");
-
   const toggleFilters = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setShowFilters((prev) => !prev);
   };
 
-  // Header styling
-const backgroundColor = isDark
-  ? THEME.dark.background
-  : THEME.light.background;
+  // PDF generator (legacy FS)
+  const generatePDF = async () => {
+    try {
+      const html = `
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 24px;
+        color: #000;
+      }
 
-const foregroundColor = isDark
-  ? THEME.dark.foreground
-  : THEME.light.foreground;
+      h1, h2, h3, p, span, div {
+        color: #000 !important;
+      }
+
+      .title {
+        text-align: center;
+        font-size: 26px;
+        font-weight: 800;
+        margin-top: 10px;
+      }
+
+      .subtitle {
+        text-align: center;
+        font-size: 14px;
+        margin-top: -4px;
+      }
+
+      .divider {
+        width: 100%;
+        height: 1px;
+        background: #000;
+        margin: 20px 0;
+      }
+
+      .section-title {
+        text-align: center;
+        font-size: 20px;
+        margin-top: 10px;
+        font-weight: bold;
+      }
+
+      .generated {
+        text-align: center;
+        font-size: 13px;
+        margin-bottom: 20px;
+      }
+
+      .trip-card {
+        border: 1px solid #000;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 24px;
+      }
+
+      .trip-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        font-weight: bold;
+        font-size: 18px;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 6px;
+      }
+
+      .label {
+        font-size: 12px;
+        color: #444;
+      }
+
+      .value {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .bottom-row {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 12px;
+        border-top: 1px solid #000;
+        padding-top: 10px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- Header -->
+    <div class="title">Truck Sarthi</div>
+    <div class="divider"></div>
+
+    <!-- Trip Report Title -->
+    <div class="section-title">Trip Report</div>
+    <div class="generated">Generated on ${new Date().toLocaleString("en-IN")}</div>
+
+    ${sortedTrips
+      .map(
+        (t) => `
+        <div class="trip-card">
+
+          <!-- Top header -->
+          <div class="trip-header">
+            <div>${new Date(t.trip_date).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}</div>
+            <div>₹${(
+              Number(t.cost_of_trip) + Number(t.miscellaneous_expense)
+            ).toLocaleString()}</div>
+          </div>
+
+          <!-- Route -->
+          <div style="font-weight: 600; margin-bottom: 6px;">
+            Route: ${getLocationName(t.start_location_id)} — ${getLocationName(
+              t.end_location_id
+            )}
+          </div>
+
+          <!-- Truck / Driver / Client -->
+          <div class="row">
+            <div>
+              <div class="label">TRUCK</div>
+              <div class="value">${getTruckReg(t.truck_id)}</div>
+            </div>
+
+            <div>
+              <div class="label">DRIVER</div>
+              <div class="value">${getDriverName(t.driver_id)}</div>
+            </div>
+
+            <div>
+              <div class="label">CLIENT</div>
+              <div class="value">${getClientName(t.client_id)}</div>
+            </div>
+          </div>
+
+          <!-- Costs -->
+          <div class="bottom-row">
+            <div>
+              TRIP COST:<br/>
+              ₹${Number(t.cost_of_trip).toLocaleString()}
+            </div>
+
+            <div>
+              MISC EXPENSE:<br/>
+              ₹${Number(t.miscellaneous_expense).toLocaleString()}
+            </div>
+          </div>
+
+        </div>
+      `
+      )
+      .join("")}
+
+  </body>
+</html>
+`;
+
+
+      const { uri } = await Print.printToFileAsync({ html });
+
+      const newUri = `${FileSystem.documentDirectory}TripHistory.pdf`;
+
+      await FileSystem.moveAsync({
+        from: uri,
+        to: newUri,
+      });
+
+      await Sharing.shareAsync(newUri);
+    } catch (err) {
+      console.log(err);
+      Alert.alert("Error", "PDF creation failed.");
+    }
+  };
+
+  // Header styling
+  const backgroundColor = isDark ? THEME.dark.background : THEME.light.background;
+  const foregroundColor = isDark ? THEME.dark.foreground : THEME.light.foreground;
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
       headerStyle: { backgroundColor },
-      headerTitleStyle: { color: foregroundColor, fontWeight: "600" },
+      headerTitleStyle: { color: foregroundColor },
       headerTintColor: foregroundColor,
 
       headerLeft: () => (
-        <TouchableOpacity onPress={() => setMenuVisible((prev) => !prev)} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+        <TouchableOpacity
+          onPress={() => setMenuVisible((prev) => !prev)}
+          style={{ paddingHorizontal: 6, paddingVertical: 4 }}
+        >
           <Ionicons name={menuVisible ? "close" : "menu"} size={24} color={foregroundColor} />
         </TouchableOpacity>
       ),
 
       headerRight: () => (
-        <TouchableOpacity onPress={() => router.push("/notifications")} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+        <TouchableOpacity
+          onPress={() => router.push("/notifications")}
+          style={{ paddingHorizontal: 6, paddingVertical: 4 }}
+        >
           <Ionicons name="notifications-outline" size={24} color={foregroundColor} />
         </TouchableOpacity>
       ),
     });
-  }, [navigation, isDark, menuVisible, backgroundColor, foregroundColor]);
+  }, [navigation, isDark, menuVisible]);
 
-  const openEdit = (trip: any) => {
-    // keep the trip object intact (it contains the raw trip_date ISO string)
-    setSelectedTrip(trip);
-    setEditVisible(true);
-  };
-  const closeEdit = () => {
-    setEditVisible(false);
-    setSelectedTrip(null);
-  };
-
-  // Save / Delete handlers from modal (payload shape matches AddTrip but includes trip_date raw string)
-  const handleSaveFromModal = async (id: number, data: any) => {
-    try {
-      await updateTrip(id, data); // data includes trip_date as raw ISO string
-      await fetchTrips();
-      closeEdit();
-      Alert.alert("Success", "Trip updated");
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Error", "Failed to update trip");
-    }
-  };
-
-  const handleDeleteFromModal = async (id: number) => {
-    try {
-      await deleteTrip(id);
-      await fetchTrips();
-      closeEdit();
-      Alert.alert("Success", "Trip deleted");
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Error", "Failed to delete trip");
-    }
-  };
-
-  // Inline card delete (keeps existing confirm flow)
-  const confirmDelete = (tripId: number) => {
-    Alert.alert("Delete Trip", "Are you sure you want to delete this trip?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteTrip(tripId);
-            await fetchTrips();
-          } catch (e) {
-            console.error(e);
-            Alert.alert("Error", "Failed to delete trip");
-          }
-        },
-      },
-    ]);
-  };
+  const formatDate = (d: Date | null) =>
+    d ? d.toISOString().split("T")[0] : "Select Date";
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        {/* FILTERS COMPONENT */}
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+
+        {/* FILTERS */}
         <TripFilters
           filters={filters}
           setFilters={setFilters}
@@ -204,6 +370,8 @@ const foregroundColor = isDark
           setDropdowns={setDropdowns}
           driverItems={driverItems}
           clientItems={clientItems}
+          truckItems={truckItems}
+          locationItems={locationItems}
           showFilters={showFilters}
           toggleFilters={toggleFilters}
           showDatePicker={showDatePicker}
@@ -211,10 +379,62 @@ const foregroundColor = isDark
           formatDate={formatDate}
         />
 
+        {/* ACTION BUTTONS (WhatsApp-like pills) */}
+        <View style={{ marginHorizontal: 12, marginTop: 8, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          {/* Filters pill */}
+          <TouchableOpacity
+            onPress={toggleFilters}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              borderRadius: 999,
+              backgroundColor: "#E7FCEB",
+              shadowColor: "#000",
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+              elevation: 2,
+            }}
+          >
+            <Ionicons name="filter" size={18} color="#25D366" />
+            <Text style={{ marginLeft: 8, color: "#128C7E", fontWeight: "600" }}>Filters</Text>
+          </TouchableOpacity>
+
+          {/* PDF pill */}
+          <TouchableOpacity
+            onPress={generatePDF}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              borderRadius: 999,
+              backgroundColor: "#E8F0FE",
+              shadowColor: "#000",
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+              elevation: 2,
+            }}
+          >
+            <Ionicons name="download-outline" size={18} color="#2563EB" />
+            <Text style={{ marginLeft: 8, color: "#1D4ED8", fontWeight: "600" }}>PDF</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* SUMMARY */}
-        <View className="mx-3 mt-2 mb-6 bg-card border border-border p-4 rounded-2xl shadow-sm">
-          <Text className="text-lg font-semibold text-foreground">{sortedTrips.length} trips found</Text>
-          <Text className="text-3xl font-extrabold text-primary mt-1">₹{totalRevenue.toLocaleString()}</Text>
+        <View className="mx-3 mt-1 mb-6 bg-card border border-border p-4 rounded-2xl shadow-sm">
+          <Text className="text-lg font-semibold text-foreground">
+            {sortedTrips.length} trips found
+          </Text>
+
+          <Text className="text-3xl font-extrabold text-primary mt-1">
+            ₹
+            {sortedTrips.reduce(
+              (acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense),
+              0
+            ).toLocaleString()}
+          </Text>
         </View>
 
         {/* TRIP CARDS */}
@@ -223,55 +443,87 @@ const foregroundColor = isDark
         ) : sortedTrips.length === 0 ? (
           <Text className="text-center text-muted-foreground mt-10">No trips available</Text>
         ) : (
-          sortedTrips.map((trip: any) => (
-            <View key={trip.trip_id} className="bg-card border border-border rounded-2xl mx-3 mb-5 p-5 shadow-sm">
-              {/* Top row: date, actions, cost */}
-              <View className="flex-row justify-between items-center mb-2">
-                <Text className="text-sm text-muted-foreground">
-                  {new Date(trip.trip_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                </Text>
+          sortedTrips.map((trip) => {
+            const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
 
-                <View className="flex-row items-center">
-                  <TouchableOpacity onPress={() => openEdit(trip)} className="p-2 mr-2">
-                    <Edit3 size={20} color="#2563EB" />
-                  </TouchableOpacity>
+            return (
+              <View key={trip.trip_id} style={{ marginHorizontal: 12, marginBottom: 20, backgroundColor: undefined }}>
+                <View className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>{new Date(trip.trip_date).toLocaleDateString("en-IN")}</Text>
+                    <Text style={{ fontSize: 22, fontWeight: "800", color: THEME.light.primary }}>{`₹${totalCost.toLocaleString()}`}</Text>
+                  </View>
 
-                  <TouchableOpacity onPress={() => confirmDelete(trip.trip_id)} className="p-2 mr-3">
-                    <Trash2 size={20} color="#ef4444" />
-                  </TouchableOpacity>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 10 }}>
+                    {getLocationName(trip.start_location_id)} → {getLocationName(trip.end_location_id)}
+                  </Text>
 
-                  <Text className="text-xl font-bold text-primary">₹{trip.cost_of_trip?.toLocaleString() || 0}</Text>
+                  <View style={{ marginBottom: 12 }}>
+                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🏢 {getClientName(trip.client_id)}</Text>
+                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🚚 {getTruckReg(trip.truck_id)}</Text>
+                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }}>👤 {getDriverName(trip.driver_id)}</Text>
+                  </View>
+
+                  <View style={{ borderTopWidth: 1, borderTopColor: isDark ? THEME.dark.border : THEME.light.border, opacity: 0.6, marginVertical: 12 }} />
+
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>Trip Cost: ₹{Number(trip.cost_of_trip).toLocaleString()}</Text>
+                    <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>Misc: ₹{Number(trip.miscellaneous_expense).toLocaleString()}</Text>
+                  </View>
+
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+                    {trip.notes ? (
+                      <Text style={{ fontStyle: "italic", color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>📝 {trip.notes}</Text>
+                    ) : <View />}
+
+                    <View style={{ flexDirection: "row" }}>
+                      <TouchableOpacity onPress={() => { setSelectedTrip(trip); setEditVisible(true); }} style={{ padding: 8, marginRight: 8 }}>
+                        <Edit3 size={22} color="#2563EB" />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity onPress={() => {
+                        Alert.alert("Delete", "Delete this trip?", [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "Delete",
+                            style: "destructive",
+                            onPress: async () => {
+                              await deleteTrip(trip.trip_id);
+                              fetchTrips();
+                            },
+                          },
+                        ]);
+                      }} style={{ padding: 8 }}>
+                        <Trash2 size={22} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 </View>
               </View>
-
-              <Text className="text-lg font-semibold text-foreground mb-3">
-                {getLocationName(trip.start_location_id)} → {getLocationName(trip.end_location_id)}
-              </Text>
-
-              <View className="mb-4 gap-1">
-                <Text className="text-foreground mb-1">🏢 {getClientName(trip.client_id)}</Text>
-                <Text className="text-foreground mb-1">🚚 {getTruckReg(trip.truck_id)}</Text>
-                <Text className="text-foreground">👤 {getDriverName(trip.driver_id)}</Text>
-              </View>
-
-              <View className="m-2 border-t-2 border border-border opacity-80" />
-
-              <View className="flex-row justify-between mt-2">
-                <Text className="text-muted-foreground">Trip Cost: ₹{trip.cost_of_trip.toLocaleString()}</Text>
-                <Text className="text-muted-foreground">Misc: ₹{trip.miscellaneous_expense.toLocaleString()}</Text>
-              </View>
-
-              {trip.notes ? <Text className="text-sm text-muted-foreground italic mt-2">📝 {trip.notes}</Text> : null}
-            </View>
-          ))
+            );
+          })
         )}
       </ScrollView>
 
-      {/* Slide-in Menu */}
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
 
-      {/* Edit modal component (sends trip_date raw ISO string back) */}
-      <EditTripModal visible={isEditVisible} onClose={closeEdit} trip={selectedTrip} trucks={trucks} drivers={drivers} clients={clients} locations={locations} onSave={handleSaveFromModal} onDelete={handleDeleteFromModal} />
+      <EditTripModal
+        visible={isEditVisible}
+        onClose={() => setEditVisible(false)}
+        trip={selectedTrip}
+        trucks={trucks}
+        drivers={drivers}
+        clients={clients}
+        locations={locations}
+        onSave={async (id, data) => {
+          await updateTrip(id, data);
+          fetchTrips();
+        }}
+        onDelete={async (id) => {
+          await deleteTrip(id);
+          fetchTrips();
+        }}
+      />
     </SafeAreaView>
   );
 }
