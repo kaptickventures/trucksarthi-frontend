@@ -34,11 +34,14 @@ export default function TrucksManager() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const requiredFields = ["registration_number", "registered_owner_name","chassis_number",
+  const requiredFields = [
+    "registration_number",
+    "registered_owner_name",
+    "chassis_number",
     "engine_number",
     "container_dimension",
-    "loading_capacity",];
-  
+    "loading_capacity",
+  ];
 
   const [formData, setFormData] = useState({
     registration_number: "",
@@ -131,7 +134,7 @@ export default function TrucksManager() {
       }
       closeModal();
       fetchTrucks();
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Failed to save truck.");
     }
   };
@@ -261,35 +264,50 @@ export default function TrucksManager() {
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false}>
-                {[...requiredFields].map((key) => {
+                {requiredFields.map((key) => {
                   const label = key.replaceAll("_", " ");
-                  const isRequired = requiredFields.includes(key);
                   const isDimension = key === "container_dimension";
                   const isCapacity = key === "loading_capacity";
 
                   return (
                     <View key={key} className="mb-4">
                       <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                        {label}
-                        {isRequired && <Text className="text-red-500"> *</Text>}
+                        {label} *
                       </Text>
-                      <TextInput
-                        className="border border-input text-input-text rounded-xl p-3"
-                        value={(formData as any)[key]}
-                        onChangeText={(val) =>
-                          setFormData({ ...formData, [key]: val })
-                        }
-                        placeholder={`Enter ${label}`}
-                        placeholderTextColor="#888"
-                        keyboardType={
-                          isCapacity
-                            ? "numeric"
-                            : key.includes("number")
-                            ? "default"
-                            : "default"
-                        }
-                      />
-                      {/* Unit Indicator */}
+
+                      {/* ---------------------- */}
+                      {/* SPECIAL: REGISTRATION NUMBER FIELD */}
+                      {/* ---------------------- */}
+                      {key === "registration_number" ? (
+                        <TextInput
+                          className="border border-input text-input-text rounded-xl p-3"
+                          value={formData.registration_number}
+                          autoCapitalize="characters"
+                          onChangeText={(val) =>
+                            setFormData({
+                              ...formData,
+                              registration_number: val.toUpperCase(),
+                            })
+                          }
+                          placeholder="Enter registration number"
+                          placeholderTextColor="#888"
+                        />
+                      ) : (
+                        <TextInput
+                          className="border border-input text-input-text rounded-xl p-3"
+                          value={(formData as any)[key]}
+                          onChangeText={(val) =>
+                            setFormData({ ...formData, [key]: val })
+                          }
+                          placeholder={`Enter ${label}`}
+                          placeholderTextColor="#888"
+                          keyboardType={
+                            isCapacity ? "numeric" : "default"
+                          }
+                        />
+                      )}
+
+                      {/* Unit Notes */}
                       {isDimension && (
                         <Text className="text-xs text-muted-foreground mt-1">
                           * Dimensions are in feet

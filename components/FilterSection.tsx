@@ -18,7 +18,7 @@ interface Props {
   driverItems: any[];
   clientItems: any[];
   truckItems: any[];
-  locationItems: any[]; // SINGULAR
+  locationItems: any[];
   showFilters: boolean;
   toggleFilters: () => void;
   showDatePicker: { field: "startDate" | "endDate" | null };
@@ -43,7 +43,7 @@ export default function TripFilters({
   const colorScheme = useColorScheme();
   const t = THEME[colorScheme === "dark" ? "dark" : "light"];
 
-  if (!showFilters) return null; // 🟢 Completely hide when closed
+  if (!showFilters) return null;
 
   return (
     <>
@@ -79,7 +79,8 @@ export default function TripFilters({
               setOpen={(val) =>
                 setDropdowns((prev: any) => ({
                   ...prev,
-                  driver: typeof val === "function" ? val(prev.driver) : val,
+                  driver:
+                    typeof val === "function" ? val(prev.driver) : val,
                 }))
               }
               setValue={(val) =>
@@ -95,7 +96,9 @@ export default function TripFilters({
                 borderColor: t.border,
                 minHeight: 48,
                 borderRadius: 12,
+                zIndex: 7000,
               }}
+              containerStyle={{ zIndex: 7000 }}
               dropDownContainerStyle={{
                 backgroundColor: t.card,
                 borderColor: t.border,
@@ -141,7 +144,9 @@ export default function TripFilters({
                 borderColor: t.border,
                 minHeight: 48,
                 borderRadius: 12,
+                zIndex: 6000,
               }}
+              containerStyle={{ zIndex: 6000 }}
               dropDownContainerStyle={{
                 backgroundColor: t.card,
                 borderColor: t.border,
@@ -173,7 +178,8 @@ export default function TripFilters({
               setOpen={(val) =>
                 setDropdowns((prev: any) => ({
                   ...prev,
-                  truck: typeof val === "function" ? val(prev.truck) : val,
+                  truck:
+                    typeof val === "function" ? val(prev.truck) : val,
                 }))
               }
               setValue={(val) =>
@@ -189,7 +195,9 @@ export default function TripFilters({
                 borderColor: t.border,
                 minHeight: 48,
                 borderRadius: 12,
+                zIndex: 5000,
               }}
+              containerStyle={{ zIndex: 5000 }}
               dropDownContainerStyle={{
                 backgroundColor: t.card,
                 borderColor: t.border,
@@ -237,7 +245,9 @@ export default function TripFilters({
                 borderColor: t.border,
                 minHeight: 48,
                 borderRadius: 12,
+                zIndex: 4000,
               }}
+              containerStyle={{ zIndex: 4000 }}
               dropDownContainerStyle={{
                 backgroundColor: t.card,
                 borderColor: t.border,
@@ -322,6 +332,7 @@ export default function TripFilters({
         </TouchableOpacity>
       </View>
 
+      {/* DATE PICKER */}
       {showDatePicker.field && (
         <DateTimePicker
           value={filters[showDatePicker.field] || new Date()}
