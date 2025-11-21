@@ -1,5 +1,4 @@
 // app/(tabs)/tripLog/index.tsx
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { getAuth } from "firebase/auth";
 import React, { useLayoutEffect, useMemo, useState } from "react";
 import {
@@ -139,174 +138,209 @@ export default function TripLog() {
     setShowFilters((prev) => !prev);
   };
 
-  // PDF generator (legacy FS)
+  // ===========================
+  // PDF generator (legacy FS) with date-range support
+  // ===========================
   const generatePDF = async () => {
     try {
+      // ---------- DATE RANGE HANDLING ----------
+      const fmt = (d: Date | null) =>
+        d
+          ? d.toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : null;
+
+      let dateRangeText = "";
+
+      if (filters.startDate && filters.endDate) {
+        dateRangeText = `Date Range: ${fmt(filters.startDate)} → ${fmt(filters.endDate)}`;
+      } else if (filters.startDate) {
+        dateRangeText = `Date Range: From ${fmt(filters.startDate)}`;
+      } else if (filters.endDate) {
+        dateRangeText = `Date Range: Until ${fmt(filters.endDate)}`;
+      }
+
+      // ---------- HTML PDF TEMPLATE (black & white) ----------
       const html = `
 <html>
   <head>
     <meta charset="utf-8" />
     <style>
       body {
-        font-family: sans-serif;
-        padding: 24px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        padding: 30px;
         color: #000;
-      }
-
-      h1, h2, h3, p, span, div {
-        color: #000 !important;
       }
 
       .title {
         text-align: center;
-        font-size: 26px;
+        font-size: 28px;
         font-weight: 800;
-        margin-top: 10px;
+        margin-bottom: 4px;
       }
 
       .subtitle {
         text-align: center;
-        font-size: 14px;
-        margin-top: -4px;
+        font-size: 13px;
+        opacity: 0.7;
+        margin-bottom: 12px;
       }
 
       .divider {
-        width: 100%;
-        height: 1px;
+        height: 2px;
         background: #000;
-        margin: 20px 0;
+        margin: 18px 0 22px 0;
       }
 
       .section-title {
         text-align: center;
         font-size: 20px;
-        margin-top: 10px;
-        font-weight: bold;
+        font-weight: 700;
+        margin-bottom: 6px;
       }
 
       .generated {
         text-align: center;
+        font-size: 12px;
+        opacity: 0.65;
+        margin-bottom: 10px;
+      }
+
+      .daterange {
+        text-align: center;
         font-size: 13px;
-        margin-bottom: 20px;
+        opacity: 0.75;
+        margin-bottom: 18px;
       }
 
-      .trip-card {
+      .card {
         border: 1px solid #000;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 24px;
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 22px;
       }
 
-      .trip-header {
+      .card-top {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 12px;
-        font-weight: bold;
-        font-size: 18px;
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 10px;
       }
 
-      .row {
+      .route {
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      .meta-row {
         display: flex;
         justify-content: space-between;
-        margin-top: 6px;
+        gap: 12px;
+        font-size: 13px;
+      }
+
+      .meta-col {
+        flex: 1;
       }
 
       .label {
-        font-size: 12px;
-        color: #444;
+        font-size: 11px;
+        opacity: 0.6;
       }
 
       .value {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
+        margin-top: 4px;
       }
 
-      .bottom-row {
+      .cost-row {
         display: flex;
         justify-content: space-between;
         margin-top: 12px;
         border-top: 1px solid #000;
         padding-top: 10px;
-        font-size: 14px;
+        font-size: 13px;
+      }
+
+      .notes {
+        margin-top: 10px;
+        font-size: 13px;
+        font-style: italic;
+        opacity: 0.8;
       }
     </style>
   </head>
 
   <body>
-
-    <!-- Header -->
     <div class="title">Truck Sarthi</div>
+    <div class="subtitle">By Kaptick Labs</div>
+
     <div class="divider"></div>
 
-    <!-- Trip Report Title -->
     <div class="section-title">Trip Report</div>
     <div class="generated">Generated on ${new Date().toLocaleString("en-IN")}</div>
 
+    ${dateRangeText ? `<div class="daterange">${dateRangeText}</div>` : ""}
+
     ${sortedTrips
-      .map(
-        (t) => `
-        <div class="trip-card">
-
-          <!-- Top header -->
-          <div class="trip-header">
-            <div>${new Date(t.trip_date).toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })}</div>
-            <div>₹${(
-              Number(t.cost_of_trip) + Number(t.miscellaneous_expense)
-            ).toLocaleString()}</div>
+      .map((t) => {
+        const total = Number(t.cost_of_trip) + Number(t.miscellaneous_expense);
+        return `
+        <div class="card">
+          <div class="card-top">
+            <div>${fmt(new Date(t.trip_date))}</div>
+            <div>₹${total.toLocaleString()}</div>
           </div>
 
-          <!-- Route -->
-          <div style="font-weight: 600; margin-bottom: 6px;">
-            Route: ${getLocationName(t.start_location_id)} — ${getLocationName(
-              t.end_location_id
-            )}
-          </div>
+          <div class="route">Route: ${getLocationName(t.start_location_id)} → ${getLocationName(
+          t.end_location_id
+        )}</div>
 
-          <!-- Truck / Driver / Client -->
-          <div class="row">
-            <div>
+          <div class="meta-row">
+            <div class="meta-col">
               <div class="label">TRUCK</div>
               <div class="value">${getTruckReg(t.truck_id)}</div>
             </div>
 
-            <div>
+            <div class="meta-col">
               <div class="label">DRIVER</div>
               <div class="value">${getDriverName(t.driver_id)}</div>
             </div>
 
-            <div>
+            <div class="meta-col">
               <div class="label">CLIENT</div>
               <div class="value">${getClientName(t.client_id)}</div>
             </div>
           </div>
 
-          <!-- Costs -->
-          <div class="bottom-row">
+          <div class="cost-row">
             <div>
-              TRIP COST:<br/>
-              ₹${Number(t.cost_of_trip).toLocaleString()}
+              <div class="label">TRIP COST</div>
+              <div class="value">₹${Number(t.cost_of_trip).toLocaleString()}</div>
             </div>
 
             <div>
-              MISC EXPENSE:<br/>
-              ₹${Number(t.miscellaneous_expense).toLocaleString()}
+              <div class="label">MISC EXPENSE</div>
+              <div class="value">₹${Number(t.miscellaneous_expense).toLocaleString()}</div>
             </div>
           </div>
 
+          ${t.notes ? `<div class="notes">Notes: ${t.notes}</div>` : ""}
         </div>
-      `
-      )
+      `;
+      })
       .join("")}
-
   </body>
 </html>
 `;
 
-
+      // generate file
       const { uri } = await Print.printToFileAsync({ html });
 
       const newUri = `${FileSystem.documentDirectory}TripHistory.pdf`;
@@ -447,7 +481,7 @@ export default function TripLog() {
             const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
 
             return (
-              <View key={trip.trip_id} style={{ marginHorizontal: 12, marginBottom: 20, backgroundColor: undefined }}>
+              <View key={trip.trip_id} style={{ marginHorizontal: 12, marginBottom: 20 }}>
                 <View className="bg-card border border-border rounded-2xl p-5 shadow-sm">
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
                     <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>{new Date(trip.trip_date).toLocaleDateString("en-IN")}</Text>
