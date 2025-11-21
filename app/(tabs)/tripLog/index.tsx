@@ -414,47 +414,84 @@ export default function TripLog() {
         />
 
         {/* ACTION BUTTONS (WhatsApp-like pills) */}
-        <View style={{ marginHorizontal: 12, marginTop: 8, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          {/* Filters pill */}
-          <TouchableOpacity
-            onPress={toggleFilters}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 14,
-              paddingVertical: 10,
-              borderRadius: 999,
-              backgroundColor: "#E7FCEB",
-              shadowColor: "#000",
-              shadowOpacity: 0.08,
-              shadowRadius: 4,
-              elevation: 2,
-            }}
-          >
-            <Ionicons name="filter" size={18} color="#25D366" />
-            <Text style={{ marginLeft: 8, color: "#128C7E", fontWeight: "600" }}>Filters</Text>
-          </TouchableOpacity>
+        {/* ACTION BUTTONS (WhatsApp-like pills) */}
+<View
+  style={{
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  }}
+>
+  {/* Filters pill */}
+  <TouchableOpacity
+    onPress={toggleFilters}
+    style={{
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 999,
 
-          {/* PDF pill */}
-          <TouchableOpacity
-            onPress={generatePDF}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 14,
-              paddingVertical: 10,
-              borderRadius: 999,
-              backgroundColor: "#E8F0FE",
-              shadowColor: "#000",
-              shadowOpacity: 0.08,
-              shadowRadius: 4,
-              elevation: 2,
-            }}
-          >
-            <Ionicons name="download-outline" size={18} color="#2563EB" />
-            <Text style={{ marginLeft: 8, color: "#1D4ED8", fontWeight: "600" }}>PDF</Text>
-          </TouchableOpacity>
-        </View>
+      backgroundColor: isDark ? "#0A3325" : "#E7FCEB", // 🌙 dark vs light
+      shadowColor: "#000",
+      shadowOpacity: 0.08,
+      shadowRadius: 4,
+      elevation: 2,
+    }}
+  >
+    <Ionicons
+      name="filter"
+      size={18}
+      color={isDark ? "#4ADE80" : "#25D366"} // 🌙 mint green vs light green
+    />
+    <Text
+      style={{
+        marginLeft: 8,
+        fontWeight: "600",
+        color: isDark ? "#86EFAC" : "#128C7E",
+      }}
+    >
+      Filters
+    </Text>
+  </TouchableOpacity>
+
+  {/* PDF pill */}
+  <TouchableOpacity
+    onPress={generatePDF}
+    style={{
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 999,
+
+      backgroundColor: isDark ? "#111B3C" : "#E8F0FE", // 🌙 dark navy vs light blue
+      shadowColor: "#000",
+      shadowOpacity: 0.08,
+      shadowRadius: 4,
+      elevation: 2,
+    }}
+  >
+    <Ionicons
+      name="download-outline"
+      size={18}
+      color={isDark ? "#93C5FD" : "#2563EB"} // 🌙 soft blue vs normal blue
+    />
+    <Text
+      style={{
+        marginLeft: 8,
+        fontWeight: "600",
+        color: isDark ? "#BFDBFE" : "#1D4ED8",
+      }}
+    >
+      PDF
+    </Text>
+  </TouchableOpacity>
+</View>
+
 
         {/* SUMMARY */}
         <View className="mx-3 mt-1 mb-6 bg-card border border-border p-4 rounded-2xl shadow-sm">

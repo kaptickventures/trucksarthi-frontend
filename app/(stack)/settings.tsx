@@ -9,7 +9,6 @@ import {
   LogOut,
   MonitorSmartphone,
   Palette,
-  User,
   Wallet,
 } from "lucide-react-native";
 import {
@@ -22,15 +21,13 @@ import {
 } from "react-native";
 
 import { auth } from "../../firebaseConfig";
-
 import { THEME } from "../../theme";
-
 
 export default function Settings() {
   const router = useRouter();
   const isDark = useColorScheme() === "dark";
 
-  // 💚 WhatsApp Green icons
+  // 💚 WhatsApp-like green
   const primaryColor = isDark ? THEME.dark.primary : THEME.light.primary;
 
   const handleLogout = async () => {
@@ -98,16 +95,16 @@ export default function Settings() {
         </View>
       </TouchableOpacity>
 
-      {/* Theme */}
-      <TouchableOpacity
-        onPress={() => Alert.alert("Coming Soon", "Theme Selection placeholder")}
-        className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
-      >
+      {/* Theme — NOW ONLY "System Default" */}
+      <View className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3">
         <View className="flex-row items-center gap-2">
           <Palette size={20} color={primaryColor} />
           <Text className="text-foreground text-base">Theme</Text>
         </View>
-      </TouchableOpacity>
+        <Text className="text-muted-foreground text-sm">
+          System Default
+        </Text>
+      </View>
 
       {/* Notification Settings */}
       <TouchableOpacity
