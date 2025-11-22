@@ -315,13 +315,19 @@ const cardBg = isDark
   }
 
   return (
-    <View className="flex-1 bg-background">
-        <KeyboardAwareScrollView
-        enableOnAndroid
-        extraScrollHeight={70}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 16, paddingBottom: 250 }}
-      >
+  <View style={{ flex: 1, backgroundColor }}>        
+  <KeyboardAwareScrollView
+  enableOnAndroid
+  extraScrollHeight={70}
+  keyboardShouldPersistTaps="handled"
+  contentContainerStyle={{
+    padding: 16,
+    paddingBottom: 250,
+    backgroundColor,            // <-- REQUIRED
+  }}
+  style={{ backgroundColor }}    // <-- ALSO REQUIRED
+>
+
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View>
             {/* Date */}

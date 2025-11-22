@@ -1,85 +1,188 @@
 // app/auth/signup-email.tsx
-// app/auth/signup-email.tsx
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import {
+  SafeAreaView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native";
 import { useRouter, Link } from "expo-router";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { LinearGradient } from "expo-linear-gradient";
+import { ChevronLeft } from "lucide-react-native";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+
 import { auth } from "../../firebaseConfig";
-import { initUser } from "../../hooks/useAuth"; // ⬅️ add
+import { initUser } from "../../hooks/useAuth";
+
+const COLORS = {
+  title: "#128C7E",
+  subtitle: "#666666",
+  inputBg: "#F0F0F0",
+  inputBorder: "#D1D1D1",
+  buttonBg: "#111B21",
+  buttonText: "#FFFFFF",
+  link: "#25D366",
+};
 
 export default function SignupEmail() {
   const router = useRouter();
-  const [fullName, setFullName] = useState("");
+
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onSignup = async () => {
+  const signup = async () => {
     try {
       setLoading(true);
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), pw);
-      if (fullName) {
-        await updateProfile(cred.user, { displayName: fullName });
-      }
-
-      // 🔹 Create DB row immediately with what we have
+      const creds = await createUserWithEmailAndPassword(auth, email.trim(), pw);
+      await updateProfile(creds.user, { displayName: name });
       await initUser();
-
-      // 🔹 Then go fill Basic Details
       router.replace("/basicDetails");
     } catch (e: any) {
-      Alert.alert("Signup failed", e?.message ?? "Try again.");
+      Alert.alert("Signup Failed", e?.message ?? "Try again.");
     } finally {
       setLoading(false);
     }
   };
 
-
   return (
-    <View className="flex-1 bg-white dark:bg-black px-6 justify-center">
-      <Text className="text-3xl font-bold mb-8 text-black dark:text-white">Sign up (Email)</Text>
+    <SafeAreaView className="flex-1 bg-white relative">
 
-      <TextInput
-        placeholder="Full Name"
-        value={fullName}
-        onChangeText={setFullName}
-        className="border border-gray-300 dark:border-gray-700 rounded-xl p-4 mb-4 text-black dark:text-white"
-        placeholderTextColor="#999"
-      />
-      <TextInput
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-        className="border border-gray-300 dark:border-gray-700 rounded-xl p-4 mb-4 text-black dark:text-white"
-        placeholderTextColor="#999"
-      />
-      <TextInput
-        placeholder="Password"
-        secureTextEntry
-        value={pw}
-        onChangeText={setPw}
-        className="border border-gray-300 dark:border-gray-700 rounded-xl p-4 mb-6 text-black dark:text-white"
-        placeholderTextColor="#999"
-      />
-
+      {/* Back */}
       <TouchableOpacity
-        onPress={onSignup}
-        disabled={loading}
-        className={`rounded-xl py-4 items-center ${loading ? "bg-gray-400" : "bg-green-600"}`}
+        onPress={() => router.back()}
+        style={{
+          position: "absolute",
+          top: 24,
+          left: 24,
+          zIndex: 999,
+          padding: 8,
+        }}
       >
-        {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Create account</Text>}
+        <ChevronLeft size={32} color="#111B21" />
       </TouchableOpacity>
 
-      <View className="mt-6 flex-row">
-        <Text className="text-gray-600 dark:text-gray-300">Already have an account?</Text>
-        <Link href="/auth/login" className="text-blue-600 dark:text-blue-400 ml-2">Login</Link>
-      </View>
+      {/* Glow */}
+      <LinearGradient
+        colors={[
+          "rgba(37,211,102,0.40)",
+          "rgba(18,140,126,0.25)",
+          "rgba(18,140,126,0.10)",
+          "transparent",
+        ]}
+        style={{
+          width: 850,
+          height: 850,
+          position: "absolute",
+          top: -200,
+          borderRadius: 9999,
+          alignSelf: "center",
+        }}
+      />
 
-      <View className="mt-4">
-        <Link href="/auth/login" className="text-blue-600 dark:text-blue-400">Use Phone (OTP)</Link>
-      </View>
-    </View>
+      {/* Keyboard handler */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 32,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+
+          {/* Logo */}
+          <Image
+            source={require("../../assets/images/TruckSarthi-Graphic.png")}
+            style={{ width: "70%", height: 90, marginBottom: 20 }}
+            resizeMode="contain"
+          />
+
+          {/* Title */}
+          <Text className="text-4xl font-extrabold" style={{ color: COLORS.title }}>
+            Create Account
+          </Text>
+
+          <Text className="mt-1 mb-8 text-center" style={{ color: COLORS.subtitle }}>
+            Join the TruckSarthi network.
+          </Text>
+
+          {/* Form */}
+          <TextInput
+            placeholder="Full Name"
+            placeholderTextColor={COLORS.subtitle}
+            value={name}
+            onChangeText={setName}
+            className="w-full border rounded-xl p-4 mb-4"
+            style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
+          />
+
+          <TextInput
+            placeholder="Email"
+            placeholderTextColor={COLORS.subtitle}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            className="w-full border rounded-xl p-4 mb-4"
+            style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
+          />
+
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor={COLORS.subtitle}
+            secureTextEntry
+            value={pw}
+            onChangeText={setPw}
+            className="w-full border rounded-xl p-4 mb-6"
+            style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
+          />
+
+          {/* Button */}
+          <TouchableOpacity
+            onPress={signup}
+            disabled={loading}
+            className="w-full py-3 rounded-xl items-center"
+            style={{ backgroundColor: COLORS.buttonBg }}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white font-semibold">Create Account</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Footer */}
+          <View className="mt-6 flex-row">
+            <Text style={{ color: COLORS.subtitle }}>Already registered?</Text>
+            <Link href="/auth/login-email" className="ml-2" style={{ color: COLORS.link }}>
+              Login
+            </Link>
+          </View>
+
+          <View className="mt-4">
+            <Link href="/auth/login-phone" style={{ color: COLORS.link }}>
+              Use Phone (OTP)
+            </Link>
+          </View>
+
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

@@ -1,76 +1,134 @@
 // app/auth/login.tsx
 import React from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, SafeAreaView } from "react-native";
 import { useRouter, Link } from "expo-router";
-import { AntDesign } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { ChevronLeft, Phone, Mail, Chrome } from "lucide-react-native";
+
+const COLORS = {
+  title: "#128C7E",
+  subtitle: "#666666",
+  buttonBg: "#F0F0F0",
+  buttonBorder: "#D1D1D1",
+  googleBorder: "#D1D1D1",
+  link: "#25D366",
+};
 
 export default function LoginOptions() {
   const router = useRouter();
 
   return (
-    <View className="flex-1 bg-white dark:bg-black justify-center items-center px-8">
-      
-      {/* Logo */}
-      <Image
-        source={require("../../assets/images/Trucksarthi-Logo.png")}
-        className="w-28 h-28 mb-8"
-        resizeMode="contain"
+    <SafeAreaView className="flex-1 bg-white relative">
+
+      {/* WHATSAPP GLOW */}
+      <LinearGradient
+        colors={[
+          "rgba(37,211,102,0.40)",
+          "rgba(18,140,126,0.25)",
+          "rgba(18,140,126,0.10)",
+          "transparent",
+        ]}
+        style={{
+          width: 850,
+          height: 850,
+          borderRadius: 9999,
+          position: "absolute",
+          top: -200,
+          alignSelf: "center",
+        }}
       />
 
-      {/* Header */}
-      <Text className="text-3xl font-extrabold text-black dark:text-white tracking-tight">
-        Welcome 👋
-      </Text>
+      {/* MAIN CONTENT */}
+      <View className="flex-1 items-center justify-center px-8">
 
-      <Text className="text-gray-500 dark:text-gray-400 text-center mt-2 mb-10">
-        Login or create a new account to continue
-      </Text>
+        {/* Logo */}
+        <Image
+          source={require("../../assets/images/TruckSarthi-Graphic.png")}
+            style={{
+    width: "70%",
+    height: 90,
+    marginBottom: 20,
+  }}
+  resizeMode="contain"
+/>
 
-      {/* Google Sign-in */}
-      <TouchableOpacity
-        onPress={() => router.push("/auth/login-google")}
-        className="flex-row items-center justify-center border border-gray-300 dark:border-gray-700 py-4 rounded-xl w-full mb-5 bg-white dark:bg-neutral-900"
-        activeOpacity={0.7}
-      >
-        <AntDesign name="google" size={22} color="#DB4437" />
-        <Text className="text-black dark:text-white font-medium text-lg ml-3">
-          Continue with Google
+        {/* TITLE */}
+        <Text style={{ color: COLORS.title }} className="text-4xl font-extrabold">
+          Welcome
         </Text>
-      </TouchableOpacity>
-
-      {/* Phone Login */}
-      <TouchableOpacity
-        onPress={() => router.push("/auth/login-phone")}
-        className="bg-blue-600 py-4 rounded-xl w-full mb-4 items-center"
-      >
-        <Text className="text-white font-semibold text-lg">
-          Continue with Phone
-        </Text>
-      </TouchableOpacity>
-
-      {/* Email Login */}
-      <TouchableOpacity
-        onPress={() => router.push("/auth/login-email")}
-        className="bg-green-600 py-4 rounded-xl w-full mb-2 items-center"
-      >
-        <Text className="text-white font-semibold text-lg">
-          Continue with Email
-        </Text>
-      </TouchableOpacity>
-
-      {/* Footer */}
-      <View className="mt-8 flex-row">
-        <Text className="text-gray-600 dark:text-gray-300">
-          Don’t have an account?
+        <Text style={{ color: COLORS.subtitle }} className="text-sm mt-1 mb-8 text-center">
+          Manage your fleet effortlessly.
         </Text>
 
-        <Link
-          href="/auth/signup-email"
-          className="text-blue-600 dark:text-blue-400 font-semibold ml-2"
+        {/* PHONE LOGIN */}
+        <TouchableOpacity
+          onPress={() => router.push("/auth/login-phone")}
+          style={{ backgroundColor: COLORS.buttonBg, borderColor: COLORS.buttonBorder }}
+          className="flex-row items-center justify-center w-full py-3 rounded-xl mb-4 border"
+          activeOpacity={0.9}
         >
-          Sign Up
-        </Link>
+          <Phone size={20} color="#111B21" />
+          <Text className="text-black text-base font-semibold ml-2">
+            Continue with Phone
+          </Text>
+        </TouchableOpacity>
+
+        {/* EMAIL LOGIN */}
+        <TouchableOpacity
+          onPress={() => router.push("/auth/login-email")}
+          style={{ backgroundColor: COLORS.buttonBg, borderColor: COLORS.buttonBorder }}
+          className="flex-row items-center justify-center w-full py-3 rounded-xl mb-4 border"
+          activeOpacity={0.9}
+        >
+          <Mail size={20} color="#111B21" />
+          <Text className="text-black text-base font-semibold ml-2">
+            Continue with Email
+          </Text>
+        </TouchableOpacity>
+
+        {/* Divider */}
+        <View className="flex-row items-center my-2 w-full">
+          <View className="flex-1 h-[1px] bg-gray-300" />
+          <Text className="text-gray-500 px-3 text-xs">OR</Text>
+          <View className="flex-1 h-[1px] bg-gray-300" />
+        </View>
+
+        {/* GOOGLE LOGIN (using Chrome icon from Lucide) */}
+        {/* GOOGLE LOGIN (Coming Soon) */}
+<TouchableOpacity
+  onPress={() => {}}
+  style={{ borderColor: COLORS.googleBorder, opacity: 0.6 }}
+  className="flex-row items-center justify-center bg-white py-3 rounded-xl w-full border"
+  activeOpacity={1}
+>
+  <Chrome size={20} color="#DB4437" />
+  <Text className="text-gray-900 font-medium text-base ml-3">
+    Continue with Google
+  </Text>
+</TouchableOpacity>
+
+<Text
+  style={{ color: COLORS.subtitle }}
+  className="text-xs mt-1 text-center"
+>
+  Google sign-in coming soon
+</Text>
+
+
+        {/* SIGNUP */}
+        <View className="mt-6 flex-row">
+          <Text style={{ color: COLORS.subtitle }} className="text-sm">
+            New here?
+          </Text>
+          <Link
+            href="/auth/signup-email"
+            style={{ color: COLORS.link }}
+            className="font-semibold ml-2 text-sm"
+          >
+            Create Account
+          </Link>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "685782590797",
+    "project_id": "trucksarthi",
+    "storage_bucket": "trucksarthi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:685782590797:android:fd99b7f910a0da70bdc304",
+        "android_client_info": {
+          "package_name": "com.sahilgumber7.trucksarthi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "685782590797-k4us38g7vsm0shekavkkpoe6gd2gqj6p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXNT9pWL7Wv5RlzjXJ-zPB2MZOJ1syz9Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "685782590797-k4us38g7vsm0shekavkkpoe6gd2gqj6p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

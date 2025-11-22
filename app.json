@@ -1,38 +1,54 @@
 {
   "expo": {
-    "name": "trucksarthi-frontend",
+    "name": "TruckSarthi",
     "slug": "trucksarthi-frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/Trucksarthi-Logo.png",
+    "icon": "./assets/images/TruckSarthi-Logo.png",
     "scheme": "trucksarthifrontend",
     "userInterfaceStyle": "automatic",
+    "jsEngine": "hermes",
     "newArchEnabled": true,
+
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+    "bundleIdentifier": "com.sahilgumber7.trucksarthi"   ,   
+    "buildNumber": "1.0.0"
     },
+
     "android": {
+"package": "com.sahilgumber7.trucksarthi",
+"googleServicesFile": "./google-services.json",
+
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/Trucksarthi-Logo.png",
-        "backgroundImage": "./assets/Trucksarthi-Logo.png",
-        "monochromeImage": "./assets/Trucksarthi-Logo.png"
+        "foregroundImage": "./assets/images/TruckSarthi-Logo.png",
+        "backgroundColor": "#E6F4FE"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.sahilgumber7.trucksarthifrontend"
+      "predictiveBackGestureEnabled": false
     },
+
     "web": {
       "output": "static",
       "bundler": "metro",
       "favicon": "./assets/images/favicon.png"
     },
+
+    "splash": {
+      "image": "./assets/TruckSarthi-Graphic.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+
     "plugins": [
       "expo-router",
+  "@react-native-firebase/app",
+  "@react-native-firebase/auth",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/TruckSarthi-Graphic.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -43,19 +59,23 @@
       ],
       "expo-web-browser"
     ],
+
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
+
     "extra": {
       "router": {},
       "eas": {
         "projectId": "65746392-bd98-48dd-ad7b-50391f8a8497"
       }
     },
+
     "runtimeVersion": {
       "policy": "appVersion"
     },
+
     "updates": {
       "url": "https://u.expo.dev/65746392-bd98-48dd-ad7b-50391f8a8497"
     }

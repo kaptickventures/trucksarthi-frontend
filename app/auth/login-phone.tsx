@@ -1,227 +1,227 @@
-// import React, { useState } from "react";
-// import {
-//   View,
-//   Text,
-//   TextInput,
-//   TouchableOpacity,
-//   ActivityIndicator,
-//   Alert,
-//   KeyboardAvoidingView,
-//   Platform,
-// } from "react-native";
+// app/auth/login-phone.tsx
+import React, { useState } from "react";
+import {
+  SafeAreaView,
+  KeyboardAvoidingView,
+  ScrollView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Platform,
+  ActivityIndicator,
+  Alert,
+  Image,
+} from "react-native";
 
-// import {
-//   signInWithPhoneNumber,
-//   PhoneAuthProvider,
-//   signInWithCredential,
-// } from "firebase/auth";
+import auth from "@react-native-firebase/auth";
+import { useRouter, Link } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { ChevronLeft, Smartphone } from "lucide-react-native";
 
-// import { auth } from "../../firebaseConfig";
-// import { createRecaptchaVerifier } from "../../lib/RecaptchaVerifier";
-// import { useRouter, Link } from "expo-router";
-// import { postLoginFlow } from "../../hooks/useAuth";
+import { postLoginFlow } from "../../hooks/useAuth";
 
-// export default function LoginPhone() {
-//   const router = useRouter();
+const COLORS = {
+  title: "#128C7E",
+  subtitle: "#666666",
+  inputBg: "#F0F0F0",
+  inputBorder: "#D1D1D1",
+  buttonBg: "#111B21",
+  buttonText: "#FFFFFF",
+  link: "#25D366",
+};
 
-//   const [phoneNumber, setPhoneNumber] = useState("");
-//   const [verificationId, setVerificationId] = useState<string | null>(null);
-//   const [code, setCode] = useState("");
-//   const [loading, setLoading] = useState(false);
+export default function LoginPhone() {
+  const router = useRouter();
 
-//   const sendVerification = async () => {
-//     try {
-//       setLoading(true);
+  const [phoneNumber, setPhoneNumber] = useState("+91");
+  const [confirmation, setConfirmation] = useState<any>(null);
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
 
-//       // Create invisible recaptcha verifier
-//       const verifier = createRecaptchaVerifier();
-
-//       const confirmation = await signInWithPhoneNumber(
-//         auth,
-//         phoneNumber,
-//         verifier
-//       );
-
-//       setVerificationId(confirmation.verificationId);
-//       Alert.alert("OTP Sent", "Check your phone.");
-//     } catch (err: any) {
-//       console.log(err);
-//       Alert.alert("Failed to send OTP", err?.message ?? "Try again.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const confirmCode = async () => {
-//     try {
-//       if (!verificationId) return;
-
-//       setLoading(true);
-
-//       const credential = PhoneAuthProvider.credential(verificationId, code);
-//       await signInWithCredential(auth, credential);
-
-//       await postLoginFlow(router);
-//     } catch (err: any) {
-//       Alert.alert("Invalid Code", err?.message ?? "Try again.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <KeyboardAvoidingView
-//       behavior={Platform.OS === "ios" ? "padding" : undefined}
-//       className="flex-1 bg-white dark:bg-black justify-center px-6"
-//     >
-//       {/* Invisible recaptcha mount point */}
-//       <View id="recaptcha-container" style={{ opacity: 0, height: 0 }} />
-
-//       <Text className="text-3xl font-bold mb-8 text-black dark:text-white">
-//         Phone (OTP Login)
-//       </Text>
-
-//       {!verificationId ? (
-//         <>
-//           <TextInput
-//             placeholder="+91 98765 43210"
-//             keyboardType="phone-pad"
-//             value={phoneNumber}
-//             onChangeText={setPhoneNumber}
-//             className="border border-gray-300 dark:border-gray-700 rounded-xl p-4 mb-6 text-black dark:text-white"
-//             placeholderTextColor="#999"
-//           />
-
-//           <TouchableOpacity
-//             onPress={sendVerification}
-//             disabled={loading}
-//             className={`rounded-xl py-4 items-center ${
-//               loading ? "bg-gray-400" : "bg-blue-600"
-//             }`}
-//           >
-//             {loading ? (
-//               <ActivityIndicator color="#fff" />
-//             ) : (
-//               <Text className="text-white font-semibold">Send OTP</Text>
-//             )}
-//           </TouchableOpacity>
-//         </>
-//       ) : (
-//         <>
-//           <TextInput
-//             placeholder="Enter 6-digit OTP"
-//             keyboardType="number-pad"
-//             value={code}
-//             onChangeText={setCode}
-//             className="border border-gray-300 dark:border-gray-700 rounded-xl p-4 mb-6 text-black dark:text-white text-center tracking-widest"
-//             placeholderTextColor="#999"
-//           />
-
-//           <TouchableOpacity
-//             onPress={confirmCode}
-//             disabled={loading}
-//             className={`rounded-xl py-4 items-center ${
-//               loading ? "bg-gray-400" : "bg-green-600"
-//             }`}
-//           >
-//             {loading ? (
-//               <ActivityIndicator color="#fff" />
-//             ) : (
-//               <Text className="text-white font-semibold">Verify & Continue</Text>
-//             )}
-//           </TouchableOpacity>
-
-//           <TouchableOpacity onPress={() => setVerificationId(null)} className="mt-4">
-//             <Text className="text-blue-600 dark:text-blue-400 text-center">
-//               Change phone number
-//             </Text>
-//           </TouchableOpacity>
-//         </>
-//       )}
-
-//       <View className="mt-8">
-//         <Link href="/auth/login" className="text-blue-600 dark:text-blue-400">
-//           Use Email Instead
-//         </Link>
-//       </View>
-//     </KeyboardAvoidingView>
-//   );
-
-// }
-
-
-
-import React from 'react';
-import { View, 
-         Text, StyleSheet, StatusBar, TouchableOpacity } from 'react-native';
-
-import { SafeAreaView } from "react-native-safe-area-context";
-
-
-interface ComingSoonProps {
-  navigation?: {
-    goBack?: () => void;
+  const formatPhone = (text: string) => {
+    let numbers = text.replace(/\D+/g, "");
+    if (numbers.startsWith("91")) numbers = numbers.slice(2);
+    numbers = numbers.slice(0, 10);
+    setPhoneNumber("+91" + numbers);
   };
-}
 
-export default function ComingSoonScreen({ navigation }: ComingSoonProps) {
+  const sendOTP = async () => {
+    try {
+      if (phoneNumber.length !== 13) {
+        return Alert.alert("Invalid number", "Enter a valid 10-digit number.");
+      }
+
+      setLoading(true);
+
+      const confirmResult = await auth().signInWithPhoneNumber(phoneNumber);
+      setConfirmation(confirmResult);
+
+      Alert.alert("OTP Sent");
+    } catch (e: any) {
+      Alert.alert("Failed to send OTP", e?.message ?? "Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOTP = async () => {
+    try {
+      if (!confirmation) return;
+
+      setLoading(true);
+
+      await confirmation.confirm(code);
+      await postLoginFlow(router);
+    } catch (e: any) {
+      Alert.alert("Invalid OTP", e?.message ?? "Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.container}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Coming in next build</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.link}
-          onPress={() => navigation?.goBack?.()}
-          activeOpacity={0.7}
+    <SafeAreaView className="flex-1 bg-white relative">
+
+      {/* Back Button */}
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={{
+          position: "absolute",
+          top: 24,
+          left: 24,
+          zIndex: 999,
+          padding: 8,
+        }}
+      >
+        <ChevronLeft size={32} color="#111B21" />
+      </TouchableOpacity>
+
+      {/* Green Glow */}
+      <LinearGradient
+        colors={[
+          "rgba(37,211,102,0.40)",
+          "rgba(18,140,126,0.25)",
+          "rgba(18,140,126,0.10)",
+          "transparent",
+        ]}
+        style={{
+          width: 850,
+          height: 850,
+          position: "absolute",
+          top: -200,
+          borderRadius: 9999,
+          alignSelf: "center",
+        }}
+      />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 32,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.linkText}>Go back</Text>
-        </TouchableOpacity>
-      </View>
+
+          {/* Logo */}
+          <Image
+            source={require("../../assets/images/TruckSarthi-Graphic.png")}
+            style={{ width: "70%", height: 90, marginBottom: 20 }}
+            resizeMode="contain"
+          />
+
+          <Text className="text-4xl font-extrabold" style={{ color: COLORS.title }}>
+            Phone Login
+          </Text>
+
+          <Text className="mt-1 mb-8 text-center" style={{ color: COLORS.subtitle }}>
+            Use your mobile number to continue.
+          </Text>
+
+          {/* Step 1 */}
+          {!confirmation ? (
+            <>
+              <TextInput
+                placeholder="+91XXXXXXXXXX"
+                placeholderTextColor={COLORS.subtitle}
+                value={phoneNumber}
+                onChangeText={formatPhone}
+                keyboardType="phone-pad"
+                className="w-full border rounded-xl p-4 mb-6"
+                style={{
+                  backgroundColor: COLORS.inputBg,
+                  borderColor: COLORS.inputBorder,
+                }}
+              />
+
+              <TouchableOpacity
+                onPress={sendOTP}
+                disabled={loading}
+                className="w-full py-3 rounded-xl items-center"
+                style={{ backgroundColor: COLORS.buttonBg }}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <View className="flex-row items-center">
+                    <Smartphone size={20} color="white" />
+                    <Text className="ml-2 text-white font-semibold">Send OTP</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              {/* Step 2: Enter OTP */}
+              <TextInput
+                placeholder="Enter 6-digit OTP"
+                placeholderTextColor={COLORS.subtitle}
+                keyboardType="number-pad"
+                value={code}
+                onChangeText={setCode}
+                className="w-full border rounded-xl p-4 mb-6 text-center tracking-widest"
+                style={{
+                  backgroundColor: COLORS.inputBg,
+                  borderColor: COLORS.inputBorder,
+                }}
+              />
+
+              <TouchableOpacity
+                onPress={verifyOTP}
+                disabled={loading}
+                className="w-full py-3 rounded-xl items-center"
+                style={{ backgroundColor: COLORS.buttonBg }}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-semibold">Verify & Continue</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => setConfirmation(null)}>
+                <Text className="mt-4" style={{ color: COLORS.link }}>
+                  Change phone number
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <View className="mt-8">
+            <Link href="/auth/login-email" style={{ color: COLORS.link }}>
+              Use Email Instead
+            </Link>
+          </View>
+
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#F8FAFB',
-  },
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    minWidth: 260,
-    paddingVertical: 28,
-    paddingHorizontal: 18,
-    borderRadius: 14,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 18,
-    elevation: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
-    color: '#0F172A',
-  },
-  link: {
-    marginTop: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  linkText: {
-    color: '#2563EB',
-    fontWeight: '600',
-  },
-});

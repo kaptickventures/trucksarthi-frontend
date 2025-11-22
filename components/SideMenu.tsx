@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   Animated,
   Dimensions,
@@ -16,13 +16,16 @@ import {
 } from "react-native";
 import { auth } from "../firebaseConfig";
 import { useUser } from "../hooks/useUser";
-import { THEME } from "../theme"; // ← USE THE GLOBAL THEME
+import { THEME } from "../theme";
 import "../global.css";
+
+// 👉 Added Lucide Icon
+import { Clock } from "lucide-react-native";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const LINKS = [
-  { title: "Trip Log", icon: "time", route: "/tripLog" as const },
+  { title: "Trip Log", icon: "clock", route: "/tripLog" as const }, // updated label
   { title: "Settings", icon: "settings-outline", route: "/settings" as const },
 ] as const;
 
@@ -52,7 +55,6 @@ export default function SideMenu({
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
 
-  /** 👇 Theme-driven color map */
   const colors = {
     background: theme.background,
     overlay: "rgba(0,0,0,0.45)",
@@ -88,9 +90,12 @@ export default function SideMenu({
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
       onClose();
-      router.replace("/auth/login");
+      setTimeout(async () => {
+        await signOut(auth);
+        router.dismissAll();
+        router.replace("/auth/login");
+      }, 150);
     } catch (err) {
       console.log("Logout failed:", err);
     }
@@ -98,7 +103,6 @@ export default function SideMenu({
 
   return (
     <>
-      {/* Dim overlay */}
       {isVisible && (
         <TouchableWithoutFeedback onPress={onClose}>
           <View
@@ -112,7 +116,6 @@ export default function SideMenu({
         </TouchableWithoutFeedback>
       )}
 
-      {/* Drawer */}
       <Animated.View
         {...panResponder.panHandlers}
         style={{
@@ -129,7 +132,7 @@ export default function SideMenu({
         }}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Profile Header */}
+          {/* Profile */}
           <TouchableOpacity onPress={() => navigate("/profile")}>
             <View className="flex-row items-center mb-10">
               <View
@@ -162,11 +165,8 @@ export default function SideMenu({
             </View>
           </TouchableOpacity>
 
-          {/* Main Menu */}
-          <Text
-            className="text-base font-semibold mb-3"
-            style={{ color: colors.subtext }}
-          >
+          {/* MAIN MENU */}
+          <Text className="text-base font-semibold mb-3" style={{ color: colors.subtext }}>
             MAIN MENU
           </Text>
 
@@ -176,19 +176,22 @@ export default function SideMenu({
               onPress={() => navigate(item.route)}
               className="flex-row items-center py-4"
             >
-              <Ionicons name={item.icon as any} size={24} color={colors.icon} />
+              {/* ⭐ Updated: TripLog uses Lucide Clock */}
+              {item.title === "Trip Log" ? (
+                <Clock size={24} color={colors.icon} />
+              ) : (
+                <Ionicons name={item.icon as any} size={24} color={colors.icon} />
+              )}
+
               <Text className="ml-4 text-lg" style={{ color: colors.text }}>
                 {item.title}
               </Text>
             </TouchableOpacity>
           ))}
 
-          {/* Manager Section */}
+          {/* MANAGER SECTION */}
           <View className="mt-8 mb-6">
-            <Text
-              className="text-base font-semibold mb-3"
-              style={{ color: colors.subtext }}
-            >
+            <Text className="text-base font-semibold mb-3" style={{ color: colors.subtext }}>
               MANAGER
             </Text>
 
@@ -206,13 +209,18 @@ export default function SideMenu({
             ))}
           </View>
 
-          {/* Logout */}
-          <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4">
-            <Ionicons name="log-out-outline" size={26} color={colors.icon} />
-            <Text className="ml-4 text-lg font-medium" style={{ color: colors.text }}>
-              Logout
-            </Text>
-          </TouchableOpacity>
+{/* Logout */}
+<TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4">
+  <Ionicons name="log-out-outline" size={26} color="#ef4444" />
+
+  <Text
+    className="ml-4 text-lg font-medium"
+    style={{ color: "#ef4444" }}  // 🔥 Red text
+  >
+    Logout
+  </Text>
+</TouchableOpacity>
+
 
           <View style={{ height: 40 }} />
         </ScrollView>

@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   Platform,
   StatusBar,
-  View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -92,6 +91,11 @@ export default function StackLayout() {
             name="locations-manager"
             options={{ title: "Locations" }}
           />
+
+          <Stack.Screen name="helpCenter" options={{ title: "Help Center" }} />
+
+          <Stack.Screen name="basicDetails" options={{ title: "TruckSarthi" }} />
+
         </Stack>
       </GestureHandlerRootView>
     </BottomSheetModalProvider>
