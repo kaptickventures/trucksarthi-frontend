@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "685782590797-h9isp8jbsoitmv0o13rs980uja7u8eig.apps.googleusercontent.com",
+          "client_id": "685782590797-fkfs02vnj1cvep6mjkbaulb0dd3o4c67.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.sahilgumber7.trucksarthi",
-            "certificate_hash": "8db784ffe71417868a1b7909f4f55e999fbae475"
+            "certificate_hash": "8671b94cc5ad4d4a25186a21f81a5dbc82613bb1"
           }
         },
         {

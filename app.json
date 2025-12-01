@@ -2,7 +2,7 @@
   "expo": {
     "name": "TruckSarthi",
     "slug": "trucksarthi-frontend",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/TruckSarthi-Logo.png",
     "scheme": "trucksarthifrontend",
@@ -20,7 +20,7 @@
 "package": "com.sahilgumber7.trucksarthi",
 "googleServicesFile": "./google-services.json",
 
-      "versionCode": 1,
+"versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/TruckSarthi-Logo.png",
         "backgroundColor": "#E6F4FE"

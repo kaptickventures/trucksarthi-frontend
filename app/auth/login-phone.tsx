@@ -1,5 +1,5 @@
 // app/auth/login-phone.tsx
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   SafeAreaView,
   KeyboardAvoidingView,
@@ -35,7 +35,7 @@ export default function LoginPhone() {
   const router = useRouter();
 
   const [phoneNumber, setPhoneNumber] = useState("+91");
-  const [confirmation, setConfirmation] = useState<any>(null);
+  const confirmationRef = useRef<any>(null); // <-- FIXED: useRef
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -51,11 +51,10 @@ export default function LoginPhone() {
       if (phoneNumber.length !== 13) {
         return Alert.alert("Invalid number", "Enter a valid 10-digit number.");
       }
-
       setLoading(true);
 
       const confirmResult = await auth().signInWithPhoneNumber(phoneNumber);
-      setConfirmation(confirmResult);
+      confirmationRef.current = confirmResult; // <-- FIXED
 
       Alert.alert("OTP Sent");
     } catch (e: any) {
@@ -67,11 +66,12 @@ export default function LoginPhone() {
 
   const verifyOTP = async () => {
     try {
-      if (!confirmation) return;
-
+      if (!confirmationRef.current) return alert("No OTP request found!");
       setLoading(true);
 
-      await confirmation.confirm(code);
+      const result = await confirmationRef.current.confirm(code); // <-- FIXED
+      console.log("Signed in user:", result.user);
+
       await postLoginFlow(router);
     } catch (e: any) {
       Alert.alert("Invalid OTP", e?.message ?? "Try again.");
@@ -82,22 +82,13 @@ export default function LoginPhone() {
 
   return (
     <SafeAreaView className="flex-1 bg-white relative">
-
-      {/* Back Button */}
       <TouchableOpacity
         onPress={() => router.back()}
-        style={{
-          position: "absolute",
-          top: 24,
-          left: 24,
-          zIndex: 999,
-          padding: 8,
-        }}
+        style={{ position: "absolute", top: 24, left: 24, zIndex: 999, padding: 8 }}
       >
         <ChevronLeft size={32} color="#111B21" />
       </TouchableOpacity>
 
-      {/* Green Glow */}
       <LinearGradient
         colors={[
           "rgba(37,211,102,0.40)",
@@ -129,8 +120,6 @@ export default function LoginPhone() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-
-          {/* Logo */}
           <Image
             source={require("../../assets/images/TruckSarthi-Graphic.png")}
             style={{ width: "70%", height: 90, marginBottom: 20 }}
@@ -145,8 +134,7 @@ export default function LoginPhone() {
             Use your mobile number to continue.
           </Text>
 
-          {/* Step 1 */}
-          {!confirmation ? (
+          {!confirmationRef.current ? (
             <>
               <TextInput
                 placeholder="+91XXXXXXXXXX"
@@ -155,10 +143,7 @@ export default function LoginPhone() {
                 onChangeText={formatPhone}
                 keyboardType="phone-pad"
                 className="w-full border rounded-xl p-4 mb-6"
-                style={{
-                  backgroundColor: COLORS.inputBg,
-                  borderColor: COLORS.inputBorder,
-                }}
+                style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
               />
 
               <TouchableOpacity
@@ -179,7 +164,6 @@ export default function LoginPhone() {
             </>
           ) : (
             <>
-              {/* Step 2: Enter OTP */}
               <TextInput
                 placeholder="Enter 6-digit OTP"
                 placeholderTextColor={COLORS.subtitle}
@@ -187,10 +171,7 @@ export default function LoginPhone() {
                 value={code}
                 onChangeText={setCode}
                 className="w-full border rounded-xl p-4 mb-6 text-center tracking-widest"
-                style={{
-                  backgroundColor: COLORS.inputBg,
-                  borderColor: COLORS.inputBorder,
-                }}
+                style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
               />
 
               <TouchableOpacity
@@ -206,7 +187,12 @@ export default function LoginPhone() {
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => setConfirmation(null)}>
+              <TouchableOpacity
+                onPress={() => {
+                  confirmationRef.current = null;
+                  setCode("");
+                }}
+              >
                 <Text className="mt-4" style={{ color: COLORS.link }}>
                   Change phone number
                 </Text>
@@ -219,7 +205,6 @@ export default function LoginPhone() {
               Use Email Instead
             </Link>
           </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
