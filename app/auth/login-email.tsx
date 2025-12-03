@@ -1,4 +1,3 @@
-// app/auth/login-email.tsx
 import React, { useState } from "react";
 import {
   SafeAreaView,
@@ -10,22 +9,20 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
+  Platform,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft } from "lucide-react-native";
-import auth from "@react-native-firebase/auth";  // <-- FIXED: correct import
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebaseConfig";
 import { postLoginFlow } from "../../hooks/useAuth";
 
 const COLORS = {
   title: "#128C7E",
   subtitle: "#666666",
   inputBg: "#F0F0F0",
-  inputBorder: "#D1D1D1",
   buttonBg: "#111B21",
-  buttonText: "#FFFFFF",
   link: "#25D366",
 };
 
@@ -38,43 +35,23 @@ export default function LoginEmail() {
   const login = async () => {
     try {
       setLoading(true);
-      const res = await auth().signInWithEmailAndPassword(email.trim(), pw.trim()); // <-- FIXED
-      console.log("Signed in user:", res.user);
+      const res = await signInWithEmailAndPassword(auth, email.trim(), pw.trim());
       await postLoginFlow(router);
     } catch (e: any) {
-      Alert.alert("Login Failed", e?.message ?? "Try again.");
+      Alert.alert("Login Failed", e.message ?? "Try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white relative">
-      {/* BACK BUTTON */}
+    <SafeAreaView className="flex-1 bg-white">
       <TouchableOpacity
         onPress={() => router.back()}
-        style={{ position: "absolute", top: 24, left: 24, zIndex: 999, padding: 8 }}
+        style={{ position: "absolute", top: 24, left: 24, padding: 8 }}
       >
         <ChevronLeft size={32} color="#111B21" />
       </TouchableOpacity>
-
-      {/* BG GLOW */}
-      <LinearGradient
-        colors={[
-          "rgba(37,211,102,0.40)",
-          "rgba(18,140,126,0.25)",
-          "rgba(18,140,126,0.10)",
-          "transparent",
-        ]}
-        style={{
-          width: 850,
-          height: 850,
-          position: "absolute",
-          top: -200,
-          borderRadius: 9999,
-          alignSelf: "center",
-        }}
-      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -85,41 +62,40 @@ export default function LoginEmail() {
             flexGrow: 1,
             justifyContent: "center",
             alignItems: "center",
-            paddingHorizontal: 32,
+            padding: 32,
           }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
         >
           <Image
             source={require("../../assets/images/TruckSarthi-Graphic.png")}
-            style={{ width: "70%", height: 90, marginBottom: 20 }}
             resizeMode="contain"
+            style={{ width: "70%", height: 100, marginBottom: 20 }}
           />
 
           <Text className="text-4xl font-extrabold" style={{ color: COLORS.title }}>
             Login
           </Text>
-          <Text className="mt-1 mb-8 text-center" style={{ color: COLORS.subtitle }}>
-            Continue with your email.
+
+          <Text className="mt-2 mb-8 text-center" style={{ color: COLORS.subtitle }}>
+            Continue with your email
           </Text>
 
           <TextInput
-            placeholder="Email"
-            placeholderTextColor={COLORS.subtitle}
             value={email}
             onChangeText={setEmail}
-            style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
+            placeholder="Email"
+            autoCapitalize="none"
+            keyboardType="email-address"
             className="w-full border rounded-xl p-4 mb-4"
+            style={{ backgroundColor: COLORS.inputBg }}
           />
 
           <TextInput
-            placeholder="Password"
-            secureTextEntry
-            placeholderTextColor={COLORS.subtitle}
             value={pw}
             onChangeText={setPw}
-            style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
+            placeholder="Password"
+            secureTextEntry
             className="w-full border rounded-xl p-4 mb-6"
+            style={{ backgroundColor: COLORS.inputBg }}
           />
 
           <TouchableOpacity
@@ -128,14 +104,19 @@ export default function LoginEmail() {
             className="w-full py-3 rounded-xl items-center"
             style={{ backgroundColor: COLORS.buttonBg }}
           >
-            {loading ? <ActivityIndicator color="white" /> : (
-              <Text className="text-white font-semibold">Login</Text>
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={{ color: "white", fontWeight: "600" }}>Login</Text>
             )}
           </TouchableOpacity>
 
-          <View className="mt-6 flex-row justify-center">
+          <View className="mt-6 flex-row">
             <Text style={{ color: COLORS.subtitle }}>No account?</Text>
-            <Link href="/auth/signup-email" style={{ color: COLORS.link }} className="ml-2">
+            <Link
+              href="/auth/signup-email"
+              style={{ marginLeft: 6, color: COLORS.link }}
+            >
               Sign Up
             </Link>
           </View>

@@ -1,4 +1,3 @@
-// app/auth/login-phone.tsx
 import React, { useState, useRef } from "react";
 import {
   SafeAreaView,
@@ -13,19 +12,22 @@ import {
   Alert,
   Image,
 } from "react-native";
-
-import auth from "@react-native-firebase/auth";
 import { useRouter, Link } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft, Smartphone } from "lucide-react-native";
 
+import {
+  PhoneAuthProvider,
+  signInWithCredential,
+  RecaptchaVerifier,
+} from "firebase/auth";
+import { auth } from "../../firebaseConfig";
 import { postLoginFlow } from "../../hooks/useAuth";
 
 const COLORS = {
   title: "#128C7E",
   subtitle: "#666666",
   inputBg: "#F0F0F0",
-  inputBorder: "#D1D1D1",
   buttonBg: "#111B21",
   buttonText: "#FFFFFF",
   link: "#25D366",
@@ -33,11 +35,12 @@ const COLORS = {
 
 export default function LoginPhone() {
   const router = useRouter();
-
   const [phoneNumber, setPhoneNumber] = useState("+91");
-  const confirmationRef = useRef<any>(null); // <-- FIXED: useRef
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const verificationIdRef = useRef<string | null>(null);
+  const recaptchaVerifier = useRef<any>(null);
 
   const formatPhone = (text: string) => {
     let numbers = text.replace(/\D+/g, "");
@@ -47,34 +50,54 @@ export default function LoginPhone() {
   };
 
   const sendOTP = async () => {
+    if (phoneNumber.length !== 13)
+      return Alert.alert("Invalid number", "Enter a valid 10-digit number");
+
     try {
-      if (phoneNumber.length !== 13) {
-        return Alert.alert("Invalid number", "Enter a valid 10-digit number.");
-      }
       setLoading(true);
 
-      const confirmResult = await auth().signInWithPhoneNumber(phoneNumber);
-      confirmationRef.current = confirmResult; // <-- FIXED
+      if (!recaptchaVerifier.current) {
+        // RecaptchaVerifier signature expects the Auth instance first in this environment
+        recaptchaVerifier.current = new RecaptchaVerifier(
+          auth,
+          "recaptcha-container",
+          { size: "invisible" }
+        );
+      }
 
-      Alert.alert("OTP Sent");
-    } catch (e: any) {
-      Alert.alert("Failed to send OTP", e?.message ?? "Try again.");
+      const provider = new PhoneAuthProvider(auth);
+      const verificationId = await provider.verifyPhoneNumber(
+        phoneNumber,
+        recaptchaVerifier.current
+      );
+
+      verificationIdRef.current = verificationId;
+      Alert.alert("OTP sent", `To: ${phoneNumber}`);
+
+    } catch (err: any) {
+      Alert.alert("Error sending OTP", err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const verifyOTP = async () => {
+    if (!verificationIdRef.current)
+      return Alert.alert("Error", "Please request OTP first");
+
     try {
-      if (!confirmationRef.current) return alert("No OTP request found!");
       setLoading(true);
 
-      const result = await confirmationRef.current.confirm(code); // <-- FIXED
-      console.log("Signed in user:", result.user);
+      const credential = PhoneAuthProvider.credential(
+        verificationIdRef.current,
+        code
+      );
 
+      await signInWithCredential(auth, credential);
       await postLoginFlow(router);
-    } catch (e: any) {
-      Alert.alert("Invalid OTP", e?.message ?? "Try again.");
+
+    } catch (err: any) {
+      Alert.alert("Invalid OTP", err.message);
     } finally {
       setLoading(false);
     }
@@ -84,45 +107,40 @@ export default function LoginPhone() {
     <SafeAreaView className="flex-1 bg-white relative">
       <TouchableOpacity
         onPress={() => router.back()}
-        style={{ position: "absolute", top: 24, left: 24, zIndex: 999, padding: 8 }}
+        style={{ position: "absolute", top: 24, left: 24, padding: 8, zIndex: 10 }}
       >
         <ChevronLeft size={32} color="#111B21" />
       </TouchableOpacity>
 
       <LinearGradient
-        colors={[
-          "rgba(37,211,102,0.40)",
-          "rgba(18,140,126,0.25)",
-          "rgba(18,140,126,0.10)",
-          "transparent",
-        ]}
+        colors={["rgba(37,211,102,0.25)", "transparent"]}
         style={{
-          width: 850,
-          height: 850,
+          width: 800,
+          height: 800,
           position: "absolute",
           top: -200,
-          borderRadius: 9999,
-          alignSelf: "center",
+          borderRadius: 999,
         }}
       />
 
+      {/* REQUIRED for Firebase Recaptcha Web SDK */}
+      <View id="recaptcha-container" style={{ height: 0, opacity: 0 }} />
+
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: "center",
             alignItems: "center",
-            paddingHorizontal: 32,
+            padding: 30,
           }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
         >
           <Image
             source={require("../../assets/images/TruckSarthi-Graphic.png")}
-            style={{ width: "70%", height: 90, marginBottom: 20 }}
+            style={{ width: "70%", height: 100, marginBottom: 20 }}
             resizeMode="contain"
           />
 
@@ -130,22 +148,22 @@ export default function LoginPhone() {
             Phone Login
           </Text>
 
-          <Text className="mt-1 mb-8 text-center" style={{ color: COLORS.subtitle }}>
-            Use your mobile number to continue.
+          <Text
+            className="my-3 text-center"
+            style={{ color: COLORS.subtitle, fontSize: 14 }}
+          >
+            Enter your phone number to continue
           </Text>
 
-          {!confirmationRef.current ? (
+          {!verificationIdRef.current ? (
             <>
               <TextInput
-                placeholder="+91XXXXXXXXXX"
-                placeholderTextColor={COLORS.subtitle}
                 value={phoneNumber}
                 onChangeText={formatPhone}
                 keyboardType="phone-pad"
                 className="w-full border rounded-xl p-4 mb-6"
-                style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
+                style={{ backgroundColor: COLORS.inputBg }}
               />
-
               <TouchableOpacity
                 onPress={sendOTP}
                 disabled={loading}
@@ -164,14 +182,21 @@ export default function LoginPhone() {
             </>
           ) : (
             <>
+              <Text
+                className="mb-2 text-center"
+                style={{ color: COLORS.subtitle }}
+              >
+                OTP sent to {phoneNumber}
+              </Text>
+
               <TextInput
-                placeholder="Enter 6-digit OTP"
-                placeholderTextColor={COLORS.subtitle}
-                keyboardType="number-pad"
                 value={code}
                 onChangeText={setCode}
+                placeholder="Enter OTP"
+                keyboardType="number-pad"
+                maxLength={6}
                 className="w-full border rounded-xl p-4 mb-6 text-center tracking-widest"
-                style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
+                style={{ backgroundColor: COLORS.inputBg }}
               />
 
               <TouchableOpacity
@@ -189,12 +214,14 @@ export default function LoginPhone() {
 
               <TouchableOpacity
                 onPress={() => {
-                  confirmationRef.current = null;
+                  verificationIdRef.current = null;
                   setCode("");
                 }}
               >
-                <Text className="mt-4" style={{ color: COLORS.link }}>
-                  Change phone number
+                <Text
+                  style={{ marginTop: 14, color: COLORS.link, fontWeight: "600" }}
+                >
+                  Change Number
                 </Text>
               </TouchableOpacity>
             </>

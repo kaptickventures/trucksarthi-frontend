@@ -17,17 +17,18 @@
     },
 
     "android": {
-"package": "com.sahilgumber7.trucksarthi",
-"googleServicesFile": "./google-services.json",
-
-"versionCode": 3,
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/TruckSarthi-Logo.png",
-        "backgroundColor": "#E6F4FE"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
-    },
+  "package": "com.sahilgumber7.trucksarthi",
+  "versionCode": 4,
+  "permissions": [
+    "android.permission.INTERNET"
+  ],
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/images/TruckSarthi-Logo.png",
+    "backgroundColor": "#E6F4FE"
+  },
+  "edgeToEdgeEnabled": true,
+  "predictiveBackGestureEnabled": false
+},
 
     "web": {
       "output": "static",
@@ -43,8 +44,6 @@
 
     "plugins": [
       "expo-router",
-  "@react-native-firebase/app",
-  "@react-native-firebase/auth",
       [
         "expo-splash-screen",
         {

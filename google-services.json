@@ -4,7 +4,7 @@
     "project_id": "trucksarthi",
     "storage_bucket": "trucksarthi.firebasestorage.app"
   },
-  "client": [
+  "client": [ 
     {
       "client_info": {
         "mobilesdk_app_id": "1:685782590797:android:fd99b7f910a0da70bdc304",
