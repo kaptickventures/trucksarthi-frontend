@@ -60,7 +60,6 @@ export default function LoginOptions() {
           Manage your fleet effortlessly.
         </Text>
 
-        {/* PHONE LOGIN
         <TouchableOpacity
           onPress={() => router.push("/auth/login-phone")}
           style={{ backgroundColor: COLORS.buttonBg, borderColor: COLORS.buttonBorder }}
@@ -71,7 +70,7 @@ export default function LoginOptions() {
           <Text className="text-black text-base font-semibold ml-2">
             Continue with Phone
           </Text>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
 
         {/* EMAIL LOGIN */}
         <TouchableOpacity
