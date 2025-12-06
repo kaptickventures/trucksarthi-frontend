@@ -1,9 +1,31 @@
 // app/auth/login.tsx
-import React from "react";
-import { View, Text, TouchableOpacity, Image, SafeAreaView } from "react-native";
+import React, { useEffect } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  SafeAreaView,
+  Platform,
+  Alert,
+} from "react-native";
 import { useRouter, Link } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft, Phone, Mail, Chrome } from "lucide-react-native";
+import { Phone, Mail, Chrome } from "lucide-react-native";
+
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
+import { auth } from "../../firebaseConfig";
+import { postLoginFlow } from "../../hooks/useAuth";
+
+WebBrowser.maybeCompleteAuthSession();
+
+// 🔐 Google OAuth Client IDs — ANDROID ONLY
+const ANDROID_CLIENT_ID =
+  "685782590797-fkfs02vnj1cvep6mjkbaulb0dd3o4c67.apps.googleusercontent.com";
+const WEB_CLIENT_ID =
+  "685782590797-k4us38g7vsm0shekavkkpoe6gd2gqj6p.apps.googleusercontent.com";
 
 const COLORS = {
   title: "#128C7E",
@@ -16,11 +38,44 @@ const COLORS = {
 
 export default function LoginOptions() {
   const router = useRouter();
+  const isAndroid = Platform.OS === "android";
+
+  // 🛑 Initialize Google Login ONLY if Android
+  let request: any = null;
+  let response: any = null;
+  let promptAsync: any = () => {
+    Alert.alert("Unavailable", "Google login works only on Android for now.");
+  };
+
+  if (isAndroid) {
+    [request, response, promptAsync] = Google.useAuthRequest({
+      androidClientId: ANDROID_CLIENT_ID,
+      webClientId: WEB_CLIENT_ID,
+    });
+  }
+
+  // Handle successful google auth
+  useEffect(() => {
+    const handleResponse = async () => {
+      if (response?.type !== "success") return;
+      const { id_token } = response.params;
+      if (!id_token) return;
+
+      try {
+        const credential = GoogleAuthProvider.credential(id_token);
+        await signInWithCredential(auth, credential);
+        await postLoginFlow(router);
+      } catch (err: any) {
+        console.log(err);
+        Alert.alert("Google Login Failed", err.message);
+      }
+    };
+    handleResponse();
+  }, [response]);
 
   return (
     <SafeAreaView className="flex-1 bg-white relative">
-
-      {/* WHATSAPP GLOW */}
+      {/* Glow background */}
       <LinearGradient
         colors={[
           "rgba(37,211,102,0.40)",
@@ -38,83 +93,81 @@ export default function LoginOptions() {
         }}
       />
 
-      {/* MAIN CONTENT */}
       <View className="flex-1 items-center justify-center px-8">
-
         {/* Logo */}
         <Image
           source={require("../../assets/images/TruckSarthi-Graphic.png")}
-            style={{
-    width: "70%",
-    height: 90,
-    marginBottom: 20,
-  }}
-  resizeMode="contain"
-/>
+          style={{ width: "70%", height: 90, marginBottom: 20 }}
+          resizeMode="contain"
+        />
 
-        {/* TITLE */}
+        {/* Title */}
         <Text style={{ color: COLORS.title }} className="text-4xl font-extrabold">
           Welcome
         </Text>
-        <Text style={{ color: COLORS.subtitle }} className="text-sm mt-1 mb-8 text-center">
+        <Text
+          style={{ color: COLORS.subtitle }}
+          className="text-sm mt-1 mb-8 text-center"
+        >
           Manage your fleet effortlessly.
         </Text>
 
+        {/* Phone login */}
         <TouchableOpacity
           onPress={() => router.push("/auth/login-phone")}
-          style={{ backgroundColor: COLORS.buttonBg, borderColor: COLORS.buttonBorder }}
           className="flex-row items-center justify-center w-full py-3 rounded-xl mb-4 border"
-          activeOpacity={0.9}
+          style={{
+            backgroundColor: COLORS.buttonBg,
+            borderColor: COLORS.buttonBorder,
+          }}
         >
           <Phone size={20} color="#111B21" />
-          <Text className="text-black text-base font-semibold ml-2">
-            Continue with Phone
-          </Text>
+          <Text className="ml-2 font-semibold">Continue with Phone</Text>
         </TouchableOpacity>
 
-        {/* EMAIL LOGIN */}
+        {/* Email login */}
         <TouchableOpacity
           onPress={() => router.push("/auth/login-email")}
-          style={{ backgroundColor: COLORS.buttonBg, borderColor: COLORS.buttonBorder }}
           className="flex-row items-center justify-center w-full py-3 rounded-xl mb-4 border"
-          activeOpacity={0.9}
+          style={{
+            backgroundColor: COLORS.buttonBg,
+            borderColor: COLORS.buttonBorder,
+          }}
         >
           <Mail size={20} color="#111B21" />
-          <Text className="text-black text-base font-semibold ml-2">
-            Continue with Email
-          </Text>
+          <Text className="ml-2 font-semibold">Continue with Email</Text>
         </TouchableOpacity>
 
-        {/* Divider */}
+        {/* OR Divider */}
         <View className="flex-row items-center my-2 w-full">
           <View className="flex-1 h-[1px] bg-gray-300" />
           <Text className="text-gray-500 px-3 text-xs">OR</Text>
           <View className="flex-1 h-[1px] bg-gray-300" />
         </View>
 
-        {/* GOOGLE LOGIN (using Chrome icon from Lucide) */}
-        {/* GOOGLE LOGIN (Coming Soon) */}
-<TouchableOpacity
-  onPress={() => {}}
-  style={{ borderColor: COLORS.googleBorder, opacity: 0.6 }}
-  className="flex-row items-center justify-center bg-white py-3 rounded-xl w-full border"
-  activeOpacity={1}
->
-  <Chrome size={20} color="#DB4437" />
-  <Text className="text-gray-900 font-medium text-base ml-3">
-    Continue with Google
-  </Text>
-</TouchableOpacity>
+        {/* Google login */}
+        <TouchableOpacity
+          disabled={!isAndroid}
+          onPress={() => {
+            if (isAndroid && request) promptAsync();
+          }}
+          className="flex-row items-center justify-center bg-white py-3 rounded-xl w-full border"
+          style={{
+            borderColor: COLORS.googleBorder,
+            opacity: isAndroid ? 1 : 0.4,
+          }}
+        >
+          <Chrome size={20} color="#DB4437" />
+          <Text className="ml-3 font-medium">Continue with Google</Text>
+        </TouchableOpacity>
 
-<Text
-  style={{ color: COLORS.subtitle }}
-  className="text-xs mt-1 text-center"
->
-  Google sign-in coming soon
-</Text>
+        {!isAndroid && (
+          <Text className="text-xs mt-2 text-gray-600">
+            Google Login coming soon on iOS 🚀
+          </Text>
+        )}
 
-
-        {/* SIGNUP */}
+        {/* Signup */}
         <View className="mt-6 flex-row">
           <Text style={{ color: COLORS.subtitle }} className="text-sm">
             New here?

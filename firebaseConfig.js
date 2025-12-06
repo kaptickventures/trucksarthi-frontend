@@ -1,28 +1,55 @@
 // firebaseConfig.js
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps,  RecaptchaVerifier } from "firebase/app";
 import {
   initializeAuth,
   getReactNativePersistence,
 } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
-// Your Firebase config
+// 🔐 Firebase Project Config
 const firebaseConfig = {
-  apiKey: "AIzaSyA3VLgh_i7Bjelpm_8_vmv9v_Whbn_NLPk",
-  authDomain: "trucksarthi.firebaseapp.com",
-  projectId: "trucksarthi",
-  storageBucket: "trucksarthi.firebasestorage.app",
-  messagingSenderId: "685782590797",
-  appId: "1:685782590797:web:d056df37361dc745bdc304",
-  measurementId: "G-PGE6VB2VEX",
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase only once
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// 🟢 Google Auth Config (Android + Web ONLY)
+export const googleAuthConfig = {
+  androidClientId: process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID,
+  webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+};
 
-// ✅ Persistent Firebase Auth for React Native
+// 🔍 Helper: Select correct Client ID per platform
+export const getGoogleClientId = () => {
+  if (Platform.OS === "android") return googleAuthConfig.androidClientId;
+  return googleAuthConfig.webClientId;
+};
+
+// ⚙️ Initialize Firebase (prevent multiple instances)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+
+// 🔐 Enable persistent Auth storage for RN
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
+
+export const setupRecaptcha = () => {
+  if (!auth.app || typeof window === "undefined") return;
+
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new RecaptchaVerifier(
+      "recaptcha-container",
+      {
+        size: "invisible",
+      },
+      auth
+    );
+  }
+  return window.recaptchaVerifier;
+};
 
 export { auth, app };

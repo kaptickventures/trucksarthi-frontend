@@ -1,77 +1,93 @@
-// app/auth/login-google.tsx
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import * as Google from "expo-auth-session/providers/google";
+import React, { useEffect } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
-import { auth } from "../../firebaseConfig"; // <-- your firebase config path
-import { AntDesign } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+
+import { auth } from "../../firebaseConfig";
+import {
+  GoogleAuthProvider,
+  signInWithCredential,
+} from "firebase/auth";
+import { postLoginFlow } from "../../hooks/useAuth";
+
+WebBrowser.maybeCompleteAuthSession();
+
+// 👉 Replace with your Google OAuth Client IDs from Firebase Console
+const ANDROID_CLIENT_ID = "YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com";
+const IOS_CLIENT_ID = "YOUR_IOS_CLIENT_ID.apps.googleusercontent.com";
+const WEB_CLIENT_ID = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com";
 
 export default function LoginGoogle() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
 
-  // Google OAuth config
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: "<YOUR_EXPO_CLIENT_ID>",
-    iosClientId: "<YOUR_IOS_CLIENT_ID>",
-    androidClientId: "<YOUR_ANDROID_CLIENT_ID>",
-    webClientId: "<YOUR_WEB_CLIENT_ID>",
+    androidClientId: ANDROID_CLIENT_ID,
+    iosClientId: IOS_CLIENT_ID,
+    webClientId: WEB_CLIENT_ID,
+    scopes: ["profile", "email"],
   });
 
-  // Handle OAuth response
-useEffect(() => {
-  if (response?.type === "success") {
-    const auth = response.authentication as any;
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { authentication } = response;
 
-    const idToken = auth?.idToken || auth?.id_token;
+      if (!authentication?.idToken) {
+        return alert("Login failed: No ID token");
+      }
 
-    if (idToken) {
-      handleFirebaseLogin(idToken);
+      const credential = GoogleAuthProvider.credential(authentication.idToken);
+      signInWithCredential(auth, credential)
+        .then(async () => {
+          await postLoginFlow(router);
+        })
+        .catch((err) => {
+          console.log("GOOGLE LOGIN ERR:", err);
+          alert("Google Login failed: " + err.message);
+        });
     }
-  }
-}, [response]);
-
-
-  // Firebase login using Google token
-  const handleFirebaseLogin = async (idToken: string) => {
-    try {
-      setLoading(true);
-      const credential = GoogleAuthProvider.credential(idToken);
-      await signInWithCredential(auth, credential);
-
-      router.replace("/"); // redirect to home
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [response]);
 
   return (
-    <View className="flex-1 bg-white dark:bg-black justify-center items-center px-8">
+    <View className="flex-1 justify-center items-center bg-white px-10">
 
-      <Text className="text-3xl font-bold text-black dark:text-white mb-6">
-        Logging in with Google
+      {/* Logo */}
+      <Image
+        source={require("../../assets/images/TruckSarthi-Graphic.png")}
+        style={{ width: "65%", height: 90, marginBottom: 40 }}
+        resizeMode="contain"
+      />
+
+      <Text className="text-3xl font-bold mb-4 text-center">
+        Continue with Google
       </Text>
 
+      {/* Google Login Button */}
       <TouchableOpacity
-        disabled={!request || loading}
+        disabled={!request}
         onPress={() => promptAsync()}
-        className="flex-row items-center justify-center border border-gray-300 
-                   dark:border-gray-700 py-4 rounded-xl w-full bg-white dark:bg-neutral-900"
+        className="w-full py-3 rounded-xl items-center bg-[#DB4437]"
       >
-        {loading ? (
-          <ActivityIndicator size="small" />
+        {!request ? (
+          <ActivityIndicator color="white" />
         ) : (
-          <>
-            <AntDesign name="google" size={24} color="#DB4437" />
-            <Text className="text-black dark:text-white font-medium text-lg ml-3">
-              Continue with Google
-            </Text>
-          </>
+          <Text className="text-white font-semibold text-lg">
+            Login with Google
+          </Text>
         )}
       </TouchableOpacity>
+
+      {/* Back to email/phone login */}
+      <TouchableOpacity onPress={() => router.back()} className="mt-6">
+        <Text className="text-[#128C7E]">Go Back</Text>
+      </TouchableOpacity>
+
     </View>
   );
 }

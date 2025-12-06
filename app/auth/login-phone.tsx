@@ -1,4 +1,3 @@
-// app/auth/login-phone.tsx
 import React, { useState, useRef } from "react";
 import {
   SafeAreaView,
@@ -13,19 +12,21 @@ import {
   Alert,
   Image,
 } from "react-native";
-
-import auth from "@react-native-firebase/auth";
 import { useRouter, Link } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft, Smartphone } from "lucide-react-native";
 
+import {
+  PhoneAuthProvider,
+  signInWithCredential,
+} from "firebase/auth";
+import { auth } from "../../firebaseConfig";
 import { postLoginFlow } from "../../hooks/useAuth";
 
 const COLORS = {
   title: "#128C7E",
   subtitle: "#666666",
   inputBg: "#F0F0F0",
-  inputBorder: "#D1D1D1",
   buttonBg: "#111B21",
   buttonText: "#FFFFFF",
   link: "#25D366",
@@ -33,9 +34,9 @@ const COLORS = {
 
 export default function LoginPhone() {
   const router = useRouter();
+  const confirmationRef = useRef<string | null>(null);
 
   const [phoneNumber, setPhoneNumber] = useState("+91");
-  const confirmationRef = useRef<any>(null); // <-- FIXED: useRef
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -47,34 +48,46 @@ export default function LoginPhone() {
   };
 
   const sendOTP = async () => {
+    if (phoneNumber.length !== 13) {
+      return Alert.alert("Invalid Number", "Enter a valid 10-digit number.");
+    }
+
     try {
-      if (phoneNumber.length !== 13) {
-        return Alert.alert("Invalid number", "Enter a valid 10-digit number.");
-      }
       setLoading(true);
 
-      const confirmResult = await auth().signInWithPhoneNumber(phoneNumber);
-      confirmationRef.current = confirmResult; // <-- FIXED
+      const provider = new PhoneAuthProvider(auth);
+      const sessionInfo = await provider.verifyPhoneNumber(phoneNumber);
 
-      Alert.alert("OTP Sent");
-    } catch (e: any) {
-      Alert.alert("Failed to send OTP", e?.message ?? "Try again.");
+      confirmationRef.current = sessionInfo;
+      Alert.alert("OTP Sent", `Sent to ${phoneNumber}`);
+    } catch (error: any) {
+      console.log("OTP ERR:", error);
+      Alert.alert(
+        "Error",
+        error?.message || "Failed to send OTP. Try again later."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const verifyOTP = async () => {
+    if (!confirmationRef.current) {
+      return Alert.alert("Error", "Please request OTP again.");
+    }
+
     try {
-      if (!confirmationRef.current) return alert("No OTP request found!");
       setLoading(true);
+      const credential = PhoneAuthProvider.credential(
+        confirmationRef.current,
+        code
+      );
 
-      const result = await confirmationRef.current.confirm(code); // <-- FIXED
-      console.log("Signed in user:", result.user);
-
+      await signInWithCredential(auth, credential);
       await postLoginFlow(router);
-    } catch (e: any) {
-      Alert.alert("Invalid OTP", e?.message ?? "Try again.");
+    } catch (err: any) {
+      console.log("VERIFY ERR:", err);
+      Alert.alert("Invalid OTP", "Incorrect or expired OTP.");
     } finally {
       setLoading(false);
     }
@@ -82,13 +95,15 @@ export default function LoginPhone() {
 
   return (
     <SafeAreaView className="flex-1 bg-white relative">
+      {/* Back Button */}
       <TouchableOpacity
         onPress={() => router.back()}
-        style={{ position: "absolute", top: 24, left: 24, zIndex: 999, padding: 8 }}
+        style={{ position: "absolute", top: 24, left: 24, zIndex: 99, padding: 8 }}
       >
         <ChevronLeft size={32} color="#111B21" />
       </TouchableOpacity>
 
+      {/* Glow Background */}
       <LinearGradient
         colors={[
           "rgba(37,211,102,0.40)",
@@ -99,9 +114,9 @@ export default function LoginPhone() {
         style={{
           width: 850,
           height: 850,
-          position: "absolute",
           top: -200,
           borderRadius: 9999,
+          position: "absolute",
           alignSelf: "center",
         }}
       />
@@ -117,8 +132,6 @@ export default function LoginPhone() {
             alignItems: "center",
             paddingHorizontal: 32,
           }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
         >
           <Image
             source={require("../../assets/images/TruckSarthi-Graphic.png")}
@@ -129,26 +142,25 @@ export default function LoginPhone() {
           <Text className="text-4xl font-extrabold" style={{ color: COLORS.title }}>
             Phone Login
           </Text>
-
           <Text className="mt-1 mb-8 text-center" style={{ color: COLORS.subtitle }}>
-            Use your mobile number to continue.
+            Enter your mobile number
           </Text>
 
           {!confirmationRef.current ? (
             <>
+              {/* Phone Input */}
               <TextInput
-                placeholder="+91XXXXXXXXXX"
-                placeholderTextColor={COLORS.subtitle}
                 value={phoneNumber}
                 onChangeText={formatPhone}
                 keyboardType="phone-pad"
                 className="w-full border rounded-xl p-4 mb-6"
-                style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
+                style={{ backgroundColor: COLORS.inputBg }}
               />
 
+              {/* Send OTP Button */}
               <TouchableOpacity
-                onPress={sendOTP}
                 disabled={loading}
+                onPress={sendOTP}
                 className="w-full py-3 rounded-xl items-center"
                 style={{ backgroundColor: COLORS.buttonBg }}
               >
@@ -164,19 +176,21 @@ export default function LoginPhone() {
             </>
           ) : (
             <>
+              {/* OTP Input */}
               <TextInput
-                placeholder="Enter 6-digit OTP"
-                placeholderTextColor={COLORS.subtitle}
-                keyboardType="number-pad"
                 value={code}
                 onChangeText={setCode}
+                placeholder="6 digit OTP"
+                keyboardType="number-pad"
+                maxLength={6}
                 className="w-full border rounded-xl p-4 mb-6 text-center tracking-widest"
-                style={{ backgroundColor: COLORS.inputBg, borderColor: COLORS.inputBorder }}
+                style={{ backgroundColor: COLORS.inputBg }}
               />
 
+              {/* Verify Button */}
               <TouchableOpacity
-                onPress={verifyOTP}
                 disabled={loading}
+                onPress={verifyOTP}
                 className="w-full py-3 rounded-xl items-center"
                 style={{ backgroundColor: COLORS.buttonBg }}
               >
@@ -194,12 +208,13 @@ export default function LoginPhone() {
                 }}
               >
                 <Text className="mt-4" style={{ color: COLORS.link }}>
-                  Change phone number
+                  Change number
                 </Text>
               </TouchableOpacity>
             </>
           )}
 
+          {/* Email login link */}
           <View className="mt-8">
             <Link href="/auth/login-email" style={{ color: COLORS.link }}>
               Use Email Instead
