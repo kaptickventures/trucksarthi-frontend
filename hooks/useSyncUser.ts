@@ -1,6 +1,11 @@
 // hooks/useSyncUser.ts
 import { useEffect, useState } from "react";
-import auth from "@react-native-firebase/auth"; // or "firebase/auth" if using web SDK
+import {
+  onAuthStateChanged,
+  getIdToken,
+  User as FirebaseUser,
+} from "firebase/auth";
+import { auth } from "../firebaseConfig"; // 👈 Using Firebase Web SDK
 import API from "../app/api/axiosInstance";
 
 interface SyncedUser {
@@ -21,19 +26,18 @@ export default function useSyncUser() {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (!firebaseUser) {
         setUser(null);
+        setToken(null);
         setLoading(false);
         return;
       }
 
       try {
-        // ✅ Get Firebase ID token
-        const idToken = await firebaseUser.getIdToken();
+        const idToken = await getIdToken(firebaseUser, true);
         setToken(idToken);
 
-        // ✅ Send to backend for syncing
         const res = await API.post(
           "/user/sync",
           {
@@ -52,7 +56,7 @@ export default function useSyncUser() {
 
         setUser(res.data.user);
       } catch (err: any) {
-        console.error("User sync failed:", err.response?.data || err.message);
+        console.error("User sync failed:", err?.response?.data || err?.message);
         setUser(null);
       } finally {
         setLoading(false);

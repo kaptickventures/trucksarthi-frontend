@@ -20,9 +20,9 @@ import { postLoginFlow } from "../../hooks/useAuth";
 WebBrowser.maybeCompleteAuthSession();
 
 // 👉 Replace with your Google OAuth Client IDs from Firebase Console
-const ANDROID_CLIENT_ID = "YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com";
-const IOS_CLIENT_ID = "YOUR_IOS_CLIENT_ID.apps.googleusercontent.com";
-const WEB_CLIENT_ID = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com";
+const ANDROID_CLIENT_ID = "685782590797-fkfs02vnj1cvep6mjkbaulb0dd3o4c67.apps.googleusercontent.com";
+const IOS_CLIENT_ID = "685782590797-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com";
+const WEB_CLIENT_ID = "685782590797-k4us38g7vsm0shekavkkpoe6gd2gqj6p.apps.googleusercontent.com";
 
 export default function LoginGoogle() {
   const router = useRouter();

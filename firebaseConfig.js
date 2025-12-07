@@ -1,44 +1,53 @@
 // firebaseConfig.js
-import { initializeApp, getApps,  RecaptchaVerifier } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import {
   initializeAuth,
   getReactNativePersistence,
+  getAuth,
+  RecaptchaVerifier,
 } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
-// 🔐 Firebase Project Config
+// 🔐 Firebase Project Config (Hardcoded)
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyA3VLgh_i7Bjelpm_8_vmv9v_Whbn_NLPk",
+  authDomain: "trucksarthi.firebaseapp.com",
+  projectId: "trucksarthi",
+  storageBucket: "trucksarthi.appspot.com",
+  messagingSenderId: "685782590797",
+  appId: "1:685782590797:web:d056df37361dc745bdc304",
 };
 
-// 🟢 Google Auth Config (Android + Web ONLY)
+// 🔐 Google Auth Config
 export const googleAuthConfig = {
-  androidClientId: process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID,
-  webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+  androidClientId:
+    "685782590797-fkfs02vnj1cvep6mjkbaulb0dd3o4c67.apps.googleusercontent.com",
+  webClientId:
+    "685782590797-k4us38g7vsm0shekavkkpoe6gd2gqj6p.apps.googleusercontent.com",
 };
 
-// 🔍 Helper: Select correct Client ID per platform
+// 🔍 Platform Client ID Helper
 export const getGoogleClientId = () => {
-  if (Platform.OS === "android") return googleAuthConfig.androidClientId;
-  return googleAuthConfig.webClientId;
+  return Platform.OS === "android"
+    ? googleAuthConfig.androidClientId
+    : googleAuthConfig.webClientId;
 };
 
-// ⚙️ Initialize Firebase (prevent multiple instances)
+// 🏁 Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-// 🔐 Enable persistent Auth storage for RN
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+// 🧠 Auth with Persistent Storage
+const auth =
+  Platform.OS === "web"
+    ? getAuth(app)
+    : initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage),
+      });
 
+// 🔐 Invisible Recaptcha for Web (for Phone Login)
 export const setupRecaptcha = () => {
-  if (!auth.app || typeof window === "undefined") return;
+  if (Platform.OS !== "web") return;
 
   if (!window.recaptchaVerifier) {
     window.recaptchaVerifier = new RecaptchaVerifier(
@@ -52,4 +61,4 @@ export const setupRecaptcha = () => {
   return window.recaptchaVerifier;
 };
 
-export { auth, app };
+export { app, auth };

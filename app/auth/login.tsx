@@ -40,19 +40,11 @@ export default function LoginOptions() {
   const router = useRouter();
   const isAndroid = Platform.OS === "android";
 
-  // 🛑 Initialize Google Login ONLY if Android
-  let request: any = null;
-  let response: any = null;
-  let promptAsync: any = () => {
-    Alert.alert("Unavailable", "Google login works only on Android for now.");
-  };
-
-  if (isAndroid) {
-    [request, response, promptAsync] = Google.useAuthRequest({
-      androidClientId: ANDROID_CLIENT_ID,
-      webClientId: WEB_CLIENT_ID,
-    });
-  }
+  // 🛑 Initialize Google Login - Hook must be called unconditionally
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: ANDROID_CLIENT_ID,
+    webClientId: WEB_CLIENT_ID,
+  });
 
   // Handle successful google auth
   useEffect(() => {
