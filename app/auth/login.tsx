@@ -1,31 +1,37 @@
 // app/auth/login.tsx
-import React, { useEffect } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { Link, useRouter } from "expo-router";
+import { Chrome, Mail, Phone } from "lucide-react-native";
+import { useEffect } from "react";
 import {
-  View,
+  Alert,
+  Image,
+  Platform,
+  SafeAreaView,
   Text,
   TouchableOpacity,
-  Image,
-  SafeAreaView,
-  Platform,
-  Alert,
+  View,
 } from "react-native";
-import { useRouter, Link } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { Phone, Mail, Chrome } from "lucide-react-native";
 
-import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
 import { postLoginFlow } from "../../hooks/useAuth";
 
 WebBrowser.maybeCompleteAuthSession();
 
-// 🔐 Google OAuth Client IDs — ANDROID ONLY
+// 🔑 Google OAuth IDs
 const ANDROID_CLIENT_ID =
   "685782590797-fkfs02vnj1cvep6mjkbaulb0dd3o4c67.apps.googleusercontent.com";
 const WEB_CLIENT_ID =
   "685782590797-k4us38g7vsm0shekavkkpoe6gd2gqj6p.apps.googleusercontent.com";
+
+const redirectUri = "trucksarthifrontend://";
+
+
+console.log("🔗 USING REDIRECT", redirectUri);
+
 
 const COLORS = {
   title: "#128C7E",
@@ -40,16 +46,20 @@ export default function LoginOptions() {
   const router = useRouter();
   const isAndroid = Platform.OS === "android";
 
-  // 🛑 Initialize Google Login - Hook must be called unconditionally
+  console.log("🔗 Google Redirect URI:", redirectUri);
+
+  // Google Login Request
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId: ANDROID_CLIENT_ID,
     webClientId: WEB_CLIENT_ID,
+    redirectUri,
   });
 
-  // Handle successful google auth
+  // Listen for Auth Response
   useEffect(() => {
-    const handleResponse = async () => {
+    const handleGoogleAuth = async () => {
       if (response?.type !== "success") return;
+
       const { id_token } = response.params;
       if (!id_token) return;
 
@@ -58,16 +68,17 @@ export default function LoginOptions() {
         await signInWithCredential(auth, credential);
         await postLoginFlow(router);
       } catch (err: any) {
-        console.log(err);
+        console.log("Google Sign-In Error:", err);
         Alert.alert("Google Login Failed", err.message);
       }
     };
-    handleResponse();
+
+    handleGoogleAuth();
   }, [response]);
 
   return (
     <SafeAreaView className="flex-1 bg-white relative">
-      {/* Glow background */}
+      {/* Background Glow */}
       <LinearGradient
         colors={[
           "rgba(37,211,102,0.40)",
@@ -85,6 +96,7 @@ export default function LoginOptions() {
         }}
       />
 
+      {/* Content */}
       <View className="flex-1 items-center justify-center px-8">
         {/* Logo */}
         <Image
@@ -93,7 +105,6 @@ export default function LoginOptions() {
           resizeMode="contain"
         />
 
-        {/* Title */}
         <Text style={{ color: COLORS.title }} className="text-4xl font-extrabold">
           Welcome
         </Text>
@@ -104,7 +115,7 @@ export default function LoginOptions() {
           Manage your fleet effortlessly.
         </Text>
 
-        {/* Phone login */}
+        {/* Phone Login */}
         <TouchableOpacity
           onPress={() => router.push("/auth/login-phone")}
           className="flex-row items-center justify-center w-full py-3 rounded-xl mb-4 border"
@@ -117,7 +128,7 @@ export default function LoginOptions() {
           <Text className="ml-2 font-semibold">Continue with Phone</Text>
         </TouchableOpacity>
 
-        {/* Email login */}
+        {/* Email Login */}
         <TouchableOpacity
           onPress={() => router.push("/auth/login-email")}
           className="flex-row items-center justify-center w-full py-3 rounded-xl mb-4 border"
@@ -137,7 +148,7 @@ export default function LoginOptions() {
           <View className="flex-1 h-[1px] bg-gray-300" />
         </View>
 
-        {/* Google login */}
+        {/* Google Login */}
         <TouchableOpacity
           disabled={!isAndroid}
           onPress={() => {
@@ -159,7 +170,7 @@ export default function LoginOptions() {
           </Text>
         )}
 
-        {/* Signup */}
+        {/* Signup Redirect */}
         <View className="mt-6 flex-row">
           <Text style={{ color: COLORS.subtitle }} className="text-sm">
             New here?
