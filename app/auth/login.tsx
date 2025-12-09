@@ -1,10 +1,8 @@
 // app/auth/login.tsx
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
-import { Chrome, Mail, Phone } from "lucide-react-native";
-import { useEffect } from "react";
+import { Mail, Phone } from "lucide-react-native";
 import {
-  Alert,
   Image,
   Platform,
   SafeAreaView,
@@ -12,26 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
-import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
-import { postLoginFlow } from "../../hooks/useAuth";
-
-WebBrowser.maybeCompleteAuthSession();
-
-// 🔑 Google OAuth IDs
-const ANDROID_CLIENT_ID =
-  "685782590797-fkfs02vnj1cvep6mjkbaulb0dd3o4c67.apps.googleusercontent.com";
-const WEB_CLIENT_ID =
-  "685782590797-k4us38g7vsm0shekavkkpoe6gd2gqj6p.apps.googleusercontent.com";
-
-const redirectUri = "trucksarthifrontend://";
-
-
-console.log("🔗 USING REDIRECT", redirectUri);
-
 
 const COLORS = {
   title: "#128C7E",
@@ -45,36 +23,6 @@ const COLORS = {
 export default function LoginOptions() {
   const router = useRouter();
   const isAndroid = Platform.OS === "android";
-
-  console.log("🔗 Google Redirect URI:", redirectUri);
-
-  // Google Login Request
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: ANDROID_CLIENT_ID,
-    webClientId: WEB_CLIENT_ID,
-    redirectUri,
-  });
-
-  // Listen for Auth Response
-  useEffect(() => {
-    const handleGoogleAuth = async () => {
-      if (response?.type !== "success") return;
-
-      const { id_token } = response.params;
-      if (!id_token) return;
-
-      try {
-        const credential = GoogleAuthProvider.credential(id_token);
-        await signInWithCredential(auth, credential);
-        await postLoginFlow(router);
-      } catch (err: any) {
-        console.log("Google Sign-In Error:", err);
-        Alert.alert("Google Login Failed", err.message);
-      }
-    };
-
-    handleGoogleAuth();
-  }, [response]);
 
   return (
     <SafeAreaView className="flex-1 bg-white relative">
@@ -108,6 +56,7 @@ export default function LoginOptions() {
         <Text style={{ color: COLORS.title }} className="text-4xl font-extrabold">
           Welcome
         </Text>
+
         <Text
           style={{ color: COLORS.subtitle }}
           className="text-sm mt-1 mb-8 text-center"
@@ -148,33 +97,22 @@ export default function LoginOptions() {
           <View className="flex-1 h-[1px] bg-gray-300" />
         </View>
 
-        {/* Google Login */}
-        <TouchableOpacity
-          disabled={!isAndroid}
-          onPress={() => {
-            if (isAndroid && request) promptAsync();
-          }}
-          className="flex-row items-center justify-center bg-white py-3 rounded-xl w-full border"
-          style={{
-            borderColor: COLORS.googleBorder,
-            opacity: isAndroid ? 1 : 0.4,
-          }}
+        {/* Google Login Coming Soon */}
+        <View
+          className="flex-row items-center justify-center bg-white py-3 rounded-xl w-full border opacity-60"
+          style={{ borderColor: COLORS.googleBorder }}
         >
-          <Chrome size={20} color="#DB4437" />
-          <Text className="ml-3 font-medium">Continue with Google</Text>
-        </TouchableOpacity>
-
-        {!isAndroid && (
-          <Text className="text-xs mt-2 text-gray-600">
-            Google Login coming soon on iOS 🚀
+          <Text className="font-medium text-gray-600">
+            Google Login — Coming Soon 🚀
           </Text>
-        )}
+        </View>
 
         {/* Signup Redirect */}
         <View className="mt-6 flex-row">
           <Text style={{ color: COLORS.subtitle }} className="text-sm">
             New here?
           </Text>
+
           <Link
             href="/auth/signup-email"
             style={{ color: COLORS.link }}

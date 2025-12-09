@@ -16,11 +16,7 @@ import { useRouter, Link } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft, Smartphone } from "lucide-react-native";
 
-import {
-  PhoneAuthProvider,
-  signInWithCredential,
-} from "firebase/auth";
-import { auth } from "../../firebaseConfig";
+import auth from "@react-native-firebase/auth"; // NATIVE FIREBASE AUTH
 import { postLoginFlow } from "../../hooks/useAuth";
 
 const COLORS = {
@@ -34,7 +30,7 @@ const COLORS = {
 
 export default function LoginPhone() {
   const router = useRouter();
-  const confirmationRef = useRef<string | null>(null);
+  const confirmationRef = useRef<any>(null);
 
   const [phoneNumber, setPhoneNumber] = useState("+91");
   const [code, setCode] = useState("");
@@ -47,6 +43,7 @@ export default function LoginPhone() {
     setPhoneNumber("+91" + numbers);
   };
 
+  /** SEND OTP USING NATIVE FIREBASE */
   const sendOTP = async () => {
     if (phoneNumber.length !== 13) {
       return Alert.alert("Invalid Number", "Enter a valid 10-digit number.");
@@ -55,22 +52,22 @@ export default function LoginPhone() {
     try {
       setLoading(true);
 
-      const provider = new PhoneAuthProvider(auth);
-      const sessionInfo = await provider.verifyPhoneNumber(phoneNumber);
+      const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
 
-      confirmationRef.current = sessionInfo;
+      confirmationRef.current = confirmation;
       Alert.alert("OTP Sent", `Sent to ${phoneNumber}`);
     } catch (error: any) {
       console.log("OTP ERR:", error);
       Alert.alert(
-        "Error",
-        error?.message || "Failed to send OTP. Try again later."
+        "Error Sending OTP",
+        error?.message || "Failed to send OTP. Check SHA-1 + Play Services."
       );
     } finally {
       setLoading(false);
     }
   };
 
+  /** VERIFY OTP USING NATIVE FIREBASE */
   const verifyOTP = async () => {
     if (!confirmationRef.current) {
       return Alert.alert("Error", "Please request OTP again.");
@@ -78,12 +75,10 @@ export default function LoginPhone() {
 
     try {
       setLoading(true);
-      const credential = PhoneAuthProvider.credential(
-        confirmationRef.current,
-        code
-      );
 
-      await signInWithCredential(auth, credential);
+      await confirmationRef.current.confirm(code);
+
+      // user is now logged in
       await postLoginFlow(router);
     } catch (err: any) {
       console.log("VERIFY ERR:", err);
@@ -95,7 +90,6 @@ export default function LoginPhone() {
 
   return (
     <SafeAreaView className="flex-1 bg-white relative">
-      {/* Back Button */}
       <TouchableOpacity
         onPress={() => router.back()}
         style={{ position: "absolute", top: 24, left: 24, zIndex: 99, padding: 8 }}
@@ -103,7 +97,6 @@ export default function LoginPhone() {
         <ChevronLeft size={32} color="#111B21" />
       </TouchableOpacity>
 
-      {/* Glow Background */}
       <LinearGradient
         colors={[
           "rgba(37,211,102,0.40)",
@@ -148,7 +141,6 @@ export default function LoginPhone() {
 
           {!confirmationRef.current ? (
             <>
-              {/* Phone Input */}
               <TextInput
                 value={phoneNumber}
                 onChangeText={formatPhone}
@@ -157,7 +149,6 @@ export default function LoginPhone() {
                 style={{ backgroundColor: COLORS.inputBg }}
               />
 
-              {/* Send OTP Button */}
               <TouchableOpacity
                 disabled={loading}
                 onPress={sendOTP}
@@ -176,7 +167,6 @@ export default function LoginPhone() {
             </>
           ) : (
             <>
-              {/* OTP Input */}
               <TextInput
                 value={code}
                 onChangeText={setCode}
@@ -187,7 +177,6 @@ export default function LoginPhone() {
                 style={{ backgroundColor: COLORS.inputBg }}
               />
 
-              {/* Verify Button */}
               <TouchableOpacity
                 disabled={loading}
                 onPress={verifyOTP}
@@ -214,7 +203,6 @@ export default function LoginPhone() {
             </>
           )}
 
-          {/* Email login link */}
           <View className="mt-8">
             <Link href="/auth/login-email" style={{ color: COLORS.link }}>
               Use Email Instead
