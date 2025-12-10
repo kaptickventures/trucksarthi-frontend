@@ -52,12 +52,17 @@ export default function LoginPhone() {
     try {
       setLoading(true);
 
+      console.log("📨 SENDING OTP TO:", phoneNumber);
+
       const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+
+      console.log("📨 OTP SENT SUCCESS → confirmation object:", JSON.stringify(confirmation, null, 2));
 
       confirmationRef.current = confirmation;
       Alert.alert("OTP Sent", `Sent to ${phoneNumber}`);
     } catch (error: any) {
-      console.log("OTP ERR:", error);
+      console.log("❌ OTP SEND ERROR FULL →", JSON.stringify(error, null, 2));
+
       Alert.alert(
         "Error Sending OTP",
         error?.message || "Failed to send OTP. Check SHA-1 + Play Services."
@@ -76,13 +81,21 @@ export default function LoginPhone() {
     try {
       setLoading(true);
 
-      await confirmationRef.current.confirm(code);
+      console.log("🔍 VERIFYING OTP WITH CODE:", code);
+      console.log("🔐 confirmationRef.current:", JSON.stringify(confirmationRef.current, null, 2));
 
-      // user is now logged in
+      const userCredential = await confirmationRef.current.confirm(code);
+
+      console.log(
+        "✅ OTP VERIFIED SUCCESS → userCredential:",
+        JSON.stringify(userCredential, null, 2)
+      );
+
       await postLoginFlow(router);
     } catch (err: any) {
-      console.log("VERIFY ERR:", err);
-      Alert.alert("Invalid OTP", "Incorrect or expired OTP.");
+      console.log("❌ OTP VERIFY ERROR FULL →", JSON.stringify(err, null, 2));
+
+      Alert.alert("Invalid OTP", err?.message || "Incorrect or expired OTP.");
     } finally {
       setLoading(false);
     }
@@ -90,6 +103,7 @@ export default function LoginPhone() {
 
   return (
     <SafeAreaView className="flex-1 bg-white relative">
+      {/* Back Button */}
       <TouchableOpacity
         onPress={() => router.back()}
         style={{ position: "absolute", top: 24, left: 24, zIndex: 99, padding: 8 }}
@@ -97,6 +111,7 @@ export default function LoginPhone() {
         <ChevronLeft size={32} color="#111B21" />
       </TouchableOpacity>
 
+      {/* Glow Background */}
       <LinearGradient
         colors={[
           "rgba(37,211,102,0.40)",
@@ -141,6 +156,7 @@ export default function LoginPhone() {
 
           {!confirmationRef.current ? (
             <>
+              {/* Phone Input */}
               <TextInput
                 value={phoneNumber}
                 onChangeText={formatPhone}
@@ -149,6 +165,7 @@ export default function LoginPhone() {
                 style={{ backgroundColor: COLORS.inputBg }}
               />
 
+              {/* Send OTP Button */}
               <TouchableOpacity
                 disabled={loading}
                 onPress={sendOTP}
@@ -167,6 +184,7 @@ export default function LoginPhone() {
             </>
           ) : (
             <>
+              {/* OTP Input */}
               <TextInput
                 value={code}
                 onChangeText={setCode}
@@ -177,6 +195,7 @@ export default function LoginPhone() {
                 style={{ backgroundColor: COLORS.inputBg }}
               />
 
+              {/* Verify OTP Button */}
               <TouchableOpacity
                 disabled={loading}
                 onPress={verifyOTP}
@@ -203,6 +222,7 @@ export default function LoginPhone() {
             </>
           )}
 
+          {/* Email login link */}
           <View className="mt-8">
             <Link href="/auth/login-email" style={{ color: COLORS.link }}>
               Use Email Instead
