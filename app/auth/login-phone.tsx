@@ -43,6 +43,28 @@ export default function LoginPhone() {
     setPhoneNumber("+91" + numbers);
   };
 
+  // Wait for native auth state to reflect the signed-in user
+  const waitForFirebaseUser = async (timeoutMs = 8000) => {
+    return new Promise<void>((resolve, reject) => {
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        unsubscribe();
+        reject(new Error("waitForFirebaseUser timed out"));
+      }, timeoutMs);
+
+      const unsubscribe = auth().onAuthStateChanged((user) => {
+        if (user) {
+          clearTimeout(timer);
+          unsubscribe();
+          resolve();
+        } else if (timedOut) {
+          unsubscribe();
+        }
+      });
+    });
+  };
+
   /** SEND OTP USING NATIVE FIREBASE */
   const sendOTP = async () => {
     if (phoneNumber.length !== 13) {
@@ -84,6 +106,7 @@ export default function LoginPhone() {
       console.log("🔍 VERIFYING OTP WITH CODE:", code);
       console.log("🔐 confirmationRef.current:", JSON.stringify(confirmationRef.current, null, 2));
 
+      // confirm the OTP (this signs in the user on native side)
       const userCredential = await confirmationRef.current.confirm(code);
 
       console.log(
@@ -91,10 +114,24 @@ export default function LoginPhone() {
         JSON.stringify(userCredential, null, 2)
       );
 
-      await postLoginFlow(router);
+      // WAIT for the native auth state to update auth().currentUser
+      try {
+        await waitForFirebaseUser();
+        console.log("🔥 Firebase currentUser is now available:", auth().currentUser?.uid);
+      } catch (waitErr) {
+        // timeout or other issue — still attempt postLoginFlow but log the condition
+        console.log("⚠️ waitForFirebaseUser failed/timeout:", waitErr);
+      }
+
+      // call postLoginFlow (resilient: does not throw on init failure)
+      try {
+        await postLoginFlow(router);
+      } catch (flowErr) {
+        // postLoginFlow is resilient, but log if anything unexpected happens
+        console.log("❌ postLoginFlow unexpected error:", flowErr);
+      }
     } catch (err: any) {
       console.log("❌ OTP VERIFY ERROR FULL →", JSON.stringify(err, null, 2));
-
       Alert.alert("Invalid OTP", err?.message || "Incorrect or expired OTP.");
     } finally {
       setLoading(false);

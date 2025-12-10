@@ -30,14 +30,17 @@ export async function initUser() {
   console.log("📨 initUser → sending payload:", payload);
 
   try {
-    await API.post("/api/users/init", payload);
-    console.log("✅ initUser → success");
+    const res = await API.post("/api/users/init", payload);
+    console.log("✅ initUser → success", res?.data?.user ?? null);
+    return res.data;
   } catch (err: unknown) {
     const error = err as AxiosError;
     console.log(
       "❌ initUser ERROR →",
       error.response?.data || error.message || err
     );
+    // Throw the raw error so callers can inspect if they want,
+    // but postLoginFlow will choose to continue on failure.
     throw err;
   }
 }
@@ -87,8 +90,14 @@ export async function checkProfileCompleted(
 //      (email OR phone) — routes user based on profile completion
 // -------------------------------------------------------------
 export async function postLoginFlow(router: any) {
+  // Defensive: if no auth user, don't throw upwards in UI flow — log & continue.
   const u = auth.currentUser;
-  if (!u) throw new Error("No authenticated user");
+  if (!u) {
+    console.log("⚠️ postLoginFlow → No authenticated user present. Continuing to /basicDetails.");
+    // if you prefer, you may route to login screen instead, but we'll attempt to continue:
+    router.replace("/basicDetails");
+    return;
+  }
 
   console.log("🔐 postLoginFlow → user:", {
     uid: u.uid,
@@ -96,20 +105,21 @@ export async function postLoginFlow(router: any) {
     email: u.email,
   });
 
-  // 1) Create/update basic row
+  // 1) Create/update basic row — do NOT let backend failure block login
   try {
     await initUser();
   } catch (err) {
-    console.log("❌ postLoginFlow → initUser failed:", err);
-    throw err;
+    // Log details but continue the flow — backend may be temporarily rejecting due to unique constraints
+    console.log("⚠️ postLoginFlow → initUser failed (ignored):", err);
   }
 
-  // 2) Check if profile is complete
+  // 2) Check if profile is complete (if this fails, default to incomplete)
   let completed = false;
   try {
     completed = await checkProfileCompleted(u.uid);
   } catch (err) {
-    console.log("❌ postLoginFlow → checkProfileCompleted failed:", err);
+    console.log("⚠️ postLoginFlow → checkProfileCompleted failed (treating as incomplete):", err);
+    completed = false;
   }
 
   // 3) Route based on completion
