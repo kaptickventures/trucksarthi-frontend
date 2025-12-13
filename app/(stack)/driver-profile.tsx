@@ -5,6 +5,9 @@ import {
   Phone,
   User,
   Wallet,
+  Pencil,
+  PlusCircle,
+  IndianRupee,
 } from "lucide-react-native";
 import {
   ScrollView,
@@ -14,6 +17,7 @@ import {
   useColorScheme,
   View,
   Linking,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -22,42 +26,18 @@ export default function DriverProfile() {
   const params = useLocalSearchParams();
   const isDark = useColorScheme() === "dark";
 
-  /* ---------------- Dummy Driver Info ---------------- */
   const driverName = params.driver_name || "Ramesh Kumar";
   const contactNumber = params.contact_number || "+91 98765 43210";
 
-  /* ---------------- Dummy Summary ---------------- */
   const netBalance = 18500;
 
-  /* ---------------- Dummy Ledger ---------------- */
   const ledger = [
-    {
-      id: 1,
-      type: "advance",
-      date: "2025-03-02",
-      amount: -5000,
-    },
-    {
-      id: 2,
-      type: "expense",
-      date: "2025-03-06",
-      amount: -1200,
-    },
-    {
-      id: 3,
-      type: "per trip",
-      date: "2025-03-10",
-      amount: 8500,
-    },
-    {
-      id: 4,
-      type: "salary",
-      date: "2025-03-15",
-      amount: 16200,
-    },
+    { id: 1, type: "advance", date: "2025-03-02", amount: -5000 },
+    { id: 2, type: "expense", date: "2025-03-06", amount: -1200 },
+    { id: 3, type: "per trip", date: "2025-03-10", amount: 8500 },
+    { id: 4, type: "salary", date: "2025-03-15", amount: 16200 },
   ];
 
-  /* ---------------- Dummy Payroll ---------------- */
   const payrolls = [
     {
       id: 1,
@@ -79,13 +59,21 @@ export default function DriverProfile() {
     Linking.openURL(`tel:${contactNumber}`);
   };
 
+  const handleEditProfile = () => {
+    Alert.alert("Edit Profile", "Edit driver details (dummy action)");
+  };
+
+  const handleAddExpense = () => {
+    Alert.alert("Add Expense", "Open add expense flow (dummy)");
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* Header */}
-      <View className="px-6 py-4 flex-row items-center">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
+      <View className="px-6 py-4 flex-row items-center justify-between">
+        <TouchableOpacity onPress={() => router.back()}>
           <Ionicons
             name="arrow-back"
             size={24}
@@ -93,38 +81,48 @@ export default function DriverProfile() {
           />
         </TouchableOpacity>
         <Text className="text-lg font-semibold">Driver Profile</Text>
+        <View className="w-6" />
       </View>
 
       <ScrollView className="flex-1 px-6">
-        {/* Profile */}
-        <View className="items-center mt-6 mb-8">
-          <View className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center mb-4">
-            <User size={42} color="#2563EB" />
+        {/* Profile Card */}
+        <View className="bg-card border border-border rounded-3xl p-6 items-center mb-8">
+          <View className="w-28 h-28 bg-blue-100 rounded-full items-center justify-center mb-4">
+            <User size={48} color="#2563EB" />
           </View>
 
           <Text className="text-2xl font-bold">{driverName}</Text>
           <Text className="text-muted-foreground mt-1">
             {contactNumber}
           </Text>
+
+          <View className="flex-row mt-5">
+            <TouchableOpacity
+              onPress={handleCall}
+              className="bg-green-500 px-5 py-2.5 rounded-full flex-row items-center mr-3"
+            >
+              <Phone size={18} color="white" />
+              <Text className="text-white font-semibold ml-2">
+                Call
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleEditProfile}
+              className="bg-muted px-5 py-2.5 rounded-full flex-row items-center"
+            >
+              <Pencil size={18} />
+              <Text className="font-semibold ml-2">
+                Edit
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Call Button */}
-        <View className="flex-row justify-center mb-8">
-          <TouchableOpacity
-            onPress={handleCall}
-            className="bg-green-500 px-6 py-3 rounded-full flex-row items-center"
-          >
-            <Phone size={20} color="white" />
-            <Text className="text-white font-semibold ml-2">
-              Call Driver
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Balance */}
-        <View className="bg-card border border-border rounded-2xl p-4 mb-8 items-center">
-          <Wallet size={24} />
-          <Text className="text-2xl font-bold text-green-600 mt-2">
+        {/* Balance Card */}
+        <View className="bg-card border border-border rounded-2xl p-5 mb-8 items-center">
+          <Wallet size={26} />
+          <Text className="text-3xl font-bold text-green-600 mt-3">
             ₹ {netBalance}
           </Text>
           <Text className="text-xs text-muted-foreground mt-1">
@@ -133,7 +131,7 @@ export default function DriverProfile() {
         </View>
 
         {/* Ledger */}
-        <View className="mb-8">
+        <View className="mb-10">
           <Text className="text-lg font-semibold mb-4">
             Driver Ledger
           </Text>
@@ -141,19 +139,22 @@ export default function DriverProfile() {
           {ledger.map((item) => (
             <View
               key={item.id}
-              className="bg-card border border-border rounded-xl p-4 mb-3 flex-row justify-between"
+              className="bg-card border border-border rounded-xl p-4 mb-3 flex-row items-center justify-between"
             >
-              <View>
-                <Text className="font-semibold capitalize">
-                  {item.type}
-                </Text>
-                <Text className="text-xs text-muted-foreground">
-                  {item.date}
-                </Text>
+              <View className="flex-row items-center">
+                <IndianRupee size={18} />
+                <View className="ml-3">
+                  <Text className="font-semibold capitalize">
+                    {item.type}
+                  </Text>
+                  <Text className="text-xs text-muted-foreground">
+                    {item.date}
+                  </Text>
+                </View>
               </View>
 
               <Text
-                className={`font-semibold ${
+                className={`font-bold ${
                   item.amount >= 0
                     ? "text-green-600"
                     : "text-red-500"
@@ -166,7 +167,7 @@ export default function DriverProfile() {
         </View>
 
         {/* Payroll */}
-        <View className="mb-10">
+        <View className="mb-20">
           <Text className="text-lg font-semibold mb-4">
             Payroll History
           </Text>
@@ -177,7 +178,7 @@ export default function DriverProfile() {
               className="bg-card border border-border rounded-xl p-4 mb-3"
             >
               <View className="flex-row justify-between mb-2">
-                <Text className="font-semibold">
+                <Text className="font-bold">
                   ₹ {p.total_amount}
                 </Text>
                 <Text
@@ -201,6 +202,14 @@ export default function DriverProfile() {
           ))}
         </View>
       </ScrollView>
+
+      {/* Floating Add Expense Button */}
+      <TouchableOpacity
+        onPress={handleAddExpense}
+        className="absolute bottom-6 right-6 bg-blue-600 w-14 h-14 rounded-full items-center justify-center shadow-lg"
+      >
+        <PlusCircle size={26} color="white" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
