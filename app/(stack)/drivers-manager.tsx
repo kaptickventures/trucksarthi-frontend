@@ -22,9 +22,11 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import useDrivers from "../../hooks/useDriver";
 
 export default function DriversManager() {
+  const router = useRouter();
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
@@ -58,7 +60,7 @@ export default function DriversManager() {
   useFocusEffect(
     useCallback(() => {
       if (firebase_uid) fetchDrivers();
-    }, [firebase_uid, fetchDrivers])
+    }, [firebase_uid])
   );
 
   const pickImage = async (field: string) => {
@@ -148,7 +150,7 @@ export default function DriversManager() {
       }
       closeModal();
       fetchDrivers();
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Failed to save driver.");
     }
   };
@@ -171,7 +173,9 @@ export default function DriversManager() {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#888" />
-        <Text className="mt-2 text-muted-foreground">Loading user info...</Text>
+        <Text className="mt-2 text-muted-foreground">
+          Loading user info...
+        </Text>
       </View>
     );
   }
@@ -192,44 +196,67 @@ export default function DriversManager() {
           </Text>
         ) : (
           drivers.map((driver) => (
-            <View
+            <TouchableOpacity
               key={driver.driver_id}
-              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
+              activeOpacity={0.85}
+              onPress={() =>
+                router.push({
+                  pathname: "/(stack)/driver-profile",
+                  params: {
+                    driver_id: driver.driver_id,
+                    driver_name: driver.driver_name,
+                    contact_number: driver.contact_number,
+                    identity_card_url: driver.identity_card_url,
+                    license_card_url: driver.license_card_url,
+                  },
+                })
+              }
+              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
             >
-              <View className="flex-row items-start flex-1">
-                <View className="p-2 bg-secondary rounded-xl mr-3">
-                  <MapPin size={18} color="#2563EB" />
+              <View className="flex-row justify-between items-center">
+                <View className="flex-row items-start flex-1">
+                  <View className="p-2 bg-secondary rounded-xl mr-3">
+                    <MapPin size={18} color="#2563EB" />
+                  </View>
+
+                  <View className="flex-1">
+                    <Text className="text-card-foreground font-semibold text-base">
+                      {driver.driver_name}
+                    </Text>
+                    <Text className="text-muted-foreground text-xs mt-1">
+                      {driver.contact_number}
+                    </Text>
+                  </View>
                 </View>
 
-                <View className="flex-1">
-                  <Text className="text-card-foreground font-semibold text-base">
-                    {driver.driver_name}
-                  </Text>
-                  <Text className="text-muted-foreground text-xs mt-1">
-                    {driver.contact_number}
-                  </Text>
+                <View className="flex-row items-center ml-3">
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      openModal(true, driver);
+                    }}
+                    className="p-2"
+                  >
+                    <Edit3 size={20} color="#999" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDelete(driver.driver_id);
+                    }}
+                    className="p-2"
+                  >
+                    <Trash2 size={20} color="#999" />
+                  </TouchableOpacity>
                 </View>
               </View>
-
-              <View className="flex-row items-center ml-3">
-                <TouchableOpacity
-                  onPress={() => openModal(true, driver)}
-                  className="p-2"
-                >
-                  <Edit3 size={20} color="#999" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDelete(driver.driver_id)}
-                  className="p-2"
-                >
-                  <Trash2 size={20} color="#999" />
-                </TouchableOpacity>
-              </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
 
+      {/* Floating Add Button */}
       <TouchableOpacity
         onPress={() => openModal(false)}
         className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full justify-center items-center"
@@ -244,6 +271,7 @@ export default function DriversManager() {
         <Plus color="white" size={28} />
       </TouchableOpacity>
 
+      {/* Modal */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
           <Animated.View
@@ -261,12 +289,9 @@ export default function DriversManager() {
               className="flex-1"
             >
               <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
+
               <View className="flex-row justify-between items-center mb-5">
-                <Text
-                  className={`text-2xl font-semibold ${
-                    isDark ? "text-white" : "text-black"
-                  }`}
-                >
+                <Text className="text-2xl font-semibold">
                   {editingId ? "Edit Driver" : "Add Driver"}
                 </Text>
                 <TouchableOpacity onPress={closeModal}>
@@ -275,36 +300,30 @@ export default function DriversManager() {
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Required fields */}
-                {requiredFields.map((key) => {
-                  const label = key.replaceAll("_", " ");
-                  return (
-                    <View key={key} className="mb-4">
-                      <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                        {label} <Text className="text-red-500">*</Text>
-                      </Text>
-                      <TextInput
-                        className="border border-input text-input-text rounded-xl p-3"
-                        value={(formData as any)[key]}
-                        onChangeText={(val) =>
-                          setFormData({ ...formData, [key]: val })
-                        }
-                        placeholder={`Enter ${label}`}
-                        placeholderTextColor="#888"
-                        keyboardType={
-                          key.includes("number") ? "phone-pad" : "default"
-                        }
-                      />
-                    </View>
-                  );
-                })}
+                {requiredFields.map((key) => (
+                  <View key={key} className="mb-4">
+                    <Text className="text-muted-foreground mb-1 font-medium capitalize">
+                      {key.replaceAll("_", " ")}{" "}
+                      <Text className="text-red-500">*</Text>
+                    </Text>
+                    <TextInput
+                      className="border border-input rounded-xl p-3"
+                      value={(formData as any)[key]}
+                      onChangeText={(val) =>
+                        setFormData({ ...formData, [key]: val })
+                      }
+                      keyboardType={
+                        key.includes("number") ? "phone-pad" : "default"
+                      }
+                    />
+                  </View>
+                ))}
 
-                {/* Identity card image */}
+                {/* Identity Card */}
                 <View className="mb-4">
                   <Text className="text-muted-foreground mb-1 font-medium">
                     Identity Card Photo
                   </Text>
-
                   {formData.identity_card_url !== "" && (
                     <Image
                       source={{ uri: formData.identity_card_url }}
@@ -314,15 +333,13 @@ export default function DriversManager() {
                         borderRadius: 12,
                         marginBottom: 10,
                       }}
-                      resizeMode="cover"
                     />
                   )}
-
                   <TouchableOpacity
                     onPress={() => pickImage("identity_card_url")}
                     className="bg-secondary p-3 rounded-xl"
                   >
-                    <Text className="text-center text-secondary-foreground">
+                    <Text className="text-center">
                       {formData.identity_card_url
                         ? "Change Photo"
                         : "Upload Photo"}
@@ -330,12 +347,11 @@ export default function DriversManager() {
                   </TouchableOpacity>
                 </View>
 
-                {/* License card image */}
+                {/* License Card */}
                 <View className="mb-4">
                   <Text className="text-muted-foreground mb-1 font-medium">
                     License Card Photo
                   </Text>
-
                   {formData.license_card_url !== "" && (
                     <Image
                       source={{ uri: formData.license_card_url }}
@@ -345,15 +361,13 @@ export default function DriversManager() {
                         borderRadius: 12,
                         marginBottom: 10,
                       }}
-                      resizeMode="cover"
                     />
                   )}
-
                   <TouchableOpacity
                     onPress={() => pickImage("license_card_url")}
                     className="bg-secondary p-3 rounded-xl"
                   >
-                    <Text className="text-center text-secondary-foreground">
+                    <Text className="text-center">
                       {formData.license_card_url
                         ? "Change Photo"
                         : "Upload Photo"}

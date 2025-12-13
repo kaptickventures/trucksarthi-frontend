@@ -1,7 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Camera } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,26 +15,56 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from "../../firebaseConfig";
+import auth from "@react-native-firebase/auth";
 import { syncFirebaseUser } from "../../hooks/useAuth";
 
 export default function BasicDetails() {
   const router = useRouter();
-  const user = auth.currentUser;
 
-  // 🔹 Detect what’s missing
-  const hasEmail = Boolean(user?.email);
-  const hasPhone = Boolean(user?.phoneNumber);
+  // ---------------------------------------------------------
+  // Firebase Auth Hydration
+  // ---------------------------------------------------------
+  const [firebaseUser, setFirebaseUser] = useState(auth().currentUser);
+  const [authReady, setAuthReady] = useState(false);
 
-  const [full_name, setFullName] = useState(user?.displayName ?? "");
-  const [email_address, setEmail] = useState(user?.email ?? "");
-  const [phone_number, setPhone] = useState(user?.phoneNumber ?? "");
+  useEffect(() => {
+    const unsub = auth().onAuthStateChanged((u) => {
+      console.log("👀 Auth changed →", u?.uid);
+      setFirebaseUser(u);
+      setAuthReady(true);
+    });
+    return () => unsub();
+  }, []);
+
+  // ---------------------------------------------------------
+  // Fields (Hooks MUST be here - no early returns above)
+  // ---------------------------------------------------------
+  const [full_name, setFullName] = useState("");
+  const [email_address, setEmail] = useState("");
+  const [phone_number, setPhone] = useState("");
   const [company_name, setCompany] = useState("");
   const [address, setAddress] = useState("");
   const [date_of_birth, setDob] = useState("");
   const [profile_picture_url, setProfileUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // ---------------------------------------------------------
+  // When user is loaded, fill initial fields
+  // ---------------------------------------------------------
+  useEffect(() => {
+    if (!firebaseUser) return;
+
+    setFullName(firebaseUser.displayName ?? "");
+    setEmail(firebaseUser.email ?? "");
+    setPhone(firebaseUser.phoneNumber ?? "");
+  }, [firebaseUser]);
+
+  const hasEmail = Boolean(firebaseUser?.email);
+  const hasPhone = Boolean(firebaseUser?.phoneNumber);
+
+  // ---------------------------------------------------------
+  // Image Picker
+  // ---------------------------------------------------------
   const pickImage = async () => {
     const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!granted) {
@@ -53,6 +83,9 @@ export default function BasicDetails() {
     }
   };
 
+  // ---------------------------------------------------------
+  // DOB formatter
+  // ---------------------------------------------------------
   const handleDobChange = (text: string) => {
     let cleaned = text.replace(/\D/g, "").slice(0, 8);
     if (cleaned.length >= 5) {
@@ -63,31 +96,42 @@ export default function BasicDetails() {
     setDob(cleaned);
   };
 
+  // ---------------------------------------------------------
+  // SAVE FUNCTION
+  // ---------------------------------------------------------
   const onSave = async () => {
+    if (!firebaseUser) {
+      Alert.alert("Auth error", "No authenticated user. Please log in again.");
+      router.replace("/auth/login-phone");
+      return;
+    }
+
     if (!full_name || !company_name || !date_of_birth || !address) {
       Alert.alert("Missing Fields", "Please fill all required fields.");
       return;
     }
 
-    // Basic validation for added field
     if (!hasEmail && !email_address) {
-      Alert.alert("Missing Email", "Please enter a valid email address.");
+      Alert.alert("Missing Email", "Please provide a valid email.");
       return;
     }
+
     if (!hasPhone && !phone_number) {
-      Alert.alert("Missing Phone", "Please enter a valid phone number.");
+      Alert.alert("Missing Phone", "Please provide a valid phone.");
       return;
     }
 
     const parts = date_of_birth.split("/");
     if (parts.length !== 3 || parts[2].length !== 4) {
-      Alert.alert("Invalid Date", "Enter a valid date in DD/MM/YYYY format.");
+      Alert.alert("Invalid Date", "Use DD/MM/YYYY format.");
       return;
     }
+
     const formattedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
 
     try {
       setLoading(true);
+
       await syncFirebaseUser({
         full_name,
         email_address,
@@ -98,38 +142,59 @@ export default function BasicDetails() {
         profile_picture_url: profile_picture_url ?? undefined,
       });
 
-      Alert.alert("✅ Success", "Your basic details are saved.");
+      Alert.alert("Success", "Your details have been saved.");
       router.replace("/home");
     } catch (e: any) {
+      console.log("❌ SAVE ERROR:", e?.response || e);
       Alert.alert("Failed to Save", e?.message ?? "Try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // ---------------------------------------------------------
+  // UI (NO early returns!)
+  // ---------------------------------------------------------
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        className="flex-1"
-      >
-        <ScrollView
-          className="flex-1 px-6"
-          contentContainerStyle={{ paddingBottom: 60 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Title */}
-          <Text className="text-3xl font-bold text-center mt-4 mb-10 text-foreground">
-            Complete Your Profile
+      {/* Loading screen */}
+      {!authReady ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" />
+          <Text className="mt-4">Loading your account…</Text>
+        </View>
+      ) : !firebaseUser ? (
+        // No authenticated user
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-lg text-red-500 font-semibold">
+            No authenticated user.
           </Text>
+          <TouchableOpacity
+            onPress={() => router.replace("/auth/login-phone")}
+            className="mt-5 px-6 py-3 bg-primary rounded-xl"
+          >
+            <Text className="text-white font-bold">Go to Login</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        // MAIN FORM
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          className="flex-1"
+        >
+          <ScrollView
+            className="flex-1 px-6"
+            contentContainerStyle={{ paddingBottom: 60 }}
+          >
+            {/* Title */}
+            <Text className="text-3xl font-bold text-center mt-4 mb-10">
+              Complete Your Profile
+            </Text>
 
-          {/* Profile Photo */}
-          <View className="w-full items-center mt-4 mb-10">
-            <View className="relative items-center justify-center">
-              {/* Outer shadow ring */}
-              <View className="w-36 h-36 rounded-full bg-card shadow-lg items-center justify-center">
-                {/* Actual circular image container */}
-                <View className="w-32 h-32 rounded-full overflow-hidden bg-muted items-center justify-center border-2 border-border">
+            {/* Profile Image */}
+            <View className="items-center mb-10">
+              <TouchableOpacity onPress={pickImage}>
+                <View className="w-32 h-32 rounded-full bg-muted overflow-hidden items-center justify-center border">
                   {profile_picture_url ? (
                     <Image
                       source={{ uri: profile_picture_url }}
@@ -137,159 +202,89 @@ export default function BasicDetails() {
                       resizeMode="cover"
                     />
                   ) : (
-                    <Camera size={44} color="#999" />
+                    <Camera size={44} color="#777" />
                   )}
                 </View>
-              </View>
-
-              {/* Floating camera icon */}
-              <TouchableOpacity
-                onPress={pickImage}
-                activeOpacity={0.8}
-                className="absolute bottom-2 right-2 bg-primary w-11 h-11 rounded-full items-center justify-center shadow-md border-2 border-white"
-              >
-                <Camera size={20} color="#fff" />
               </TouchableOpacity>
+              <Text className="mt-3">Add Profile Picture</Text>
             </View>
-
-            <Text className="text-foreground mt-4 font-medium text-base">
-              Add Profile Picture
-            </Text>
-          </View>
-
-          {/* Fields */}
-          <View>
 
             {/* Full Name */}
-        <View className="mb-6">
-  <Text className="text-foreground mb-2 font-medium">Full Name *</Text>
-  <TextInput
-    value={full_name}
-    onChangeText={(text) => {
-      // Capitalize only the first character, leave rest as typed
-      if (text.length === 0) {
-        setFullName("");
-      } else {
-        setFullName(text.charAt(0).toUpperCase() + text.slice(1));
-      }
-    }}
-    autoCapitalize="none" // disable auto word capitalization    className="border border-border rounded-xl p-4 bg-card text-foreground"
-    placeholder="Enter your full name"
-    placeholderTextColor="#888"
-  />
-        </View>
+            <TextInput
+              placeholder="Full Name *"
+              value={full_name}
+              onChangeText={(t) => setFullName(t)}
+              className="border p-4 rounded-xl mb-4"
+            />
 
-            {/* Company Name */}
-            <View className="mb-6">
-              <Text className="text-foreground mb-2 font-medium">Company Name *</Text>
-              <TextInput
-                value={company_name}
-                onChangeText={(text) => {
-                  if (text.length === 0) {
-                    setCompany("");
-                  } else {
-                    setCompany(text.charAt(0).toUpperCase() + text.slice(1));
-                  }
-                }}
-                autoCapitalize="none" // disable auto word capitalization
-                className="border border-border rounded-xl p-4 bg-card text-foreground"
-                placeholder="Enter your company name"
-                placeholderTextColor="#888"
-              />
-            </View>
+            {/* Company */}
+            <TextInput
+              placeholder="Company Name *"
+              value={company_name}
+              onChangeText={(t) => setCompany(t)}
+              className="border p-4 rounded-xl mb-4"
+            />
 
             {/* DOB */}
-            <View className="mb-6">
-              <Text className="text-foreground mb-2 font-medium">
-                Date of Birth (DD/MM/YYYY) *
-              </Text>
-              <TextInput
-                value={date_of_birth}
-                onChangeText={handleDobChange}
-                keyboardType="number-pad"
-                maxLength={10}
-                className="border border-border rounded-xl p-4 bg-card text-foreground"
-                placeholder="DD/MM/YYYY"
-                placeholderTextColor="#888"
-              />
-            </View>
+            <TextInput
+              placeholder="DD/MM/YYYY *"
+              value={date_of_birth}
+              onChangeText={handleDobChange}
+              keyboardType="number-pad"
+              className="border p-4 rounded-xl mb-4"
+              maxLength={10}
+            />
 
-            {/* Phone Number (editable if missing) */}
-            <View className="mb-6">
-              <Text className="text-foreground mb-2 font-medium">Phone Number *</Text>
-              <TextInput
-                value={phone_number}
-                onChangeText={setPhone}
-                editable={!hasPhone}
-                keyboardType="phone-pad"
-                className={`border border-border rounded-xl p-4 ${
-                  hasPhone ? "bg-muted opacity-60" : "bg-card"
-                } text-foreground`}
-                placeholder="+91 98765 43210"
-                placeholderTextColor="#888"
-              />
-              {!hasPhone && (
-                <Text className="text-xs text-muted-foreground mt-1">
-                  You signed up with email — please provide your phone number.
-                </Text>
-              )}
-            </View>
+            {/* Phone */}
+            <TextInput
+              placeholder="Phone Number *"
+              editable={!hasPhone}
+              value={phone_number}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              className={`border p-4 rounded-xl mb-4 ${
+                hasPhone ? "opacity-50" : ""
+              }`}
+            />
 
-            {/* Email Address (editable if missing) */}
-            <View className="mb-6">
-              <Text className="text-foreground mb-2 font-medium">Email Address *</Text>
-              <TextInput
-                value={email_address}
-                onChangeText={setEmail}
-                editable={!hasEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                className={`border border-border rounded-xl p-4 ${
-                  hasEmail ? "bg-muted opacity-60" : "bg-card"
-                } text-foreground`}
-                placeholder="you@example.com"
-                placeholderTextColor="#888"
-              />
-              {!hasEmail && (
-                <Text className="text-xs text-muted-foreground mt-1">
-                  You signed up with phone — please provide your email address.
-                </Text>
-              )}
-            </View>
+            {/* Email */}
+            <TextInput
+              placeholder="Email Address *"
+              editable={!hasEmail}
+              value={email_address}
+              onChangeText={setEmail}
+              className={`border p-4 rounded-xl mb-4 ${
+                hasEmail ? "opacity-50" : ""
+              }`}
+              autoCapitalize="none"
+            />
 
             {/* Address */}
-            <View className="mb-8">
-              <Text className="text-foreground mb-2 font-medium">Address *</Text>
-              <TextInput
-                value={address}
-                onChangeText={setAddress}
-                multiline
-                numberOfLines={3}
-                className="border border-border rounded-xl p-4 bg-card text-foreground"
-                placeholder="Your full address"
-                placeholderTextColor="#888"
-              />
-            </View>
-          </View>
+            <TextInput
+              placeholder="Address *"
+              value={address}
+              onChangeText={setAddress}
+              multiline
+              className="border p-4 rounded-xl mb-6"
+            />
 
-          {/* Save Button */}
-          <TouchableOpacity
-            onPress={onSave}
-            disabled={loading}
-            className={`rounded-xl py-4 items-center mt-2 mb-14 shadow-md ${
-              loading ? "bg-gray-400" : "bg-primary"
-            }`}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-primary-foreground font-semibold text-base">
-                Save & Continue
-              </Text>
-            )}
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+            {/* Save */}
+            <TouchableOpacity
+              onPress={onSave}
+              disabled={loading}
+              className="bg-primary rounded-xl py-4 items-center"
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white font-semibold text-base">
+                  Save & Continue
+                </Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 }

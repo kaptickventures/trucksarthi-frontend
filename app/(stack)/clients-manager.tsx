@@ -1,4 +1,4 @@
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
 import { Edit3, MapPin, Plus, Trash2, X } from "lucide-react-native";
 import React, { useCallback, useRef, useState } from "react";
@@ -17,12 +17,13 @@ import {
   PanResponder,
   useColorScheme,
   KeyboardAvoidingView,
-  Platform
+  Platform,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import useClients from "../../hooks/useClient";
 
 export default function ClientsManager() {
+  const navigation = useNavigation<any>();
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
@@ -41,7 +42,12 @@ export default function ClientsManager() {
   const [modalVisible, setModalVisible] = useState(false);
 
   const requiredFields = ["client_name", "contact_number"];
-  const optionalFields = ["contact_person_name", "alternate_contact_number", "email_address", "office_address"];
+  const optionalFields = [
+    "contact_person_name",
+    "alternate_contact_number",
+    "email_address",
+    "office_address",
+  ];
 
   const [formData, setFormData] = useState({
     client_name: "",
@@ -132,7 +138,7 @@ export default function ClientsManager() {
       }
       closeModal();
       fetchClients();
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Failed to save client.");
     }
   };
@@ -155,7 +161,9 @@ export default function ClientsManager() {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#888" />
-        <Text className="mt-2 text-muted-foreground">Loading user info...</Text>
+        <Text className="mt-2 text-muted-foreground">
+          Loading user info...
+        </Text>
       </View>
     );
   }
@@ -176,8 +184,14 @@ export default function ClientsManager() {
           </Text>
         ) : (
           clients.map((client) => (
-            <View
+            <TouchableOpacity
               key={client.client_id}
+              activeOpacity={0.85}
+              onPress={() =>
+                navigation.navigate("client-profile", {
+                  clientId: client.client_id,
+                })
+              }
               className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
             >
               <View className="flex-row items-start flex-1">
@@ -197,19 +211,22 @@ export default function ClientsManager() {
 
               <View className="flex-row items-center ml-3">
                 <TouchableOpacity
+                  onPressIn={(e) => e.stopPropagation()}
                   onPress={() => openModal(true, client)}
                   className="p-2"
                 >
                   <Edit3 size={20} color="#999" />
                 </TouchableOpacity>
+
                 <TouchableOpacity
+                  onPressIn={(e) => e.stopPropagation()}
                   onPress={() => handleDelete(client.client_id)}
                   className="p-2"
                 >
                   <Trash2 size={20} color="#999" />
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -229,7 +246,7 @@ export default function ClientsManager() {
         <Plus color="white" size={28} />
       </TouchableOpacity>
 
-      {/* Full-screen Modal */}
+      {/* Full Screen Modal */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <Pressable className="flex-1 bg-background" onPress={closeModal}>
           <Animated.View
@@ -247,49 +264,36 @@ export default function ClientsManager() {
               className="flex-1"
             >
               <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
+
               <View className="flex-row justify-between items-center mb-5">
-                <Text
-                  className={`text-2xl font-semibold ${
-                    isDark ? "text-white" : "text-black"
-                  }`}
-                >
+                <Text className="text-2xl font-semibold">
                   {editingId ? "Edit Client" : "Add Client"}
                 </Text>
                 <TouchableOpacity onPress={closeModal}>
-                  <X size={28} color={isDark ? "#AAA" : "#666"} />
+                  <X size={28} color="#888" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false}>
-                {[...requiredFields, ...optionalFields].map((key) => {
-                  const label = key.replaceAll("_", " ");
-                  const isRequired = requiredFields.includes(key);
-
-                  return (
-                    <View key={key} className="mb-4">
-                      <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                        {label}
-                        {isRequired && <Text className="text-red-500"> *</Text>}
-                      </Text>
-                      <TextInput
-                        className="border border-input text-input-text rounded-xl p-3"
-                        value={(formData as any)[key]}
-                        onChangeText={(val) =>
-                          setFormData({ ...formData, [key]: val })
-                        }
-                        keyboardType={
-                          key.includes("number")
-                            ? "phone-pad"
-                            : key.includes("email")
-                            ? "email-address"
-                            : "default"
-                        }
-                        placeholder={`Enter ${label}`}
-                        placeholderTextColor="#888"
-                      />
-                    </View>
-                  );
-                })}
+                {[...requiredFields, ...optionalFields].map((key) => (
+                  <View key={key} className="mb-4">
+                    <Text className="text-muted-foreground mb-1 font-medium capitalize">
+                      {key.replaceAll("_", " ")}
+                      {requiredFields.includes(key) && (
+                        <Text className="text-red-500"> *</Text>
+                      )}
+                    </Text>
+                    <TextInput
+                      className="border border-input rounded-xl p-3"
+                      value={(formData as any)[key]}
+                      onChangeText={(val) =>
+                        setFormData({ ...formData, [key]: val })
+                      }
+                      placeholder={`Enter ${key.replaceAll("_", " ")}`}
+                      placeholderTextColor="#888"
+                    />
+                  </View>
+                ))}
 
                 <TouchableOpacity
                   onPress={handleSubmit}
@@ -304,7 +308,9 @@ export default function ClientsManager() {
                   onPress={closeModal}
                   className="border border-border p-4 rounded-xl"
                 >
-                  <Text className="text-center text-muted-foreground">Cancel</Text>
+                  <Text className="text-center text-muted-foreground">
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
               </ScrollView>
             </KeyboardAvoidingView>
