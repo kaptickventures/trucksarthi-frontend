@@ -77,14 +77,14 @@ export default function DriverProfile() {
 
   const handleEditProfile = () => {
     router.push({
-      pathname: "/(stack)/edit-driver",
+      pathname: "/(stack)/drivers-manager",
       params: { driver_id: DRIVER_ID },
     });
   };
 
   const handleAddExpense = () => {
     router.push({
-      pathname: "/(stack)/add-driver-expense",
+      pathname: "/(stack)/drivers-manager",
       params: { driver_id: DRIVER_ID },
     });
   };
