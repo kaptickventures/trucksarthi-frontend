@@ -23,13 +23,13 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import useDrivers from "../../hooks/useDriver";
+
+import useDrivers from "../../hooks/useDriver"; // ✅ FIXED IMPORT
 
 export default function DriversManager() {
   const router = useRouter();
   const auth = getAuth();
-  const user = auth.currentUser;
-  const firebase_uid = user?.uid;
+  const firebase_uid = auth.currentUser?.uid;
 
   const {
     drivers,
@@ -44,8 +44,6 @@ export default function DriversManager() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const requiredFields = ["driver_name", "contact_number"];
-
   const [formData, setFormData] = useState({
     driver_name: "",
     contact_number: "",
@@ -53,17 +51,24 @@ export default function DriversManager() {
     license_card_url: "",
   });
 
+  const requiredFields: Array<keyof typeof formData> = [
+    "driver_name",
+    "contact_number",
+  ];
+
   const translateY = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const SCROLL_THRESHOLD = 40;
 
+  /* ---------------- FETCH ON FOCUS ---------------- */
   useFocusEffect(
     useCallback(() => {
       if (firebase_uid) fetchDrivers();
     }, [firebase_uid])
   );
 
-  const pickImage = async (field: string) => {
+  /* ---------------- IMAGE PICKER ---------------- */
+  const pickImage = async (field: keyof typeof formData) => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission needed", "Allow gallery access to upload images.");
@@ -84,6 +89,7 @@ export default function DriversManager() {
     }
   };
 
+  /* ---------------- MODAL GESTURE ---------------- */
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: (_, state) => state.y0 < SCROLL_THRESHOLD,
@@ -134,10 +140,13 @@ export default function DriversManager() {
     });
   };
 
+  /* ---------------- SUBMIT ---------------- */
   const handleSubmit = async () => {
-    if (!formData.driver_name || !formData.contact_number) {
-      Alert.alert("⚠️ Missing Fields", "Please fill all required fields.");
-      return;
+    for (const field of requiredFields) {
+      if (!formData[field]) {
+        Alert.alert("⚠️ Missing Fields", "Please fill all required fields.");
+        return;
+      }
     }
 
     try {
@@ -203,11 +212,7 @@ export default function DriversManager() {
                 router.push({
                   pathname: "/(stack)/driver-profile",
                   params: {
-                    driver_id: driver.driver_id,
-                    driver_name: driver.driver_name,
-                    contact_number: driver.contact_number,
-                    identity_card_url: driver.identity_card_url,
-                    license_card_url: driver.license_card_url,
+                    driver_id: driver.driver_id, // ✅ ONLY ID PASSED
                   },
                 })
               }
@@ -260,13 +265,6 @@ export default function DriversManager() {
       <TouchableOpacity
         onPress={() => openModal(false)}
         className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full justify-center items-center"
-        style={{
-          elevation: 8,
-          shadowColor: "#000",
-          shadowOpacity: 0.25,
-          shadowRadius: 4,
-          shadowOffset: { width: 0, height: 2 },
-        }}
       >
         <Plus color="white" size={28} />
       </TouchableOpacity>
@@ -308,12 +306,14 @@ export default function DriversManager() {
                     </Text>
                     <TextInput
                       className="border border-input rounded-xl p-3"
-                      value={(formData as any)[key]}
+                      value={formData[key]}
                       onChangeText={(val) =>
                         setFormData({ ...formData, [key]: val })
                       }
                       keyboardType={
-                        key.includes("number") ? "phone-pad" : "default"
+                        key === "contact_number"
+                          ? "phone-pad"
+                          : "default"
                       }
                     />
                   </View>

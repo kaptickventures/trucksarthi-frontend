@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
-interface Trip {
+export interface Trip {
   trip_id: number;
   trip_date: string;
   truck_id: number;
@@ -13,24 +13,52 @@ interface Trip {
   cost_of_trip: number;
   miscellaneous_expense: number;
   notes: string;
+  invoiced_status: "invoiced" | "not_invoiced";
 }
 
-export default function useTrips(firebase_uid: string) {
+interface UseTripsOptions {
+  autoFetch?: boolean; // 👈 NEW
+}
+
+export default function useTrips(
+  firebase_uid: string,
+  options: UseTripsOptions = {}
+) {
+  const { autoFetch = true } = options; // default = OLD behavior
+
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchTrips = useCallback(async () => {
+    if (!firebase_uid) {
+      console.log("⛔ fetchTrips skipped — missing firebase_uid");
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await API.get(`/api/trips/user/firebase/${firebase_uid}`);
+      console.log("🚀 fetchTrips", firebase_uid);
+
+      const res = await API.get(
+        `/api/trips/user/firebase/${firebase_uid}`
+      );
+
       setTrips(res.data);
+      console.log("✅ trips fetched:", res.data.length);
     } catch (error) {
-      console.error(error);
+      console.error("❌ fetchTrips failed", error);
       Alert.alert("Error", "Failed to load trips");
     } finally {
       setLoading(false);
     }
   }, [firebase_uid]);
+
+  // 🔁 OLD BEHAVIOR PRESERVED HERE
+  useEffect(() => {
+    if (autoFetch) {
+      fetchTrips();
+    }
+  }, [autoFetch, fetchTrips]);
 
   const addTrip = async (formData: any) => {
     try {
@@ -71,11 +99,11 @@ export default function useTrips(firebase_uid: string) {
     }
   };
 
-  useEffect(() => {
-    fetchTrips();
-  }, [fetchTrips]);
+  const totalRevenue = trips.reduce(
+    (acc, t) => acc + Number(t.cost_of_trip),
+    0
+  );
 
-  const totalRevenue = trips.reduce((acc, t) => acc + Number(t.cost_of_trip), 0);
   const totalTrips = trips.length;
   const recentTrips = trips.slice(-3).reverse();
 

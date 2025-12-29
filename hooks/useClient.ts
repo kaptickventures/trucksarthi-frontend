@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
@@ -18,12 +18,23 @@ export default function useClients(firebase_uid: string) {
   const [loading, setLoading] = useState(false);
 
   const fetchClients = useCallback(async () => {
+    if (!firebase_uid) {
+      console.log("⛔ fetchClients skipped — missing firebase_uid");
+      return;
+    }
+
     try {
+      console.log("🚀 fetchClients", firebase_uid);
       setLoading(true);
-      const res = await API.get(`/api/clients/user/firebase/${firebase_uid}`);
+
+      const res = await API.get(
+        `/api/clients/user/firebase/${firebase_uid}`
+      );
+
       setClients(res.data);
+      console.log("✅ clients fetched:", res.data.length);
     } catch (error) {
-      console.error(error);
+      console.error("❌ fetchClients failed", error);
       Alert.alert("Error", "Failed to load clients");
     } finally {
       setLoading(false);
@@ -38,12 +49,18 @@ export default function useClients(firebase_uid: string) {
       return res.data;
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", error.response?.data?.error || "Failed to add client");
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "Failed to add client"
+      );
       throw error;
     }
   };
 
-  const updateClient = async (id: number, updatedData: Partial<Client>) => {
+  const updateClient = async (
+    id: number,
+    updatedData: Partial<Client>
+  ) => {
     try {
       const res = await API.put(`/api/clients/${id}`, updatedData);
       setClients((prev) =>
@@ -52,7 +69,10 @@ export default function useClients(firebase_uid: string) {
       return res.data;
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", error.response?.data?.error || "Failed to update client");
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "Failed to update client"
+      );
       throw error;
     }
   };
@@ -60,16 +80,21 @@ export default function useClients(firebase_uid: string) {
   const deleteClient = async (id: number) => {
     try {
       await API.delete(`/api/clients/${id}`);
-      setClients((prev) => prev.filter((c) => c.client_id !== id));
+      setClients((prev) =>
+        prev.filter((c) => c.client_id !== id)
+      );
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to delete client");
     }
   };
 
-  useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
-
-  return { clients, loading, fetchClients, addClient, updateClient, deleteClient };
+  return {
+    clients,
+    loading,
+    fetchClients,
+    addClient,
+    updateClient,
+    deleteClient,
+  };
 }

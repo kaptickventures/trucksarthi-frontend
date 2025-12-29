@@ -20,53 +20,76 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useEffect, useMemo, useState } from "react";
+import { getAuth } from "firebase/auth";
+
+import useDrivers from "../../hooks/useDriver";
+import { useDriverFinance } from "../../hooks/useDriverFinance";
+import { useDriverPayroll } from "../../hooks/useDriverPayroll";
 
 export default function DriverProfile() {
   const router = useRouter();
-  const params = useLocalSearchParams();
   const isDark = useColorScheme() === "dark";
+  const { driver_id } = useLocalSearchParams<{ driver_id: string }>();
+  const DRIVER_ID = Number(driver_id);
 
-  const driverName = params.driver_name || "Ramesh Kumar";
-  const contactNumber = params.contact_number || "+91 98765 43210";
+  const firebase_uid = getAuth().currentUser?.uid!;
+  /* ---------------- DRIVER BASIC INFO ---------------- */
+  const { drivers } = useDrivers(firebase_uid);
 
-  const netBalance = 18500;
+  const driver = useMemo(
+    () => drivers.find((d) => d.driver_id === DRIVER_ID),
+    [drivers, DRIVER_ID]
+  );
 
-  const ledger = [
-    { id: 1, type: "advance", date: "2025-03-02", amount: -5000 },
-    { id: 2, type: "expense", date: "2025-03-06", amount: -1200 },
-    { id: 3, type: "per trip", date: "2025-03-10", amount: 8500 },
-    { id: 4, type: "salary", date: "2025-03-15", amount: 16200 },
-  ];
+  /* ---------------- DRIVER FINANCE ---------------- */
+  const {
+    entries,
+    fetchDriverLedger,
+    fetchDriverSummary,
+  } = useDriverFinance();
 
-  const payrolls = [
-    {
-      id: 1,
-      period_start: "2025-03-01",
-      period_end: "2025-03-15",
-      total_amount: 12500,
-      status: "paid",
-    },
-    {
-      id: 2,
-      period_start: "2025-03-16",
-      period_end: "2025-03-31",
-      total_amount: 6000,
-      status: "pending",
-    },
-  ];
+  const [netBalance, setNetBalance] = useState<number>(0);
 
+  /* ---------------- DRIVER PAYROLL ---------------- */
+  const {
+    payrolls,
+    fetchPayrollByDriver,
+  } = useDriverPayroll();
+
+  /* ---------------- INITIAL FETCH ---------------- */
+  useEffect(() => {
+    if (!DRIVER_ID) return;
+
+    fetchDriverLedger(DRIVER_ID);
+    fetchPayrollByDriver(DRIVER_ID);
+
+    fetchDriverSummary(DRIVER_ID).then((res) => {
+      setNetBalance(res.net_balance);
+    });
+  }, [DRIVER_ID]);
+
+  /* ---------------- ACTIONS ---------------- */
   const handleCall = () => {
-    Linking.openURL(`tel:${contactNumber}`);
+    if (!driver?.contact_number) return;
+    Linking.openURL(`tel:${driver.contact_number}`);
   };
 
   const handleEditProfile = () => {
-    Alert.alert("Edit Profile", "Edit driver details (dummy action)");
+    router.push({
+      pathname: "/(stack)/edit-driver",
+      params: { driver_id: DRIVER_ID },
+    });
   };
 
   const handleAddExpense = () => {
-    Alert.alert("Add Expense", "Open add expense flow (dummy)");
+    router.push({
+      pathname: "/(stack)/add-driver-expense",
+      params: { driver_id: DRIVER_ID },
+    });
   };
 
+  /* ---------------- UI ---------------- */
   return (
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -91,9 +114,12 @@ export default function DriverProfile() {
             <User size={48} color="#2563EB" />
           </View>
 
-          <Text className="text-2xl font-bold">{driverName}</Text>
+          <Text className="text-2xl font-bold">
+            {driver?.driver_name ?? "—"}
+          </Text>
+
           <Text className="text-muted-foreground mt-1">
-            {contactNumber}
+            {driver?.contact_number ?? "—"}
           </Text>
 
           <View className="flex-row mt-5">
@@ -122,11 +148,17 @@ export default function DriverProfile() {
         {/* Balance Card */}
         <View className="bg-card border border-border rounded-2xl p-5 mb-8 items-center">
           <Wallet size={26} />
-          <Text className="text-3xl font-bold text-green-600 mt-3">
-            ₹ {netBalance}
+          <Text
+            className={`text-3xl font-bold mt-3 ${
+              netBalance >= 0 ? "text-green-600" : "text-red-500"
+            }`}
+          >
+            ₹ {Math.abs(netBalance)}
           </Text>
           <Text className="text-xs text-muted-foreground mt-1">
-            Net Balance
+            {netBalance >= 0
+              ? "Company owes driver"
+              : "Driver owes company"}
           </Text>
         </View>
 
@@ -136,28 +168,29 @@ export default function DriverProfile() {
             Driver Ledger
           </Text>
 
-          {ledger.map((item) => (
+          {entries.map((item) => (
             <View
-              key={item.id}
+              key={item.financial_id}
               className="bg-card border border-border rounded-xl p-4 mb-3 flex-row items-center justify-between"
             >
               <View className="flex-row items-center">
                 <IndianRupee size={18} />
                 <View className="ml-3">
                   <Text className="font-semibold capitalize">
-                    {item.type}
+                    {item.entry_type.replace("_", " ")}
                   </Text>
                   <Text className="text-xs text-muted-foreground">
-                    {item.date}
+                    {item.entry_date}
                   </Text>
                 </View>
               </View>
 
               <Text
                 className={`font-bold ${
-                  item.amount >= 0
-                    ? "text-green-600"
-                    : "text-red-500"
+                  item.entry_type === "advance" ||
+                  item.entry_type === "expense"
+                    ? "text-red-500"
+                    : "text-green-600"
                 }`}
               >
                 ₹ {item.amount}
@@ -174,13 +207,14 @@ export default function DriverProfile() {
 
           {payrolls.map((p) => (
             <View
-              key={p.id}
+              key={p.payroll_id}
               className="bg-card border border-border rounded-xl p-4 mb-3"
             >
               <View className="flex-row justify-between mb-2">
                 <Text className="font-bold">
                   ₹ {p.total_amount}
                 </Text>
+
                 <Text
                   className={`text-xs font-semibold ${
                     p.status === "paid"

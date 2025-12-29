@@ -1,16 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Building2, Plus } from "lucide-react-native";
 import {
-  Building2,
-  Mail,
-  Phone,
-  Pencil,
-  Plus,
-  FileText,
-  Truck,
-} from "lucide-react-native";
-import {
-  Linking,
+  ActivityIndicator,
   ScrollView,
   StatusBar,
   Text,
@@ -18,91 +10,192 @@ import {
   useColorScheme,
   View,
   Alert,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-/* ---------------- DUMMY DATA ---------------- */
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 
-const DUMMY_CLIENT = {
-  client_name: "Acme Logistics Pvt Ltd",
-  contact_person_name: "Rahul Sharma",
-  contact_number: "+91 98765 43210",
-  email_address: "rahul@acmelogistics.com",
-};
-
-const DUMMY_SUMMARY = {
-  total_debits: 125000,
-  total_credits: 80000,
-  outstanding: 45000,
-};
-
-const DUMMY_INVOICES = [
-  {
-    invoice_id: 1,
-    invoice_number: "INV-00124",
-    total_amount: 35000,
-    due_date: "2025-01-20",
-    status: "pending",
-  },
-  {
-    invoice_id: 2,
-    invoice_number: "INV-00118",
-    total_amount: 45000,
-    due_date: "2024-12-15",
-    status: "partial",
-  },
-  {
-    invoice_id: 3,
-    invoice_number: "INV-00102",
-    total_amount: 45000,
-    due_date: "2024-11-05",
-    status: "paid",
-  },
-];
-
-const DUMMY_TRIPS = [
-  {
-    trip_id: "TRP-1012",
-    date: "2025-01-05",
-    route: "Delhi → Jaipur",
-    amount: 12000,
-    invoiced: false,
-  },
-  {
-    trip_id: "TRP-1015",
-    date: "2025-01-10",
-    route: "Delhi → Agra",
-    amount: 8000,
-    invoiced: true,
-  },
-  {
-    trip_id: "TRP-1020",
-    date: "2025-01-18",
-    route: "Delhi → Chandigarh",
-    amount: 15000,
-    invoiced: false,
-  },
-];
-
-/* ---------------- SCREEN ---------------- */
+import useClients from "../../hooks/useClient";
+import { useInvoices, Invoice } from "../../hooks/useInvoice";
+import { useClientLedger, LedgerEntry } from "../../hooks/useClientLedger";
+import useTrips, { Trip } from "../../hooks/useTrip";
 
 export default function ClientProfile() {
   const router = useRouter();
   const isDark = useColorScheme() === "dark";
 
+  /* ---------------- ROUTE PARAM ---------------- */
+  const { clientId } = useLocalSearchParams<{ clientId?: string }>();
+  const numericClientId = Number(clientId);
+
+  /* ---------------- AUTH ---------------- */
+  const auth = getAuth();
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  const firebase_uid = user?.uid ?? "";
+
+  /* ---------------- STATE ---------------- */
   const [tripFilter, setTripFilter] = useState<
     "all" | "invoiced" | "uninvoiced"
   >("all");
 
-  const filteredTrips = DUMMY_TRIPS.filter((t) => {
-    if (tripFilter === "invoiced") return t.invoiced;
-    if (tripFilter === "uninvoiced") return !t.invoiced;
-    return true;
+  const [summary, setSummary] = useState({
+    total_debits: 0,
+    total_credits: 0,
+    outstanding: 0,
   });
 
-  const uninvoicedTrips = DUMMY_TRIPS.filter((t) => !t.invoiced);
+  const [selectedTrips, setSelectedTrips] = useState<number[]>([]);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentRemarks, setPaymentRemarks] = useState("");
 
+  const toggleTripSelection = (tripId: number) => {
+    setSelectedTrips((prev) =>
+      prev.includes(tripId)
+        ? prev.filter((id) => id !== tripId)
+        : [...prev, tripId]
+    );
+  };
+
+  /* ---------------- DATA HOOKS ---------------- */
+  const { clients, loading: clientsLoading, fetchClients } =
+    useClients(firebase_uid);
+
+  const { invoices, fetchInvoices, createInvoice } =
+    useInvoices(firebase_uid);
+
+  const { trips, fetchTrips } = useTrips(firebase_uid);
+
+  const {
+    entries,
+    fetchLedger,
+    fetchSummary,
+    addPayment,
+  } = useClientLedger();
+
+  /* ---------------- FETCH ---------------- */
+  useEffect(() => {
+    if (!firebase_uid || !numericClientId) return;
+
+    fetchClients();
+    fetchInvoices();
+    fetchTrips();
+    fetchLedger(numericClientId);
+
+    fetchSummary(numericClientId)
+      .then(setSummary)
+      .catch(() =>
+        setSummary({
+          total_debits: 0,
+          total_credits: 0,
+          outstanding: 0,
+        })
+      );
+  }, [firebase_uid, numericClientId]);
+
+  /* ---------------- DERIVED ---------------- */
+  const client = useMemo(
+    () => clients.find((c) => c.client_id === numericClientId),
+    [clients, numericClientId]
+  );
+
+  const clientInvoices = invoices.filter(
+    (i: Invoice) => i.client_id === numericClientId
+  );
+
+  const clientTrips = trips.filter(
+    (t: Trip) => t.client_id === numericClientId
+  );
+
+  const filteredTrips = useMemo(() => {
+    if (tripFilter === "invoiced")
+      return clientTrips.filter(
+        (t) => t.invoiced_status === "invoiced"
+      );
+
+    if (tripFilter === "uninvoiced")
+      return clientTrips.filter(
+        (t) => t.invoiced_status === "not_invoiced"
+      );
+
+    return clientTrips;
+  }, [tripFilter, clientTrips]);
+
+  const uninvoicedTrips = clientTrips.filter(
+    (t) => t.invoiced_status === "not_invoiced"
+  );
+
+  /* ---------------- ACTIONS ---------------- */
+  const handleGenerateInvoice = async () => {
+    if (selectedTrips.length === 0) {
+      Alert.alert("Select trips", "Please select at least one trip");
+      return;
+    }
+
+    await createInvoice({
+      client_id: numericClientId,
+      tripIds: selectedTrips,
+      due_date: new Date().toISOString().split("T")[0],
+    });
+
+    setSelectedTrips([]);
+    fetchInvoices();
+    fetchTrips();
+    fetchLedger(numericClientId);
+    fetchSummary(numericClientId);
+  };
+
+  const handleAddPayment = async () => {
+    if (!paymentAmount) {
+      Alert.alert("Enter amount");
+      return;
+    }
+
+    await addPayment({
+      client_id: numericClientId,
+      invoice_id: 0, // required by hook
+      amount: Number(paymentAmount),
+      remarks: paymentRemarks,
+    });
+
+    setPaymentAmount("");
+    setPaymentRemarks("");
+    setShowPaymentForm(false);
+
+    fetchLedger(numericClientId);
+    fetchSummary(numericClientId);
+  };
+
+  /* ---------------- GUARDS ---------------- */
+  if (authLoading || clientsLoading) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!user || !client) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center">
+        <Text className="text-muted-foreground">Client not found</Text>
+      </SafeAreaView>
+    );
+  }
+
+  /* ---------------- UI ---------------- */
   return (
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -121,96 +214,141 @@ export default function ClientProfile() {
       </View>
 
       <ScrollView className="flex-1 px-6">
-        {/* Profile Card */}
+
+        {/* Client Card */}
         <View className="bg-card border border-border rounded-3xl p-6 items-center mb-8">
           <View className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center mb-3">
             <Building2 size={40} color="#2563EB" />
           </View>
-
-          <Text className="text-xl font-bold text-center">
-            {DUMMY_CLIENT.client_name}
-          </Text>
+          <Text className="text-xl font-bold">{client.client_name}</Text>
           <Text className="text-sm text-muted-foreground mt-1">
-            {DUMMY_CLIENT.contact_person_name}
+            {client.contact_person_name}
           </Text>
         </View>
 
         {/* Ledger Summary */}
-        <View className="flex-row gap-3 mb-8">
-          <SummaryCard label="Billed" value={DUMMY_SUMMARY.total_debits} />
-          <SummaryCard
-            label="Received"
-            value={DUMMY_SUMMARY.total_credits}
-            green
-          />
-          <SummaryCard
-            label="Outstanding"
-            value={DUMMY_SUMMARY.outstanding}
-            red
-          />
+        <View className="flex-row gap-3 mb-3">
+          <SummaryCard label="Billed" value={summary.total_debits} />
+          <SummaryCard label="Received" value={summary.total_credits} green />
+          <SummaryCard label="Outstanding" value={summary.outstanding} red />
         </View>
 
-        {/* Invoices Header */}
-        <View className="flex-row justify-between items-center mb-3">
-          <Text className="text-lg font-semibold">Invoices</Text>
+        {/* Add Payment */}
+        <TouchableOpacity
+          onPress={() => setShowPaymentForm((p) => !p)}
+          className="mb-4 self-center"
+        >
+          <Text className="text-blue-600 font-semibold">+ Add Payment</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => Alert.alert("Add Payment", "Dummy")}
-            className="bg-green-600 px-3 py-1.5 rounded-full"
-          >
-            <Text className="text-white text-xs font-semibold">
-              + Add Payment
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {showPaymentForm && (
+          <View className="bg-card border border-border rounded-xl p-4 mb-6">
+            <TextInput
+              placeholder="Amount"
+              keyboardType="numeric"
+              value={paymentAmount}
+              onChangeText={setPaymentAmount}
+              className="border border-border rounded-lg px-3 py-2 mb-2"
+            />
+            <TextInput
+              placeholder="Remarks (optional)"
+              value={paymentRemarks}
+              onChangeText={setPaymentRemarks}
+              className="border border-border rounded-lg px-3 py-2 mb-3"
+            />
+            <TouchableOpacity
+              onPress={handleAddPayment}
+              className="bg-blue-600 py-2 rounded-lg items-center"
+            >
+              <Text className="text-white font-semibold">Save Payment</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Ledger Entries */}
+        <Text className="text-lg font-semibold mb-3">Ledger</Text>
+
+        {entries.length === 0 ? (
+          <Text className="text-muted-foreground mb-6">
+            No ledger entries found.
+          </Text>
+        ) : (
+          entries.map((e: LedgerEntry) => (
+            <View
+              key={e.entry_id}
+              className="bg-card border border-border rounded-xl p-4 mb-2 flex-row justify-between"
+            >
+              <View>
+                <Text className="font-semibold">
+                  {e.entry_type === "credit" ? "Payment" : "Invoice"}
+                </Text>
+                <Text className="text-xs text-muted-foreground">
+                  {e.entry_date}
+                </Text>
+                {e.remarks && (
+                  <Text className="text-xs text-muted-foreground">
+                    {e.remarks}
+                  </Text>
+                )}
+              </View>
+              <Text
+                className={`font-semibold ${
+                  e.entry_type === "credit"
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                ₹ {e.amount}
+              </Text>
+            </View>
+          ))
+        )}
 
         {/* Invoices */}
-        {DUMMY_INVOICES.map((invoice) => (
-          <View
-            key={invoice.invoice_id}
-            className="bg-card border border-border rounded-xl p-4 mb-3 flex-row justify-between items-center"
-          >
-            <View>
-              <Text className="font-semibold text-sm">
-                {invoice.invoice_number}
-              </Text>
-              <Text className="text-xs text-muted-foreground">
-                Due {invoice.due_date}
-              </Text>
-            </View>
+        <Text className="text-lg font-semibold mb-3 mt-8">Invoices</Text>
 
-            <View className="items-end">
-              <Text className="text-base font-semibold">
-                ₹ {invoice.total_amount}
-              </Text>
-              <StatusPill status={invoice.status} />
-            </View>
-          </View>
-        ))}
-
-        {/* Trip History */}
-        <View className="mt-8 mb-24">
-          <Text className="text-lg font-semibold mb-3">
-            Trip History
+        {clientInvoices.length === 0 ? (
+          <Text className="text-muted-foreground mb-6">
+            No invoices found.
           </Text>
+        ) : (
+          clientInvoices.map((invoice: Invoice) => (
+            <View
+              key={invoice.invoice_id}
+              className="bg-card border border-border rounded-xl p-4 mb-3 flex-row justify-between"
+            >
+              <View>
+                <Text className="font-semibold">{invoice.invoice_number}</Text>
+                <Text className="text-xs text-muted-foreground">
+                  Due {invoice.due_date}
+                </Text>
+              </View>
+              <View className="items-end">
+                <Text className="font-semibold">
+                  ₹ {invoice.total_amount}
+                </Text>
+                <StatusPill status={invoice.status} />
+              </View>
+            </View>
+          ))
+        )}
 
-          {/* Filters */}
+        {/* Trips (UNCHANGED) */}
+        <View className="mt-8 mb-24">
+          <Text className="text-lg font-semibold mb-3">Trip History</Text>
+
           <View className="flex-row gap-2 mb-4">
             {["all", "uninvoiced", "invoiced"].map((f) => (
               <TouchableOpacity
                 key={f}
                 onPress={() => setTripFilter(f as any)}
                 className={`px-3 py-1.5 rounded-full ${
-                  tripFilter === f
-                    ? "bg-blue-600"
-                    : "bg-muted"
+                  tripFilter === f ? "bg-blue-600" : "bg-muted"
                 }`}
               >
                 <Text
-                  className={`text-[11px] font-semibold tracking-wide ${
-                    tripFilter === f
-                      ? "text-white"
-                      : "text-foreground"
+                  className={`text-[11px] font-semibold ${
+                    tripFilter === f ? "text-white" : "text-foreground"
                   }`}
                 >
                   {f.toUpperCase()}
@@ -219,77 +357,50 @@ export default function ClientProfile() {
             ))}
           </View>
 
-          {/* Generate Invoice */}
-          {tripFilter === "uninvoiced" &&
-            uninvoicedTrips.length > 0 && (
-              <TouchableOpacity
-                onPress={() =>
-                  Alert.alert("Generate Invoice", "Dummy")
-                }
-                className="bg-blue-600 py-2.5 rounded-lg mb-4 items-center"
-              >
-                <Text className="text-white text-sm font-semibold">
-                  Generate Invoice ({uninvoicedTrips.length})
-                </Text>
-              </TouchableOpacity>
-            )}
+          {tripFilter === "uninvoiced" && uninvoicedTrips.length > 0 && (
+            <TouchableOpacity
+              onPress={handleGenerateInvoice}
+              className="bg-blue-600 py-2.5 rounded-lg mb-4 items-center"
+            >
+              <Text className="text-white font-semibold">
+                Generate Invoice ({selectedTrips.length})
+              </Text>
+            </TouchableOpacity>
+          )}
 
-          {/* Trips */}
-          {filteredTrips.map((trip) => (
-            <View
+          {filteredTrips.map((trip: Trip) => (
+            <TouchableOpacity
               key={trip.trip_id}
-              className="bg-card border border-border rounded-xl p-4 mb-3"
+              disabled={trip.invoiced_status === "invoiced"}
+              onPress={() => toggleTripSelection(trip.trip_id)}
+              className={`bg-card border rounded-xl p-4 mb-3 ${
+                selectedTrips.includes(trip.trip_id)
+                  ? "border-blue-600"
+                  : "border-border"
+              }`}
             >
               <View className="flex-row justify-between mb-1">
-                <Text className="font-semibold text-sm">
-                  {trip.trip_id}
-                </Text>
-                <Text className="text-base font-semibold">
-                  ₹ {trip.amount}
-                </Text>
+                <Text className="font-semibold">Trip #{trip.trip_id}</Text>
+                <Text className="font-semibold">₹ {trip.cost_of_trip}</Text>
               </View>
-
-              <Text className="text-xs text-muted-foreground">
-                {trip.route}
-              </Text>
-              <Text className="text-xs text-muted-foreground">
-                {trip.date}
-              </Text>
-
-              <View
-                className={`self-start mt-2 px-3 py-1 rounded-full ${
-                  trip.invoiced
-                    ? "bg-green-100"
-                    : "bg-orange-100"
-                }`}
-              >
-                <Text
-                  className={`text-[11px] font-semibold tracking-wide ${
-                    trip.invoiced
-                      ? "text-green-800"
-                      : "text-orange-800"
-                  }`}
-                >
-                  {trip.invoiced ? "INVOICED" : "NOT INVOICED"}
-                </Text>
-              </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
 
-      {/* Floating Create Invoice */}
-      <TouchableOpacity
-        onPress={() => Alert.alert("Create Invoice", "Dummy")}
-        className="absolute bottom-6 right-6 bg-blue-600 w-12 h-12 rounded-full items-center justify-center shadow-lg"
-      >
-        <Plus size={22} color="white" />
-      </TouchableOpacity>
+      {uninvoicedTrips.length > 0 && (
+        <TouchableOpacity
+          onPress={handleGenerateInvoice}
+          className="absolute bottom-6 right-6 bg-blue-600 w-12 h-12 rounded-full items-center justify-center"
+        >
+          <Plus size={22} color="white" />
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
 
-/* ---------------- COMPONENTS ---------------- */
+/* ---------------- HELPERS ---------------- */
 
 function SummaryCard({ label, value, green, red }: any) {
   return (
@@ -301,14 +412,12 @@ function SummaryCard({ label, value, green, red }: any) {
       >
         ₹ {value}
       </Text>
-      <Text className="text-[11px] text-muted-foreground uppercase tracking-wide mt-1">
-        {label}
-      </Text>
+      <Text className="text-[11px] text-muted-foreground mt-1">{label}</Text>
     </View>
   );
 }
 
-function StatusPill({ status }: any) {
+function StatusPill({ status }: { status: string }) {
   const styles =
     status === "paid"
       ? "bg-green-100 text-green-800"
@@ -318,7 +427,7 @@ function StatusPill({ status }: any) {
 
   return (
     <View className={`px-3 py-1 rounded-full mt-1 ${styles}`}>
-      <Text className="text-[11px] font-semibold tracking-wide">
+      <Text className="text-[11px] font-semibold">
         {status.toUpperCase()}
       </Text>
     </View>
