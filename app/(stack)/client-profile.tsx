@@ -14,6 +14,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
+
 
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 
@@ -116,6 +120,56 @@ export default function ClientProfile() {
     if (!status) return "not_invoiced";
     return status.toString().toLowerCase().replace(" ", "_");
   };
+
+  // ✅ ADD — Invoice PDF (same approach as TripLog)
+const generateInvoicePDF = async (invoice: Invoice) => {
+  try {
+    const invoiceTrips = trips.filter(
+  (t) =>
+    Number(t.client_id) === Number(invoice.client_id) &&
+    normalizeInvoiceStatus(t.invoiced_status) === "invoiced"
+);
+
+
+    const total = invoiceTrips.reduce(
+      (acc, t) =>
+        acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense),
+      0
+    );
+
+    const html = `
+<html>
+  <body style="font-family: Arial; padding: 24px;">
+    <h2 style="text-align:center;">TruckSarthi</h2>
+    <p style="text-align:center;">Invoice #${invoice.invoice_number}</p>
+    <hr />
+    ${invoiceTrips
+      .map(
+        (t) => `
+      <p>
+        Trip #${t.trip_id} — ₹${(
+          Number(t.cost_of_trip) + Number(t.miscellaneous_expense)
+        ).toLocaleString()}
+      </p>
+    `
+      )
+      .join("")}
+    <hr />
+    <h3>Total: ₹${total.toLocaleString()}</h3>
+  </body>
+</html>
+`;
+
+    const { uri } = await Print.printToFileAsync({ html });
+    const fileUri = `${FileSystem.documentDirectory}Invoice-${invoice.invoice_number}.pdf`;
+
+    await FileSystem.moveAsync({ from: uri, to: fileUri });
+    await Sharing.shareAsync(fileUri);
+  } catch (e) {
+    Alert.alert("Error", "Failed to generate invoice PDF");
+  }
+};
+
 
   /* ---------------- DERIVED ---------------- */
   const client = useMemo(() => {
@@ -288,7 +342,7 @@ export default function ClientProfile() {
         ) : (
           entries.map((e: LedgerEntry) => (
             <View
-              key={e.entry_id}
+            key={`${e.entry_id}-${e.entry_date}-${e.amount}`}
               className="bg-card border border-border rounded-xl p-4 mb-2 flex-row justify-between"
             >
               <View>
@@ -403,7 +457,9 @@ export default function ClientProfile() {
                   Due: {inv.due_date}
                 </Text>
               </View>
-              <FileText size={18} color="#2563EB" />
+<TouchableOpacity onPress={() => generateInvoicePDF(inv)}>
+  <FileText size={18} color="#2563EB" />
+</TouchableOpacity>
             </View>
           ))
         )}
