@@ -6,14 +6,13 @@ export interface Invoice {
   invoice_id: number;
   invoice_number: string;
   client_id: number;
-  total_amount: number;
+  total_amount: number; // DISPLAY ONLY
   due_date: string;
   status: "pending" | "paid" | "partial";
-  created_at: string;
+  invoice_date: string;
 }
 
 export interface InvoiceItem {
-  invoice_item_id: number;
   trip_id: number;
   trip_cost: number;
   misc_expense: number;
@@ -24,7 +23,7 @@ export function useInvoices(firebase_uid: string) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 📥 Fetch all invoices
+  // 📥 Fetch invoices (DISPLAY ONLY)
   const fetchInvoices = useCallback(async () => {
     if (!firebase_uid) return;
 
@@ -42,12 +41,10 @@ export function useInvoices(firebase_uid: string) {
     }
   }, [firebase_uid]);
 
-  // 📄 Fetch invoice details
+  // 📄 Invoice details
   const getInvoiceById = async (id: number) => {
     try {
-      const res = await API.get(
-        `/api/invoices/${id}`
-      );
+      const res = await API.get(`/api/invoices/${id}`);
       return res.data as {
         invoice: Invoice;
         items: InvoiceItem[];
@@ -66,15 +63,13 @@ export function useInvoices(firebase_uid: string) {
     due_date: string;
   }) => {
     try {
-      const res = await API.post(
-        `/api/invoices`,
-        {
-          ...data,
-          firebase_uid,
-        }
-      );
+      const res = await API.post(`/api/invoices`, {
+        ...data,
+        firebase_uid,
+      });
 
-      setInvoices((prev) => [res.data, ...prev]);
+      // Re-fetch instead of trusting local state
+      await fetchInvoices();
       return res.data;
     } catch (error: any) {
       console.error("❌ createInvoice failed", error);
@@ -86,40 +81,11 @@ export function useInvoices(firebase_uid: string) {
     }
   };
 
-  // 🔄 Update invoice status
-  const updateInvoiceStatus = async (
-    id: number,
-    status: "pending" | "paid" | "partial"
-  ) => {
-    try {
-      const res = await API.put(
-        `/api/invoices/${id}/status`,
-        { status }
-      );
-
-      setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.invoice_id === id ? res.data : inv
-        )
-      );
-
-      return res.data;
-    } catch (error: any) {
-      console.error("❌ updateInvoiceStatus failed", error);
-      Alert.alert("Error", "Failed to update invoice");
-      throw error;
-    }
-  };
-
   // ❌ Delete invoice
   const deleteInvoice = async (id: number) => {
     try {
-      await API.delete(
-        `/api/invoices/${id}`
-      );
-      setInvoices((prev) =>
-        prev.filter((inv) => inv.invoice_id !== id)
-      );
+      await API.delete(`/api/invoices/${id}`);
+      await fetchInvoices();
     } catch (error) {
       console.error("❌ deleteInvoice failed", error);
       Alert.alert("Error", "Failed to delete invoice");
@@ -132,7 +98,6 @@ export function useInvoices(firebase_uid: string) {
     fetchInvoices,
     getInvoiceById,
     createInvoice,
-    updateInvoiceStatus,
     deleteInvoice,
   };
 }

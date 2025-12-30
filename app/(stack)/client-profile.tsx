@@ -1,25 +1,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Building2, Plus } from "lucide-react-native";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StatusBar,
   Text,
+  TextInput,
   TouchableOpacity,
   useColorScheme,
   View,
-  Alert,
-  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useEffect, useMemo, useState } from "react";
 
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 
 import useClients from "../../hooks/useClient";
-import { useInvoices, Invoice } from "../../hooks/useInvoice";
-import { useClientLedger, LedgerEntry } from "../../hooks/useClientLedger";
+import { LedgerEntry, useClientLedger } from "../../hooks/useClientLedger";
+import { Invoice, useInvoices } from "../../hooks/useInvoice";
 import useTrips, { Trip } from "../../hooks/useTrip";
 
 export default function ClientProfile() {
@@ -107,8 +107,20 @@ export default function ClientProfile() {
 
   /* ---------------- DERIVED ---------------- */
   const client = useMemo(
-    () => clients.find((c) => c.client_id === numericClientId),
-    [clients, numericClientId]
+    () => {
+      // Debug: Log all available client IDs and their types to diagnose mismatch
+      if (clients.length > 0) {
+        console.log("DEBUG: Available Clients:", clients.map(c => ({
+          id: c.client_id,
+          type: typeof c.client_id,
+          matches: String(c.client_id) === String(clientId)
+        })));
+      }
+
+      // Robust comparison: Convert both to string to handle '42' vs 42
+      return clients.find((c) => String(c.client_id) === String(clientId));
+    },
+    [clients, clientId]
   );
 
   const clientInvoices = invoices.filter(
@@ -189,8 +201,26 @@ export default function ClientProfile() {
 
   if (!user || !client) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center">
-        <Text className="text-muted-foreground">Client not found</Text>
+      <SafeAreaView className="flex-1 justify-center items-center p-4">
+        <Text className="text-muted-foreground mb-4">Client not found</Text>
+        <View className="bg-gray-100 p-4 rounded-lg">
+          <Text className="font-mono text-xs">Debug Info:</Text>
+          <Text className="font-mono text-xs">ID Param: {clientId}</Text>
+          <Text className="font-mono text-xs">Parsed ID: {numericClientId}</Text>
+          <Text className="font-mono text-xs">User: {user ? "Logged In" : "Null"}</Text>
+          <Text className="font-mono text-xs">UID: {firebase_uid}</Text>
+          <Text className="font-mono text-xs">Clients Loaded: {clients.length}</Text>
+          <Text className="font-mono text-xs">Loading: {clientsLoading ? "Yes" : "No"}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => { fetchClients(); fetchInvoices(); fetchTrips(); fetchLedger(numericClientId); }}
+          className="mt-4 bg-blue-600 px-4 py-2 rounded-lg"
+        >
+          <Text className="text-white">Retry Fetch</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} className="mt-4">
+          <Text className="text-blue-500">Go Back</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -292,11 +322,10 @@ export default function ClientProfile() {
                 )}
               </View>
               <Text
-                className={`font-semibold ${
-                  e.entry_type === "credit"
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
+                className={`font-semibold ${e.entry_type === "credit"
+                  ? "text-green-600"
+                  : "text-red-600"
+                  }`}
               >
                 ₹ {e.amount}
               </Text>
@@ -342,14 +371,12 @@ export default function ClientProfile() {
               <TouchableOpacity
                 key={f}
                 onPress={() => setTripFilter(f as any)}
-                className={`px-3 py-1.5 rounded-full ${
-                  tripFilter === f ? "bg-blue-600" : "bg-muted"
-                }`}
+                className={`px-3 py-1.5 rounded-full ${tripFilter === f ? "bg-blue-600" : "bg-muted"
+                  }`}
               >
                 <Text
-                  className={`text-[11px] font-semibold ${
-                    tripFilter === f ? "text-white" : "text-foreground"
-                  }`}
+                  className={`text-[11px] font-semibold ${tripFilter === f ? "text-white" : "text-foreground"
+                    }`}
                 >
                   {f.toUpperCase()}
                 </Text>
@@ -373,11 +400,10 @@ export default function ClientProfile() {
               key={trip.trip_id}
               disabled={trip.invoiced_status === "invoiced"}
               onPress={() => toggleTripSelection(trip.trip_id)}
-              className={`bg-card border rounded-xl p-4 mb-3 ${
-                selectedTrips.includes(trip.trip_id)
-                  ? "border-blue-600"
-                  : "border-border"
-              }`}
+              className={`bg-card border rounded-xl p-4 mb-3 ${selectedTrips.includes(trip.trip_id)
+                ? "border-blue-600"
+                : "border-border"
+                }`}
             >
               <View className="flex-row justify-between mb-1">
                 <Text className="font-semibold">Trip #{trip.trip_id}</Text>
@@ -406,9 +432,8 @@ function SummaryCard({ label, value, green, red }: any) {
   return (
     <View className="flex-1 bg-card border border-border rounded-2xl p-4 items-center">
       <Text
-        className={`text-lg font-bold ${
-          green ? "text-green-600" : red ? "text-red-500" : ""
-        }`}
+        className={`text-lg font-bold ${green ? "text-green-600" : red ? "text-red-500" : ""
+          }`}
       >
         ₹ {value}
       </Text>
@@ -422,8 +447,8 @@ function StatusPill({ status }: { status: string }) {
     status === "paid"
       ? "bg-green-100 text-green-800"
       : status === "partial"
-      ? "bg-orange-100 text-orange-800"
-      : "bg-red-100 text-red-800";
+        ? "bg-orange-100 text-orange-800"
+        : "bg-red-100 text-red-800";
 
   return (
     <View className={`px-3 py-1 rounded-full mt-1 ${styles}`}>

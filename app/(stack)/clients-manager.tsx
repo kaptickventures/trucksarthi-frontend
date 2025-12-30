@@ -1,29 +1,30 @@
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
 import { Edit3, MapPin, Plus, Trash2, X } from "lucide-react-native";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Modal,
+  PanResponder,
+  Platform,
+  Pressable,
   ScrollView,
   StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  Modal,
-  Pressable,
-  Animated,
-  PanResponder,
   useColorScheme,
-  KeyboardAvoidingView,
-  Platform,
+  View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import useClients from "../../hooks/useClient";
 
 export default function ClientsManager() {
-  const navigation = useNavigation<any>();
+  const router = useRouter();
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
@@ -188,8 +189,9 @@ export default function ClientsManager() {
               key={client.client_id}
               activeOpacity={0.85}
               onPress={() =>
-                navigation.navigate("client-profile", {
-                  clientId: client.client_id,
+                router.push({
+                  pathname: "/client-profile",
+                  params: { clientId: client.client_id }
                 })
               }
               className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"

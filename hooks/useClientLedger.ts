@@ -1,29 +1,26 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
 export interface LedgerEntry {
-  entry_id: number;
+  entry_id: string; // "INV-5" | "PAY-12"
   client_id: number;
   invoice_id?: number;
   entry_date: string;
-  entry_type: "debit" | "credit";
   amount: number;
+  entry_type: "debit" | "credit";
   remarks?: string;
-  invoice_number?: string;
 }
 
 export function useClientLedger() {
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 📒 Fetch full ledger for client
+  // 📒 Fetch full ledger (Invoices + Payments)
   const fetchLedger = useCallback(async (client_id: number) => {
     try {
       setLoading(true);
-      const res = await API.get(
-        `/api/ledger/client/${client_id}`
-      );
+      const res = await API.get(`/api/ledger/client/${client_id}`);
       setEntries(res.data);
     } catch (error) {
       console.error("❌ fetchLedger failed", error);
@@ -33,7 +30,7 @@ export function useClientLedger() {
     }
   }, []);
 
-  // 📊 Fetch outstanding summary
+  // 📊 Fetch derived summary (SOURCE OF TRUTH)
   const fetchSummary = async (client_id: number) => {
     try {
       const res = await API.get(
@@ -51,24 +48,21 @@ export function useClientLedger() {
     }
   };
 
-  // 💳 Add payment (credit entry)
+  // 💳 Add payment (CREDIT ONLY)
   const addPayment = async (data: {
     client_id: number;
-    invoice_id: number;
+    invoice_id?: number;
     amount: number;
     remarks?: string;
   }) => {
     try {
-      const res = await API.post(
-        `/api/ledger/entry`,
-        {
-          ...data,
-          entry_type: "credit",
-        }
-      );
+      await API.post(`/api/ledger/entry`, {
+        ...data,
+        entry_type: "credit",
+      });
 
-      setEntries((prev) => [res.data, ...prev]);
-      return res.data;
+      // IMPORTANT: re-fetch ledger instead of appending
+      await fetchLedger(data.client_id);
     } catch (error: any) {
       console.error("❌ addPayment failed", error);
       Alert.alert(
