@@ -17,48 +17,52 @@ export interface Trip {
 }
 
 interface UseTripsOptions {
-  autoFetch?: boolean; // 👈 NEW
+  autoFetch?: boolean;
 }
 
 export default function useTrips(
   firebase_uid: string,
   options: UseTripsOptions = {}
 ) {
-  const { autoFetch = true } = options; // default = OLD behavior
+  const { autoFetch = true } = options;
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchTrips = useCallback(async () => {
-    if (!firebase_uid) {
-      console.log("⛔ fetchTrips skipped — missing firebase_uid");
-      return;
-    }
+  const fetchTrips = useCallback(
+    async (uid?: string) => {
+      const effectiveUid = uid || firebase_uid;
 
-    try {
-      setLoading(true);
-      console.log("🚀 fetchTrips", firebase_uid);
+      if (!effectiveUid) {
+        console.log("⛔ fetchTrips skipped — missing firebase_uid");
+        return;
+      }
 
-      const res = await API.get(
-        `/api/trips/user/firebase/${firebase_uid}`
-      );
+      try {
+        setLoading(true);
+        console.log("🚀 fetchTrips", effectiveUid);
 
-      setTrips(res.data);
-      console.log("✅ trips fetched:", res.data.length);
-    } catch (error) {
-      console.error("❌ fetchTrips failed", error);
-      Alert.alert("Error", "Failed to load trips");
-    } finally {
-      setLoading(false);
-    }
-  }, [firebase_uid]);
+        const res = await API.get(
+          `/api/trips/user/firebase/${effectiveUid}`
+        );
 
-  // 🔁 OLD BEHAVIOR PRESERVED HERE
+        setTrips(res.data);
+        console.log("✅ trips fetched:", res.data.length);
+      } catch (error) {
+        console.error("❌ fetchTrips failed", error);
+        Alert.alert("Error", "Failed to load trips");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [firebase_uid]
+  );
+
   useEffect(() => {
     if (autoFetch) {
-      fetchTrips();
+      fetchTrips(firebase_uid);
     }
-  }, [autoFetch, fetchTrips]);
+  }, [autoFetch, firebase_uid, fetchTrips]);
 
   const addTrip = async (formData: any) => {
     try {

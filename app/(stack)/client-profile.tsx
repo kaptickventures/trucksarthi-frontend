@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Building2, Plus } from "lucide-react-native";
+import { Building2, Plus, FileText } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -27,8 +27,14 @@ export default function ClientProfile() {
   const isDark = useColorScheme() === "dark";
 
   /* ---------------- ROUTE PARAM ---------------- */
-  const { clientId } = useLocalSearchParams<{ clientId?: string }>();
-  const numericClientId = Number(clientId);
+  const { clientId } = useLocalSearchParams<{ clientId?: string | string[] }>();
+
+  const numericClientId = useMemo(() => {
+    if (!clientId) return null;
+    if (Array.isArray(clientId)) return Number(clientId[0]);
+    const n = Number(clientId);
+    return Number.isNaN(n) ? null : n;
+  }, [clientId]);
 
   /* ---------------- AUTH ---------------- */
   const auth = getAuth();
@@ -41,7 +47,7 @@ export default function ClientProfile() {
       setAuthLoading(false);
     });
     return unsub;
-  }, []);
+  }, [auth]);
 
   const firebase_uid = user?.uid ?? "";
 
@@ -76,7 +82,7 @@ export default function ClientProfile() {
   const { invoices, fetchInvoices, createInvoice } =
     useInvoices(firebase_uid);
 
-  const { trips, fetchTrips } = useTrips(firebase_uid);
+  const { trips, fetchTrips } = useTrips(firebase_uid, { autoFetch: false });
 
   const {
     entries,
@@ -85,13 +91,13 @@ export default function ClientProfile() {
     addPayment,
   } = useClientLedger();
 
-  /* ---------------- FETCH ---------------- */
+  /* ---------------- FETCH (AUTH SAFE) ---------------- */
   useEffect(() => {
-    if (!firebase_uid || !numericClientId) return;
+    if (!user || !firebase_uid || !numericClientId) return;
 
     fetchClients();
     fetchInvoices();
-    fetchTrips();
+    fetchTrips(firebase_uid);
     fetchLedger(numericClientId);
 
     fetchSummary(numericClientId)
@@ -103,56 +109,54 @@ export default function ClientProfile() {
           outstanding: 0,
         })
       );
-  }, [firebase_uid, numericClientId]);
+  }, [user, firebase_uid, numericClientId]);
+
+  /* ---------------- HELPERS ---------------- */
+  const normalizeInvoiceStatus = (status: any) => {
+    if (!status) return "not_invoiced";
+    return status.toString().toLowerCase().replace(" ", "_");
+  };
 
   /* ---------------- DERIVED ---------------- */
-  const client = useMemo(
-    () => {
-      // Debug: Log all available client IDs and their types to diagnose mismatch
-      if (clients.length > 0) {
-        console.log("DEBUG: Available Clients:", clients.map(c => ({
-          id: c.client_id,
-          type: typeof c.client_id,
-          matches: String(c.client_id) === String(clientId)
-        })));
-      }
-
-      // Robust comparison: Convert both to string to handle '42' vs 42
-      return clients.find((c) => String(c.client_id) === String(clientId));
-    },
-    [clients, clientId]
-  );
+  const client = useMemo(() => {
+    if (!numericClientId) return undefined;
+    return clients.find(
+      (c) => Number(c.client_id) === Number(numericClientId)
+    );
+  }, [clients, numericClientId]);
 
   const clientInvoices = invoices.filter(
-    (i: Invoice) => i.client_id === numericClientId
+    (i: Invoice) => Number(i.client_id) === Number(numericClientId)
   );
 
   const clientTrips = trips.filter(
-    (t: Trip) => t.client_id === numericClientId
+    (t: Trip) => Number(t.client_id) === Number(numericClientId)
   );
 
   const filteredTrips = useMemo(() => {
-    if (tripFilter === "invoiced")
+    if (tripFilter === "invoiced") {
       return clientTrips.filter(
-        (t) => t.invoiced_status === "invoiced"
+        (t) => normalizeInvoiceStatus(t.invoiced_status) === "invoiced"
       );
+    }
 
-    if (tripFilter === "uninvoiced")
+    if (tripFilter === "uninvoiced") {
       return clientTrips.filter(
-        (t) => t.invoiced_status === "not_invoiced"
+        (t) => normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced"
       );
+    }
 
     return clientTrips;
   }, [tripFilter, clientTrips]);
 
   const uninvoicedTrips = clientTrips.filter(
-    (t) => t.invoiced_status === "not_invoiced"
+    (t) => normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced"
   );
 
   /* ---------------- ACTIONS ---------------- */
   const handleGenerateInvoice = async () => {
-    if (selectedTrips.length === 0) {
-      Alert.alert("Select trips", "Please select at least one trip");
+    if (!selectedTrips.length || !numericClientId) {
+      Alert.alert("Select uninvoiced trips");
       return;
     }
 
@@ -164,20 +168,19 @@ export default function ClientProfile() {
 
     setSelectedTrips([]);
     fetchInvoices();
-    fetchTrips();
+    fetchTrips(firebase_uid);
     fetchLedger(numericClientId);
-    fetchSummary(numericClientId);
+    fetchSummary(numericClientId).then(setSummary);
   };
 
   const handleAddPayment = async () => {
-    if (!paymentAmount) {
+    if (!paymentAmount || !numericClientId) {
       Alert.alert("Enter amount");
       return;
     }
 
     await addPayment({
       client_id: numericClientId,
-      invoice_id: 0, // required by hook
       amount: Number(paymentAmount),
       remarks: paymentRemarks,
     });
@@ -187,11 +190,11 @@ export default function ClientProfile() {
     setShowPaymentForm(false);
 
     fetchLedger(numericClientId);
-    fetchSummary(numericClientId);
+    fetchSummary(numericClientId).then(setSummary);
   };
 
   /* ---------------- GUARDS ---------------- */
-  if (authLoading || clientsLoading) {
+  if (authLoading || clientsLoading || !numericClientId) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" />
@@ -199,28 +202,10 @@ export default function ClientProfile() {
     );
   }
 
-  if (!user || !client) {
+  if (!client) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center p-4">
-        <Text className="text-muted-foreground mb-4">Client not found</Text>
-        <View className="bg-gray-100 p-4 rounded-lg">
-          <Text className="font-mono text-xs">Debug Info:</Text>
-          <Text className="font-mono text-xs">ID Param: {clientId}</Text>
-          <Text className="font-mono text-xs">Parsed ID: {numericClientId}</Text>
-          <Text className="font-mono text-xs">User: {user ? "Logged In" : "Null"}</Text>
-          <Text className="font-mono text-xs">UID: {firebase_uid}</Text>
-          <Text className="font-mono text-xs">Clients Loaded: {clients.length}</Text>
-          <Text className="font-mono text-xs">Loading: {clientsLoading ? "Yes" : "No"}</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => { fetchClients(); fetchInvoices(); fetchTrips(); fetchLedger(numericClientId); }}
-          className="mt-4 bg-blue-600 px-4 py-2 rounded-lg"
-        >
-          <Text className="text-white">Retry Fetch</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()} className="mt-4">
-          <Text className="text-blue-500">Go Back</Text>
-        </TouchableOpacity>
+      <SafeAreaView className="flex-1 justify-center items-center">
+        <Text className="text-muted-foreground">Client not found</Text>
       </SafeAreaView>
     );
   }
@@ -230,7 +215,6 @@ export default function ClientProfile() {
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      {/* Header */}
       <View className="px-6 py-4 flex-row items-center justify-between">
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons
@@ -244,7 +228,6 @@ export default function ClientProfile() {
       </View>
 
       <ScrollView className="flex-1 px-6">
-
         {/* Client Card */}
         <View className="bg-card border border-border rounded-3xl p-6 items-center mb-8">
           <View className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center mb-3">
@@ -256,7 +239,7 @@ export default function ClientProfile() {
           </Text>
         </View>
 
-        {/* Ledger Summary */}
+        {/* Summary */}
         <View className="flex-row gap-3 mb-3">
           <SummaryCard label="Billed" value={summary.total_debits} />
           <SummaryCard label="Received" value={summary.total_credits} green />
@@ -295,7 +278,7 @@ export default function ClientProfile() {
           </View>
         )}
 
-        {/* Ledger Entries */}
+        {/* Ledger */}
         <Text className="text-lg font-semibold mb-3">Ledger</Text>
 
         {entries.length === 0 ? (
@@ -322,10 +305,11 @@ export default function ClientProfile() {
                 )}
               </View>
               <Text
-                className={`font-semibold ${e.entry_type === "credit"
-                  ? "text-green-600"
-                  : "text-red-600"
-                  }`}
+                className={`font-semibold ${
+                  e.entry_type === "credit"
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
               >
                 ₹ {e.amount}
               </Text>
@@ -333,37 +317,8 @@ export default function ClientProfile() {
           ))
         )}
 
-        {/* Invoices */}
-        <Text className="text-lg font-semibold mb-3 mt-8">Invoices</Text>
-
-        {clientInvoices.length === 0 ? (
-          <Text className="text-muted-foreground mb-6">
-            No invoices found.
-          </Text>
-        ) : (
-          clientInvoices.map((invoice: Invoice) => (
-            <View
-              key={invoice.invoice_id}
-              className="bg-card border border-border rounded-xl p-4 mb-3 flex-row justify-between"
-            >
-              <View>
-                <Text className="font-semibold">{invoice.invoice_number}</Text>
-                <Text className="text-xs text-muted-foreground">
-                  Due {invoice.due_date}
-                </Text>
-              </View>
-              <View className="items-end">
-                <Text className="font-semibold">
-                  ₹ {invoice.total_amount}
-                </Text>
-                <StatusPill status={invoice.status} />
-              </View>
-            </View>
-          ))
-        )}
-
-        {/* Trips (UNCHANGED) */}
-        <View className="mt-8 mb-24">
+        {/* Trip History */}
+        <View className="mt-8 mb-8">
           <Text className="text-lg font-semibold mb-3">Trip History</Text>
 
           <View className="flex-row gap-2 mb-4">
@@ -371,12 +326,14 @@ export default function ClientProfile() {
               <TouchableOpacity
                 key={f}
                 onPress={() => setTripFilter(f as any)}
-                className={`px-3 py-1.5 rounded-full ${tripFilter === f ? "bg-blue-600" : "bg-muted"
-                  }`}
+                className={`px-3 py-1.5 rounded-full ${
+                  tripFilter === f ? "bg-blue-600" : "bg-muted"
+                }`}
               >
                 <Text
-                  className={`text-[11px] font-semibold ${tripFilter === f ? "text-white" : "text-foreground"
-                    }`}
+                  className={`text-[11px] font-semibold ${
+                    tripFilter === f ? "text-white" : "text-foreground"
+                  }`}
                 >
                   {f.toUpperCase()}
                 </Text>
@@ -384,36 +341,75 @@ export default function ClientProfile() {
             ))}
           </View>
 
-          {tripFilter === "uninvoiced" && uninvoicedTrips.length > 0 && (
-            <TouchableOpacity
-              onPress={handleGenerateInvoice}
-              className="bg-blue-600 py-2.5 rounded-lg mb-4 items-center"
-            >
-              <Text className="text-white font-semibold">
-                Generate Invoice ({selectedTrips.length})
-              </Text>
-            </TouchableOpacity>
-          )}
+          {filteredTrips.map((trip: Trip) => {
+            const status = normalizeInvoiceStatus(trip.invoiced_status);
+            const isUninvoiced = status === "not_invoiced";
 
-          {filteredTrips.map((trip: Trip) => (
-            <TouchableOpacity
-              key={trip.trip_id}
-              disabled={trip.invoiced_status === "invoiced"}
-              onPress={() => toggleTripSelection(trip.trip_id)}
-              className={`bg-card border rounded-xl p-4 mb-3 ${selectedTrips.includes(trip.trip_id)
-                ? "border-blue-600"
-                : "border-border"
-                }`}
-            >
-              <View className="flex-row justify-between mb-1">
-                <Text className="font-semibold">Trip #{trip.trip_id}</Text>
-                <Text className="font-semibold">₹ {trip.cost_of_trip}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+            return (
+              <TouchableOpacity
+                key={trip.trip_id}
+                disabled={!isUninvoiced}
+                onPress={() => toggleTripSelection(trip.trip_id)}
+                className={`bg-card border rounded-xl p-4 mb-3 ${
+                  selectedTrips.includes(trip.trip_id)
+                    ? "border-blue-600"
+                    : "border-border"
+                } ${!isUninvoiced && "opacity-50"}`}
+              >
+                <View className="flex-row justify-between mb-1">
+                  <Text className="font-semibold">
+                    Trip #{trip.trip_id}
+                  </Text>
+                  <Text className="font-semibold">
+                    ₹ {trip.cost_of_trip}
+                  </Text>
+                </View>
+
+                {/* STATUS TAG (ADDED) */}
+                <View className="mt-2 self-start px-3 py-0.5 rounded-full bg-muted">
+                  <Text
+                    className={`text-[11px] font-semibold ${
+                      isUninvoiced
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {isUninvoiced ? "UNINVOICED" : "INVOICED"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
+
+        {/* INVOICES LIST (ADDED, NO REMOVALS) */}
+        <Text className="text-lg font-semibold mb-3">Invoices</Text>
+
+        {clientInvoices.length === 0 ? (
+          <Text className="text-muted-foreground mb-6">
+            No invoices yet.
+          </Text>
+        ) : (
+          clientInvoices.map((inv) => (
+            <View
+              key={inv.invoice_id}
+              className="bg-card border border-border rounded-xl p-4 mb-2 flex-row justify-between"
+            >
+              <View>
+                <Text className="font-semibold">
+                  Invoice #{inv.invoice_number}
+                </Text>
+                <Text className="text-xs text-muted-foreground">
+                  Due: {inv.due_date}
+                </Text>
+              </View>
+              <FileText size={18} color="#2563EB" />
+            </View>
+          ))
+        )}
       </ScrollView>
 
+      {/* CREATE INVOICE FAB */}
       {uninvoicedTrips.length > 0 && (
         <TouchableOpacity
           onPress={handleGenerateInvoice}
@@ -432,28 +428,14 @@ function SummaryCard({ label, value, green, red }: any) {
   return (
     <View className="flex-1 bg-card border border-border rounded-2xl p-4 items-center">
       <Text
-        className={`text-lg font-bold ${green ? "text-green-600" : red ? "text-red-500" : ""
-          }`}
+        className={`text-lg font-bold ${
+          green ? "text-green-600" : red ? "text-red-500" : ""
+        }`}
       >
         ₹ {value}
       </Text>
-      <Text className="text-[11px] text-muted-foreground mt-1">{label}</Text>
-    </View>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  const styles =
-    status === "paid"
-      ? "bg-green-100 text-green-800"
-      : status === "partial"
-        ? "bg-orange-100 text-orange-800"
-        : "bg-red-100 text-red-800";
-
-  return (
-    <View className={`px-3 py-1 rounded-full mt-1 ${styles}`}>
-      <Text className="text-[11px] font-semibold">
-        {status.toUpperCase()}
+      <Text className="text-[11px] text-muted-foreground mt-1">
+        {label}
       </Text>
     </View>
   );
