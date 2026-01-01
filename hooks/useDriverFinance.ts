@@ -2,25 +2,32 @@ import { useState, useCallback } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
-export interface DriverFinanceEntry {
-  financial_id: number;
+/* ---------------- TYPES ---------------- */
+
+export interface DriverLedgerEntry {
+  entry_id: number;
   driver_id: number;
-  trip_id?: number;
-  entry_type: "advance" | "expense" | "salary" | "per_trip";
-  amount: number;
-  remarks?: string;
   entry_date: string;
+  entry_type: "credit" | "debit";
+  amount: number;
+  category: string;
+  payment_mode?: string;
+  trip_id?: number;
+  payroll_month?: string;
+  remarks?: string;
 }
 
-export function useDriverFinance() {
-  const [entries, setEntries] = useState<DriverFinanceEntry[]>([]);
+export default function useDriverFinance() {
+  const [entries, setEntries] = useState<DriverLedgerEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch full ledger for driver
-  const fetchDriverLedger = useCallback(async (driver_id: number) => {
+  /* ---------------- FETCH LEDGER ---------------- */
+  const fetchDriverLedger = useCallback(async (driverId: number) => {
     try {
       setLoading(true);
-      const res = await API.get(`/api/driver-finance/driver/${driver_id}`);
+      const res = await API.get(
+        `/api/driver-ledger/driver/${driverId}`
+      );
       setEntries(res.data);
     } catch (error) {
       console.error(error);
@@ -30,44 +37,49 @@ export function useDriverFinance() {
     }
   }, []);
 
-  // Fetch driver balance
-  const fetchDriverSummary = async (driver_id: number) => {
+  /* ---------------- FETCH BALANCE ---------------- */
+  const fetchDriverSummary = async (driverId: number) => {
     try {
       const res = await API.get(
-        `/api/driver-finance/driver/${driver_id}/summary`
+        `/api/driver-ledger/driver/${driverId}/balance`
       );
-      return res.data; // { net_balance }
+
+      return {
+        net_balance: Number(res.data.balance),
+      };
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Failed to load driver summary");
-      throw error;
+      Alert.alert("Error", "Failed to load driver balance");
+      return { net_balance: 0 };
     }
   };
 
-  // Add finance entry
-  const addEntry = async (data: Partial<DriverFinanceEntry> & { firebase_uid: string }) => {
+  /* ---------------- ADD LEDGER ENTRY ---------------- */
+  const addLedgerEntry = async (data: {
+    driver_id: number;
+    entry_type: "credit" | "debit";
+    amount: number;
+    category: string;
+    payment_mode?: string;
+    trip_id?: number;
+    payroll_month?: string;
+    remarks?: string;
+    firebase_uid: string;
+  }) => {
     try {
-      const res = await API.post(`/api/driver-finance`, data);
+      const res = await API.post(`/api/driver-ledger`, data);
+
+      // optimistic update
       setEntries((prev) => [res.data, ...prev]);
+
       return res.data;
     } catch (error: any) {
       console.error(error);
       Alert.alert(
         "Error",
-        error.response?.data?.error || "Failed to add entry"
+        error.response?.data?.error || "Failed to add ledger entry"
       );
       throw error;
-    }
-  };
-
-  // Delete entry (optional)
-  const deleteEntry = async (id: number) => {
-    try {
-      await API.delete(`/api/driver-finance/${id}`);
-      setEntries((prev) => prev.filter((e) => e.financial_id !== id));
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to delete entry");
     }
   };
 
@@ -76,7 +88,6 @@ export function useDriverFinance() {
     loading,
     fetchDriverLedger,
     fetchDriverSummary,
-    addEntry,
-    deleteEntry,
+    addLedgerEntry,
   };
 }

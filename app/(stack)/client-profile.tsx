@@ -25,6 +25,9 @@ import useClients from "../../hooks/useClient";
 import { LedgerEntry, useClientLedger } from "../../hooks/useClientLedger";
 import { Invoice, useInvoices } from "../../hooks/useInvoice";
 import useTrips, { Trip } from "../../hooks/useTrip";
+import useDrivers from "../../hooks/useDriver";
+import useTrucks from "../../hooks/useTruck";
+import useLocations from "../../hooks/useLocation";
 
 export default function ClientProfile() {
   const router = useRouter();
@@ -44,6 +47,7 @@ export default function ClientProfile() {
   const auth = getAuth();
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -70,6 +74,11 @@ export default function ClientProfile() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentRemarks, setPaymentRemarks] = useState("");
+
+const { drivers } = useDrivers(firebase_uid);
+const { trucks } = useTrucks(firebase_uid);
+const { locations } = useLocations(firebase_uid);
+
 
   const toggleTripSelection = (tripId: number) => {
     setSelectedTrips((prev) =>
@@ -121,42 +130,244 @@ export default function ClientProfile() {
     return status.toString().toLowerCase().replace(" ", "_");
   };
 
+  const driverMap = useMemo(
+  () =>
+    Object.fromEntries(
+      drivers.map((d) => [Number(d.driver_id), d.driver_name])
+    ),
+  [drivers]
+);
+
+const truckMap = useMemo(
+  () =>
+    Object.fromEntries(
+      trucks.map((t) => [Number(t.truck_id), t.registration_number])
+    ),
+  [trucks]
+);
+
+const locationMap = useMemo(
+  () =>
+    Object.fromEntries(
+      locations.map((l) => [Number(l.location_id), l.location_name])
+    ),
+  [locations]
+);
+
+
   // ✅ ADD — Invoice PDF (same approach as TripLog)
 const generateInvoicePDF = async (invoice: Invoice) => {
   try {
     const invoiceTrips = trips.filter(
-  (t) =>
-    Number(t.client_id) === Number(invoice.client_id) &&
-    normalizeInvoiceStatus(t.invoiced_status) === "invoiced"
-);
+      (t) =>
+        Number(t.client_id) === Number(invoice.client_id) &&
+        normalizeInvoiceStatus(t.invoiced_status) === "invoiced"
+    );
 
-
-    const total = invoiceTrips.reduce(
+    const subtotal = invoiceTrips.reduce(
       (acc, t) =>
-        acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense),
+        acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0),
       0
     );
 
+    const taxRate = 0.05;
+    const tax = subtotal * taxRate;
+    const grandTotal = subtotal + tax;
+
+    const today = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+
     const html = `
+<!DOCTYPE html>
 <html>
-  <body style="font-family: Arial; padding: 24px;">
-    <h2 style="text-align:center;">TruckSarthi</h2>
-    <p style="text-align:center;">Invoice #${invoice.invoice_number}</p>
-    <hr />
-    ${invoiceTrips
-      .map(
-        (t) => `
-      <p>
-        Trip #${t.trip_id} — ₹${(
-          Number(t.cost_of_trip) + Number(t.miscellaneous_expense)
-        ).toLocaleString()}
-      </p>
-    `
-      )
-      .join("")}
-    <hr />
-    <h3>Total: ₹${total.toLocaleString()}</h3>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 24px;
+      color: #111;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      color: #2563eb;
+      margin: 0;
+    }
+    .header p {
+      font-size: 12px;
+      color: #555;
+      margin: 4px 0 12px;
+    }
+    .divider {
+      border-top: 2px solid #2563eb;
+      margin: 12px 0;
+    }
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+    .billto {
+      background: #f0f7ff;
+      padding: 12px;
+      border-left: 4px solid #2563eb;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th {
+      background: #2563eb;
+      color: white;
+      padding: 8px;
+      text-align: left;
+    }
+    td {
+      padding: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .right {
+      text-align: right;
+    }
+    .totals {
+      margin-top: 12px;
+      font-size: 13px;
+    }
+    .totals div {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .grand {
+      font-weight: bold;
+      color: #2563eb;
+      font-size: 15px;
+      border-top: 2px solid #2563eb;
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+    .footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 11px;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <h1>TruckSarthi</h1>
+    <p>Professional Logistics & Transportation</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="meta">
+    <div>
+      <strong>Invoice Number</strong><br />
+      ${invoice.invoice_number}
+    </div>
+    <div>
+      <strong>Invoice Date</strong><br />
+      ${today}
+    </div>
+    <div>
+      <strong>Total Trips</strong><br />
+      ${invoiceTrips.length}
+    </div>
+  </div>
+
+  <div class="billto">
+    <strong>Bill To:</strong><br />
+    ${client?.client_name || ""}<br />
+    Logistics & Transportation Services
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Route</th>
+        <th>Truck</th>
+        <th>Driver</th>
+        <th class="right">Trip Cost</th>
+        <th class="right">Misc Expense</th>
+        <th class="right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+  ${invoiceTrips
+    .map((t) => {
+      const tripTotal =
+        Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0);
+
+      const driverName =
+        driverMap[t.driver_id] || "—";
+
+      const truckNumber =
+        truckMap[t.truck_id] || "—";
+
+      const route = `${
+        locationMap[t.start_location_id] || "—"
+      } → ${
+        locationMap[t.end_location_id] || "—"
+      }`;
+
+      return `
+        <tr>
+          <td>${t.trip_date}</td>
+          <td>${route}</td>
+          <td>${truckNumber}</td>
+          <td>${driverName}</td>
+          <td class="right">₹${Number(
+            t.cost_of_trip
+          ).toLocaleString()}</td>
+          <td class="right">₹${Number(
+            t.miscellaneous_expense || 0
+          ).toLocaleString()}</td>
+          <td class="right"><strong>₹${tripTotal.toLocaleString()}</strong></td>
+        </tr>
+      `;
+    })
+    .join("")}
+</tbody>
+
+  </table>
+
+  <div class="totals">
+    <div>
+      <span>Subtotal (${invoiceTrips.length} trips)</span>
+      <span>₹${subtotal.toLocaleString()}</span>
+    </div>
+    <div>
+      <span>Tax (5%)</span>
+      <span>₹${tax.toLocaleString()}</span>
+    </div>
+    <div class="grand">
+      <span>Grand Total</span>
+      <span>₹${grandTotal.toLocaleString()}</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Thank you for your business!</p>
+    <p>TruckSarthi – Your Trusted Logistics Partner</p>
+    <p>Generated on ${new Date().toLocaleString("en-IN")}</p>
+  </div>
+
+</body>
 </html>
 `;
 
@@ -166,9 +377,11 @@ const generateInvoicePDF = async (invoice: Invoice) => {
     await FileSystem.moveAsync({ from: uri, to: fileUri });
     await Sharing.shareAsync(fileUri);
   } catch (e) {
+    console.error(e);
     Alert.alert("Error", "Failed to generate invoice PDF");
   }
 };
+
 
 
   /* ---------------- DERIVED ---------------- */
