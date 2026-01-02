@@ -4,9 +4,7 @@ import {
   Phone,
   User,
   Wallet,
-  Pencil,
   PlusCircle,
-  IndianRupee,
   X,
 } from "lucide-react-native";
 import {
@@ -19,6 +17,8 @@ import {
   Linking,
   Modal,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useEffect, useMemo, useState } from "react";
@@ -31,17 +31,23 @@ export default function DriverProfile() {
   const router = useRouter();
   const isDark = useColorScheme() === "dark";
   const { driver_id } = useLocalSearchParams<{ driver_id: string }>();
-  const DRIVER_ID = Number(driver_id);
+const DRIVER_ID = useMemo(
+  () => (driver_id ? Number(driver_id) : null),
+  [driver_id]
+);
 
   const firebase_uid = getAuth().currentUser?.uid!;
 
   /* ---------------- DRIVER BASIC INFO ---------------- */
-  const { drivers } = useDrivers(firebase_uid);
+const { drivers, loading } = useDrivers(firebase_uid);
 
-  const driver = useMemo(
-    () => drivers.find((d) => d.driver_id === DRIVER_ID),
-    [drivers, DRIVER_ID]
+ const driver = useMemo(() => {
+  if (!DRIVER_ID || drivers.length === 0) return null;
+  return drivers.find(
+    (d) => Number(d.driver_id) === Number(DRIVER_ID)
   );
+}, [drivers, DRIVER_ID]);
+
 
   /* ---------------- DRIVER LEDGER ---------------- */
   const {
@@ -77,7 +83,7 @@ export default function DriverProfile() {
   };
 
   const handleSaveEntry = async () => {
-    if (!amount) return;
+    if (!amount || !DRIVER_ID) return;
 
     await addLedgerEntry({
       driver_id: DRIVER_ID,
@@ -92,10 +98,20 @@ export default function DriverProfile() {
     setRemarks("");
     setShowModal(false);
 
+    fetchDriverLedger(DRIVER_ID);
     fetchDriverSummary(DRIVER_ID).then((res) =>
       setNetBalance(res.net_balance)
     );
   };
+
+
+  if (loading) {
+  return (
+    <SafeAreaView className="flex-1 items-center justify-center">
+      <Text>Loading driver...</Text>
+    </SafeAreaView>
+  );
+}
 
   /* ---------------- UI ---------------- */
   return (
@@ -135,7 +151,9 @@ export default function DriverProfile() {
             className="bg-green-500 px-5 py-2.5 rounded-full flex-row items-center mt-4"
           >
             <Phone size={18} color="white" />
-            <Text className="text-white font-semibold ml-2">Call</Text>
+            <Text className="text-white font-semibold ml-2">
+              Call
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -144,7 +162,9 @@ export default function DriverProfile() {
           <Wallet size={26} />
           <Text
             className={`text-3xl font-bold mt-3 ${
-              netBalance >= 0 ? "text-green-600" : "text-red-500"
+              netBalance >= 0
+                ? "text-green-600"
+                : "text-red-500"
             }`}
           >
             ₹ {Math.abs(netBalance)}
@@ -200,77 +220,82 @@ export default function DriverProfile() {
 
       {/* ADD LEDGER MODAL */}
       <Modal visible={showModal} animationType="slide" transparent>
-        <View className="flex-1 justify-end bg-black/40">
-          <View className="bg-card rounded-t-3xl p-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-semibold">
-                Add Ledger Entry
-              </Text>
-              <TouchableOpacity onPress={() => setShowModal(false)}>
-                <X size={20} />
-              </TouchableOpacity>
-            </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <View className="flex-1 justify-end bg-black/40">
+            <View className="bg-card rounded-t-3xl p-6">
+              <View className="flex-row justify-between items-center mb-4">
+                <Text className="text-lg font-semibold">
+                  Add Ledger Entry
+                </Text>
+                <TouchableOpacity onPress={() => setShowModal(false)}>
+                  <X size={20} />
+                </TouchableOpacity>
+              </View>
 
-            {/* Amount */}
-            <TextInput
-              placeholder="Amount"
-              keyboardType="numeric"
-              value={amount}
-              onChangeText={setAmount}
-              className="border border-border rounded-xl px-4 py-3 mb-3"
-            />
+              {/* Amount */}
+              <TextInput
+                placeholder="Amount"
+                keyboardType="numeric"
+                value={amount}
+                onChangeText={setAmount}
+                className="border border-border rounded-xl px-4 py-3 mb-3"
+              />
 
-            {/* Entry Type */}
-            <View className="flex-row mb-3">
-              {["credit", "debit"].map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  onPress={() => setEntryType(t as any)}
-                  className={`flex-1 py-3 rounded-xl items-center mx-1 ${
-                    entryType === t
-                      ? "bg-blue-600"
-                      : "bg-muted"
-                  }`}
-                >
-                  <Text
-                    className={`font-semibold ${
+              {/* Entry Type */}
+              <View className="flex-row mb-3">
+                {["credit", "debit"].map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    onPress={() => setEntryType(t as any)}
+                    className={`flex-1 py-3 rounded-xl items-center mx-1 ${
                       entryType === t
-                        ? "text-white"
-                        : "text-foreground"
+                        ? "bg-blue-600"
+                        : "bg-muted"
                     }`}
                   >
-                    {t.toUpperCase()}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      className={`font-semibold ${
+                        entryType === t
+                          ? "text-white"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {t.toUpperCase()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Category */}
+              <TextInput
+                placeholder="Category (daily_allowance, advance, salary)"
+                value={category}
+                onChangeText={setCategory}
+                className="border border-border rounded-xl px-4 py-3 mb-3"
+              />
+
+              {/* Remarks */}
+              <TextInput
+                placeholder="Remarks (optional)"
+                value={remarks}
+                onChangeText={setRemarks}
+                className="border border-border rounded-xl px-4 py-3 mb-4"
+              />
+
+              <TouchableOpacity
+                onPress={handleSaveEntry}
+                className="bg-blue-600 py-3 rounded-xl items-center"
+              >
+                <Text className="text-white font-semibold">
+                  Save Entry
+                </Text>
+              </TouchableOpacity>
             </View>
-
-            {/* Category */}
-            <TextInput
-              placeholder="Category (daily_allowance, advance, salary)"
-              value={category}
-              onChangeText={setCategory}
-              className="border border-border rounded-xl px-4 py-3 mb-3"
-            />
-
-            {/* Remarks */}
-            <TextInput
-              placeholder="Remarks (optional)"
-              value={remarks}
-              onChangeText={setRemarks}
-              className="border border-border rounded-xl px-4 py-3 mb-4"
-            />
-
-            <TouchableOpacity
-              onPress={handleSaveEntry}
-              className="bg-blue-600 py-3 rounded-xl items-center"
-            >
-              <Text className="text-white font-semibold">
-                Save Entry
-              </Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

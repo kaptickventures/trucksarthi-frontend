@@ -20,17 +20,25 @@ export default function useTrucks(firebase_uid: string) {
 
   // Fetch all trucks for the current user
   const fetchTrucks = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await API.get(`/api/trucks/user/firebase/${firebase_uid}`);
-      setTrucks(res.data);
-    } catch (error: any) {
-      console.error(error);
-      Alert.alert("Error", error?.response?.data?.error || "Failed to load trucks");
-    } finally {
-      setLoading(false);
-    }
-  }, [firebase_uid]);
+  if (!firebase_uid) return; // ✅ CRITICAL
+
+  try {
+    setLoading(true);
+    const res = await API.get(
+      `/api/trucks/user/firebase/${firebase_uid}`
+    );
+    setTrucks(res.data);
+  } catch (error: any) {
+    console.error(error);
+    Alert.alert(
+      "Error",
+      error?.response?.data?.error || "Failed to load trucks"
+    );
+  } finally {
+    setLoading(false);
+  }
+}, [firebase_uid]);
+
 
   // Add a new truck
   const addTruck = async (data: Partial<Truck>) => {

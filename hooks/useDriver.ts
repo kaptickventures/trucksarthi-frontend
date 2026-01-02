@@ -17,17 +17,22 @@ export default function useDrivers(firebase_uid: string) {
   const [loading, setLoading] = useState(false);
 
   const fetchDrivers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await API.get(`/api/drivers/user/firebase/${firebase_uid}`);
-      setDrivers(res.data);
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to load drivers");
-    } finally {
-      setLoading(false);
-    }
-  }, [firebase_uid]);
+  if (!firebase_uid) return; // ✅ CRITICAL
+
+  try {
+    setLoading(true);
+    const res = await API.get(
+      `/api/drivers/user/firebase/${firebase_uid}`
+    );
+    setDrivers(res.data);
+  } catch (error) {
+    console.error(error);
+    Alert.alert("Error", "Failed to load drivers");
+  } finally {
+    setLoading(false);
+  }
+}, [firebase_uid]);
+
 
   const addDriver = async (data: Partial<Driver>) => {
     try {

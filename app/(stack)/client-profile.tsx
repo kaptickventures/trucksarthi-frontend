@@ -110,7 +110,7 @@ const { locations } = useLocations(firebase_uid);
 
     fetchClients();
     fetchInvoices();
-    fetchTrips(firebase_uid);
+    fetchTrips();
     fetchLedger(numericClientId);
 
     fetchSummary(numericClientId)
@@ -435,7 +435,7 @@ const generateInvoicePDF = async (invoice: Invoice) => {
 
     setSelectedTrips([]);
     fetchInvoices();
-    fetchTrips(firebase_uid);
+    fetchTrips();
     fetchLedger(numericClientId);
     fetchSummary(numericClientId).then(setSummary);
   };
