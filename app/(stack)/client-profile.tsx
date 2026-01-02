@@ -1,10 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Print from "expo-print";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Building2, Plus, FileText } from "lucide-react-native";
+import * as Sharing from "expo-sharing";
+import { ArrowDownLeft, ArrowUpRight, Banknote, Building2, ChevronDown, FileText, Plus, Wallet } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -14,20 +21,17 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
-import * as FileSystem from "expo-file-system/legacy";
 
 
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 
 import useClients from "../../hooks/useClient";
 import { LedgerEntry, useClientLedger } from "../../hooks/useClientLedger";
-import { Invoice, useInvoices } from "../../hooks/useInvoice";
-import useTrips, { Trip } from "../../hooks/useTrip";
 import useDrivers from "../../hooks/useDriver";
-import useTrucks from "../../hooks/useTruck";
+import { Invoice, useInvoices } from "../../hooks/useInvoice";
 import useLocations from "../../hooks/useLocation";
+import useTrips, { Trip } from "../../hooks/useTrip";
+import useTrucks from "../../hooks/useTruck";
 
 export default function ClientProfile() {
   const router = useRouter();
@@ -64,6 +68,10 @@ export default function ClientProfile() {
     "all" | "invoiced" | "uninvoiced"
   >("all");
 
+  useEffect(() => {
+    setSelectedTrips([]);
+  }, [tripFilter]);
+
   const [summary, setSummary] = useState({
     total_debits: 0,
     total_credits: 0,
@@ -74,10 +82,11 @@ export default function ClientProfile() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentRemarks, setPaymentRemarks] = useState("");
+  const [visibleEntries, setVisibleEntries] = useState(5);
 
-const { drivers } = useDrivers(firebase_uid);
-const { trucks } = useTrucks(firebase_uid);
-const { locations } = useLocations(firebase_uid);
+  const { drivers } = useDrivers(firebase_uid);
+  const { trucks } = useTrucks(firebase_uid);
+  const { locations } = useLocations(firebase_uid);
 
 
   const toggleTripSelection = (tripId: number) => {
@@ -131,56 +140,56 @@ const { locations } = useLocations(firebase_uid);
   };
 
   const driverMap = useMemo(
-  () =>
-    Object.fromEntries(
-      drivers.map((d) => [Number(d.driver_id), d.driver_name])
-    ),
-  [drivers]
-);
+    () =>
+      Object.fromEntries(
+        drivers.map((d) => [Number(d.driver_id), d.driver_name])
+      ),
+    [drivers]
+  );
 
-const truckMap = useMemo(
-  () =>
-    Object.fromEntries(
-      trucks.map((t) => [Number(t.truck_id), t.registration_number])
-    ),
-  [trucks]
-);
+  const truckMap = useMemo(
+    () =>
+      Object.fromEntries(
+        trucks.map((t) => [Number(t.truck_id), t.registration_number])
+      ),
+    [trucks]
+  );
 
-const locationMap = useMemo(
-  () =>
-    Object.fromEntries(
-      locations.map((l) => [Number(l.location_id), l.location_name])
-    ),
-  [locations]
-);
+  const locationMap = useMemo(
+    () =>
+      Object.fromEntries(
+        locations.map((l) => [Number(l.location_id), l.location_name])
+      ),
+    [locations]
+  );
 
 
   // ✅ ADD — Invoice PDF (same approach as TripLog)
-const generateInvoicePDF = async (invoice: Invoice) => {
-  try {
-    const invoiceTrips = trips.filter(
-      (t) =>
-        Number(t.client_id) === Number(invoice.client_id) &&
-        normalizeInvoiceStatus(t.invoiced_status) === "invoiced"
-    );
+  const generateInvoicePDF = async (invoice: Invoice) => {
+    try {
+      const invoiceTrips = trips.filter(
+        (t) =>
+          Number(t.client_id) === Number(invoice.client_id) &&
+          normalizeInvoiceStatus(t.invoiced_status) === "invoiced"
+      );
 
-    const subtotal = invoiceTrips.reduce(
-      (acc, t) =>
-        acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0),
-      0
-    );
+      const subtotal = invoiceTrips.reduce(
+        (acc, t) =>
+          acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0),
+        0
+      );
 
-    const taxRate = 0.05;
-    const tax = subtotal * taxRate;
-    const grandTotal = subtotal + tax;
+      const taxRate = 0.05;
+      const tax = subtotal * taxRate;
+      const grandTotal = subtotal + tax;
 
-    const today = new Date().toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
+      const today = new Date().toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
 
-    const html = `
+      const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -309,39 +318,37 @@ const generateInvoicePDF = async (invoice: Invoice) => {
     </thead>
     <tbody>
   ${invoiceTrips
-    .map((t) => {
-      const tripTotal =
-        Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0);
+          .map((t) => {
+            const tripTotal =
+              Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0);
 
-      const driverName =
-        driverMap[t.driver_id] || "—";
+            const driverName =
+              driverMap[t.driver_id] || "—";
 
-      const truckNumber =
-        truckMap[t.truck_id] || "—";
+            const truckNumber =
+              truckMap[t.truck_id] || "—";
 
-      const route = `${
-        locationMap[t.start_location_id] || "—"
-      } → ${
-        locationMap[t.end_location_id] || "—"
-      }`;
+            const route = `${locationMap[t.start_location_id] || "—"
+              } → ${locationMap[t.end_location_id] || "—"
+              }`;
 
-      return `
+            return `
         <tr>
           <td>${t.trip_date}</td>
           <td>${route}</td>
           <td>${truckNumber}</td>
           <td>${driverName}</td>
           <td class="right">₹${Number(
-            t.cost_of_trip
-          ).toLocaleString()}</td>
+              t.cost_of_trip
+            ).toLocaleString()}</td>
           <td class="right">₹${Number(
-            t.miscellaneous_expense || 0
-          ).toLocaleString()}</td>
+              t.miscellaneous_expense || 0
+            ).toLocaleString()}</td>
           <td class="right"><strong>₹${tripTotal.toLocaleString()}</strong></td>
         </tr>
       `;
-    })
-    .join("")}
+          })
+          .join("")}
 </tbody>
 
   </table>
@@ -371,16 +378,16 @@ const generateInvoicePDF = async (invoice: Invoice) => {
 </html>
 `;
 
-    const { uri } = await Print.printToFileAsync({ html });
-    const fileUri = `${FileSystem.documentDirectory}Invoice-${invoice.invoice_number}.pdf`;
+      const { uri } = await Print.printToFileAsync({ html });
+      const fileUri = `${FileSystem.documentDirectory}Invoice-${invoice.invoice_number}.pdf`;
 
-    await FileSystem.moveAsync({ from: uri, to: fileUri });
-    await Sharing.shareAsync(fileUri);
-  } catch (e) {
-    console.error(e);
-    Alert.alert("Error", "Failed to generate invoice PDF");
-  }
-};
+      await FileSystem.moveAsync({ from: uri, to: fileUri });
+      await Sharing.shareAsync(fileUri);
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "Failed to generate invoice PDF");
+    }
+  };
 
 
 
@@ -494,113 +501,302 @@ const generateInvoicePDF = async (invoice: Invoice) => {
         <View className="w-6" />
       </View>
 
-      <ScrollView className="flex-1 px-6">
+      <ScrollView
+        className="flex-1 px-6"
+        contentContainerStyle={{ paddingBottom: 140 }}
+      >
         {/* Client Card */}
-        <View className="bg-card border border-border rounded-3xl p-6 items-center mb-8">
-          <View className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center mb-3">
-            <Building2 size={40} color="#2563EB" />
+        {/* Client Card */}
+        <View className="bg-card rounded-2xl p-4 mb-6">
+          <View className="flex-row items-center ">
+            <View className="w-14 h-14 bg-secondary rounded-full items-center justify-center mr-4">
+              <Building2 size={26} color="#16a34a" />
+            </View>
+
+            <View className="flex-1 ml-2">
+              <Text className="text-base font-semibold">
+                {client.client_name}
+              </Text>
+              <Text className="text-xs text-muted-foreground">
+                {client.contact_person_name || "—"}
+              </Text>
+            </View>
           </View>
-          <Text className="text-xl font-bold">{client.client_name}</Text>
-          <Text className="text-sm text-muted-foreground mt-1">
-            {client.contact_person_name}
-          </Text>
+
+          {/* ACTION ROW */}
+          <View className="flex-row gap-4 mt-4">
+            {/* CALL */}
+            <TouchableOpacity
+              onPress={() =>
+                client.contact_number &&
+                Linking.openURL(`tel:${client.contact_number}`)
+              }
+              className="flex-1 bg-muted py-2 rounded-xl items-center"
+            >
+              <Text className="font-semibold text-sm">📞 Call</Text>
+            </TouchableOpacity>
+
+            {/* WHATSAPP */}
+            <TouchableOpacity
+              onPress={() =>
+                client.contact_number &&
+                Linking.openURL(
+                  `https://wa.me/91${client.contact_number}?text=Hello ${client.client_name}`
+                )
+              }
+              className="flex-1 bg-green-600 py-2 rounded-xl items-center"
+            >
+              <Text className="font-semibold text-sm text-white">
+                💬 WhatsApp
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
+
+
+
         {/* Summary */}
-        <View className="flex-row gap-3 mb-3">
+        <View className="flex-row gap-2 mb-6">
           <SummaryCard label="Billed" value={summary.total_debits} />
           <SummaryCard label="Received" value={summary.total_credits} green />
           <SummaryCard label="Outstanding" value={summary.outstanding} red />
         </View>
 
-        {/* Add Payment */}
+        {/* Add Payment Button - Full Width Bar */}
         <TouchableOpacity
-          onPress={() => setShowPaymentForm((p) => !p)}
-          className="mb-4 self-center"
+          onPress={() => setShowPaymentForm(true)}
+          className="bg-green-600 rounded-2xl py-4 flex-row items-center justify-center mb-6"
         >
-          <Text className="text-blue-600 font-semibold">+ Add Payment</Text>
+          <Plus size={20} color="white" />
+          <Text className="text-white font-bold ml-2">Add Payment Entry</Text>
         </TouchableOpacity>
 
-        {showPaymentForm && (
-          <View className="bg-card border border-border rounded-xl p-4 mb-6">
-            <TextInput
-              placeholder="Amount"
-              keyboardType="numeric"
-              value={paymentAmount}
-              onChangeText={setPaymentAmount}
-              className="border border-border rounded-lg px-3 py-2 mb-2"
-            />
-            <TextInput
-              placeholder="Remarks (optional)"
-              value={paymentRemarks}
-              onChangeText={setPaymentRemarks}
-              className="border border-border rounded-lg px-3 py-2 mb-3"
-            />
+
+        {/* Payment Modal */}
+        {/* Payment Modal */}
+        <Modal
+          visible={showPaymentForm}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowPaymentForm(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            className="flex-1 mb-8"
+          >
+            {/* BACKDROP */}
             <TouchableOpacity
-              onPress={handleAddPayment}
-              className="bg-blue-600 py-2 rounded-lg items-center"
+              activeOpacity={1}
+              onPress={() => setShowPaymentForm(false)}
+              className="flex-1 bg-black/40 justify-end"
             >
-              <Text className="text-white font-semibold">Save Payment</Text>
+              {/* SHEET */}
+              <TouchableOpacity
+                activeOpacity={1}
+                className="bg-background rounded-t-3xl px-6 pt-4 pb-10"
+              >
+                {/* DRAG HANDLE */}
+                <View className="items-center mb-6">
+                  <View className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
+                </View>
+
+                {/* HEADER */}
+                <View className="flex-row justify-between items-center mb-6">
+                  <View>
+                    <Text className="text-xl font-bold">Add Payment</Text>
+                    <Text className="text-sm text-muted-foreground mt-0.5">
+                      {client.client_name}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => setShowPaymentForm(false)}
+                    className="w-9 h-9 rounded-full bg-muted items-center justify-center"
+                  >
+                    <Ionicons
+                      name="close"
+                      size={18}
+                      color={isDark ? "#FFF" : "#000"}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* AMOUNT */}
+                <View className="mb-6">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Amount
+                  </Text>
+
+                  <View className="flex-row items-center bg-muted rounded-2xl px-4 py-3">
+                    <Banknote size={20} color="#16a34a" />
+                    <TextInput
+                      placeholder="0"
+                      keyboardType="numeric"
+                      value={paymentAmount}
+                      onChangeText={setPaymentAmount}
+                      className="flex-1 ml-3 text-xl font-bold"
+                      placeholderTextColor="#94a3b8"
+                    />
+                    <Text className="text-xs font-semibold text-muted-foreground">
+                      INR
+                    </Text>
+                  </View>
+
+                  {/* QUICK AMOUNT PILLS */}
+                  <View className="flex-row flex-wrap gap-2 mt-3">
+                    {[5000, 10000, 25000, 50000, 100000].map((amt) => {
+                      const active = paymentAmount === amt.toString();
+
+                      return (
+                        <TouchableOpacity
+                          key={amt}
+                          onPress={() => setPaymentAmount(amt.toString())}
+                          className={`px-4 py-2 rounded-full ${active
+                            ? "bg-green-600"
+                            : "bg-muted"
+                            }`}
+                        >
+                          <Text
+                            className={`text-xs font-semibold ${active
+                              ? "text-white"
+                              : "text-foreground"
+                              }`}
+                          >
+                            ₹{amt >= 1000 ? `${amt / 1000}k` : amt}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* REMARKS */}
+                <View className="mb-8">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Remarks
+                  </Text>
+
+                  <View className="flex-row items-center bg-muted rounded-2xl px-4 py-3">
+                    <FileText size={18} color="#64748b" />
+                    <TextInput
+                      placeholder="UPI / Cheque / Notes"
+                      value={paymentRemarks}
+                      onChangeText={setPaymentRemarks}
+                      className="flex-1 ml-3 text-sm"
+                      placeholderTextColor="#94a3b8"
+                      multiline
+                    />
+                  </View>
+                </View>
+
+                {/* CTA */}
+                <TouchableOpacity
+                  onPress={handleAddPayment}
+                  activeOpacity={0.9}
+                  className="bg-green-600 py-4 rounded-2xl items-center"
+                >
+                  <Text className="text-white font-bold text-base">
+                    Save Payment
+                  </Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
             </TouchableOpacity>
+          </KeyboardAvoidingView>
+        </Modal>
+
+
+
+        {/* Ledger */}
+        <View className="flex-row justify-between items-center mb-4">
+          <Text className="text-lg font-bold">Recent Transactions</Text>
+        </View>
+
+        {entries.length === 0 ? (
+          <View className="bg-card rounded-2xl p-8 items-center justify-center mb-6">
+            <Text className="text-muted-foreground">No transactions yet</Text>
+          </View>
+        ) : (
+          <View className="bg-card rounded-2xl overflow-hidden mb-6">
+            {entries.slice(0, visibleEntries).map((e: LedgerEntry, index: number) => {
+              const isCredit = e.entry_type === "credit";
+              return (
+                <View
+                  key={`${e.entry_id}-${e.entry_date}-${e.amount}`}
+                  className={`flex-row items-center p-4 ${index !== Math.min(entries.length, visibleEntries) - 1
+                    ? "border-b border-border/50"
+                    : ""
+                    }`}
+                >
+                  <View
+                    className={`w-10 h-10 rounded-full items-center justify-center mr-4 ${isCredit ? "bg-green-100" : "bg-red-100"
+                      }`}
+                  >
+                    {isCredit ? (
+                      <ArrowDownLeft size={20} color="#16a34a" />
+                    ) : (
+                      <ArrowUpRight size={20} color="#dc2626" />
+                    )}
+                  </View>
+
+                  <View className="flex-1">
+                    <Text className="font-bold text-sm">
+                      {isCredit
+                        ? "Payment Received"
+                        : (e.remarks?.includes("#")
+                          ? `Invoice #${e.remarks.split("#")[1].split(" ")[0]}`
+                          : (e.entry_id?.startsWith("INV") ? `Invoice #${e.entry_id.split("-")[1]}` : "Invoice")
+                        )
+                      }
+                    </Text>
+                    <Text className="text-[12px] text-muted-foreground mt-0.5">
+                      {e.entry_date?.split("T")[0] || e.entry_date} {e.remarks ? `${e.remarks}` : ""}
+                    </Text>
+                  </View>
+
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    className={`font-bold ${isCredit ? "text-green-600" : "text-red-600"
+                      }`}
+                  >
+                    {isCredit ? "+" : "-"}₹{Number(e.amount).toLocaleString()}
+                  </Text>
+                </View>
+              );
+            })}
+
+            {entries.length > visibleEntries && (
+              <TouchableOpacity
+                onPress={() => setVisibleEntries(prev => prev + 10)}
+                className="py-3 items-center flex-row justify-center bg-muted/30"
+              >
+                <Text className="text-green-600 text-xs font-semibold mr-1">Load More Transactions</Text>
+                <ChevronDown size={14} color="#16a34a" />
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
-        {/* Ledger */}
-        <Text className="text-lg font-semibold mb-3">Ledger</Text>
-
-        {entries.length === 0 ? (
-          <Text className="text-muted-foreground mb-6">
-            No ledger entries found.
-          </Text>
-        ) : (
-          entries.map((e: LedgerEntry) => (
-            <View
-            key={`${e.entry_id}-${e.entry_date}-${e.amount}`}
-              className="bg-card border border-border rounded-xl p-4 mb-2 flex-row justify-between"
-            >
-              <View>
-                <Text className="font-semibold">
-                  {e.entry_type === "credit" ? "Payment" : "Invoice"}
-                </Text>
-                <Text className="text-xs text-muted-foreground">
-                  {e.entry_date}
-                </Text>
-                {e.remarks && (
-                  <Text className="text-xs text-muted-foreground">
-                    {e.remarks}
-                  </Text>
-                )}
-              </View>
-              <Text
-                className={`font-semibold ${
-                  e.entry_type === "credit"
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                ₹ {e.amount}
-              </Text>
-            </View>
-          ))
-        )}
-
-        {/* Trip History */}
         <View className="mt-8 mb-8">
-          <Text className="text-lg font-semibold mb-3">Trip History</Text>
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-lg font-bold">Trip History</Text>
+            <Text className="text-xs text-muted-foreground">
+              {filteredTrips.length} trips
+            </Text>
+          </View>
 
           <View className="flex-row gap-2 mb-4">
             {["all", "uninvoiced", "invoiced"].map((f) => (
               <TouchableOpacity
                 key={f}
                 onPress={() => setTripFilter(f as any)}
-                className={`px-3 py-1.5 rounded-full ${
-                  tripFilter === f ? "bg-blue-600" : "bg-muted"
-                }`}
+                className={`px-3 py-1.5 rounded-full ${tripFilter === f ? "bg-green-600" : "bg-muted"
+                  }`}
               >
                 <Text
-                  className={`text-[11px] font-semibold ${
-                    tripFilter === f ? "text-white" : "text-foreground"
-                  }`}
+                  className={`text-[11px] font-semibold ${tripFilter === f ? "text-white" : "text-foreground"
+                    }`}
                 >
                   {f.toUpperCase()}
                 </Text>
@@ -608,45 +804,86 @@ const generateInvoicePDF = async (invoice: Invoice) => {
             ))}
           </View>
 
-          {filteredTrips.map((trip: Trip) => {
+          {filteredTrips.map((trip: Trip, index) => {
             const status = normalizeInvoiceStatus(trip.invoiced_status);
             const isUninvoiced = status === "not_invoiced";
+            const isSelected = selectedTrips.includes(trip.trip_id);
 
             return (
               <TouchableOpacity
                 key={trip.trip_id}
                 disabled={!isUninvoiced}
-                onPress={() => toggleTripSelection(trip.trip_id)}
-                className={`bg-card border rounded-xl p-4 mb-3 ${
-                  selectedTrips.includes(trip.trip_id)
-                    ? "border-blue-600"
-                    : "border-border"
-                } ${!isUninvoiced && "opacity-50"}`}
+                onPress={() => isUninvoiced && toggleTripSelection(trip.trip_id)}
+                activeOpacity={0.85}
+                className={`bg-card rounded-2xl mb-3 ${isSelected ? "ring-1 ring-green-600" : ""
+                  } ${!isUninvoiced ? "opacity-50" : ""}`}
               >
-                <View className="flex-row justify-between mb-1">
-                  <Text className="font-semibold">
-                    Trip #{trip.trip_id}
-                  </Text>
-                  <Text className="font-semibold">
-                    ₹ {trip.cost_of_trip}
-                  </Text>
-                </View>
+                <View className="flex-row items-center p-4">
+                  {/* CHECKBOX */}
+                  {isUninvoiced && (
+                    <View
+                      className={`w-8 h-8 p-2rounded-full items-center justify-center mr-4 ${isSelected
+                        ? "bg-green-600"
+                        : "border border-green-600"
+                        }`}
+                    >
+                      {isSelected && (
+                        <Ionicons name="checkmark" size={18} color="white" />
+                      )}
+                    </View>
+                  )}
 
-                {/* STATUS TAG (ADDED) */}
-                <View className="mt-2 self-start px-3 py-0.5 rounded-full bg-muted">
-                  <Text
-                    className={`text-[11px] font-semibold ${
-                      isUninvoiced
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {isUninvoiced ? "UNINVOICED" : "INVOICED"}
-                  </Text>
+                  {/* CONTENT */}
+                  <View className="flex-1">
+                    {/* ROUTE */}
+                    <Text className="font-semibold text-sm mb-1" numberOfLines={1}>
+                      {locationMap[trip.start_location_id] || "Unknown"} →{" "}
+                      {locationMap[trip.end_location_id] || "Unknown"}
+                    </Text>
+
+                    {/* META */}
+                    <Text className="text-xs text-muted-foreground">
+                      {trip.trip_date?.split("T")[0] || trip.trip_date} • Trip #{trip.trip_id}
+                    </Text>
+                  </View>
+
+                  {/* AMOUNT + STATUS */}
+                  <View className="items-end ml-4">
+                    <Text className="font-bold text-base">
+                      ₹{Number(trip.cost_of_trip).toLocaleString()}
+                    </Text>
+
+                    <View
+                      className={`mt-1 px-2.5 py-0.5 rounded-full ${isUninvoiced ? "bg-green-100" : "bg-red-100"
+                        }`}
+                    >
+                      <Text
+                        className={`text-[10px] font-semibold ${isUninvoiced ? "text-green-700" : "text-red-700"
+                          }`}
+                      >
+                        {isUninvoiced ? "UNINVOICED" : "INVOICED"}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </TouchableOpacity>
             );
           })}
+
+          {selectedTrips.length > 0 && (
+            <View className="mt-4 mb-6">
+              <TouchableOpacity
+                onPress={handleGenerateInvoice}
+                activeOpacity={0.9}
+                className="bg-green-600 rounded-2xl py-4 items-center"
+              >
+                <Text className="text-white font-bold text-base">
+                  Generate Invoice ({selectedTrips.length} trips)
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
         </View>
 
         {/* INVOICES LIST (ADDED, NO REMOVALS) */}
@@ -670,22 +907,27 @@ const generateInvoicePDF = async (invoice: Invoice) => {
                   Due: {inv.due_date}
                 </Text>
               </View>
-<TouchableOpacity onPress={() => generateInvoicePDF(inv)}>
-  <FileText size={18} color="#2563EB" />
-</TouchableOpacity>
+              <TouchableOpacity onPress={() => generateInvoicePDF(inv)}>
+                <FileText size={18} color="#16a34a" />
+              </TouchableOpacity>
             </View>
           ))
         )}
       </ScrollView>
 
-      {/* CREATE INVOICE FAB */}
-      {uninvoicedTrips.length > 0 && (
-        <TouchableOpacity
-          onPress={handleGenerateInvoice}
-          className="absolute bottom-6 right-6 bg-blue-600 w-12 h-12 rounded-full items-center justify-center"
-        >
-          <Plus size={22} color="white" />
-        </TouchableOpacity>
+      {/* FABs Container */}
+      {!showPaymentForm && (
+        <View className="absolute bottom-6 right-6 gap-3">
+          {/* ADD PAYMENT FAB */}
+          <TouchableOpacity
+            onPress={() => setShowPaymentForm(true)}
+            className="bg-green-600 w-14 h-14 rounded-full items-center justify-center shadow-lg"
+            style={{ elevation: 5 }}
+          >
+            <Wallet size={24} color="white" />
+          </TouchableOpacity>
+
+        </View>
       )}
     </SafeAreaView>
   );
@@ -695,16 +937,22 @@ const generateInvoicePDF = async (invoice: Invoice) => {
 
 function SummaryCard({ label, value, green, red }: any) {
   return (
-    <View className="flex-1 bg-card border border-border rounded-2xl p-4 items-center">
-      <Text
-        className={`text-lg font-bold ${
-          green ? "text-green-600" : red ? "text-red-500" : ""
-        }`}
-      >
-        ₹ {value}
-      </Text>
-      <Text className="text-[11px] text-muted-foreground mt-1">
+    <View className="flex-1 bg-card rounded-2xl p-3 justify-between min-h-[90px]">
+      <Text className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
         {label}
+      </Text>
+
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        className={`text-lg font-bold ${green
+          ? "text-green-600"
+          : red
+            ? "text-red-600"
+            : "text-card-foreground"
+          }`}
+      >
+        ₹{Number(value).toLocaleString()}
       </Text>
     </View>
   );
