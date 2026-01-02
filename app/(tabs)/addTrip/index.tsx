@@ -1,7 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, {
+  useLayoutEffect,
+  useRef,
+  useState,
+  useEffect,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -26,12 +31,11 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import SideMenu from "../../../components/SideMenu";
 import "../../../global.css";
 
-// Hooks
+/* ---------------- Hooks ---------------- */
 import useClients from "../../../hooks/useClient";
 import useDrivers from "../../../hooks/useDriver";
 import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
-
 import useTrucks from "../../../hooks/useTruck";
 
 import { THEME } from "../../../theme";
@@ -61,33 +65,23 @@ export default function AddTrip() {
   const [menuVisible, setMenuVisible] = useState(false);
   const isDark = colorScheme === "dark";
 
-const backgroundColor = isDark
-  ? THEME.dark.background
-  : THEME.light.background;
+  const backgroundColor = isDark
+    ? THEME.dark.background
+    : THEME.light.background;
 
-const foregroundColor = isDark
-  ? THEME.dark.foreground
-  : THEME.light.foreground;
+  const foregroundColor = isDark
+    ? THEME.dark.foreground
+    : THEME.light.foreground;
 
-const inputBg = isDark
-  ? THEME.dark.input
-  : THEME.light.input;
-
-const inputBorder = isDark
-  ? THEME.dark.border
-  : THEME.light.border;
-
-const inputText = isDark
-  ? THEME.dark.foreground        // because RN has no inputText field
-  : THEME.light.foreground;
-
-const placeholder = isDark
-  ? THEME.dark.mutedForeground
-  : THEME.light.mutedForeground;
-
-const cardBg = isDark
-  ? THEME.dark.card
-  : THEME.light.card;
+  const inputBg = isDark ? THEME.dark.input : THEME.light.input;
+  const inputBorder = isDark ? THEME.dark.border : THEME.light.border;
+  const inputText = isDark
+    ? THEME.dark.foreground
+    : THEME.light.foreground;
+  const placeholder = isDark
+    ? THEME.dark.mutedForeground
+    : THEME.light.mutedForeground;
+  const cardBg = isDark ? THEME.dark.card : THEME.light.card;
 
   /* ---------------- Header ---------------- */
   useLayoutEffect(() => {
@@ -109,7 +103,6 @@ const cardBg = isDark
           />
         </TouchableOpacity>
       ),
-
       headerRight: () => (
         <TouchableOpacity
           onPress={() => router.push("/notifications")}
@@ -123,18 +116,53 @@ const cardBg = isDark
         </TouchableOpacity>
       ),
     });
-  }, [navigation, isDark, menuVisible, backgroundColor, foregroundColor]);
+  }, [navigation, menuVisible, isDark]);
 
-  /* ---------------- Data Hooks ---------------- */
+  /* ---------------- Auth ---------------- */
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
 
-  const { trucks, loading: loadingTrucks, addTruck } = useTrucks(firebase_uid || "");
-  const { drivers, loading: loadingDrivers, addDriver } = useDrivers(firebase_uid || "");
-  const { clients, loading: loadingClients, addClient } = useClients(firebase_uid || "");
-  const { locations, loading: loadingLocations, addLocation } = useLocations(firebase_uid || "");
+  /* ---------------- Data Hooks ---------------- */
+  const {
+    trucks,
+    loading: loadingTrucks,
+    addTruck,
+    fetchTrucks,
+  } = useTrucks(firebase_uid || "");
+
+  const {
+    drivers,
+    loading: loadingDrivers,
+    addDriver,
+    fetchDrivers,
+  } = useDrivers(firebase_uid || "");
+
+  const {
+    clients,
+    loading: loadingClients,
+    addClient,
+    fetchClients,
+  } = useClients(firebase_uid || "");
+
+  const {
+    locations,
+    loading: loadingLocations,
+    addLocation,
+    fetchLocations,
+  } = useLocations(firebase_uid || "");
+
   const { addTrip } = useTrips(firebase_uid || "");
+
+  /* ✅ REQUIRED FETCH CALLS */
+  useEffect(() => {
+    if (!firebase_uid) return;
+
+    fetchClients();
+    fetchDrivers();
+    fetchTrucks();
+    fetchLocations();
+  }, [firebase_uid]);
 
   const loading =
     !firebase_uid ||
@@ -143,6 +171,7 @@ const cardBg = isDark
     loadingClients ||
     loadingLocations;
 
+  /* ---------------- Form ---------------- */
   const [formData, setFormData] = useState<TripForm>({
     date: new Date().toISOString().split("T")[0],
     truck_id: "",
@@ -169,6 +198,7 @@ const cardBg = isDark
   const [newItemForm, setNewItemForm] = useState<NewItemForm>({});
   const translateY = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: (_, state) => state.y0 < 80,
@@ -237,29 +267,28 @@ const cardBg = isDark
 
       if (currentType === "Client") {
         created = await addClient(newItemForm);
-        setFormData((prev) => ({ ...prev, client_id: String(created.client_id) }));
+        setFormData((p) => ({ ...p, client_id: String(created.client_id) }));
       }
-
       if (currentType === "Driver") {
         created = await addDriver(newItemForm);
-        setFormData((prev) => ({ ...prev, driver_id: String(created.driver_id) }));
+        setFormData((p) => ({ ...p, driver_id: String(created.driver_id) }));
       }
-
       if (currentType === "Truck") {
         created = await addTruck(newItemForm);
-        setFormData((prev) => ({ ...prev, truck_id: String(created.truck_id) }));
+        setFormData((p) => ({ ...p, truck_id: String(created.truck_id) }));
       }
-
       if (currentType === "Location") {
         created = await addLocation(newItemForm);
-        setFormData((prev) => ({
-          ...prev,
-          start_location_id: prev.start_location_id || String(created.location_id),
-          end_location_id: prev.end_location_id || String(created.location_id),
+        setFormData((p) => ({
+          ...p,
+          start_location_id:
+            p.start_location_id || String(created.location_id),
+          end_location_id:
+            p.end_location_id || String(created.location_id),
         }));
       }
 
-      Alert.alert("Success", `${currentType} added successfully!`);
+      Alert.alert("Success", `${currentType} added successfully`);
       closeEntityModal();
     } catch {
       Alert.alert("Error", `Failed to add ${currentType}`);
@@ -272,35 +301,50 @@ const cardBg = isDark
       label: "Truck",
       key: "truck_id" as const,
       openKey: "truck" as DropdownKeys,
-      items: trucks.map((t) => ({ label: t.registration_number, value: String(t.truck_id) })),
+      items: trucks.map((t) => ({
+        label: t.registration_number,
+        value: String(t.truck_id),
+      })),
       addType: "Truck" as EntityType,
     },
     {
       label: "Driver",
       key: "driver_id" as const,
       openKey: "driver" as DropdownKeys,
-      items: drivers.map((d) => ({ label: d.driver_name, value: String(d.driver_id) })),
+      items: drivers.map((d) => ({
+        label: d.driver_name,
+        value: String(d.driver_id),
+      })),
       addType: "Driver" as EntityType,
     },
     {
       label: "Client",
       key: "client_id" as const,
       openKey: "client" as DropdownKeys,
-      items: clients.map((c) => ({ label: c.client_name, value: String(c.client_id) })),
+      items: clients.map((c) => ({
+        label: c.client_name,
+        value: String(c.client_id),
+      })),
       addType: "Client" as EntityType,
     },
     {
       label: "Start Location",
       key: "start_location_id" as const,
       openKey: "start" as DropdownKeys,
-      items: locations.map((l) => ({ label: l.location_name, value: String(l.location_id) })),
+      items: locations.map((l) => ({
+        label: l.location_name,
+        value: String(l.location_id),
+      })),
       addType: "Location" as EntityType,
     },
     {
       label: "End Location",
       key: "end_location_id" as const,
       openKey: "end" as DropdownKeys,
-      items: locations.map((l) => ({ label: l.location_name, value: String(l.location_id) })),
+      items: locations.map((l) => ({
+        label: l.location_name,
+        value: String(l.location_id),
+      })),
       addType: "Location" as EntityType,
     },
   ];
@@ -308,8 +352,8 @@ const cardBg = isDark
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text className="text-foreground mt-2">Loading...</Text>
+        <ActivityIndicator size="large" />
+        <Text className="mt-2 text-foreground">Loading…</Text>
       </View>
     );
   }

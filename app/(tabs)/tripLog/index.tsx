@@ -1,6 +1,6 @@
 // app/(tabs)/tripLog/index.tsx
 import { getAuth } from "firebase/auth";
-import React, { useLayoutEffect, useMemo, useState } from "react";
+import React, { useLayoutEffect, useMemo, useState, useEffect } from "react";
 import {
   ActivityIndicator,
   LayoutAnimation,
@@ -34,7 +34,7 @@ import { THEME } from "../../../theme";
 
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import * as FileSystem from "expo-file-system/legacy"; // legacy FS for stability
+import * as FileSystem from "expo-file-system/legacy";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   // @ts-ignore
@@ -52,12 +52,45 @@ export default function TripLog() {
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
 
-  const { trips, loading, fetchTrips, updateTrip, deleteTrip } =
-    useTrips(firebase_uid || "");
-  const { drivers } = useDrivers(firebase_uid || "");
-  const { clients } = useClients(firebase_uid || "");
-  const { trucks } = useTrucks(firebase_uid || "");
-  const { locations } = useLocations(firebase_uid || "");
+  const {
+    trips,
+    loading,
+    fetchTrips,
+    updateTrip,
+    deleteTrip,
+  } = useTrips(firebase_uid || "");
+
+  const {
+    drivers,
+    fetchDrivers,          // ✅ FIX
+  } = useDrivers(firebase_uid || "");
+
+  const {
+    clients,
+    fetchClients,          // ✅ FIX
+  } = useClients(firebase_uid || "");
+
+  const {
+    trucks,
+    fetchTrucks,           // ✅ FIX
+  } = useTrucks(firebase_uid || "");
+
+  const {
+    locations,
+    fetchLocations,        // ✅ FIX
+  } = useLocations(firebase_uid || "");
+
+  /* ---------------- ✅ FIX: FETCH ALL MASTER DATA ---------------- */
+  useEffect(() => {
+    if (!firebase_uid) return;
+
+    fetchTrips();
+    fetchDrivers();
+    fetchClients();
+    fetchTrucks();
+    fetchLocations();
+  }, [firebase_uid]);
+  /* --------------------------------------------------------------- */
 
   // FILTER STATE
   const [filters, setFilters] = useState({
@@ -127,6 +160,7 @@ export default function TripLog() {
       (a, b) => new Date(b.trip_date).getTime() - new Date(a.trip_date).getTime()
     );
   }, [trips, filters]);
+
 
   const driverItems = drivers.map((d) => ({ label: d.driver_name, value: String(d.driver_id) }));
   const clientItems = clients.map((c) => ({ label: c.client_name, value: String(c.client_id) }));
