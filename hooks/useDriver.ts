@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Alert } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Platform } from "react-native";
 import API from "../app/api/axiosInstance";
 
 export interface Driver {
@@ -61,6 +61,65 @@ export default function useDrivers(firebase_uid: string) {
     }
   };
 
+  /* ---------------- UPLOAD DOCUMENTS ---------------- */
+  const uploadLicense = async (driverId: number, file: any) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", {
+        uri: Platform.OS === 'android' ? file.uri : file.uri.replace('file://', ''),
+        name: file.name || 'license.jpg',
+        type: file.mimeType || 'image/jpeg',
+      } as any);
+      formData.append("firebase_uid", firebase_uid);
+
+      const res = await API.post(`/api/drivers/${driverId}/license`, formData);
+
+      // Update local state
+      setDrivers((prev) =>
+        prev.map((d) =>
+          d.driver_id === driverId
+            ? { ...d, license_card_url: res.data.license_card_url }
+            : d
+        )
+      );
+
+      return res.data;
+    } catch (error: any) {
+      console.error("LICENSE UPLOAD ERROR:", error?.response?.data || error);
+      Alert.alert("Error", error?.response?.data?.error || "Failed to upload license");
+      throw error;
+    }
+  };
+
+  const uploadAadhaar = async (driverId: number, file: any) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", {
+        uri: Platform.OS === 'android' ? file.uri : file.uri.replace('file://', ''),
+        name: file.name || 'aadhaar.jpg',
+        type: file.mimeType || 'image/jpeg',
+      } as any);
+      formData.append("firebase_uid", firebase_uid);
+
+      const res = await API.post(`/api/drivers/${driverId}/aadhaar`, formData);
+
+      // Update local state
+      setDrivers((prev) =>
+        prev.map((d) =>
+          d.driver_id === driverId
+            ? { ...d, identity_card_url: res.data.identity_card_url }
+            : d
+        )
+      );
+
+      return res.data;
+    } catch (error: any) {
+      console.error("AADHAAR UPLOAD ERROR:", error?.response?.data || error);
+      Alert.alert("Error", error?.response?.data?.error || "Failed to upload Aadhaar");
+      throw error;
+    }
+  };
+
   const deleteDriver = async (id: number) => {
     try {
       await API.delete(`/api/drivers/${id}`);
@@ -75,5 +134,14 @@ export default function useDrivers(firebase_uid: string) {
     fetchDrivers();
   }, [fetchDrivers]);
 
-  return { drivers, loading, fetchDrivers, addDriver, updateDriver, deleteDriver };
+  return { 
+    drivers, 
+    loading, 
+    fetchDrivers, 
+    addDriver, 
+    updateDriver, 
+    deleteDriver,
+    uploadLicense,
+    uploadAadhaar 
+  };
 }

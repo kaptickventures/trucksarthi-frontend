@@ -93,6 +93,7 @@ export default function StackLayout() {
           />
           <Stack.Screen name="client-profile" options={{ title: "Client Profile", headerShown: false }} />
           <Stack.Screen name="driver-profile" options={{ title: "Driver Profile", headerShown: false }} />
+          <Stack.Screen name="trucks-profile" options={{ title: "Truck Profile", headerShown: false }} />
           <Stack.Screen name="helpCenter" options={{ title: "Help Center" }} />
 
           <Stack.Screen name="basicDetails" options={{ title: "TruckSarthi" }} />

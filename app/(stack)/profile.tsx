@@ -2,29 +2,28 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
-  Keyboard,
   Platform,
   Text,
   TextInput,
   TouchableOpacity,
   useColorScheme,
-  View,
+  View
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import "../../global.css";
 import { useUser } from "../../hooks/useUser";
 import { THEME } from "../../theme";
-import "../../global.css";
 
 export default function Profile() {
   const router = useRouter();
   const navigation = useNavigation();
   const isDark = useColorScheme() === "dark";
-  const { user, updateUser, refreshUser } = useUser();
+  const { user, updateUser, refreshUser, uploadProfilePicture } = useUser();
 
   // Correct theme mapping
   const theme = {
@@ -103,8 +102,28 @@ export default function Profile() {
     });
 
     if (!res.canceled) {
-      setProfileImage(res.assets[0].uri);
-      setHasChanges(true);
+      try {
+        setLoading(true);
+        const file = res.assets[0];
+
+        // Optimistic update
+        setProfileImage(file.uri);
+
+        // Actual upload
+        await uploadProfilePicture({
+          uri: file.uri,
+          name: file.fileName || "profile.jpg",
+          mimeType: file.type || "image/jpeg",
+        });
+
+        Alert.alert("Success", "Profile photo updated!");
+        refreshUser();
+      } catch (e) {
+        Alert.alert("Error", "Failed to upload photo");
+        setProfileImage(user?.profile_picture_url ?? null); // Revert
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -119,8 +138,28 @@ export default function Profile() {
     });
 
     if (!res.canceled) {
-      setProfileImage(res.assets[0].uri);
-      setHasChanges(true);
+      try {
+        setLoading(true);
+        const file = res.assets[0];
+
+        // Optimistic update
+        setProfileImage(file.uri);
+
+        // Actual upload
+        await uploadProfilePicture({
+          uri: file.uri,
+          name: file.fileName || "profile.jpg",
+          mimeType: file.type || "image/jpeg",
+        });
+
+        Alert.alert("Success", "Profile photo updated!");
+        refreshUser();
+      } catch (e) {
+        Alert.alert("Error", "Failed to upload photo");
+        setProfileImage(user?.profile_picture_url ?? null); // Revert
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -414,9 +453,8 @@ const InputField = ({
       multiline={multiline}
       numberOfLines={numberOfLines}
       autoCapitalize={autoCapitalize}
-      className={`border border-border rounded-lg p-3 bg-card text-foreground ${
-        !editable && "opacity-60"
-      }`}
+      className={`border border-border rounded-lg p-3 bg-card text-foreground ${!editable && "opacity-60"
+        }`}
       value={value}
       onChangeText={onChange}
     />

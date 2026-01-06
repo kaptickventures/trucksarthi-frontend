@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
 import {
@@ -6,11 +7,16 @@ import {
   ArrowUpRight,
   Banknote,
   ChevronDown,
+  FileText,
+  Pencil,
   Plus,
   User
 } from "lucide-react-native";
+
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
+  Image,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -21,7 +27,7 @@ import {
   TextInput,
   TouchableOpacity,
   useColorScheme,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -40,7 +46,7 @@ export default function DriverProfile() {
   const firebase_uid = getAuth().currentUser?.uid!;
 
   /* ---------------- DRIVER BASIC INFO ---------------- */
-  const { drivers, loading } = useDrivers(firebase_uid);
+  const { drivers, loading, uploadLicense, uploadAadhaar } = useDrivers(firebase_uid);
 
   const driver = useMemo(() => {
     if (!DRIVER_ID || drivers.length === 0) return null;
@@ -60,8 +66,10 @@ export default function DriverProfile() {
 
   const [netBalance, setNetBalance] = useState<number>(0);
 
+
   /* ---------------- MODAL STATE ---------------- */
   const [showModal, setShowModal] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [entryType, setEntryType] = useState<"credit" | "debit">("credit");
   const [category, setCategory] = useState("daily_allowance");
@@ -78,7 +86,42 @@ export default function DriverProfile() {
     );
   }, [DRIVER_ID]);
 
+
+
+
   /* ---------------- ACTIONS ---------------- */
+  const handleUpload = async (type: "LICENSE" | "AADHAAR") => {
+    if (!DRIVER_ID) return;
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.3,
+      });
+
+      if (result.canceled) return;
+      const asset = result.assets[0];
+
+      if (type === "LICENSE") {
+        await uploadLicense(DRIVER_ID, {
+          uri: asset.uri,
+          name: "license.jpg",
+          mimeType: "image/jpeg",
+        });
+      } else {
+        await uploadAadhaar(DRIVER_ID, {
+          uri: asset.uri,
+          name: "aadhaar.jpg",
+          mimeType: "image/jpeg",
+        });
+      }
+      Alert.alert("Success", "Document uploaded successfully");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleCall = () => {
     if (!driver?.contact_number) return;
     Linking.openURL(`tel:${driver.contact_number}`);
@@ -177,6 +220,23 @@ export default function DriverProfile() {
               </Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* DOCUMENTS */}
+        <Text className="text-lg font-bold mb-3">Documents</Text>
+        <View className="flex-row gap-4 mb-6">
+          <DocumentCard
+            label="License"
+            url={driver?.license_card_url}
+            onPress={() => driver?.license_card_url ? setPreviewImage(driver.license_card_url) : handleUpload("LICENSE")}
+            onEdit={() => handleUpload("LICENSE")}
+          />
+          <DocumentCard
+            label="Aadhaar"
+            url={driver?.identity_card_url}
+            onPress={() => driver?.identity_card_url ? setPreviewImage(driver.identity_card_url) : handleUpload("AADHAAR")}
+            onEdit={() => handleUpload("AADHAAR")}
+          />
         </View>
 
         {/* Balance Card */}
@@ -467,11 +527,113 @@ export default function DriverProfile() {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
+
+
+      {/* IMAGE PREVIEW MODAL */}
+      <Modal
+        visible={!!previewImage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewImage(null)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setPreviewImage(null)}
+          className="flex-1 bg-black/95"
+        >
+          {/* Close button */}
+          <TouchableOpacity
+            onPress={() => setPreviewImage(null)}
+            className="absolute top-12 right-6 z-10 bg-white/20 p-3 rounded-full"
+            style={{ elevation: 5 }}
+          >
+            <Ionicons name="close" size={24} color="white" />
+          </TouchableOpacity>
+
+          {/* Image - prevent closing when tapping image */}
+          {previewImage && (
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              className="flex-1 items-center justify-center"
+            >
+              <Image
+                source={{ uri: previewImage }}
+                style={{ width: "90%", height: "80%" }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+      </Modal>
+
+
     </SafeAreaView>
   );
 }
 
 /* ---------------- HELPERS ---------------- */
+
+function DocumentCard({ label, url, onPress, onEdit }: any) {
+  return (
+    <View className="flex-1">
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.85}
+        style={{
+          aspectRatio: 1,
+          width: "100%",
+          backgroundColor: "#f3f4f6",
+          borderRadius: 16,
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        {url ? (
+          <>
+            {/* Image */}
+            <Image
+              source={{ uri: url }}
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+              resizeMode="cover"
+            />
+
+            {/* Edit button */}
+            <TouchableOpacity
+              onPress={onEdit}
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                backgroundColor: "rgba(0,0,0,0.6)",
+                padding: 8,
+                borderRadius: 20,
+                zIndex: 10,
+              }}
+            >
+              <Pencil size={14} color="white" />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", opacity: 0.5 }}>
+            <FileText size={36} color="#94a3b8" />
+            <Text style={{ fontSize: 11, fontWeight: "bold", marginTop: 8, textTransform: "uppercase", color: "#94a3b8" }}>
+              {label}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <Text className="text-center text-xs font-semibold mt-2 text-muted-foreground">
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 
 function SummaryCard({ label, value, green, red }: any) {
   return (

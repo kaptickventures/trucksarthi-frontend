@@ -1,34 +1,43 @@
 import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
 import { Edit3, MapPin, Plus, Trash2, X } from "lucide-react-native";
-import React, { useCallback, useState, useRef } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Modal,
+  PanResponder,
+  Platform,
+  Pressable,
   ScrollView,
   StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Modal,
-  Pressable,
-  Animated,
-  PanResponder,
   useColorScheme,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
 import useTrucks from "../../hooks/useTruck";
 
 export default function TrucksManager() {
+  const router = useRouter();
   const auth = getAuth();
   const user = auth.currentUser;
   const firebase_uid = user?.uid;
 
-  const { trucks, loading, fetchTrucks, addTruck, updateTruck, deleteTruck } =
-    useTrucks(firebase_uid || "");
+  const {
+    trucks,
+    loading,
+    fetchTrucks,
+    addTruck,
+    updateTruck,
+    deleteTruck,
+  } = useTrucks(firebase_uid || "");
 
   const isDark = useColorScheme() === "dark";
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -56,15 +65,18 @@ export default function TrucksManager() {
   const insets = useSafeAreaInsets();
   const SCROLL_THRESHOLD = 40;
 
+  /* ---------------- FETCH ---------------- */
   useFocusEffect(
     useCallback(() => {
       if (firebase_uid) fetchTrucks();
     }, [firebase_uid, fetchTrucks])
   );
 
+  /* ---------------- PAN GESTURE ---------------- */
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: (_, state) => state.y0 < SCROLL_THRESHOLD,
+      onStartShouldSetPanResponder: (_, state) =>
+        state.y0 < SCROLL_THRESHOLD,
       onPanResponderMove: (_, state) => {
         if (state.dy > 0) translateY.setValue(state.dy);
       },
@@ -80,6 +92,7 @@ export default function TrucksManager() {
     })
   ).current;
 
+  /* ---------------- MODAL ---------------- */
   const openModal = (editing = false, data?: any) => {
     if (editing && data) {
       setEditingId(data.truck_id);
@@ -118,9 +131,10 @@ export default function TrucksManager() {
     });
   };
 
+  /* ---------------- ACTIONS ---------------- */
   const handleSubmit = async () => {
     if (!formData.registration_number || !formData.registered_owner_name) {
-      Alert.alert("⚠️ Missing Fields", "Please fill the required fields.");
+      Alert.alert("⚠️ Missing Fields", "Please fill required fields.");
       return;
     }
 
@@ -153,20 +167,24 @@ export default function TrucksManager() {
     ]);
   };
 
+  /* ---------------- GUARD ---------------- */
   if (!firebase_uid) {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#888" />
-        <Text className="mt-2 text-muted-foreground">Loading user info...</Text>
+        <Text className="mt-2 text-muted-foreground">
+          Loading user info...
+        </Text>
       </View>
     );
   }
 
+  /* ---------------- UI ---------------- */
   return (
     <SafeAreaView className="flex-1 bg-background">
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      {/* Truck List */}
+      {/* LIST */}
       <ScrollView
         className="flex-1 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -179,10 +197,18 @@ export default function TrucksManager() {
           </Text>
         ) : (
           trucks.map((truck) => (
-            <View
+            <TouchableOpacity
               key={truck.truck_id}
+              activeOpacity={0.85}
+              onPress={() =>
+                router.push({
+                  pathname: "/(stack)/trucks-profile",
+                  params: { truckId: truck.truck_id },
+                })
+              }
               className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
             >
+              {/* INFO */}
               <View className="flex-row items-start flex-1">
                 <View className="p-2 bg-secondary rounded-xl mr-3">
                   <MapPin size={18} color="#2563EB" />
@@ -198,21 +224,25 @@ export default function TrucksManager() {
                 </View>
               </View>
 
+              {/* ACTIONS */}
               <View className="flex-row items-center ml-3">
                 <TouchableOpacity
+                  onPressIn={(e) => e.stopPropagation()}
                   onPress={() => openModal(true, truck)}
                   className="p-2"
                 >
                   <Edit3 size={20} color="#999" />
                 </TouchableOpacity>
+
                 <TouchableOpacity
+                  onPressIn={(e) => e.stopPropagation()}
                   onPress={() => handleDelete(truck.truck_id)}
                   className="p-2"
                 >
                   <Trash2 size={20} color="#999" />
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -232,7 +262,7 @@ export default function TrucksManager() {
         <Plus color="white" size={28} />
       </TouchableOpacity>
 
-      {/* Fullscreen Modal */}
+      {/* MODAL */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
           <Animated.View
@@ -250,23 +280,19 @@ export default function TrucksManager() {
               className="flex-1"
             >
               <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
+
               <View className="flex-row justify-between items-center mb-5">
-                <Text
-                  className={`text-2xl font-semibold ${
-                    isDark ? "text-white" : "text-black"
-                  }`}
-                >
+                <Text className="text-2xl font-semibold">
                   {editingId ? "Edit Truck" : "Add Truck"}
                 </Text>
                 <TouchableOpacity onPress={closeModal}>
-                  <X size={28} color={isDark ? "#AAA" : "#666"} />
+                  <X size={28} color="#888" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false}>
                 {requiredFields.map((key) => {
                   const label = key.replaceAll("_", " ");
-                  const isDimension = key === "container_dimension";
                   const isCapacity = key === "loading_capacity";
 
                   return (
@@ -275,49 +301,21 @@ export default function TrucksManager() {
                         {label} *
                       </Text>
 
-                      {/* ---------------------- */}
-                      {/* SPECIAL: REGISTRATION NUMBER FIELD */}
-                      {/* ---------------------- */}
-                      {key === "registration_number" ? (
-                        <TextInput
-                          className="border border-input text-input-text rounded-xl p-3"
-                          value={formData.registration_number}
-                          autoCapitalize="characters"
-                          onChangeText={(val) =>
-                            setFormData({
-                              ...formData,
-                              registration_number: val.toUpperCase(),
-                            })
-                          }
-                          placeholder="Enter registration number"
-                          placeholderTextColor="#888"
-                        />
-                      ) : (
-                        <TextInput
-                          className="border border-input text-input-text rounded-xl p-3"
-                          value={(formData as any)[key]}
-                          onChangeText={(val) =>
-                            setFormData({ ...formData, [key]: val })
-                          }
-                          placeholder={`Enter ${label}`}
-                          placeholderTextColor="#888"
-                          keyboardType={
-                            isCapacity ? "numeric" : "default"
-                          }
-                        />
-                      )}
-
-                      {/* Unit Notes */}
-                      {isDimension && (
-                        <Text className="text-xs text-muted-foreground mt-1">
-                          * Dimensions are in feet
-                        </Text>
-                      )}
-                      {isCapacity && (
-                        <Text className="text-xs text-muted-foreground mt-1">
-                          * Capacity is in tonnes
-                        </Text>
-                      )}
+                      <TextInput
+                        className="border border-input rounded-xl p-3"
+                        value={(formData as any)[key]}
+                        onChangeText={(val) =>
+                          setFormData({ ...formData, [key]: val })
+                        }
+                        placeholder={`Enter ${label}`}
+                        placeholderTextColor="#888"
+                        keyboardType={isCapacity ? "numeric" : "default"}
+                        autoCapitalize={
+                          key === "registration_number"
+                            ? "characters"
+                            : "none"
+                        }
+                      />
                     </View>
                   );
                 })}

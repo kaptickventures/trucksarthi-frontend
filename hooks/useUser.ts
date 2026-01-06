@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
-import { auth } from "../firebaseConfig";
+import { useCallback, useEffect, useState } from "react";
+import { Platform } from "react-native";
 import API from "../app/api/axiosInstance";
+import { auth } from "../firebaseConfig";
 
 interface User {
   firebase_uid: string;
@@ -101,6 +102,36 @@ export function useUser() {
     fetchUser();
   }, [fetchUser]);
 
+  const uploadProfilePicture = useCallback(
+    async (file: any) => {
+      if (!currentUser) throw new Error("User not authenticated");
+
+      try {
+        const formData = new FormData();
+        formData.append("file", {
+          uri: Platform.OS === "android" ? file.uri : file.uri.replace("file://", ""),
+          name: file.name || "profile.jpg",
+          type: file.mimeType || "image/jpeg",
+        } as any);
+
+        const res = await API.post(
+          `/api/users/${currentUser.uid}/profile-picture`,
+          formData
+        );
+
+        setUser((prev) =>
+          prev ? { ...prev, profile_picture_url: res.data.profile_picture_url } : null
+        );
+
+        return res.data;
+      } catch (err: any) {
+        console.error("❌ Failed to upload profile picture:", err?.response?.data || err);
+        throw err;
+      }
+    },
+    [currentUser]
+  );
+  
   return {
     user,
     loading,
@@ -109,5 +140,6 @@ export function useUser() {
     syncUser,
     deleteUser,
     checkProfileCompletion,
+    uploadProfilePicture,
   };
 }
