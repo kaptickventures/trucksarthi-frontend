@@ -116,6 +116,7 @@ export default function DriverProfile() {
           mimeType: "image/jpeg",
         });
       }
+
       Alert.alert("Success", "Document uploaded successfully");
     } catch (e) {
       console.error(e);

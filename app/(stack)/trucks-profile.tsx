@@ -2,10 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
-import { AlertTriangle, FileText, Plus, Truck } from "lucide-react-native";
+import { AlertTriangle, FileText, Pencil, Plus, Truck } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
+  Modal,
   ScrollView,
   StatusBar,
   Text,
@@ -102,6 +104,9 @@ export default function TruckProfile() {
       ),
     [drivers]
   );
+
+  /* ---------------- PREVIEW STATE ---------------- */
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   /* ---------------- UPLOAD ---------------- */
   const handleUpload = async (type: string) => {
@@ -206,31 +211,24 @@ export default function TruckProfile() {
 
         {/* DOCUMENTS */}
         <Text className="text-lg font-bold mb-3">Documents</Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
+          {DOCUMENT_TYPES.map((type) => {
+            const doc = documents.find((d) => d.document_type === type);
+            const expiring = doc && isExpiringSoon(doc.expiry_date);
 
-        {DOCUMENT_TYPES.map((type) => {
-          const doc = documents.find((d) => d.document_type === type);
-          const expiring = doc && isExpiringSoon(doc.expiry_date);
-
-          return (
-            <TouchableOpacity
-              key={type}
-              onPress={() => handleUpload(type)}
-              className="bg-card rounded-2xl p-4 mb-3 flex-row items-center justify-between"
-            >
-              <View className="flex-row items-center">
-                <FileText size={20} color="#16a34a" />
-                <View className="ml-3">
-                  <Text className="font-semibold">{type}</Text>
-                  <Text className="text-xs text-muted-foreground">
-                    {doc ? `Expiry: ${doc.expiry_date}` : "Upload document"}
-                  </Text>
-                </View>
-              </View>
-
-              {expiring && <AlertTriangle size={18} color="#dc2626" />}
-            </TouchableOpacity>
-          );
-        })}
+            return (
+              <DocumentCard
+                key={type}
+                label={type}
+                url={doc?.file_url}
+                expiring={expiring}
+                expiryDate={doc?.expiry_date}
+                onPress={() => doc?.file_url ? setPreviewImage(doc.file_url) : handleUpload(type)}
+                onEdit={() => handleUpload(type)}
+              />
+            );
+          })}
+        </View>
 
         {/* TRIPS */}
         <Text className="text-lg font-bold mt-8 mb-3">Trips</Text>
@@ -259,6 +257,128 @@ export default function TruckProfile() {
       >
         <Plus size={24} color="white" />
       </TouchableOpacity>
+      {/* IMAGE PREVIEW MODAL */}
+      <Modal
+        visible={!!previewImage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewImage(null)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setPreviewImage(null)}
+          className="flex-1 bg-black/95"
+        >
+          {/* Close button */}
+          <TouchableOpacity
+            onPress={() => setPreviewImage(null)}
+            className="absolute top-12 right-6 z-10 bg-white/20 p-3 rounded-full"
+            style={{ elevation: 5 }}
+          >
+            <Ionicons name="close" size={24} color="white" />
+          </TouchableOpacity>
+
+          {/* Image - prevent closing when tapping image */}
+          {previewImage && (
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              className="flex-1 items-center justify-center"
+            >
+              <Image
+                source={{ uri: previewImage }}
+                style={{ width: "90%", height: "80%" }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
+  );
+}
+
+/* ---------------- DOCUMENT CARD COMPONENT ---------------- */
+function DocumentCard({ label, url, expiring, expiryDate, onPress, onEdit }: any) {
+  return (
+    <View style={{ width: "48%" }}>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.85}
+        style={{
+          aspectRatio: 1,
+          width: "100%",
+          backgroundColor: "#f3f4f6",
+          borderRadius: 16,
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        {url ? (
+          <>
+            {/* Image */}
+            <Image
+              source={{ uri: url }}
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+              resizeMode="cover"
+            />
+
+            {/* Edit button */}
+            <TouchableOpacity
+              onPress={onEdit}
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                backgroundColor: "rgba(0,0,0,0.6)",
+                padding: 8,
+                borderRadius: 20,
+                zIndex: 10,
+              }}
+            >
+              <Pencil size={14} color="white" />
+            </TouchableOpacity>
+
+            {/* Expiry warning */}
+            {expiring && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  left: 8,
+                  backgroundColor: "rgba(220, 38, 38, 0.9)",
+                  padding: 6,
+                  borderRadius: 12,
+                  zIndex: 10,
+                }}
+              >
+                <AlertTriangle size={14} color="white" />
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", opacity: 0.5 }}>
+            <FileText size={36} color="#94a3b8" />
+            <Text style={{ fontSize: 11, fontWeight: "bold", marginTop: 8, textTransform: "uppercase", color: "#94a3b8" }}>
+              {label}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <View style={{ marginTop: 8 }}>
+        <Text style={{ textAlign: "center", fontSize: 12, fontWeight: "600", color: "#6b7280" }}>
+          {label}
+        </Text>
+        {expiryDate && (
+          <Text style={{ textAlign: "center", fontSize: 10, color: expiring ? "#dc2626" : "#9ca3af", marginTop: 2 }}>
+            {expiryDate}
+          </Text>
+        )}
+      </View>
+    </View>
   );
 }
