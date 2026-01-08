@@ -54,6 +54,7 @@ export function useClientLedger() {
     invoice_id?: number;
     amount: number;
     remarks?: string;
+    date?: string; // ISO string
   }) => {
     try {
       await API.post(`/api/ledger/entry`, {
@@ -73,11 +74,30 @@ export function useClientLedger() {
     }
   };
 
+  // ✏️ Update ledger entry
+  const updateEntry = async (
+    entry_id: string,
+    data: { amount?: number; remarks?: string; date?: string, client_id: number }
+  ) => {
+    try {
+      await API.put(`/api/ledger/entry/${entry_id}`, data);
+      await fetchLedger(data.client_id);
+    } catch (error: any) {
+      console.error("❌ updateEntry failed", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "Failed to update entry"
+      );
+      throw error;
+    }
+  };
+
   return {
     entries,
     loading,
     fetchLedger,
     fetchSummary,
     addPayment,
+    updateEntry,
   };
 }

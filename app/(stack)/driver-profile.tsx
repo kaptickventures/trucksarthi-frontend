@@ -10,7 +10,9 @@ import {
   FileText,
   Pencil,
   Plus,
-  User
+  Trash2,
+  User,
+  X
 } from "lucide-react-native";
 
 import { useEffect, useMemo, useState } from "react";
@@ -46,7 +48,7 @@ export default function DriverProfile() {
   const firebase_uid = getAuth().currentUser?.uid!;
 
   /* ---------------- DRIVER BASIC INFO ---------------- */
-  const { drivers, loading, uploadLicense, uploadAadhaar } = useDrivers(firebase_uid);
+  const { drivers, loading, uploadLicense, uploadAadhaar, updateDriver, deleteDriver } = useDrivers(firebase_uid);
 
   const driver = useMemo(() => {
     if (!DRIVER_ID || drivers.length === 0) return null;
@@ -69,11 +71,18 @@ export default function DriverProfile() {
 
   /* ---------------- MODAL STATE ---------------- */
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false); // New Edit Modal State
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Ledger Form State
   const [amount, setAmount] = useState("");
   const [entryType, setEntryType] = useState<"credit" | "debit">("credit");
-  const [category, setCategory] = useState("daily_allowance");
   const [remarks, setRemarks] = useState("");
+
+  // Edit Driver Form State
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+
   const [visibleEntries, setVisibleEntries] = useState(5);
 
   /* ---------------- INITIAL FETCH ---------------- */
@@ -130,12 +139,16 @@ export default function DriverProfile() {
 
   const handleSaveEntry = async () => {
     if (!amount || !DRIVER_ID) return;
+    if (!remarks.trim()) {
+      Alert.alert("Required", "Please enter remarks.");
+      return;
+    }
 
     await addLedgerEntry({
       driver_id: DRIVER_ID,
       entry_type: entryType,
       amount: Number(amount),
-      category,
+      category: "general",
       remarks,
       firebase_uid,
     });
@@ -196,6 +209,18 @@ export default function DriverProfile() {
                 {driver?.contact_number ?? "—"}
               </Text>
             </View>
+
+            {/* EDIT BUTTON */}
+            <TouchableOpacity
+              onPress={() => {
+                setEditName(driver?.driver_name || "");
+                setEditPhone(driver?.contact_number || "");
+                setShowEditModal(true);
+              }}
+              className="p-2 bg-muted rounded-full"
+            >
+              <Pencil size={18} color={isDark ? "#FFF" : "#000"} />
+            </TouchableOpacity>
           </View>
 
           {/* ACTION ROW */}
@@ -411,26 +436,8 @@ export default function DriverProfile() {
                   </Text>
                 </View>
 
-                {/* QUICK AMOUNT PILLS */}
-                <View className="flex-row flex-wrap gap-2 mt-3">
-                  {[500, 1000, 2000, 5000, 10000].map((amt) => {
-                    const active = amount === amt.toString();
-                    return (
-                      <TouchableOpacity
-                        key={amt}
-                        onPress={() => setAmount(amt.toString())}
-                        className={`px-3 py-1.5 rounded-full ${active ? "bg-green-600" : "bg-muted"
-                          }`}
-                      >
-                        <Text className={`text-[10px] font-bold ${active ? "text-white" : "text-foreground"}`}>
-                          + ₹{amt >= 1000 ? `${amt / 1000}k` : amt}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                {/* QUICK AMOUNT PILLS (REMOVED) */}
 
-                {/* ENTRY TYPE PILLS */}
                 <View className="flex-row bg-muted rounded-2xl p-1 mt-4">
                   <TouchableOpacity
                     onPress={() => setEntryType("credit")}
@@ -444,7 +451,7 @@ export default function DriverProfile() {
                         : "text-muted-foreground"
                         }`}
                     >
-                      PAYMENT TO DRIVER
+                      PAID BY DRIVER
                     </Text>
                   </TouchableOpacity>
 
@@ -460,7 +467,7 @@ export default function DriverProfile() {
                         : "text-muted-foreground"
                         }`}
                     >
-                      ADVANCE / EXPENSE
+                      RECEIVED BY DRIVER
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -469,43 +476,11 @@ export default function DriverProfile() {
               {/* DETAILS */}
               <View className="mb-8">
                 <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  Category
+                  Remarks <Text className="text-red-500">*</Text>
                 </Text>
 
-                {/* CATEGORY PILLS */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  className="mb-4"
-                  contentContainerStyle={{ gap: 8, paddingRight: 20 }}
-                >
-                  {["salary", "advance", "daily_allowance", "fuel", "repair", "bonus"].map((cat) => {
-                    const active = category === cat;
-                    return (
-                      <TouchableOpacity
-                        key={cat}
-                        onPress={() => setCategory(cat)}
-                        className={`px-4 py-2 rounded-full ${active ? "bg-green-600" : "bg-muted"
-                          }`}
-                      >
-                        <Text className={`text-[11px] font-bold capitalize ${active ? "text-white" : "text-foreground"}`}>
-                          {cat.replace("_", " ")}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-
                 <TextInput
-                  placeholder="Enter custom category..."
-                  value={category}
-                  onChangeText={setCategory}
-                  className="bg-muted rounded-2xl px-4 py-4 mb-3 text-sm"
-                  placeholderTextColor="#94a3b8"
-                />
-
-                <TextInput
-                  placeholder="Remarks (optional)"
+                  placeholder="Enter remarks (Required)"
                   value={remarks}
                   onChangeText={setRemarks}
                   className="bg-muted rounded-2xl px-4 py-4 text-sm"
@@ -524,6 +499,105 @@ export default function DriverProfile() {
                   Save Entry
                 </Text>
               </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* EDIT DRIVER MODAL */}
+      <Modal
+        visible={showEditModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setShowEditModal(false)}
+            className="flex-1 bg-black/40 justify-end"
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              className="bg-background rounded-t-3xl px-6 pt-4 pb-10"
+            >
+              <View className="items-center mb-6">
+                <View className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
+              </View>
+
+              <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-xl font-bold">Edit Driver</Text>
+                <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                  <X size={24} color={isDark ? "#FFF" : "#000"} />
+                </TouchableOpacity>
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-sm font-medium mb-1 text-muted-foreground">Driver Name</Text>
+                <TextInput
+                  value={editName}
+                  onChangeText={setEditName}
+                  className="bg-muted rounded-xl px-4 py-3 text-base"
+                  placeholder="Enter Name"
+                  placeholderTextColor="#94a3b8"
+                />
+              </View>
+
+              <View className="mb-6">
+                <Text className="text-sm font-medium mb-1 text-muted-foreground">Contact Number</Text>
+                <TextInput
+                  value={editPhone}
+                  onChangeText={setEditPhone}
+                  keyboardType="phone-pad"
+                  className="bg-muted rounded-xl px-4 py-3 text-base"
+                  placeholder="Enter Phone"
+                  placeholderTextColor="#94a3b8"
+                />
+              </View>
+
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!editName || !editPhone) return Alert.alert("Error", "Please fill all fields");
+                  if (DRIVER_ID) {
+                    await updateDriver(DRIVER_ID, { driver_name: editName, contact_number: editPhone });
+                    setShowEditModal(false);
+                    Alert.alert("Success", "Driver updated");
+                  }
+                }}
+                className="bg-primary py-4 rounded-xl items-center mb-3"
+              >
+                <Text className="text-primary-foreground font-bold">Update Driver</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert("Confirm Delete", "Are you sure you want to delete this driver? This action cannot be undone.", [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Delete",
+                      style: "destructive",
+                      onPress: async () => {
+                        if (DRIVER_ID) {
+                          await deleteDriver(DRIVER_ID);
+                          setShowEditModal(false);
+                          router.back();
+                          Alert.alert("Success", "Driver deleted");
+                        }
+                      }
+                    }
+                  ]);
+                }}
+                className="bg-red-50 py-4 rounded-xl items-center border border-red-200"
+              >
+                <View className="flex-row items-center gap-2">
+                  <Trash2 size={18} color="#dc2626" />
+                  <Text className="text-red-600 font-bold">Delete Driver</Text>
+                </View>
+              </TouchableOpacity>
+
             </TouchableOpacity>
           </TouchableOpacity>
         </KeyboardAvoidingView>
