@@ -4,18 +4,31 @@ import API from "../app/api/axiosInstance";
 
 /* ---------------- TYPES ---------------- */
 
+export type TransactionNature =
+  | "paid_by_driver"
+  | "received_by_driver";
+
+export type CounterpartyType =
+  | "owner"
+  | "vendor"
+  | "client";
+
 export interface DriverLedgerEntry {
   entry_id: number;
   driver_id: number;
   entry_date: string;
-  entry_type: "credit" | "debit";
+
+  transaction_nature: TransactionNature;
+  counterparty_type: CounterpartyType;
+  counterparty_id?: number | null;
+
+  direction: "to" | "from";
   amount: number;
-  category: string;
-  payment_mode?: string;
-  trip_id?: number;
-  payroll_month?: string;
-  remarks?: string;
+  remarks: string;
+  title: string;
 }
+
+/* ---------------- HOOK ---------------- */
 
 export default function useDriverFinance() {
   const [entries, setEntries] = useState<DriverLedgerEntry[]>([]);
@@ -54,19 +67,22 @@ export default function useDriverFinance() {
     }
   };
 
-  /* ---------------- ADD LEDGER ENTRY ---------------- */
+  /* ---------------- ADD ENTRY ---------------- */
   const addLedgerEntry = async (data: {
     driver_id: number;
-    entry_type: "credit" | "debit";
+    transaction_nature: TransactionNature;
+    counterparty_type: CounterpartyType;
+    counterparty_id?: number | null;
     amount: number;
-    category: string;
-    payment_mode?: string;
-    trip_id?: number;
-    payroll_month?: string;
-    remarks?: string;
+    remarks: string;
     firebase_uid: string;
   }) => {
     try {
+      if (!data.remarks) {
+        Alert.alert("Validation", "Remarks are mandatory");
+        throw new Error("Remarks required");
+      }
+
       const res = await API.post(`/api/driver-ledger`, data);
 
       // optimistic update

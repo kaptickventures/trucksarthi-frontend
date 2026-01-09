@@ -34,7 +34,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import useDrivers from "../../hooks/useDriver";
-import useDriverFinance from "../../hooks/useDriverFinance";
+import useDriverFinance, { CounterpartyType, TransactionNature } from "../../hooks/useDriverFinance";
 
 export default function DriverProfile() {
   const router = useRouter();
@@ -71,13 +71,14 @@ export default function DriverProfile() {
 
   /* ---------------- MODAL STATE ---------------- */
   const [showModal, setShowModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false); // New Edit Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // Ledger Form State
+  // New Ledger Form State
   const [amount, setAmount] = useState("");
-  const [entryType, setEntryType] = useState<"credit" | "debit">("credit");
   const [remarks, setRemarks] = useState("");
+  const [transactionNature, setTransactionNature] = useState<TransactionNature>("paid_by_driver");
+  const [counterpartyType, setCounterpartyType] = useState<CounterpartyType>("owner");
 
   // Edit Driver Form State
   const [editName, setEditName] = useState("");
@@ -94,8 +95,6 @@ export default function DriverProfile() {
       setNetBalance(res.net_balance)
     );
   }, [DRIVER_ID]);
-
-
 
 
   /* ---------------- ACTIONS ---------------- */
@@ -146,9 +145,9 @@ export default function DriverProfile() {
 
     await addLedgerEntry({
       driver_id: DRIVER_ID,
-      entry_type: entryType,
+      transaction_nature: transactionNature,
+      counterparty_type: counterpartyType,
       amount: Number(amount),
-      category: "general",
       remarks,
       firebase_uid,
     });
@@ -161,6 +160,18 @@ export default function DriverProfile() {
     fetchDriverSummary(DRIVER_ID).then((res) =>
       setNetBalance(res.net_balance)
     );
+  };
+
+  /* ---------------- HELPERS ---------------- */
+  const getTransactionTitle = (nature: TransactionNature | string, counterparty: CounterpartyType | string) => {
+    if (!counterparty) return "Transaction";
+    const cpLabel = counterparty.charAt(0).toUpperCase() + counterparty.slice(1);
+    if (nature === "paid_by_driver") {
+      return `Paid by Driver TO ${cpLabel}`;
+    } else if (nature === "received_by_driver") {
+      return `Received by Driver FROM ${cpLabel}`;
+    }
+    return nature ? nature.replace(/_/g, " ") : "Transaction";
   };
 
 
@@ -297,7 +308,13 @@ export default function DriverProfile() {
         ) : (
           <View className="bg-card rounded-2xl overflow-hidden mb-6">
             {entries.slice(0, visibleEntries).map((item, index) => {
-              const isCredit = item.entry_type === "credit";
+              const isPaidByDriver = item.transaction_nature === "paid_by_driver";
+
+              // Determine display color: 
+              // Paid BY Driver = Driver GAVE money/value -> Usually CREDIT in his favor.
+              // Received BY Driver = Driver TOOK money -> DEBIT.
+              const isCredit = isPaidByDriver;
+
               return (
                 <View
                   key={item.entry_id}
@@ -318,8 +335,8 @@ export default function DriverProfile() {
                   </View>
 
                   <View className="flex-1">
-                    <Text className="font-bold text-sm capitalize">
-                      {item.category.replace("_", " ")}
+                    <Text className="font-bold text-sm">
+                      {getTransactionTitle(item.transaction_nature, item.counterparty_type)}
                     </Text>
                     <Text className="text-[12px] text-muted-foreground mt-0.5">
                       {item.entry_date?.split("T")[0] || item.entry_date} {item.remarks ? `• ${item.remarks}` : ""}
@@ -351,7 +368,7 @@ export default function DriverProfile() {
         )}
       </ScrollView>
 
-      {/* Floating Button */}
+      {/* Floating Button (Visible when modal is closed) */}
       {!showModal && (
         <TouchableOpacity
           onPress={() => setShowModal(true)}
@@ -373,28 +390,23 @@ export default function DriverProfile() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="flex-1 mb-8"
         >
-          {/* BACKDROP */}
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => setShowModal(false)}
             className="flex-1 bg-black/40 justify-end"
           >
-            {/* SHEET */}
             <TouchableOpacity
               activeOpacity={1}
               className="bg-background rounded-t-3xl px-6 pt-4 pb-10"
             >
-              {/* DRAG HANDLE */}
               <View className="items-center mb-6">
                 <View className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
               </View>
 
-              {/* HEADER */}
               <View className="flex-row justify-between items-center mb-6">
                 <View>
-                  <Text className="text-xl font-bold">Add Ledger Entry</Text>
-                  <Text className="text-sm text-muted-foreground mt-0.5">
-                    {driver?.driver_name}
+                  <Text className="text-xl font-bold">
+                    {getTransactionTitle(transactionNature, counterpartyType)}
                   </Text>
                 </View>
 
@@ -408,6 +420,62 @@ export default function DriverProfile() {
                     color={isDark ? "#FFF" : "#000"}
                   />
                 </TouchableOpacity>
+              </View>
+
+              {/* Transaction Nature Selection */}
+              <View className="flex-row bg-muted rounded-2xl p-1 mb-4">
+                <TouchableOpacity
+                  onPress={() => setTransactionNature("paid_by_driver")}
+                  activeOpacity={0.9}
+                  className={`flex-1 py-3 rounded-xl items-center ${transactionNature === "paid_by_driver" ? "bg-green-600" : ""
+                    }`}
+                >
+                  <Text
+                    className={`text-[11px] font-bold ${transactionNature === "paid_by_driver"
+                      ? "text-white"
+                      : "text-muted-foreground"
+                      }`}
+                  >
+                    PAID BY DRIVER
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setTransactionNature("received_by_driver")}
+                  activeOpacity={0.9}
+                  className={`flex-1 py-3 rounded-xl items-center ${transactionNature === "received_by_driver" ? "bg-green-600" : ""
+                    }`}
+                >
+                  <Text
+                    className={`text-[11px] font-bold ${transactionNature === "received_by_driver"
+                      ? "text-white"
+                      : "text-muted-foreground"
+                      }`}
+                  >
+                    RECEIVED BY DRIVER
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Counterparty Selection */}
+              <View className="flex-row justify-between gap-2 mb-6">
+                {(["owner", "vendor", "client"] as CounterpartyType[]).map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    onPress={() => setCounterpartyType(type)}
+                    className={`flex-1 py-2 rounded-lg items-center border ${counterpartyType === type
+                      ? "bg-primary border-primary"
+                      : "bg-background border-border"
+                      }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold capitalize ${counterpartyType === type ? "text-primary-foreground" : "text-muted-foreground"
+                        }`}
+                    >
+                      {type}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
               {/* AMOUNT */}
@@ -435,45 +503,9 @@ export default function DriverProfile() {
                     INR
                   </Text>
                 </View>
-
-                {/* QUICK AMOUNT PILLS (REMOVED) */}
-
-                <View className="flex-row bg-muted rounded-2xl p-1 mt-4">
-                  <TouchableOpacity
-                    onPress={() => setEntryType("credit")}
-                    activeOpacity={0.9}
-                    className={`flex-1 py-3 rounded-xl items-center ${entryType === "credit" ? "bg-green-600" : ""
-                      }`}
-                  >
-                    <Text
-                      className={`text-[11px] font-bold ${entryType === "credit"
-                        ? "text-white"
-                        : "text-muted-foreground"
-                        }`}
-                    >
-                      PAID BY DRIVER
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => setEntryType("debit")}
-                    activeOpacity={0.9}
-                    className={`flex-1 py-3 rounded-xl items-center ${entryType === "debit" ? "bg-green-600" : ""
-                      }`}
-                  >
-                    <Text
-                      className={`text-[11px] font-bold ${entryType === "debit"
-                        ? "text-white"
-                        : "text-muted-foreground"
-                        }`}
-                    >
-                      RECEIVED BY DRIVER
-                    </Text>
-                  </TouchableOpacity>
-                </View>
               </View>
 
-              {/* DETAILS */}
+              {/* REMARKS */}
               <View className="mb-8">
                 <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Remarks <Text className="text-red-500">*</Text>
