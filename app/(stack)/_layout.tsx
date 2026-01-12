@@ -96,7 +96,7 @@ export default function StackLayout() {
           <Stack.Screen name="trucks-profile" options={{ title: "Truck Profile", headerShown: false }} />
           <Stack.Screen name="helpCenter" options={{ title: "Help Center" }} />
 
-          <Stack.Screen name="basicDetails" options={{ title: "TruckSarthi" }} />
+          <Stack.Screen name="basic-details" options={{ title: "TruckSarthi" }} />
 
         </Stack>
       </GestureHandlerRootView>

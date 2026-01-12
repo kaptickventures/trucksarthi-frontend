@@ -1,25 +1,25 @@
 // app/auth/signup-email.tsx
-import React, { useState } from "react";
-import {
-  SafeAreaView,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from "react-native";
-import { useRouter, Link } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft } from "lucide-react-native";
+import { Link, useRouter } from "expo-router";
 import {
   createUserWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
+import { ChevronLeft } from "lucide-react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import { auth } from "../../firebaseConfig";
 import { initUser } from "../../hooks/useAuth";
@@ -48,7 +48,7 @@ export default function SignupEmail() {
       const creds = await createUserWithEmailAndPassword(auth, email.trim(), pw);
       await updateProfile(creds.user, { displayName: name });
       await initUser();
-      router.replace("/basicDetails");
+      router.replace("/basic-details");
     } catch (e: any) {
       Alert.alert("Signup Failed", e?.message ?? "Try again.");
     } finally {

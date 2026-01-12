@@ -1,22 +1,23 @@
-import React, { useState, useRef } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { Link, useRouter } from "expo-router";
+import { ChevronLeft, Smartphone } from "lucide-react-native";
+import { useRef, useState } from "react";
 import {
-  SafeAreaView,
-  KeyboardAvoidingView,
-  ScrollView,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Platform,
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter, Link } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft, Smartphone } from "lucide-react-native";
 
-import auth from "@react-native-firebase/auth"; // NATIVE FIREBASE AUTH
+import nativeAuth from "../../lib/native-auth"; // SAFE WRAPPER
+// import auth from "@react-native-firebase/auth"; // NATIVE FIREBASE AUTH (Disabled for Expo Go)
 import { postLoginFlow } from "../../hooks/useAuth";
 
 const COLORS = {
@@ -45,6 +46,8 @@ export default function LoginPhone() {
 
   // Wait for native auth state to reflect the signed-in user
   const waitForFirebaseUser = async (timeoutMs = 8000) => {
+    if (!nativeAuth) return; // No native auth to wait for
+
     return new Promise<void>((resolve, reject) => {
       let timedOut = false;
       const timer = setTimeout(() => {
@@ -53,7 +56,7 @@ export default function LoginPhone() {
         reject(new Error("waitForFirebaseUser timed out"));
       }, timeoutMs);
 
-      const unsubscribe = auth().onAuthStateChanged((user) => {
+      const unsubscribe = nativeAuth().onAuthStateChanged((user: any) => {
         if (user) {
           clearTimeout(timer);
           unsubscribe();
@@ -76,12 +79,17 @@ export default function LoginPhone() {
 
       console.log("📨 SENDING OTP TO:", phoneNumber);
 
-      const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
-
-      console.log("📨 OTP SENT SUCCESS → confirmation object:", JSON.stringify(confirmation, null, 2));
-
-      confirmationRef.current = confirmation;
-      Alert.alert("OTP Sent", `Sent to ${phoneNumber}`);
+      if (nativeAuth) {
+        const confirmation = await nativeAuth().signInWithPhoneNumber(phoneNumber);
+        console.log("📨 OTP SENT SUCCESS → confirmation object:", JSON.stringify(confirmation, null, 2));
+        confirmationRef.current = confirmation;
+        Alert.alert("OTP Sent", `Sent to ${phoneNumber}`);
+      } else {
+        Alert.alert("Development Mode", "Native Phone Auth is unavailable in Expo Go. Please use Email Login or run a development build.", [
+          { text: "Go to Email Login", onPress: () => router.push("/auth/login-email") },
+          { text: "OK", style: "cancel" }
+        ]);
+      }
     } catch (error: any) {
       console.log("❌ OTP SEND ERROR FULL →", JSON.stringify(error, null, 2));
 
@@ -117,7 +125,7 @@ export default function LoginPhone() {
       // WAIT for the native auth state to update auth().currentUser
       try {
         await waitForFirebaseUser();
-        console.log("🔥 Firebase currentUser is now available:", auth().currentUser?.uid);
+        // console.log("🔥 Firebase currentUser is now available:", auth().currentUser?.uid);
       } catch (waitErr) {
         // timeout or other issue — still attempt postLoginFlow but log the condition
         console.log("⚠️ waitForFirebaseUser failed/timeout:", waitErr);

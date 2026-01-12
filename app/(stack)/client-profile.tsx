@@ -15,9 +15,9 @@ import {
   Modal,
   PanResponder,
   Platform,
+  Pressable,
   ScrollView,
   StatusBar,
-  Pressable,
   Text,
   TextInput,
   TouchableOpacity,
@@ -513,7 +513,8 @@ export default function ClientProfile() {
     setEditingTransaction(entry);
     setEditTrxAmount(entry.amount.toString());
     setEditTrxRemarks(entry.remarks || "");
-    setEditTrxDate(new Date(entry.entry_date));
+    const parsedDate = new Date(entry.entry_date);
+    setEditTrxDate(isNaN(parsedDate.getTime()) ? new Date() : parsedDate);
   };
 
   const handleSettleInvoice = async (invoice: Invoice) => {
@@ -1034,7 +1035,6 @@ export default function ClientProfile() {
                   <View className="flex-row justify-between items-center">
                     <Text className="text-xs text-muted-foreground">Due: {inv.due_date}</Text>
                     <View className="flex-row gap-3">
-                      <TouchableOpacity onPress={() => generateInvoicePDF(inv)}><Eye size={18} color="#64748b" /></TouchableOpacity>
                       <TouchableOpacity onPress={() => generateInvoicePDF(inv)}><Share2 size={18} color="#64748b" /></TouchableOpacity>
                       <TouchableOpacity onPress={() => handleSettleInvoice(inv)} className="bg-green-100 px-3 py-1 rounded-md">
                         <Text className="text-xs font-bold text-green-700">Settle</Text>

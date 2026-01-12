@@ -1,6 +1,6 @@
+import { AxiosError } from "axios";
 import API from "../app/api/axiosInstance";
 import { auth } from "../firebaseConfig";
-import { AxiosError } from "axios";
 
 type SyncPayload = {
   full_name?: string;
@@ -95,7 +95,7 @@ export async function postLoginFlow(router: any) {
   if (!u) {
     console.log("⚠️ postLoginFlow → No authenticated user present. Continuing to /basicDetails.");
     // if you prefer, you may route to login screen instead, but we'll attempt to continue:
-    router.replace("/basicDetails");
+    router.replace("/basic-details");
     return;
   }
 
@@ -128,6 +128,6 @@ export async function postLoginFlow(router: any) {
     router.replace("/home");
   } else {
     console.log("➡️ Navigating to /basicDetails");
-    router.replace("/basicDetails");
+    router.replace("/basic-details");
   }
 }
