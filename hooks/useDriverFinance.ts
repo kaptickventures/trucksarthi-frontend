@@ -75,7 +75,6 @@ export default function useDriverFinance() {
     counterparty_id?: number | null;
     amount: number;
     remarks: string;
-    firebase_uid: string;
   }) => {
     try {
       if (!data.remarks) {

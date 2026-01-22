@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
@@ -20,56 +20,34 @@ interface UseTripsOptions {
   autoFetch?: boolean;
 }
 
-export default function useTrips(
-  firebase_uid: string,
-  options: UseTripsOptions = {}
-) {
+export default function useTrips(options: UseTripsOptions = {}) {
   const { autoFetch = true } = options;
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchTrips = useCallback(
-    async (uid?: string) => {
-      const effectiveUid = uid || firebase_uid;
-
-      if (!effectiveUid) {
-        console.log("⛔ fetchTrips skipped — missing firebase_uid");
-        return;
-      }
-
-      try {
-        setLoading(true);
-        console.log("🚀 fetchTrips", effectiveUid);
-
-        const res = await API.get(
-          `/api/trips/user/firebase/${effectiveUid}`
-        );
-
-        setTrips(res.data);
-        console.log("✅ trips fetched:", res.data.length);
-      } catch (error) {
-        console.error("❌ fetchTrips failed", error);
-        Alert.alert("Error", "Failed to load trips");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [firebase_uid]
-  );
+  const fetchTrips = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await API.get("/api/trips");
+      setTrips(res.data);
+    } catch (error) {
+      console.error("❌ fetchTrips failed", error);
+      Alert.alert("Error", "Failed to load trips");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (autoFetch) {
-      fetchTrips(firebase_uid);
+      fetchTrips();
     }
-  }, [autoFetch, firebase_uid, fetchTrips]);
+  }, [autoFetch, fetchTrips]);
 
   const addTrip = async (formData: any) => {
     try {
-      const res = await API.post(`/api/trips`, {
-        ...formData,
-        firebase_uid,
-      });
+      const res = await API.post(`/api/trips`, formData);
       setTrips((prev) => [...prev, res.data]);
       return res.data;
     } catch (error) {

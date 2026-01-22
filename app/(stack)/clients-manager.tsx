@@ -1,39 +1,38 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { getAuth } from "firebase/auth";
-import { Edit3, MapPin, Plus, Trash2, X } from "lucide-react-native";
+import { MapPin, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Animated,
-
   PanResponder,
-    ScrollView,
+  ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
   useColorScheme,
   View
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import useClients from "../../hooks/useClient";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ClientFormModal from "../../components/ClientModal";
+import useClients from "../../hooks/useClient";
+import { useUser } from "../../hooks/useUser";
 
 export default function ClientsManager() {
   const router = useRouter();
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const firebase_uid = user?.uid;
+  const { user, loading: userLoading } = useUser();
 
   const {
     clients,
-    loading,
+    loading: clientsLoading,
     fetchClients,
     addClient,
     updateClient,
     deleteClient,
-  } = useClients(firebase_uid || "");
+  } = useClients();
+
+  const loading = userLoading || clientsLoading;
 
   const isDark = useColorScheme() === "dark";
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -61,8 +60,8 @@ export default function ClientsManager() {
 
   useFocusEffect(
     useCallback(() => {
-      if (firebase_uid) fetchClients();
-    }, [firebase_uid, fetchClients])
+      fetchClients();
+    }, [fetchClients])
   );
 
   const panResponder = useRef(
@@ -154,12 +153,12 @@ export default function ClientsManager() {
     ]);
   };
 
-  if (!firebase_uid) {
+  if (loading && !user) {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#888" />
         <Text className="mt-2 text-muted-foreground">
-          Loading user info...
+          Loading...
         </Text>
       </View>
     );
@@ -173,9 +172,7 @@ export default function ClientsManager() {
         className="flex-1 px-5 pt-2 bg-background"
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {loading ? (
-          <ActivityIndicator size="large" color="#888" />
-        ) : clients.length === 0 ? (
+        {clients.length === 0 ? (
           <Text className="text-center text-muted-foreground mt-10">
             No clients found.
           </Text>
@@ -239,13 +236,13 @@ export default function ClientsManager() {
 
       {/* Full Screen Modal */}
       <ClientFormModal
-  visible={modalVisible}
-  editing={!!editingId}
-  formData={formData}
-  setFormData={setFormData}
-  onSubmit={handleSubmit}
-  onClose={() => setModalVisible(false)}
-/>
+        visible={modalVisible}
+        editing={!!editingId}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleSubmit}
+        onClose={() => setModalVisible(false)}
+      />
 
     </SafeAreaView>
   );

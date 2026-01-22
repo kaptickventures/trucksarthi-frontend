@@ -1,26 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
 export interface Location {
   location_id: number;
-  firebase_uid: string;
   location_name: string;
   complete_address?: string;
   latitude?: number;
   longitude?: number;
 }
 
-export default function useLocations(firebase_uid?: string) {
+export default function useLocations() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchLocations = useCallback(async () => {
-    if (!firebase_uid) return;
-
     try {
       setLoading(true);
-      const res = await API.get(`/api/locations/user/firebase/${firebase_uid}`);
+      const res = await API.get("/api/locations");
       setLocations(res.data);
     } catch (error: any) {
       console.error("Fetch error:", error.response?.data || error);
@@ -28,14 +25,11 @@ export default function useLocations(firebase_uid?: string) {
     } finally {
       setLoading(false);
     }
-  }, [firebase_uid]);
+  }, []);
 
   const addLocation = async (data: Partial<Location>) => {
-    if (!firebase_uid) return;
-
     try {
-      const payload = { ...data, firebase_uid };
-      const res = await API.post(`/api/locations`, payload);
+      const res = await API.post(`/api/locations`, data);
       setLocations((prev) => [...prev, res.data]);
       return res.data;
     } catch (error: any) {
@@ -46,8 +40,6 @@ export default function useLocations(firebase_uid?: string) {
   };
 
   const updateLocation = async (id: number, updatedData: Partial<Location>) => {
-    if (!firebase_uid) return;
-
     try {
       const res = await API.put(`/api/locations/${id}`, updatedData);
       setLocations((prev) =>

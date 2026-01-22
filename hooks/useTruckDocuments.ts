@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Platform } from "react-native";
 import API from "../app/api/axiosInstance";
 
@@ -11,24 +11,23 @@ export interface TruckDocument {
   file_url: string;
   expiry_date: string;
   is_expiring_soon?: boolean;
-  firebase_uid: string;
 }
 
 /* ---------------- HOOK ---------------- */
 
-export default function useTruckDocuments(firebase_uid: string) {
+export default function useTruckDocuments(truck_id?: number) {
   const [documents, setDocuments] = useState<TruckDocument[]>([]);
   const [loading, setLoading] = useState(false);
 
   /* ---------------- FETCH ALL ---------------- */
   const fetchDocuments = useCallback(async () => {
-    if (!firebase_uid) return;
-
     try {
       setLoading(true);
-      const res = await API.get("/api/truck-documents", {
-        params: { firebase_uid },
-      });
+      const endpoint = truck_id 
+        ? `/api/truck-documents/truck/${truck_id}`
+        : "/api/truck-documents";
+      
+      const res = await API.get(endpoint);
       setDocuments(res.data);
     } catch (error: any) {
       console.error(error);
@@ -39,32 +38,7 @@ export default function useTruckDocuments(firebase_uid: string) {
     } finally {
       setLoading(false);
     }
-  }, [firebase_uid]);
-
-  /* ---------------- FETCH BY TRUCK ---------------- */
-  const fetchDocumentsByTruck = useCallback(
-    async (truck_id: number) => {
-      if (!firebase_uid || !truck_id) return;
-
-      try {
-        setLoading(true);
-        const res = await API.get(
-          `/api/truck-documents/truck/${truck_id}`,
-          { params: { firebase_uid } }
-        );
-        setDocuments(res.data);
-      } catch (error: any) {
-        console.error(error);
-        Alert.alert(
-          "Error",
-          error?.response?.data?.error || "Failed to load truck documents"
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [firebase_uid]
-  );
+  }, [truck_id]);
 
   /* ---------------- UPLOAD / UPDATE ---------------- */
   const uploadDocument = async (data: {
@@ -79,7 +53,6 @@ export default function useTruckDocuments(firebase_uid: string) {
   }) => {
     try {
       const { truck_id, document_type, file, expiry_date } = data;
-
       const normalizedType = document_type.toUpperCase();
 
       const formData = new FormData();
@@ -96,13 +69,19 @@ export default function useTruckDocuments(firebase_uid: string) {
       } as any);
 
       formData.append("expiry_date", expiry_date);
-      formData.append("firebase_uid", firebase_uid);
 
+      // Hit the specific backend upload endpoint as requested
       const res = await API.post(
         `/api/truck-documents/${truck_id}/${normalizedType}/upload`,
-        formData
-        // ❌ DO NOT set Content-Type
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
       );
+
+      const newDoc = res.data.document || res.data;
 
       setDocuments((prev) => {
         const index = prev.findIndex(
@@ -113,14 +92,14 @@ export default function useTruckDocuments(firebase_uid: string) {
 
         if (index !== -1) {
           const updated = [...prev];
-          updated[index] = res.data.document;
+          updated[index] = newDoc;
           return updated;
         }
 
-        return [...prev, res.data.document];
+        return [...prev, newDoc];
       });
 
-      return res.data.document;
+      return newDoc;
     } catch (error: any) {
       console.error("UPLOAD ERROR:", error?.response || error);
       Alert.alert(
@@ -134,10 +113,7 @@ export default function useTruckDocuments(firebase_uid: string) {
   /* ---------------- DELETE ---------------- */
   const deleteDocument = async (document_id: number) => {
     try {
-      await API.delete(`/api/truck-documents/${document_id}`, {
-        params: { firebase_uid },
-      });
-
+      await API.delete(`/api/truck-documents/${document_id}`);
       setDocuments((prev) =>
         prev.filter((d) => d.document_id !== document_id)
       );
@@ -159,7 +135,6 @@ export default function useTruckDocuments(firebase_uid: string) {
     documents,
     loading,
     fetchDocuments,
-    fetchDocumentsByTruck,
     uploadDocument,
     deleteDocument,
   };

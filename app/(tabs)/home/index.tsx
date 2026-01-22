@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
-import { getAuth } from "firebase/auth";
-import React, { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 import SideMenu from "../../../components/SideMenu";
 import "../../../global.css";
 import useTrips from "../../../hooks/useTrip";
+import { useUser } from "../../../hooks/useUser";
 import { THEME } from "../../../theme";
 
 
@@ -23,45 +23,36 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const firebase_uid = user?.uid;
+  const { user, loading: userLoading } = useUser();
+  const { loading: tripsLoading, totalRevenue, totalTrips, recentTrips } = useTrips();
 
-  const { loading, totalRevenue, totalTrips, recentTrips } = useTrips(
-    firebase_uid || ""
-  );
+  const loading = userLoading || tripsLoading;
 
   // ====================================
   // APPLY TAILWIND THEME COLORS TO HEADER
   // ====================================
 
-const backgroundColor = isDark
-  ? THEME.dark.background
-  : THEME.light.background;
+  const backgroundColor = isDark
+    ? THEME.dark.background
+    : THEME.light.background;
 
-const foregroundColor = isDark
-  ? THEME.dark.foreground
-  : THEME.light.foreground;
+  const foregroundColor = isDark
+    ? THEME.dark.foreground
+    : THEME.light.foreground;
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
-
-      headerStyle: {
-        backgroundColor,
-      },
-
+      headerStyle: { backgroundColor },
       headerTitleStyle: {
         color: foregroundColor,
         fontWeight: "600",
       },
-
       headerTintColor: foregroundColor,
-
       headerLeft: () => (
         <TouchableOpacity
-          onPress={() => setMenuVisible((prev) => !prev)} // Toggle menu
+          onPress={() => setMenuVisible((prev) => !prev)}
           style={{
             paddingHorizontal: 6,
             paddingVertical: 4,
@@ -70,13 +61,12 @@ const foregroundColor = isDark
           }}
         >
           <Ionicons
-            name={menuVisible ? "close" : "menu"} // Switch icon
+            name={menuVisible ? "close" : "menu"}
             size={24}
             color={foregroundColor}
           />
         </TouchableOpacity>
       ),
-
       headerRight: () => (
         <TouchableOpacity
           onPress={() => router.push("/notifications")}
@@ -97,48 +87,26 @@ const foregroundColor = isDark
     });
   }, [navigation, isDark, menuVisible, backgroundColor, foregroundColor]);
 
-  // ================================
-  // LOADING STATES
-  // ================================
-
-  if (!firebase_uid) {
+  if (loading && !user) {
     return (
       <View className="flex-1 justify-center items-center bg-background">
         <ActivityIndicator size="large" color="#007bff" />
-        <Text className="text-muted-foreground mt-2">Loading user...</Text>
+        <Text className="text-muted-foreground mt-2">Loading...</Text>
       </View>
     );
   }
-
-  if (loading) {
-    return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text className="text-muted-foreground mt-2">Loading trips...</Text>
-      </View>
-    );
-  }
-
-  // ================================
-  // MAIN SCREEN
-  // ================================
 
   return (
     <>
       <ScrollView className="flex-1 bg-background p-4">
         {/* ====== Stats Section ====== */}
         <View className="flex-row justify-between mb-4">
-          {/* Monthly Revenue */}
           <View className="flex-1 bg-card rounded-2xl p-4 mr-2">
-            <Text className="text-muted-foreground text-xs">
-              Monthly Revenue
-            </Text>
+            <Text className="text-muted-foreground text-xs">Monthly Revenue</Text>
             <Text className="text-card-foreground text-xl font-bold mt-1">
               ₹{totalRevenue.toLocaleString()}
             </Text>
           </View>
-
-          {/* Total Trips */}
           <View className="flex-1 bg-card rounded-2xl p-4 ml-2">
             <Text className="text-muted-foreground text-xs">Number of Trips</Text>
             <Text className="text-card-foreground text-xl font-bold mt-1">
@@ -153,9 +121,7 @@ const foregroundColor = isDark
           className="bg-primary rounded-full p-4 flex-row justify-center items-center mb-3"
         >
           <Ionicons name="bus-outline" size={20} color="white" />
-          <Text className="text-primary-foreground font-semibold text-base ml-2">
-            Add Trip
-          </Text>
+          <Text className="text-primary-foreground font-semibold text-base ml-2">Add Trip</Text>
         </TouchableOpacity>
 
         {/* ====== Quick Actions ====== */}
@@ -173,52 +139,16 @@ const foregroundColor = isDark
             >
               <View className="p-2 py-4 items-center">
                 <Ionicons name={item.icon as any} size={18} color="#25D366" />
-                <Text className="text-muted-foreground text-[8px] mt-1 font-medium">
-                  {item.title}
-                </Text>
+                <Text className="text-muted-foreground text-[8px] mt-1 font-medium">{item.title}</Text>
               </View>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* ====== Reminders ====== */}
-        <View className="bg-card rounded-2xl p-4 mb-6">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-card-foreground font-semibold text-lg">
-              Reminders
-            </Text>
-            <TouchableOpacity onPress={() => router.push("/notifications")}>
-              <Text className="text-muted-foreground text-sm">View All →</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* {[
-            { id: 1, text: "RC renewal due soon", date: "Feb 15, 2025" },
-            { id: 2, text: "Insurance expires", date: "Mar 01, 2025" },
-          ].map((reminder) => (
-            <View
-              key={reminder.id}
-              className="flex-row justify-between items-center bg-secondary p-3 rounded-xl mb-2"
-            >
-              <View className="flex-1">
-                <Text className="text-card-foreground font-medium text-sm">
-                  {reminder.text}
-                </Text>
-                <Text className="text-muted-foreground text-xs mt-1">
-                  Due: {reminder.date}
-                </Text>
-              </View>
-              <Ionicons name="alert-circle-outline" size={20} color="#25D366" />
-            </View>
-          ))} */}
-        </View>
-
         {/* ====== Recent Trips ====== */}
         <View className="bg-card rounded-2xl p-4 mb-6">
           <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-card-foreground font-semibold text-lg">
-              Recent Trips
-            </Text>
+            <Text className="text-card-foreground font-semibold text-lg">Recent Trips</Text>
             <TouchableOpacity onPress={() => router.push("/tripLog")}>
               <Text className="text-muted-foreground text-sm">View All →</Text>
             </TouchableOpacity>
@@ -231,32 +161,23 @@ const foregroundColor = isDark
                 className="flex-row justify-between items-center bg-secondary p-3 rounded-xl mb-2"
               >
                 <View className="flex-1">
-                  <Text className="text-card-foreground font-medium text-sm">
-                    Trip #{trip.trip_id}
-                  </Text>
+                  <Text className="text-card-foreground font-medium text-sm">Trip #{trip.trip_id}</Text>
                   <Text className="text-muted-foreground text-xs mt-1">
                     Truck {trip.truck_id} • Driver {trip.driver_id}
                   </Text>
                 </View>
                 <View className="items-end">
-                  <Text className="text-primary font-semibold">
-                    ₹{trip.cost_of_trip.toLocaleString()}
-                  </Text>
-                  <Text className="text-muted-foreground text-xs">
-                    {trip.trip_date}
-                  </Text>
+                  <Text className="text-primary font-semibold">₹{trip.cost_of_trip.toLocaleString()}</Text>
+                  <Text className="text-muted-foreground text-xs">{trip.trip_date}</Text>
                 </View>
               </View>
             ))
           ) : (
-            <Text className="text-muted-foreground text-center py-4">
-              No trips found for this user.
-            </Text>
+            <Text className="text-muted-foreground text-center py-4">No trips found.</Text>
           )}
         </View>
       </ScrollView>
 
-      {/* Slide-in Menu */}
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
     </>
   );

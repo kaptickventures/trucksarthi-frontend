@@ -1,8 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { getAuth } from "firebase/auth";
 import { Edit3, MapPin, Plus, Trash2, X } from "lucide-react-native";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,21 +22,22 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import useTrucks from "../../hooks/useTruck";
+import { useUser } from "../../hooks/useUser";
 
 export default function TrucksManager() {
   const router = useRouter();
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const firebase_uid = user?.uid;
+  const { user, loading: userLoading } = useUser();
 
   const {
     trucks,
-    loading,
+    loading: trucksLoading,
     fetchTrucks,
     addTruck,
     updateTruck,
     deleteTruck,
-  } = useTrucks(firebase_uid || "");
+  } = useTrucks();
+
+  const loading = userLoading || trucksLoading;
 
   const isDark = useColorScheme() === "dark";
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -68,8 +68,8 @@ export default function TrucksManager() {
   /* ---------------- FETCH ---------------- */
   useFocusEffect(
     useCallback(() => {
-      if (firebase_uid) fetchTrucks();
-    }, [firebase_uid, fetchTrucks])
+      fetchTrucks();
+    }, [fetchTrucks])
   );
 
   /* ---------------- PAN GESTURE ---------------- */
@@ -140,10 +140,16 @@ export default function TrucksManager() {
 
     try {
       if (editingId) {
-        await updateTruck(editingId, formData);
+        await updateTruck(editingId, {
+          ...formData,
+          loading_capacity: Number(formData.loading_capacity),
+        });
         Alert.alert("Success", "Truck updated successfully.");
       } else {
-        await addTruck(formData);
+        await addTruck({
+          ...formData,
+          loading_capacity: Number(formData.loading_capacity),
+        });
         Alert.alert("Success", "Truck added successfully.");
       }
       closeModal();
@@ -168,12 +174,12 @@ export default function TrucksManager() {
   };
 
   /* ---------------- GUARD ---------------- */
-  if (!firebase_uid) {
+  if (loading && !user) {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#888" />
         <Text className="mt-2 text-muted-foreground">
-          Loading user info...
+          Loading...
         </Text>
       </View>
     );
@@ -189,9 +195,7 @@ export default function TrucksManager() {
         className="flex-1 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {loading ? (
-          <ActivityIndicator size="large" color="#888" />
-        ) : trucks.length === 0 ? (
+        {trucks.length === 0 ? (
           <Text className="text-center text-muted-foreground mt-10">
             No trucks found.
           </Text>

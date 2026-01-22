@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { getAuth } from "firebase/auth";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -14,7 +13,6 @@ import {
   User,
   X
 } from "lucide-react-native";
-
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -35,6 +33,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import useDrivers from "../../hooks/useDriver";
 import useDriverFinance, { CounterpartyType, TransactionNature } from "../../hooks/useDriverFinance";
+import { getFileUrl } from "../../lib/utils";
 
 export default function DriverProfile() {
   const router = useRouter();
@@ -45,10 +44,8 @@ export default function DriverProfile() {
     [driver_id]
   );
 
-  const firebase_uid = getAuth().currentUser?.uid!;
-
   /* ---------------- DRIVER BASIC INFO ---------------- */
-  const { drivers, loading, uploadLicense, uploadAadhaar, updateDriver, deleteDriver } = useDrivers(firebase_uid);
+  const { drivers, loading, uploadLicense, uploadAadhaar, updateDriver, deleteDriver } = useDrivers();
 
   const driver = useMemo(() => {
     if (!DRIVER_ID || drivers.length === 0) return null;
@@ -115,13 +112,13 @@ export default function DriverProfile() {
         await uploadLicense(DRIVER_ID, {
           uri: asset.uri,
           name: "license.jpg",
-          mimeType: "image/jpeg",
+          type: "image/jpeg",
         });
       } else {
         await uploadAadhaar(DRIVER_ID, {
           uri: asset.uri,
           name: "aadhaar.jpg",
-          mimeType: "image/jpeg",
+          type: "image/jpeg",
         });
       }
 
@@ -149,7 +146,6 @@ export default function DriverProfile() {
       counterparty_type: counterpartyType,
       amount: Number(amount),
       remarks,
-      firebase_uid,
     });
 
     setAmount("");
@@ -164,7 +160,7 @@ export default function DriverProfile() {
 
   /* ---------------- HELPERS ---------------- */
   const getTransactionTitle = (nature: TransactionNature | string, counterparty: CounterpartyType | string) => {
-    if (!counterparty) return "Transaction";
+    if (!counterparty || typeof counterparty !== 'string') return "Transaction";
     const cpLabel = counterparty.charAt(0).toUpperCase() + counterparty.slice(1);
     if (nature === "paid_by_driver") {
       return `Paid by Driver TO ${cpLabel}`;
@@ -264,14 +260,14 @@ export default function DriverProfile() {
         <View className="flex-row gap-4 mb-6">
           <DocumentCard
             label="License"
-            url={driver?.license_card_url}
-            onPress={() => driver?.license_card_url ? setPreviewImage(driver.license_card_url) : handleUpload("LICENSE")}
+            url={getFileUrl(driver?.license_card_url)}
+            onPress={() => driver?.license_card_url ? setPreviewImage(getFileUrl(driver.license_card_url)) : handleUpload("LICENSE")}
             onEdit={() => handleUpload("LICENSE")}
           />
           <DocumentCard
             label="Aadhaar"
-            url={driver?.identity_card_url}
-            onPress={() => driver?.identity_card_url ? setPreviewImage(driver.identity_card_url) : handleUpload("AADHAAR")}
+            url={getFileUrl(driver?.identity_card_url)}
+            onPress={() => driver?.identity_card_url ? setPreviewImage(getFileUrl(driver.identity_card_url)) : handleUpload("AADHAAR")}
             onEdit={() => handleUpload("AADHAAR")}
           />
         </View>
@@ -309,10 +305,6 @@ export default function DriverProfile() {
           <View className="bg-card rounded-2xl overflow-hidden mb-6">
             {entries.slice(0, visibleEntries).map((item, index) => {
               const isPaidByDriver = item.transaction_nature === "paid_by_driver";
-
-              // Determine display color: 
-              // Paid BY Driver = Driver GAVE money/value -> Usually CREDIT in his favor.
-              // Received BY Driver = Driver TOOK money -> DEBIT.
               const isCredit = isPaidByDriver;
 
               return (
@@ -674,7 +666,6 @@ export default function DriverProfile() {
         </TouchableOpacity>
       </Modal>
 
-
     </SafeAreaView>
   );
 }
@@ -694,11 +685,12 @@ function DocumentCard({ label, url, onPress, onEdit }: any) {
           borderRadius: 16,
           overflow: "hidden",
           position: "relative",
+          borderWidth: 1,
+          borderColor: "#e5e7eb",
         }}
       >
         {url ? (
           <>
-            {/* Image */}
             <Image
               source={{ uri: url }}
               style={{
@@ -707,8 +699,6 @@ function DocumentCard({ label, url, onPress, onEdit }: any) {
               }}
               resizeMode="cover"
             />
-
-            {/* Edit button */}
             <TouchableOpacity
               onPress={onEdit}
               style={{
@@ -733,7 +723,6 @@ function DocumentCard({ label, url, onPress, onEdit }: any) {
           </View>
         )}
       </TouchableOpacity>
-
       <Text className="text-center text-xs font-semibold mt-2 text-muted-foreground">
         {label}
       </Text>
@@ -741,14 +730,12 @@ function DocumentCard({ label, url, onPress, onEdit }: any) {
   );
 }
 
-
 function SummaryCard({ label, value, green, red }: any) {
   return (
     <View className="flex-1 bg-card rounded-2xl p-3 justify-between min-h-[90px]">
       <Text className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
         {label}
       </Text>
-
       <Text
         numberOfLines={1}
         adjustsFontSizeToFit

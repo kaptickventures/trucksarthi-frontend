@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
@@ -19,19 +19,15 @@ export interface InvoiceItem {
   total: number;
 }
 
-export function useInvoices(firebase_uid: string) {
+export function useInvoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
 
   // 📥 Fetch invoices (DISPLAY ONLY)
   const fetchInvoices = useCallback(async () => {
-    if (!firebase_uid) return;
-
     try {
       setLoading(true);
-      const res = await API.get(
-        `/api/invoices?firebaseUid=${firebase_uid}`
-      );
+      const res = await API.get("/api/invoices");
       setInvoices(res.data);
     } catch (error) {
       console.error("❌ fetchInvoices failed", error);
@@ -39,7 +35,7 @@ export function useInvoices(firebase_uid: string) {
     } finally {
       setLoading(false);
     }
-  }, [firebase_uid]);
+  }, []);
 
   // 📄 Invoice details
   const getInvoiceById = async (id: number) => {
@@ -63,12 +59,7 @@ export function useInvoices(firebase_uid: string) {
     due_date: string;
   }) => {
     try {
-      const res = await API.post(`/api/invoices`, {
-        ...data,
-        firebase_uid,
-      });
-
-      // Re-fetch instead of trusting local state
+      const res = await API.post(`/api/invoices`, data);
       await fetchInvoices();
       return res.data;
     } catch (error: any) {

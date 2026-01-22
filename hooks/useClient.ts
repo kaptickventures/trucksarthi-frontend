@@ -1,10 +1,9 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
 interface Client {
   client_id: number;
-  firebase_uid: string;
   client_name: string;
   contact_person_name: string;
   contact_number: string;
@@ -13,38 +12,26 @@ interface Client {
   office_address?: string;
 }
 
-export default function useClients(firebase_uid: string) {
+export default function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchClients = useCallback(async () => {
-    if (!firebase_uid) {
-      console.log("⛔ fetchClients skipped — missing firebase_uid");
-      return;
-    }
-
     try {
-      console.log("🚀 fetchClients", firebase_uid);
       setLoading(true);
-
-      const res = await API.get(
-        `/api/clients/user/firebase/${firebase_uid}`
-      );
-
+      const res = await API.get("/api/clients");
       setClients(res.data);
-      console.log("✅ clients fetched:", res.data.length);
     } catch (error) {
       console.error("❌ fetchClients failed", error);
       Alert.alert("Error", "Failed to load clients");
     } finally {
       setLoading(false);
     }
-  }, [firebase_uid]);
+  }, []);
 
   const addClient = async (data: Partial<Client>) => {
     try {
-      const payload = { ...data, firebase_uid };
-      const res = await API.post(`/api/clients`, payload);
+      const res = await API.post(`/api/clients`, data);
       setClients((prev) => [...prev, res.data]);
       return res.data;
     } catch (error: any) {

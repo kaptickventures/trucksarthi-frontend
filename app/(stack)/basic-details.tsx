@@ -1,5 +1,3 @@
-import nativeAuth from "../../lib/native-auth";
-// import authRN from "@react-native-firebase/auth"; // Commented out to fix RNFBAppModule error in Expo Go
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Camera } from "lucide-react-native";
@@ -11,69 +9,19 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth as authJS } from "../../firebaseConfig";
-import { syncFirebaseUser } from "../../hooks/useAuth";
+import { useUser } from "../../hooks/useUser";
+
 export default function BasicDetailsScreen() {
     const router = useRouter();
+    const { user, loading: userLoading, syncUser, uploadProfilePicture } = useUser();
 
-    // ---------------------------------------------------------
-    // Firebase Auth Hydration
-    // ---------------------------------------------------------
-    const [firebaseUser, setFirebaseUser] = useState<any>(null);
-    const [authReady, setAuthReady] = useState(false);
-
-    useEffect(() => {
-        let unsubNative = () => { };
-
-        // 1. Try Native Listener (Production / Dev Client)
-        if (nativeAuth) {
-            try {
-                unsubNative = nativeAuth().onAuthStateChanged((u: any) => {
-                    if (u) {
-                        console.log("👀 Native Auth changed →", u.uid);
-                        setFirebaseUser(u);
-                        setAuthReady(true);
-                    }
-                });
-            } catch (e) {
-                console.log("Native auth listener failed:", e);
-            }
-        }
-
-        // 2. JS Listener (Always active as backup / for web)
-        const unsubJS = authJS.onAuthStateChanged((u) => {
-            if (u) {
-                console.log("👀 JS Auth changed →", u.uid);
-                setFirebaseUser(u);
-                setAuthReady(true);
-            }
-        });
-
-        // Check immediately
-        const currentUser = (nativeAuth ? nativeAuth().currentUser : null) || authJS.currentUser;
-        if (currentUser) {
-            setFirebaseUser(currentUser);
-            setAuthReady(true);
-        } else {
-            // If neither have user immediately, wait a bit
-            setTimeout(() => setAuthReady(true), 1000);
-        }
-
-        return () => {
-            unsubNative();
-            unsubJS();
-        };
-    }, []);
-
-    // ---------------------------------------------------------
-    // Fields (Hooks MUST be here - no early returns above)
-    // ---------------------------------------------------------
     const [full_name, setFullName] = useState("");
     const [email_address, setEmail] = useState("");
     const [phone_number, setPhone] = useState("");
@@ -81,25 +29,28 @@ export default function BasicDetailsScreen() {
     const [address, setAddress] = useState("");
     const [date_of_birth, setDob] = useState("");
     const [profile_picture_url, setProfileUrl] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
 
-    // ---------------------------------------------------------
-    // When user is loaded, fill initial fields
-    // ---------------------------------------------------------
     useEffect(() => {
-        if (!firebaseUser) return;
+        if (!user) return;
 
-        setFullName(firebaseUser.displayName ?? "");
-        setEmail(firebaseUser.email ?? "");
-        setPhone(firebaseUser.phoneNumber ?? "");
-    }, [firebaseUser]);
+        setFullName(user.full_name ?? "");
+        setEmail(user.email_address ?? "");
+        setPhone(user.phone_number ?? "");
+        setCompany(user.company_name ?? "");
+        setAddress(user.address ?? "");
+        setProfileUrl(user.profile_picture_url ?? null);
 
-    const hasEmail = Boolean(firebaseUser?.email);
-    const hasPhone = Boolean(firebaseUser?.phoneNumber);
+        if (user.date_of_birth) {
+            const d = new Date(user.date_of_birth);
+            setDob(
+                `${String(d.getDate()).padStart(2, "0")}/${String(
+                    d.getMonth() + 1
+                ).padStart(2, "0")}/${d.getFullYear()}`
+            );
+        }
+    }, [user]);
 
-    // ---------------------------------------------------------
-    // Image Picker
-    // ---------------------------------------------------------
     const pickImage = async () => {
         const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!granted) {
@@ -114,210 +65,158 @@ export default function BasicDetailsScreen() {
         });
 
         if (!res.canceled && res.assets?.length) {
-            setProfileUrl(res.assets[0].uri);
+            const img = res.assets[0];
+            setProfileUrl(img.uri);
+            try {
+                await uploadProfilePicture(img);
+            } catch {
+                Alert.alert("Error", "Failed to upload profile picture");
+            }
         }
     };
 
-    // ---------------------------------------------------------
-    // DOB formatter
-    // ---------------------------------------------------------
     const handleDobChange = (text: string) => {
-        let cleaned = text.replace(/\D/g, "").slice(0, 8);
-        if (cleaned.length >= 5) {
-            cleaned = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4)}`;
-        } else if (cleaned.length >= 3) {
-            cleaned = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
-        }
-        setDob(cleaned);
+        let v = text.replace(/\D/g, "").slice(0, 8);
+        if (v.length >= 5) v = `${v.slice(0, 2)}/${v.slice(2, 4)}/${v.slice(4)}`;
+        else if (v.length >= 3) v = `${v.slice(0, 2)}/${v.slice(2)}`;
+        setDob(v);
     };
 
-    // ---------------------------------------------------------
-    // SAVE FUNCTION
-    // ---------------------------------------------------------
     const onSave = async () => {
-        if (!firebaseUser) {
-            Alert.alert("Auth error", "No authenticated user. Please log in again.");
-            router.replace("/auth/login-phone");
-            return;
-        }
-
         if (!full_name || !company_name || !date_of_birth || !address) {
             Alert.alert("Missing Fields", "Please fill all required fields.");
             return;
         }
 
-        if (!hasEmail && !email_address) {
-            Alert.alert("Missing Email", "Please provide a valid email.");
-            return;
-        }
-
-        if (!hasPhone && !phone_number) {
-            Alert.alert("Missing Phone", "Please provide a valid phone.");
-            return;
-        }
-
-        const parts = date_of_birth.split("/");
-        if (parts.length !== 3 || parts[2].length !== 4) {
+        const [dd, mm, yyyy] = date_of_birth.split("/");
+        if (!dd || !mm || yyyy?.length !== 4) {
             Alert.alert("Invalid Date", "Use DD/MM/YYYY format.");
             return;
         }
 
-        const formattedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
-
         try {
-            setLoading(true);
-
-            await syncFirebaseUser({
+            setSaving(true);
+            await syncUser({
                 full_name,
                 email_address,
                 phone_number,
                 company_name,
                 address,
-                date_of_birth: formattedDob,
-                profile_picture_url: profile_picture_url ?? undefined,
+                date_of_birth: `${yyyy}-${mm}-${dd}`,
             });
-
-            Alert.alert("Success", "Your details have been saved.");
             router.replace("/home");
         } catch (e: any) {
-            console.log("❌ SAVE ERROR:", e?.response || e);
-            Alert.alert("Failed to Save", e?.message ?? "Try again.");
+            Alert.alert("Error", e?.message || "Failed to save");
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     };
 
-    // ---------------------------------------------------------
-    // UI (NO early returns!)
-    // ---------------------------------------------------------
+    if (userLoading && !user) {
+        return (
+            <View style={styles.center}>
+                <ActivityIndicator size="large" />
+                <Text style={styles.muted}>Loading your account…</Text>
+            </View>
+        );
+    }
+
     return (
-        <SafeAreaView className="flex-1 bg-background">
-            {/* Loading screen */}
-            {!authReady ? (
-                <View className="flex-1 items-center justify-center">
-                    <ActivityIndicator size="large" />
-                    <Text className="mt-4">Loading your account…</Text>
-                </View>
-            ) : !firebaseUser ? (
-                // No authenticated user
-                <View className="flex-1 items-center justify-center">
-                    <Text className="text-lg text-red-500 font-semibold">
-                        No authenticated user.
-                    </Text>
-                    <TouchableOpacity
-                        onPress={() => router.replace("/auth/login-phone")}
-                        className="mt-5 px-6 py-3 bg-primary rounded-xl"
-                    >
-                        <Text className="text-white font-bold">Go to Login</Text>
-                    </TouchableOpacity>
-                </View>
-            ) : (
-                // MAIN FORM
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    className="flex-1"
-                >
-                    <ScrollView
-                        className="flex-1 px-6"
-                        contentContainerStyle={{ paddingBottom: 60 }}
-                    >
-                        {/* Title */}
-                        <Text className="text-3xl font-bold text-center mt-4 mb-10">
-                            Complete Your Profile
-                        </Text>
+        <SafeAreaView style={styles.container}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                style={{ flex: 1 }}
+            >
+                <ScrollView contentContainerStyle={styles.scroll}>
+                    <Text style={styles.title}>Complete Your Profile</Text>
 
-                        {/* Profile Image */}
-                        <View className="items-center mb-10">
-                            <TouchableOpacity onPress={pickImage}>
-                                <View className="w-32 h-32 rounded-full bg-muted overflow-hidden items-center justify-center border">
-                                    {profile_picture_url ? (
-                                        <Image
-                                            source={{ uri: profile_picture_url }}
-                                            className="w-full h-full"
-                                            resizeMode="cover"
-                                        />
-                                    ) : (
-                                        <Camera size={44} color="#777" />
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-                            <Text className="mt-3">Add Profile Picture</Text>
-                        </View>
-
-                        {/* Full Name */}
-                        <TextInput
-                            placeholder="Full Name *"
-                            value={full_name}
-                            onChangeText={(t) => setFullName(t)}
-                            className="border p-4 rounded-xl mb-4"
-                        />
-
-                        {/* Company */}
-                        <TextInput
-                            placeholder="Company Name *"
-                            value={company_name}
-                            onChangeText={(t) => setCompany(t)}
-                            className="border p-4 rounded-xl mb-4"
-                        />
-
-                        {/* DOB */}
-                        <TextInput
-                            placeholder="DD/MM/YYYY *"
-                            value={date_of_birth}
-                            onChangeText={handleDobChange}
-                            keyboardType="number-pad"
-                            className="border p-4 rounded-xl mb-4"
-                            maxLength={10}
-                        />
-
-                        {/* Phone */}
-                        <TextInput
-                            placeholder="Phone Number *"
-                            editable={!hasPhone}
-                            value={phone_number}
-                            onChangeText={setPhone}
-                            keyboardType="phone-pad"
-                            className={`border p-4 rounded-xl mb-4 ${hasPhone ? "opacity-50" : ""
-                                }`}
-                        />
-
-                        {/* Email */}
-                        <TextInput
-                            placeholder="Email Address *"
-                            editable={!hasEmail}
-                            value={email_address}
-                            onChangeText={setEmail}
-                            className={`border p-4 rounded-xl mb-4 ${hasEmail ? "opacity-50" : ""
-                                }`}
-                            autoCapitalize="none"
-                        />
-
-                        {/* Address */}
-                        <TextInput
-                            placeholder="Address *"
-                            value={address}
-                            onChangeText={setAddress}
-                            multiline
-                            className="border p-4 rounded-xl mb-6"
-                        />
-
-                        {/* Save */}
-                        <TouchableOpacity
-                            onPress={onSave}
-                            disabled={loading}
-                            className="bg-primary rounded-xl py-4 items-center"
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="white" />
+                    <TouchableOpacity onPress={pickImage} style={styles.avatarWrap}>
+                        <View style={styles.avatar}>
+                            {profile_picture_url ? (
+                                <Image source={{ uri: profile_picture_url }} style={styles.avatarImg} />
                             ) : (
-                                <Text className="text-white font-semibold text-base">
-                                    Save & Continue
-                                </Text>
+                                <Camera size={44} color="#777" />
                             )}
-                        </TouchableOpacity>
-                    </ScrollView>
-                </KeyboardAvoidingView>
-            )}
+                        </View>
+                        <Text style={styles.muted}>Add Profile Picture</Text>
+                    </TouchableOpacity>
+
+                    <TextInput style={styles.input} placeholder="Full Name *" value={full_name} onChangeText={setFullName} />
+                    <TextInput style={styles.input} placeholder="Company Name *" value={company_name} onChangeText={setCompany} />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="DD/MM/YYYY *"
+                        value={date_of_birth}
+                        onChangeText={handleDobChange}
+                        keyboardType="number-pad"
+                        maxLength={10}
+                    />
+                    <TextInput
+                        style={[styles.input, user?.phone_number ? styles.disabledInput : null]}
+                        placeholder="Phone Number *"
+                        value={phone_number}
+                        onChangeText={setPhone}
+                        keyboardType="phone-pad"
+                        editable={!user?.phone_number}
+                    />
+                    <TextInput
+                        style={[styles.input, user?.email_address ? styles.disabledInput : null]}
+                        placeholder="Email Address *"
+                        value={email_address}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        editable={!user?.email_address}
+                    />
+                    <TextInput style={[styles.input, styles.textArea]} placeholder="Address *" value={address} onChangeText={setAddress} multiline />
+
+                    <TouchableOpacity style={styles.button} disabled={saving} onPress={onSave}>
+                        {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Save & Continue</Text>}
+                    </TouchableOpacity>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
+
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: "#fff" },
+    scroll: { padding: 24, paddingBottom: 60 },
+    title: { fontSize: 28, fontWeight: "700", textAlign: "center", marginBottom: 32 },
+    center: { flex: 1, alignItems: "center", justifyContent: "center" },
+    muted: { marginTop: 12, color: "#777" },
+
+    avatarWrap: { alignItems: "center", marginBottom: 32 },
+    avatar: {
+        width: 128,
+        height: 128,
+        borderRadius: 64,
+        borderWidth: 1,
+        borderColor: "#ddd",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+    },
+    avatarImg: { width: "100%", height: "100%" },
+
+    input: {
+        borderWidth: 1,
+        borderColor: "#ddd",
+        borderRadius: 14,
+        padding: 16,
+        marginBottom: 16,
+    },
+    textArea: { height: 100, textAlignVertical: "top" },
+
+    button: {
+        backgroundColor: "#2563eb",
+        paddingVertical: 16,
+        borderRadius: 14,
+        alignItems: "center",
+        marginTop: 8,
+    },
+    buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+    disabledInput: {
+        backgroundColor: "#f5f5f5",
+        color: "#888",
+    },
+});

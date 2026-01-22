@@ -1,5 +1,4 @@
 import { useRouter } from "expo-router";
-import { signOut } from "firebase/auth";
 import {
   Bell,
   FileDown,
@@ -20,7 +19,7 @@ import {
   useColorScheme,
 } from "react-native";
 
-import { auth } from "../../firebaseConfig";
+import { logout } from "../../hooks/useAuth";
 import { THEME } from "../../theme";
 
 export default function Settings() {
@@ -31,7 +30,7 @@ export default function Settings() {
   const primaryColor = isDark ? THEME.dark.primary : THEME.light.primary;
 
   const handleLogout = async () => {
-    await signOut(auth);
+    await logout();
     router.replace("/auth/login");
   };
 

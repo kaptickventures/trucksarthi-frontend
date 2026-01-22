@@ -4,40 +4,32 @@ import API from "../app/api/axiosInstance";
 
 export interface Driver {
   driver_id: number;
-  firebase_uid: string;
   driver_name: string;
   contact_number: string;
   identity_card_url?: string;  
   license_card_url?: string;   
 }
 
-
-export default function useDrivers(firebase_uid: string) {
+export default function useDrivers() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchDrivers = useCallback(async () => {
-  if (!firebase_uid) return; // ✅ CRITICAL
-
-  try {
-    setLoading(true);
-    const res = await API.get(
-      `/api/drivers/user/firebase/${firebase_uid}`
-    );
-    setDrivers(res.data);
-  } catch (error) {
-    console.error(error);
-    Alert.alert("Error", "Failed to load drivers");
-  } finally {
-    setLoading(false);
-  }
-}, [firebase_uid]);
-
+    try {
+      setLoading(true);
+      const res = await API.get("/api/drivers");
+      setDrivers(res.data);
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to load drivers");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const addDriver = async (data: Partial<Driver>) => {
     try {
-      const payload = { ...data, firebase_uid };
-      const res = await API.post(`/api/drivers`, payload);
+      const res = await API.post(`/api/drivers`, data);
       setDrivers((prev) => [...prev, res.data]);
       return res.data;
     } catch (error: any) {
@@ -70,15 +62,15 @@ export default function useDrivers(firebase_uid: string) {
         name: file.name || 'license.jpg',
         type: file.mimeType || 'image/jpeg',
       } as any);
-      formData.append("firebase_uid", firebase_uid);
 
-      const res = await API.post(`/api/drivers/${driverId}/license`, formData);
+      const res = await API.post(`/api/drivers/${driverId}/license`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
-      // Update local state
       setDrivers((prev) =>
         prev.map((d) =>
           d.driver_id === driverId
-            ? { ...d, license_card_url: res.data.license_card_url }
+            ? { ...d, license_card_url: res.data.file_url || res.data.license_card_url }
             : d
         )
       );
@@ -99,15 +91,15 @@ export default function useDrivers(firebase_uid: string) {
         name: file.name || 'aadhaar.jpg',
         type: file.mimeType || 'image/jpeg',
       } as any);
-      formData.append("firebase_uid", firebase_uid);
 
-      const res = await API.post(`/api/drivers/${driverId}/aadhaar`, formData);
+      const res = await API.post(`/api/drivers/${driverId}/aadhaar`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
-      // Update local state
       setDrivers((prev) =>
         prev.map((d) =>
           d.driver_id === driverId
-            ? { ...d, identity_card_url: res.data.identity_card_url }
+            ? { ...d, identity_card_url: res.data.file_url || res.data.identity_card_url }
             : d
         )
       );

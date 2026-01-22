@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { signOut } from "firebase/auth";
 import { useEffect, useRef } from "react";
 import {
   Animated,
@@ -14,10 +13,11 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import { auth } from "../firebaseConfig";
-import { useUser } from "../hooks/useUser";
-import { THEME } from "../theme";
 import "../global.css";
+import { logout } from "../hooks/useAuth";
+import { useUser } from "../hooks/useUser";
+import { getFileUrl } from "../lib/utils";
+import { THEME } from "../theme";
 
 // 👉 Added Lucide Icon
 import { Clock } from "lucide-react-native";
@@ -25,7 +25,7 @@ import { Clock } from "lucide-react-native";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const LINKS = [
-  { title: "Trip Log", icon: "clock", route: "/tripLog" as const }, // updated label
+  { title: "Trip Log", icon: "clock", route: "/tripLog" as const },
   { title: "Settings", icon: "settings-outline", route: "/settings" as const },
 ] as const;
 
@@ -92,7 +92,7 @@ export default function SideMenu({
     try {
       onClose();
       setTimeout(async () => {
-        await signOut(auth);
+        await logout();
         router.dismissAll();
         router.replace("/auth/login");
       }, 150);
@@ -141,7 +141,7 @@ export default function SideMenu({
               >
                 {user?.profile_picture_url ? (
                   <Image
-                    source={{ uri: user.profile_picture_url }}
+                    source={{ uri: getFileUrl(user.profile_picture_url) || "" }}
                     className="w-full h-full"
                   />
                 ) : (
@@ -176,7 +176,6 @@ export default function SideMenu({
               onPress={() => navigate(item.route)}
               className="flex-row items-center py-4"
             >
-              {/* ⭐ Updated: TripLog uses Lucide Clock */}
               {item.title === "Trip Log" ? (
                 <Clock size={24} color={colors.icon} />
               ) : (
@@ -209,18 +208,16 @@ export default function SideMenu({
             ))}
           </View>
 
-{/* Logout */}
-<TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4">
-  <Ionicons name="log-out-outline" size={26} color="#ef4444" />
-
-  <Text
-    className="ml-4 text-lg font-medium"
-    style={{ color: "#ef4444" }}  // 🔥 Red text
-  >
-    Logout
-  </Text>
-</TouchableOpacity>
-
+          {/* Logout */}
+          <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4">
+            <Ionicons name="log-out-outline" size={26} color="#ef4444" />
+            <Text
+              className="ml-4 text-lg font-medium"
+              style={{ color: "#ef4444" }}
+            >
+              Logout
+            </Text>
+          </TouchableOpacity>
 
           <View style={{ height: 40 }} />
         </ScrollView>

@@ -1,38 +1,38 @@
-import { getAuth } from "firebase/auth";
+import { useFocusEffect } from "@react-navigation/native";
 import { Edit3, MapPin, Plus, Trash2, X } from "lucide-react-native";
-import React, { useCallback, useState, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Modal,
+  PanResponder,
+  Pressable,
   ScrollView,
   StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  Modal,
-  Pressable,
-  Animated,
-  PanResponder,
   useColorScheme,
+  View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
 import useLocations from "../../hooks/useLocation";
+import { useUser } from "../../hooks/useUser";
 
 export default function LocationsManager() {
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const firebase_uid = user?.uid ?? "";
+  const { user, loading: userLoading } = useUser();
 
   const {
     locations,
-    loading,
+    loading: locationsLoading,
     fetchLocations,
     addLocation,
     updateLocation,
     deleteLocation,
-  } = useLocations(firebase_uid);
+  } = useLocations();
+
+  const loading = userLoading || locationsLoading;
 
   const isDark = useColorScheme() === "dark";
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -48,8 +48,8 @@ export default function LocationsManager() {
 
   useFocusEffect(
     useCallback(() => {
-      if (firebase_uid) fetchLocations();
-    }, [firebase_uid, fetchLocations])
+      fetchLocations();
+    }, [fetchLocations])
   );
 
   const panResponder = useRef(
@@ -77,7 +77,7 @@ export default function LocationsManager() {
       setEditingId(data.location_id);
       setFormData({
         location_name: data.location_name,
-        complete_address: data.complete_address,
+        complete_address: data.complete_address || "",
       });
     } else {
       setEditingId(null);
@@ -132,10 +132,13 @@ export default function LocationsManager() {
     ]);
   };
 
-  if (!firebase_uid) {
+  if (loading && !user) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#888" />
+        <Text className="mt-2 text-muted-foreground">
+          Loading...
+        </Text>
       </View>
     );
   }
@@ -149,9 +152,7 @@ export default function LocationsManager() {
         className="flex-1 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {loading ? (
-          <ActivityIndicator size="large" color="#888" />
-        ) : locations.length === 0 ? (
+        {locations.length === 0 ? (
           <Text className="text-center text-muted-foreground mt-10">
             No locations found.
           </Text>
@@ -224,9 +225,8 @@ export default function LocationsManager() {
             <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
             <View className="flex-row justify-between items-center mb-4">
               <Text
-                className={`text-2xl font-semibold ${
-                  isDark ? "text-white" : "text-black"
-                }`}
+                className={`text-2xl font-semibold ${isDark ? "text-white" : "text-black"
+                  }`}
               >
                 {editingId ? "Edit Location" : "Add Location"}
               </Text>

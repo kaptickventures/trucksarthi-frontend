@@ -1,8 +1,8 @@
 // app/(tabs)/tripLog/index.tsx
-import { getAuth } from "firebase/auth";
-import React, { useLayoutEffect, useMemo, useState, useEffect } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   LayoutAnimation,
   Platform,
   ScrollView,
@@ -11,30 +11,30 @@ import {
   UIManager,
   View,
   useColorScheme,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
 
-import SideMenu from "../../../components/SideMenu";
 import EditTripModal from "../../../components/EditTripModal";
+import SideMenu from "../../../components/SideMenu";
 
 import useClients from "../../../hooks/useClient";
 import useDrivers from "../../../hooks/useDriver";
 import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
+import { useUser } from "../../../hooks/useUser";
 
 import TripFilters from "../../../components/FilterSection";
 
 import { Edit3, Trash2 } from "lucide-react-native";
 import { THEME } from "../../../theme";
 
+import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import * as FileSystem from "expo-file-system/legacy";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   // @ts-ignore
@@ -48,49 +48,43 @@ export default function TripLog() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const firebase_uid = user?.uid;
+  const { user } = useUser();
 
   const {
     trips,
-    loading,
+    loading: tripsLoading,
     fetchTrips,
     updateTrip,
     deleteTrip,
-  } = useTrips(firebase_uid || "");
+  } = useTrips();
 
   const {
     drivers,
-    fetchDrivers,          // ✅ FIX
-  } = useDrivers(firebase_uid || "");
+    fetchDrivers,
+  } = useDrivers();
 
   const {
     clients,
-    fetchClients,          // ✅ FIX
-  } = useClients(firebase_uid || "");
+    fetchClients,
+  } = useClients();
 
   const {
     trucks,
-    fetchTrucks,           // ✅ FIX
-  } = useTrucks(firebase_uid || "");
+    fetchTrucks,
+  } = useTrucks();
 
   const {
     locations,
-    fetchLocations,        // ✅ FIX
-  } = useLocations(firebase_uid || "");
+    fetchLocations,
+  } = useLocations();
 
-  /* ---------------- ✅ FIX: FETCH ALL MASTER DATA ---------------- */
   useEffect(() => {
-    if (!firebase_uid) return;
-
     fetchTrips();
     fetchDrivers();
     fetchClients();
     fetchTrucks();
     fetchLocations();
-  }, [firebase_uid]);
-  /* --------------------------------------------------------------- */
+  }, []);
 
   // FILTER STATE
   const [filters, setFilters] = useState({
@@ -130,7 +124,6 @@ export default function TripLog() {
   const getLocationName = (id: number) =>
     locations.find((l) => l.location_id === id)?.location_name || "Unknown";
 
-  // FILTER + SORT
   const sortedTrips = useMemo(() => {
     let filtered = [...(trips || [])];
 
@@ -161,7 +154,6 @@ export default function TripLog() {
     );
   }, [trips, filters]);
 
-
   const driverItems = drivers.map((d) => ({ label: d.driver_name, value: String(d.driver_id) }));
   const clientItems = clients.map((c) => ({ label: c.client_name, value: String(c.client_id) }));
   const truckItems = trucks.map((t) => ({ label: t.registration_number, value: String(t.truck_id) }));
@@ -172,19 +164,15 @@ export default function TripLog() {
     setShowFilters((prev) => !prev);
   };
 
-  // ===========================
-  // PDF generator (legacy FS) with date-range support
-  // ===========================
   const generatePDF = async () => {
     try {
-      // ---------- DATE RANGE HANDLING ----------
       const fmt = (d: Date | null) =>
         d
           ? d.toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
           : null;
 
       let dateRangeText = "";
@@ -197,7 +185,6 @@ export default function TripLog() {
         dateRangeText = `Date Range: Until ${fmt(filters.endDate)}`;
       }
 
-      // ---------- HTML PDF TEMPLATE (black & white) ----------
       const html = `
 <html>
   <head>
@@ -208,182 +195,60 @@ export default function TripLog() {
         padding: 30px;
         color: #000;
       }
-
-      .title {
-        text-align: center;
-        font-size: 28px;
-        font-weight: 800;
-        margin-bottom: 4px;
-      }
-
-      .subtitle {
-        text-align: center;
-        font-size: 13px;
-        opacity: 0.7;
-        margin-bottom: 12px;
-      }
-
-      .divider {
-        height: 2px;
-        background: #000;
-        margin: 18px 0 22px 0;
-      }
-
-      .section-title {
-        text-align: center;
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 6px;
-      }
-
-      .generated {
-        text-align: center;
-        font-size: 12px;
-        opacity: 0.65;
-        margin-bottom: 10px;
-      }
-
-      .daterange {
-        text-align: center;
-        font-size: 13px;
-        opacity: 0.75;
-        margin-bottom: 18px;
-      }
-
-      .card {
-        border: 1px solid #000;
-        border-radius: 10px;
-        padding: 14px;
-        margin-bottom: 22px;
-      }
-
-      .card-top {
-        display: flex;
-        justify-content: space-between;
-        font-size: 15px;
-        font-weight: 700;
-        margin-bottom: 10px;
-      }
-
-      .route {
-        font-weight: 600;
-        margin-bottom: 8px;
-        font-size: 14px;
-      }
-
-      .meta-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        font-size: 13px;
-      }
-
-      .meta-col {
-        flex: 1;
-      }
-
-      .label {
-        font-size: 11px;
-        opacity: 0.6;
-      }
-
-      .value {
-        font-size: 13px;
-        font-weight: 600;
-        margin-top: 4px;
-      }
-
-      .cost-row {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 12px;
-        border-top: 1px solid #000;
-        padding-top: 10px;
-        font-size: 13px;
-      }
-
-      .notes {
-        margin-top: 10px;
-        font-size: 13px;
-        font-style: italic;
-        opacity: 0.8;
-      }
+      .title { text-align: center; font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+      .subtitle { text-align: center; font-size: 13px; opacity: 0.7; margin-bottom: 12px; }
+      .divider { height: 2px; background: #000; margin: 18px 0 22px 0; }
+      .section-title { text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+      .generated { text-align: center; font-size: 12px; opacity: 0.65; margin-bottom: 10px; }
+      .daterange { text-align: center; font-size: 13px; opacity: 0.75; margin-bottom: 18px; }
+      .card { border: 1px solid #000; border-radius: 10px; padding: 14px; margin-bottom: 22px; }
+      .card-top { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+      .route { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+      .meta-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+      .meta-col { flex: 1; }
+      .label { font-size: 11px; opacity: 0.6; }
+      .value { font-size: 13px; font-weight: 600; margin-top: 4px; }
+      .cost-row { display: flex; justify-content: space-between; margin-top: 12px; border-top: 1px solid #000; padding-top: 10px; font-size: 13px; }
+      .notes { margin-top: 10px; font-size: 13px; font-style: italic; opacity: 0.8; }
     </style>
   </head>
-
   <body>
     <div class="title">Truck Sarthi</div>
     <div class="subtitle">By Kaptick Labs</div>
-
     <div class="divider"></div>
-
     <div class="section-title">Trip Report</div>
     <div class="generated">Generated on ${new Date().toLocaleString("en-IN")}</div>
-
     ${dateRangeText ? `<div class="daterange">${dateRangeText}</div>` : ""}
-
     ${sortedTrips
-      .map((t) => {
-        const total = Number(t.cost_of_trip) + Number(t.miscellaneous_expense);
-        return `
+          .map((t) => {
+            const total = Number(t.cost_of_trip) + Number(t.miscellaneous_expense);
+            return `
         <div class="card">
           <div class="card-top">
             <div>${fmt(new Date(t.trip_date))}</div>
             <div>₹${total.toLocaleString()}</div>
           </div>
-
-          <div class="route">Route: ${getLocationName(t.start_location_id)} → ${getLocationName(
-          t.end_location_id
-        )}</div>
-
+          <div class="route">Route: ${getLocationName(t.start_location_id)} → ${getLocationName(t.end_location_id)}</div>
           <div class="meta-row">
-            <div class="meta-col">
-              <div class="label">TRUCK</div>
-              <div class="value">${getTruckReg(t.truck_id)}</div>
-            </div>
-
-            <div class="meta-col">
-              <div class="label">DRIVER</div>
-              <div class="value">${getDriverName(t.driver_id)}</div>
-            </div>
-
-            <div class="meta-col">
-              <div class="label">CLIENT</div>
-              <div class="value">${getClientName(t.client_id)}</div>
-            </div>
+            <div class="meta-col"><div class="label">TRUCK</div><div class="value">${getTruckReg(t.truck_id)}</div></div>
+            <div class="meta-col"><div class="label">DRIVER</div><div class="value">${getDriverName(t.driver_id)}</div></div>
+            <div class="meta-col"><div class="label">CLIENT</div><div class="value">${getClientName(t.client_id)}</div></div>
           </div>
-
           <div class="cost-row">
-            <div>
-              <div class="label">TRIP COST</div>
-              <div class="value">₹${Number(t.cost_of_trip).toLocaleString()}</div>
-            </div>
-
-            <div>
-              <div class="label">MISC EXPENSE</div>
-              <div class="value">₹${Number(t.miscellaneous_expense).toLocaleString()}</div>
-            </div>
+            <div><div class="label">TRIP COST</div><div class="value">₹${Number(t.cost_of_trip).toLocaleString()}</div></div>
+            <div><div class="label">MISC EXPENSE</div><div class="value">₹${Number(t.miscellaneous_expense).toLocaleString()}</div></div>
           </div>
-
           ${t.notes ? `<div class="notes">Notes: ${t.notes}</div>` : ""}
         </div>
       `;
-      })
-      .join("")}
+          })
+          .join("")}
   </body>
 </html>
 `;
-
-      // generate file
       const { uri } = await Print.printToFileAsync({ html });
-
       const newUri = `${FileSystem.documentDirectory}TripHistory.pdf`;
-
-      await FileSystem.moveAsync({
-        from: uri,
-        to: newUri,
-      });
-
+      await FileSystem.moveAsync({ from: uri, to: newUri });
       await Sharing.shareAsync(newUri);
     } catch (err) {
       console.log(err);
@@ -391,7 +256,6 @@ export default function TripLog() {
     }
   };
 
-  // Header styling
   const backgroundColor = isDark ? THEME.dark.background : THEME.light.background;
   const foregroundColor = isDark ? THEME.dark.foreground : THEME.light.foreground;
 
@@ -402,7 +266,6 @@ export default function TripLog() {
       headerStyle: { backgroundColor },
       headerTitleStyle: { color: foregroundColor },
       headerTintColor: foregroundColor,
-
       headerLeft: () => (
         <TouchableOpacity
           onPress={() => setMenuVisible((prev) => !prev)}
@@ -411,7 +274,6 @@ export default function TripLog() {
           <Ionicons name={menuVisible ? "close" : "menu"} size={24} color={foregroundColor} />
         </TouchableOpacity>
       ),
-
       headerRight: () => (
         <TouchableOpacity
           onPress={() => router.push("/notifications")}
@@ -423,14 +285,11 @@ export default function TripLog() {
     });
   }, [navigation, isDark, menuVisible]);
 
-  const formatDate = (d: Date | null) =>
-    d ? d.toISOString().split("T")[0] : "Select Date";
+  const formatDate = (d: Date | null) => d ? d.toISOString().split("T")[0] : "Select Date";
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-
-        {/* FILTERS */}
         <TripFilters
           filters={filters}
           setFilters={setFilters}
@@ -447,110 +306,36 @@ export default function TripLog() {
           formatDate={formatDate}
         />
 
-        {/* ACTION BUTTONS (WhatsApp-like pills) */}
-        {/* ACTION BUTTONS (WhatsApp-like pills) */}
-<View
-  style={{
-    marginHorizontal: 12,
-    marginTop: 8,
-    marginBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  }}
->
-  {/* Filters pill */}
-  <TouchableOpacity
-    onPress={toggleFilters}
-    style={{
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 999,
+        <View style={{ marginHorizontal: 12, marginTop: 8, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <TouchableOpacity
+            onPress={toggleFilters}
+            style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: isDark ? "#0A3325" : "#E7FCEB", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}
+          >
+            <Ionicons name="filter" size={18} color={isDark ? "#4ADE80" : "#25D366"} />
+            <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#86EFAC" : "#128C7E" }}>Filters</Text>
+          </TouchableOpacity>
 
-      backgroundColor: isDark ? "#0A3325" : "#E7FCEB", // 🌙 dark vs light
-      shadowColor: "#000",
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 2,
-    }}
-  >
-    <Ionicons
-      name="filter"
-      size={18}
-      color={isDark ? "#4ADE80" : "#25D366"} // 🌙 mint green vs light green
-    />
-    <Text
-      style={{
-        marginLeft: 8,
-        fontWeight: "600",
-        color: isDark ? "#86EFAC" : "#128C7E",
-      }}
-    >
-      Filters
-    </Text>
-  </TouchableOpacity>
-
-  {/* PDF pill */}
-  <TouchableOpacity
-    onPress={generatePDF}
-    style={{
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 999,
-
-      backgroundColor: isDark ? "#111B3C" : "#E8F0FE", // 🌙 dark navy vs light blue
-      shadowColor: "#000",
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 2,
-    }}
-  >
-    <Ionicons
-      name="download-outline"
-      size={18}
-      color={isDark ? "#93C5FD" : "#2563EB"} // 🌙 soft blue vs normal blue
-    />
-    <Text
-      style={{
-        marginLeft: 8,
-        fontWeight: "600",
-        color: isDark ? "#BFDBFE" : "#1D4ED8",
-      }}
-    >
-      PDF
-    </Text>
-  </TouchableOpacity>
-</View>
-
-
-        {/* SUMMARY */}
-        <View className="mx-3 mt-1 mb-6 bg-card border border-border p-4 rounded-2xl shadow-sm">
-          <Text className="text-lg font-semibold text-foreground">
-            {sortedTrips.length} trips found
-          </Text>
-
-          <Text className="text-3xl font-extrabold text-primary mt-1">
-            ₹
-            {sortedTrips.reduce(
-              (acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense),
-              0
-            ).toLocaleString()}
-          </Text>
+          <TouchableOpacity
+            onPress={generatePDF}
+            style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: isDark ? "#111B3C" : "#E8F0FE", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}
+          >
+            <Ionicons name="download-outline" size={18} color={isDark ? "#93C5FD" : "#2563EB"} />
+            <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#BFDBFE" : "#1D4ED8" }}>PDF</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* TRIP CARDS */}
-        {loading ? (
+        <View className="mx-3 mt-1 mb-6 bg-card border border-border p-4 rounded-2xl shadow-sm">
+          <Text className="text-lg font-semibold text-foreground">{sortedTrips.length} trips found</Text>
+          <Text className="text-3xl font-extrabold text-primary mt-1">₹{sortedTrips.reduce((acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense), 0).toLocaleString()}</Text>
+        </View>
+
+        {tripsLoading ? (
           <ActivityIndicator size="large" className="mt-10" />
         ) : sortedTrips.length === 0 ? (
           <Text className="text-center text-muted-foreground mt-10">No trips available</Text>
         ) : (
           sortedTrips.map((trip) => {
             const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
-
             return (
               <View key={trip.trip_id} style={{ marginHorizontal: 12, marginBottom: 20 }}>
                 <View className="bg-card border border-border rounded-2xl p-5 shadow-sm">
@@ -558,45 +343,27 @@ export default function TripLog() {
                     <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>{new Date(trip.trip_date).toLocaleDateString("en-IN")}</Text>
                     <Text style={{ fontSize: 22, fontWeight: "800", color: THEME.light.primary }}>{`₹${totalCost.toLocaleString()}`}</Text>
                   </View>
-
-                  <Text style={{ fontSize: 18, fontWeight: "700", color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 10 }}>
-                    {getLocationName(trip.start_location_id)} → {getLocationName(trip.end_location_id)}
-                  </Text>
-
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 10 }}>{getLocationName(trip.start_location_id)} → {getLocationName(trip.end_location_id)}</Text>
                   <View style={{ marginBottom: 12 }}>
                     <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🏢 {getClientName(trip.client_id)}</Text>
                     <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🚚 {getTruckReg(trip.truck_id)}</Text>
                     <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }}>👤 {getDriverName(trip.driver_id)}</Text>
                   </View>
-
                   <View style={{ borderTopWidth: 1, borderTopColor: isDark ? THEME.dark.border : THEME.light.border, opacity: 0.6, marginVertical: 12 }} />
-
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
                     <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>Trip Cost: ₹{Number(trip.cost_of_trip).toLocaleString()}</Text>
                     <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>Misc: ₹{Number(trip.miscellaneous_expense).toLocaleString()}</Text>
                   </View>
-
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
-                    {trip.notes ? (
-                      <Text style={{ fontStyle: "italic", color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>📝 {trip.notes}</Text>
-                    ) : <View />}
-
+                    {trip.notes ? <Text style={{ fontStyle: "italic", color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>📝 {trip.notes}</Text> : <View />}
                     <View style={{ flexDirection: "row" }}>
                       <TouchableOpacity onPress={() => { setSelectedTrip(trip); setEditVisible(true); }} style={{ padding: 8, marginRight: 8 }}>
                         <Edit3 size={22} color="#2563EB" />
                       </TouchableOpacity>
-
                       <TouchableOpacity onPress={() => {
                         Alert.alert("Delete", "Delete this trip?", [
                           { text: "Cancel", style: "cancel" },
-                          {
-                            text: "Delete",
-                            style: "destructive",
-                            onPress: async () => {
-                              await deleteTrip(trip.trip_id);
-                              fetchTrips();
-                            },
-                          },
+                          { text: "Delete", style: "destructive", onPress: async () => { await deleteTrip(trip.trip_id); fetchTrips(); } },
                         ]);
                       }} style={{ padding: 8 }}>
                         <Trash2 size={22} color="#ef4444" />
@@ -609,9 +376,7 @@ export default function TripLog() {
           })
         )}
       </ScrollView>
-
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
-
       <EditTripModal
         visible={isEditVisible}
         onClose={() => setEditVisible(false)}
@@ -620,14 +385,8 @@ export default function TripLog() {
         drivers={drivers}
         clients={clients}
         locations={locations}
-        onSave={async (id, data) => {
-          await updateTrip(id, data);
-          fetchTrips();
-        }}
-        onDelete={async (id) => {
-          await deleteTrip(id);
-          fetchTrips();
-        }}
+        onSave={async (id, data) => { await updateTrip(id, data); fetchTrips(); }}
+        onDelete={async (id) => { await deleteTrip(id); fetchTrips(); }}
       />
     </SafeAreaView>
   );

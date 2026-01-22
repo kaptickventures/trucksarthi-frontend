@@ -1,44 +1,46 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { getAuth } from "firebase/auth";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { Edit3, MapPin, Plus, Trash2, X } from "lucide-react-native";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  PanResponder,
+  Platform,
+  Pressable,
   ScrollView,
   StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Modal,
-  Pressable,
-  Animated,
-  PanResponder,
   useColorScheme,
-  KeyboardAvoidingView,
-  Platform,
-  Image,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 
-import useDrivers from "../../hooks/useDriver"; // ✅ FIXED IMPORT
+import useDrivers from "../../hooks/useDriver";
+import { useUser } from "../../hooks/useUser";
+import { getFileUrl } from "../../lib/utils";
 
 export default function DriversManager() {
   const router = useRouter();
-  const auth = getAuth();
-  const firebase_uid = auth.currentUser?.uid;
+  const { user, loading: userLoading } = useUser();
 
   const {
     drivers,
-    loading,
+    loading: driversLoading,
     fetchDrivers,
     addDriver,
     updateDriver,
     deleteDriver,
-  } = useDrivers(firebase_uid || "");
+  } = useDrivers();
+
+  const loading = userLoading || driversLoading;
 
   const isDark = useColorScheme() === "dark";
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -63,8 +65,8 @@ export default function DriversManager() {
   /* ---------------- FETCH ON FOCUS ---------------- */
   useFocusEffect(
     useCallback(() => {
-      if (firebase_uid) fetchDrivers();
-    }, [firebase_uid])
+      fetchDrivers();
+    }, [])
   );
 
   /* ---------------- IMAGE PICKER ---------------- */
@@ -178,12 +180,12 @@ export default function DriversManager() {
     ]);
   };
 
-  if (!firebase_uid) {
+  if (loading && !user) {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#888" />
         <Text className="mt-2 text-muted-foreground">
-          Loading user info...
+          Loading...
         </Text>
       </View>
     );
@@ -197,9 +199,7 @@ export default function DriversManager() {
         className="flex-1 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {loading ? (
-          <ActivityIndicator size="large" color="#888" />
-        ) : drivers.length === 0 ? (
+        {drivers.length === 0 ? (
           <Text className="text-center text-muted-foreground mt-10">
             No drivers found.
           </Text>
@@ -212,7 +212,7 @@ export default function DriversManager() {
                 router.push({
                   pathname: "/(stack)/driver-profile",
                   params: {
-                    driver_id: driver.driver_id, // ✅ ONLY ID PASSED
+                    driver_id: driver.driver_id,
                   },
                 })
               }
@@ -326,7 +326,7 @@ export default function DriversManager() {
                   </Text>
                   {formData.identity_card_url !== "" && (
                     <Image
-                      source={{ uri: formData.identity_card_url }}
+                      source={{ uri: getFileUrl(formData.identity_card_url) || formData.identity_card_url }}
                       style={{
                         width: "100%",
                         height: 160,
@@ -354,7 +354,7 @@ export default function DriversManager() {
                   </Text>
                   {formData.license_card_url !== "" && (
                     <Image
-                      source={{ uri: formData.license_card_url }}
+                      source={{ uri: getFileUrl(formData.license_card_url) || formData.license_card_url }}
                       style={{
                         width: "100%",
                         height: 160,

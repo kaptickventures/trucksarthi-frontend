@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import API from "../app/api/axiosInstance";
-import { auth } from "../firebaseConfig";
 
 interface User {
+  id: string;
+  _id?: string; // MongoDB ID fallback
   firebase_uid: string;
   full_name?: string;
   email_address?: string;
@@ -21,17 +22,11 @@ interface User {
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const currentUser = auth.currentUser;
 
   const fetchUser = useCallback(async () => {
-    if (!currentUser) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
     try {
-      const res = await API.get(`/api/users/${currentUser.uid}`);
+      setLoading(true);
+      const res = await API.get("/api/auth/me");
       setUser(res.data);
     } catch (err) {
       console.error("❌ Failed to fetch user:", err);
@@ -39,31 +34,30 @@ export function useUser() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, []);
 
   const syncUser = useCallback(
     async (data: Partial<User>) => {
-      if (!currentUser) throw new Error("User not authenticated");
-
       try {
-        const payload = { ...data, firebase_uid: currentUser.uid };
-        const res = await API.post(`/api/users/sync`, payload);
-        setUser(res.data.user);
-        return res.data.user;
+        if (!user) throw new Error("User not loaded");
+        // Using PUT to update user details instead of non-existent sync endpoint
+        const res = await API.put(`/api/users/${user.firebase_uid || user.id || (user as any)._id}`, data);
+        setUser(res.data); // Update local state
+        return res.data;
       } catch (err) {
         console.error("❌ Failed to sync user:", err);
         throw err;
       }
     },
-    [currentUser]
+    [user]
   );
 
   const updateUser = useCallback(
     async (data: Partial<User>) => {
-      if (!currentUser) throw new Error("User not authenticated");
+      if (!user) throw new Error("User not authenticated");
 
       try {
-        const res = await API.put(`/api/users/${currentUser.uid}`, data);
+        const res = await API.put(`/api/users/${user.firebase_uid || user.id}`, data);
         setUser(res.data);
         return res.data;
       } catch (err) {
@@ -71,32 +65,32 @@ export function useUser() {
         throw err;
       }
     },
-    [currentUser]
+    [user]
   );
 
   const deleteUser = useCallback(async () => {
-    if (!currentUser) throw new Error("User not authenticated");
+    if (!user) throw new Error("User not authenticated");
 
     try {
-      await API.delete(`/api/users/${currentUser.uid}`);
+      await API.delete(`/api/users/${user.firebase_uid || user.id}`);
       setUser(null);
     } catch (err) {
       console.error("❌ Failed to delete user:", err);
       throw err;
     }
-  }, [currentUser]);
+  }, [user]);
 
   const checkProfileCompletion = useCallback(async (): Promise<boolean> => {
-    if (!currentUser) return false;
+    if (!user) return false;
 
     try {
-      const res = await API.get(`/api/users/check-profile/${currentUser.uid}`);
+      const res = await API.get(`/api/users/check-profile/${user.firebase_uid || user.id}`);
       return res.data.profileCompleted;
     } catch (err) {
       console.error("❌ Failed to check profile completion:", err);
       return false;
     }
-  }, [currentUser]);
+  }, [user]);
 
   useEffect(() => {
     fetchUser();
@@ -104,23 +98,30 @@ export function useUser() {
 
   const uploadProfilePicture = useCallback(
     async (file: any) => {
-      if (!currentUser) throw new Error("User not authenticated");
+      if (!user) throw new Error("User not authenticated");
 
       try {
         const formData = new FormData();
+        const fileUri = Platform.OS === "android" ? file.uri : file.uri.replace("file://", "");
+        
         formData.append("file", {
-          uri: Platform.OS === "android" ? file.uri : file.uri.replace("file://", ""),
+          uri: fileUri,
           name: file.name || "profile.jpg",
           type: file.mimeType || "image/jpeg",
         } as any);
 
         const res = await API.post(
-          `/api/users/${currentUser.uid}/profile-picture`,
-          formData
+          `/api/users/${user.firebase_uid || user.id}/profile-picture`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
         );
 
         setUser((prev) =>
-          prev ? { ...prev, profile_picture_url: res.data.profile_picture_url } : null
+          prev ? { ...prev, profile_picture_url: res.data.file_url || res.data.profile_picture_url } : null
         );
 
         return res.data;
@@ -129,7 +130,7 @@ export function useUser() {
         throw err;
       }
     },
-    [currentUser]
+    [user]
   );
   
   return {

@@ -1,10 +1,6 @@
 // app/auth/signup-email.tsx
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
-import {
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from "firebase/auth";
 import { ChevronLeft } from "lucide-react-native";
 import { useState } from "react";
 import {
@@ -21,8 +17,7 @@ import {
   View,
 } from "react-native";
 
-import { auth } from "../../firebaseConfig";
-import { initUser } from "../../hooks/useAuth";
+import { postLoginFlow, registerUser } from "../../hooks/useAuth";
 
 const COLORS = {
   title: "#128C7E",
@@ -43,14 +38,15 @@ export default function SignupEmail() {
   const [loading, setLoading] = useState(false);
 
   const signup = async () => {
+    if (!name || !email || !pw) {
+      return Alert.alert("Error", "Please fill all fields.");
+    }
     try {
       setLoading(true);
-      const creds = await createUserWithEmailAndPassword(auth, email.trim(), pw);
-      await updateProfile(creds.user, { displayName: name });
-      await initUser();
-      router.replace("/basic-details");
+      await registerUser(name.trim(), email.trim(), pw.trim());
+      await postLoginFlow(router);
     } catch (e: any) {
-      Alert.alert("Signup Failed", e?.message ?? "Try again.");
+      Alert.alert("Signup Failed", e.response?.data?.error || e.message || "Try again.");
     } finally {
       setLoading(false);
     }
@@ -58,7 +54,6 @@ export default function SignupEmail() {
 
   return (
     <SafeAreaView className="flex-1 bg-white relative">
-
       {/* Back */}
       <TouchableOpacity
         onPress={() => router.back()}
@@ -106,7 +101,6 @@ export default function SignupEmail() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-
           {/* Logo */}
           <Image
             source={require("../../assets/images/TruckSarthi-Graphic.png")}
@@ -180,7 +174,6 @@ export default function SignupEmail() {
               Use Phone (OTP)
             </Link>
           </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

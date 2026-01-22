@@ -1,11 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
-import { getAuth } from "firebase/auth";
-import React, {
+import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
-  useEffect,
 } from "react";
 import {
   ActivityIndicator,
@@ -27,7 +26,7 @@ import {
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SideMenu from "../../../components/SideMenu";
 import "../../../global.css";
 
@@ -37,6 +36,7 @@ import useDrivers from "../../../hooks/useDriver";
 import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
+import { useUser } from "../../../hooks/useUser";
 
 import { THEME } from "../../../theme";
 
@@ -119,9 +119,7 @@ export default function AddTrip() {
   }, [navigation, menuVisible, isDark]);
 
   /* ---------------- Auth ---------------- */
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const firebase_uid = user?.uid;
+  const { user, loading: userLoading } = useUser();
 
   /* ---------------- Data Hooks ---------------- */
   const {
@@ -129,43 +127,41 @@ export default function AddTrip() {
     loading: loadingTrucks,
     addTruck,
     fetchTrucks,
-  } = useTrucks(firebase_uid || "");
+  } = useTrucks();
 
   const {
     drivers,
     loading: loadingDrivers,
     addDriver,
     fetchDrivers,
-  } = useDrivers(firebase_uid || "");
+  } = useDrivers();
 
   const {
     clients,
     loading: loadingClients,
     addClient,
     fetchClients,
-  } = useClients(firebase_uid || "");
+  } = useClients();
 
   const {
     locations,
     loading: loadingLocations,
     addLocation,
     fetchLocations,
-  } = useLocations(firebase_uid || "");
+  } = useLocations();
 
-  const { addTrip } = useTrips(firebase_uid || "");
+  const { addTrip } = useTrips();
 
   /* ✅ REQUIRED FETCH CALLS */
   useEffect(() => {
-    if (!firebase_uid) return;
-
     fetchClients();
     fetchDrivers();
     fetchTrucks();
     fetchLocations();
-  }, [firebase_uid]);
+  }, []);
 
   const loading =
-    !firebase_uid ||
+    userLoading ||
     loadingTrucks ||
     loadingDrivers ||
     loadingClients ||
@@ -222,30 +218,30 @@ export default function AddTrip() {
     setNewItemForm(
       type === "Client"
         ? {
-            client_name: "",
-            contact_person_name: "",
-            contact_number: "",
-            email_address: "",
-            office_address: "",
-          }
+          client_name: "",
+          contact_person_name: "",
+          contact_number: "",
+          email_address: "",
+          office_address: "",
+        }
         : type === "Driver"
-        ? {
+          ? {
             driver_name: "",
             contact_number: "",
             license_number: "",
             address: "",
           }
-        : type === "Truck"
-        ? {
-            registration_number: "",
-            model: "",
-            capacity: "",
-            owner_name: "",
-          }
-        : {
-            location_name: "",
-            address: "",
-          }
+          : type === "Truck"
+            ? {
+              registration_number: "",
+              model: "",
+              capacity: "",
+              owner_name: "",
+            }
+            : {
+              location_name: "",
+              address: "",
+            }
     );
     setIsModalVisible(true);
   };
@@ -349,7 +345,7 @@ export default function AddTrip() {
     },
   ];
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
         <ActivityIndicator size="large" />
@@ -359,18 +355,18 @@ export default function AddTrip() {
   }
 
   return (
-  <View style={{ flex: 1, backgroundColor }}>        
-  <KeyboardAwareScrollView
-  enableOnAndroid
-  extraScrollHeight={70}
-  keyboardShouldPersistTaps="handled"
-  contentContainerStyle={{
-    padding: 16,
-    paddingBottom: 250,
-    backgroundColor,            // <-- REQUIRED
-  }}
-  style={{ backgroundColor }}    // <-- ALSO REQUIRED
->
+    <View style={{ flex: 1, backgroundColor }}>
+      <KeyboardAwareScrollView
+        enableOnAndroid
+        extraScrollHeight={70}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: 250,
+          backgroundColor,
+        }}
+        style={{ backgroundColor }}
+      >
 
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View>
@@ -559,9 +555,8 @@ export default function AddTrip() {
 
               <View className="flex-row justify-between items-center mb-5">
                 <Text
-                  className={`text-2xl font-semibold ${
-                    isDark ? "text-white" : "text-black"
-                  }`}
+                  className={`text-2xl font-semibold ${isDark ? "text-white" : "text-black"
+                    }`}
                 >
                   Add New {currentType}
                 </Text>

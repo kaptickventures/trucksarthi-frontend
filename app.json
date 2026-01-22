@@ -9,18 +9,17 @@
     "userInterfaceStyle": "automatic",
     "jsEngine": "hermes",
     "newArchEnabled": true,
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sahilgumber7.trucksarthi",
       "buildNumber": "1.0.0"
     },
-
     "android": {
       "package": "com.sahilgumber7.trucksarthi",
       "versionCode": 29,
-      "googleServicesFile": "./google-services.json",
-      "permissions": ["android.permission.INTERNET"],
+      "permissions": [
+        "android.permission.INTERNET"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/TruckSarthi-Logo.png",
         "backgroundColor": "#E6F4FE"
@@ -36,29 +35,25 @@
               "host": "*"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
-
     "web": {
       "output": "static",
       "bundler": "metro",
       "favicon": "./assets/images/favicon.png"
     },
-
     "splash": {
       "image": "./assets/TruckSarthi-Graphic.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "plugins": [
-      "@react-native-firebase/app",
-      "@react-native-firebase/auth",
-
       "expo-router",
-
       [
         "expo-splash-screen",
         {
@@ -71,26 +66,21 @@
           }
         }
       ],
-
       "expo-web-browser"
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
-
     "extra": {
       "router": {},
       "eas": {
         "projectId": "1196740f-77b4-45d2-a85e-ec3b44fd5d74"
       }
     },
-
     "runtimeVersion": {
       "policy": "appVersion"
     },
-
     "updates": {
       "enabled": false,
       "url": "https://u.expo.dev/1196740f-77b4-45d2-a85e-ec3b44fd5d74"

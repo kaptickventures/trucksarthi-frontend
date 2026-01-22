@@ -17,6 +17,7 @@ import {
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import "../../global.css";
 import { useUser } from "../../hooks/useUser";
+import { getFileUrl } from "../../lib/utils";
 import { THEME } from "../../theme";
 
 export default function Profile() {
@@ -264,7 +265,7 @@ export default function Profile() {
               >
                 {profileImage ? (
                   <Image
-                    source={{ uri: profileImage }}
+                    source={{ uri: getFileUrl(profileImage) || "" }}
                     style={{ width: 112, height: 112, borderRadius: 20 }}
                   />
                 ) : (

@@ -1,22 +1,20 @@
-import React, { useState } from "react";
+import { Link, useRouter } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
+import { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
   SafeAreaView,
-  View,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
+  View,
 } from "react-native";
-import { useRouter, Link } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
-import { postLoginFlow } from "../../hooks/useAuth";
+import { loginWithEmail, postLoginFlow } from "../../hooks/useAuth";
 
 const COLORS = {
   title: "#128C7E",
@@ -33,12 +31,15 @@ export default function LoginEmail() {
   const [loading, setLoading] = useState(false);
 
   const login = async () => {
+    if (!email || !pw) {
+      return Alert.alert("Error", "Please enter email and password.");
+    }
     try {
       setLoading(true);
-      const res = await signInWithEmailAndPassword(auth, email.trim(), pw.trim());
+      await loginWithEmail(email.trim(), pw.trim());
       await postLoginFlow(router);
     } catch (e: any) {
-      Alert.alert("Login Failed", e.message ?? "Try again.");
+      Alert.alert("Login Failed", e.response?.data?.error || e.message || "Try again.");
     } finally {
       setLoading(false);
     }

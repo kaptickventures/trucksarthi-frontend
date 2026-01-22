@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
 import { ChevronLeft, Smartphone } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,10 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-import nativeAuth from "../../lib/native-auth"; // SAFE WRAPPER
-// import auth from "@react-native-firebase/auth"; // NATIVE FIREBASE AUTH (Disabled for Expo Go)
-import { postLoginFlow } from "../../hooks/useAuth";
+import { loginWithPhone, postLoginFlow, sendOtp } from "../../hooks/useAuth";
 
 const COLORS = {
   title: "#128C7E",
@@ -31,11 +28,10 @@ const COLORS = {
 
 export default function LoginPhone() {
   const router = useRouter();
-  const confirmationRef = useRef<any>(null);
-
   const [phoneNumber, setPhoneNumber] = useState("+91");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
   const formatPhone = (text: string) => {
     let numbers = text.replace(/\D+/g, "");
@@ -44,103 +40,31 @@ export default function LoginPhone() {
     setPhoneNumber("+91" + numbers);
   };
 
-  // Wait for native auth state to reflect the signed-in user
-  const waitForFirebaseUser = async (timeoutMs = 8000) => {
-    if (!nativeAuth) return; // No native auth to wait for
-
-    return new Promise<void>((resolve, reject) => {
-      let timedOut = false;
-      const timer = setTimeout(() => {
-        timedOut = true;
-        unsubscribe();
-        reject(new Error("waitForFirebaseUser timed out"));
-      }, timeoutMs);
-
-      const unsubscribe = nativeAuth().onAuthStateChanged((user: any) => {
-        if (user) {
-          clearTimeout(timer);
-          unsubscribe();
-          resolve();
-        } else if (timedOut) {
-          unsubscribe();
-        }
-      });
-    });
-  };
-
-  /** SEND OTP USING NATIVE FIREBASE */
   const sendOTP = async () => {
     if (phoneNumber.length !== 13) {
       return Alert.alert("Invalid Number", "Enter a valid 10-digit number.");
     }
-
     try {
       setLoading(true);
-
-      console.log("📨 SENDING OTP TO:", phoneNumber);
-
-      if (nativeAuth) {
-        const confirmation = await nativeAuth().signInWithPhoneNumber(phoneNumber);
-        console.log("📨 OTP SENT SUCCESS → confirmation object:", JSON.stringify(confirmation, null, 2));
-        confirmationRef.current = confirmation;
-        Alert.alert("OTP Sent", `Sent to ${phoneNumber}`);
-      } else {
-        Alert.alert("Development Mode", "Native Phone Auth is unavailable in Expo Go. Please use Email Login or run a development build.", [
-          { text: "Go to Email Login", onPress: () => router.push("/auth/login-email") },
-          { text: "OK", style: "cancel" }
-        ]);
-      }
+      await sendOtp(phoneNumber);
+      setOtpSent(true);
+      Alert.alert("OTP Sent", `Sent to ${phoneNumber}`);
     } catch (error: any) {
-      console.log("❌ OTP SEND ERROR FULL →", JSON.stringify(error, null, 2));
-
-      Alert.alert(
-        "Error Sending OTP",
-        error?.message || "Failed to send OTP. Check SHA-1 + Play Services."
-      );
+      Alert.alert("Error", error.response?.data?.error || "Failed to send OTP.");
     } finally {
       setLoading(false);
     }
   };
 
-  /** VERIFY OTP USING NATIVE FIREBASE */
   const verifyOTP = async () => {
-    if (!confirmationRef.current) {
-      return Alert.alert("Error", "Please request OTP again.");
-    }
-
+    if (!code) return Alert.alert("Error", "Enter the OTP.");
     try {
       setLoading(true);
-
-      console.log("🔍 VERIFYING OTP WITH CODE:", code);
-      console.log("🔐 confirmationRef.current:", JSON.stringify(confirmationRef.current, null, 2));
-
-      // confirm the OTP (this signs in the user on native side)
-      const userCredential = await confirmationRef.current.confirm(code);
-
-      console.log(
-        "✅ OTP VERIFIED SUCCESS → userCredential:",
-        JSON.stringify(userCredential, null, 2)
-      );
-
-      // WAIT for the native auth state to update auth().currentUser
-      try {
-        await waitForFirebaseUser();
-        // console.log("🔥 Firebase currentUser is now available:", auth().currentUser?.uid);
-      } catch (waitErr) {
-        // timeout or other issue — still attempt postLoginFlow but log the condition
-        console.log("⚠️ waitForFirebaseUser failed/timeout:", waitErr);
-      }
-
-      // call postLoginFlow (resilient: does not throw on init failure)
-      try {
-        await postLoginFlow(router);
-      } catch (flowErr) {
-        // postLoginFlow is resilient, but log if anything unexpected happens
-        console.log("❌ postLoginFlow unexpected error:", flowErr);
-      }
+      // Here we hit POST /api/auth/verify-phone with phone and otp
+      await loginWithPhone(phoneNumber, code);
+      await postLoginFlow(router);
     } catch (err: any) {
-      console.log("❌ OTP VERIFY ERROR FULL →", JSON.stringify(err, null, 2));
-      Alert.alert("Invalid OTP", err?.message || "Incorrect or expired OTP.");
+      Alert.alert("Invalid OTP", err.response?.data?.error || "Failed to verify.");
     } finally {
       setLoading(false);
     }
@@ -148,7 +72,6 @@ export default function LoginPhone() {
 
   return (
     <SafeAreaView className="flex-1 bg-white relative">
-      {/* Back Button */}
       <TouchableOpacity
         onPress={() => router.back()}
         style={{ position: "absolute", top: 24, left: 24, zIndex: 99, padding: 8 }}
@@ -156,7 +79,6 @@ export default function LoginPhone() {
         <ChevronLeft size={32} color="#111B21" />
       </TouchableOpacity>
 
-      {/* Glow Background */}
       <LinearGradient
         colors={[
           "rgba(37,211,102,0.40)",
@@ -199,9 +121,8 @@ export default function LoginPhone() {
             Enter your mobile number
           </Text>
 
-          {!confirmationRef.current ? (
+          {!otpSent ? (
             <>
-              {/* Phone Input */}
               <TextInput
                 value={phoneNumber}
                 onChangeText={formatPhone}
@@ -210,7 +131,6 @@ export default function LoginPhone() {
                 style={{ backgroundColor: COLORS.inputBg }}
               />
 
-              {/* Send OTP Button */}
               <TouchableOpacity
                 disabled={loading}
                 onPress={sendOTP}
@@ -229,7 +149,6 @@ export default function LoginPhone() {
             </>
           ) : (
             <>
-              {/* OTP Input */}
               <TextInput
                 value={code}
                 onChangeText={setCode}
@@ -240,7 +159,6 @@ export default function LoginPhone() {
                 style={{ backgroundColor: COLORS.inputBg }}
               />
 
-              {/* Verify OTP Button */}
               <TouchableOpacity
                 disabled={loading}
                 onPress={verifyOTP}
@@ -256,7 +174,7 @@ export default function LoginPhone() {
 
               <TouchableOpacity
                 onPress={() => {
-                  confirmationRef.current = null;
+                  setOtpSent(false);
                   setCode("");
                 }}
               >
@@ -267,7 +185,6 @@ export default function LoginPhone() {
             </>
           )}
 
-          {/* Email login link */}
           <View className="mt-8">
             <Link href="/auth/login-email" style={{ color: COLORS.link }}>
               Use Email Instead
