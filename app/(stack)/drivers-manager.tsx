@@ -185,9 +185,9 @@ export default function DriversManager() {
 
   if (loading && !user) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#888" />
-        <Text className="mt-2 text-muted-foreground">
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={{ marginTop: 8, color: theme.mutedForeground }}>
           Loading...
         </Text>
       </View>
@@ -195,72 +195,75 @@ export default function DriversManager() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
         className="flex-1 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {drivers.length === 0 ? (
+        {(drivers || []).length === 0 ? (
           <Text className="text-center text-muted-foreground mt-10">
             No drivers found.
           </Text>
         ) : (
-          drivers.map((driver) => (
-            <TouchableOpacity
-              key={driver._id}
-              activeOpacity={0.85}
-              onPress={() =>
-                router.push({
-                  pathname: "/(stack)/driver-profile",
-                  params: {
-                    driver_id: driver._id,
-                  },
-                })
-              }
-              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
-            >
-              <View className="flex-row justify-between items-center">
-                <View className="flex-row items-start flex-1">
-                  <View style={{ backgroundColor: theme.secondary, padding: 8, borderRadius: 12, marginRight: 12 }}>
-                    <MapPin size={18} color={theme.primary} />
+          (drivers || []).map((driver) => {
+            if (!driver) return null;
+            return (
+              <TouchableOpacity
+                key={driver._id}
+                activeOpacity={0.85}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(stack)/driver-profile",
+                    params: {
+                      driver_id: driver._id,
+                    },
+                  })
+                }
+                className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
+              >
+                <View className="flex-row justify-between items-center">
+                  <View className="flex-row items-start flex-1">
+                    <View style={{ backgroundColor: theme.secondary, padding: 8, borderRadius: 12, marginRight: 12 }}>
+                      <MapPin size={18} color={theme.primary} />
+                    </View>
+
+                    <View className="flex-1">
+                      <Text className="text-card-foreground font-semibold text-base">
+                        {driver.driver_name}
+                      </Text>
+                      <Text className="text-muted-foreground text-xs mt-1">
+                        {driver.contact_number}
+                      </Text>
+                    </View>
                   </View>
 
-                  <View className="flex-1">
-                    <Text className="text-card-foreground font-semibold text-base">
-                      {driver.driver_name}
-                    </Text>
-                    <Text className="text-muted-foreground text-xs mt-1">
-                      {driver.contact_number}
-                    </Text>
+                  <View className="flex-row items-center ml-3">
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        openModal(true, driver);
+                      }}
+                      className="p-2"
+                    >
+                      <Edit3 size={20} color={theme.mutedForeground} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleDelete(driver._id);
+                      }}
+                      className="p-2"
+                    >
+                      <Trash2 size={20} color={theme.mutedForeground} />
+                    </TouchableOpacity>
                   </View>
                 </View>
-
-                <View className="flex-row items-center ml-3">
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      openModal(true, driver);
-                    }}
-                    className="p-2"
-                  >
-                    <Edit3 size={20} color={theme.mutedForeground} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleDelete(driver._id);
-                    }}
-                    className="p-2"
-                  >
-                    <Trash2 size={20} color={theme.mutedForeground} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
 

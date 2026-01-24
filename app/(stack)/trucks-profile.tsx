@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -20,6 +21,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -32,7 +34,8 @@ import {
   useColorScheme,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { THEME } from "../../theme";
 
 import useDrivers from "../../hooks/useDriver";
 import useTrips from "../../hooks/useTrip";
@@ -111,12 +114,53 @@ const DateItem = ({ label, date, isDark }: any) => {
   );
 };
 
+const DocumentCard = ({ label, url, expiring, expiryDate, onPress, onEdit }: any) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const theme = isDark ? THEME.dark : THEME.light;
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className="w-[47%] bg-muted/40 rounded-xl p-3 border border-border/30 items-center justify-center relative"
+    >
+      {url ? (
+        <Image source={{ uri: url }} className="w-full h-24 rounded-md mb-2" resizeMode="cover" />
+      ) : (
+        <View className="w-full h-24 rounded-md mb-2 bg-muted items-center justify-center">
+          <FileText size={32} color={theme.mutedForeground} />
+        </View>
+      )}
+      <Text className="text-xs font-semibold text-foreground mb-1">{label}</Text>
+      {url && (
+        <Text className={`text-[10px] ${expiring ? "text-red-500" : "text-muted-foreground"}`}>
+          Exp: {expiryDate}
+        </Text>
+      )}
+      {url && (
+        <TouchableOpacity
+          onPress={onEdit}
+          className="absolute top-2 right-2 bg-background rounded-full p-1"
+        >
+          <Pencil size={14} color={theme.foreground} />
+        </TouchableOpacity>
+      )}
+      {!url && (
+        <View className="absolute top-2 right-2 bg-background rounded-full p-1">
+          <Plus size={14} color={theme.foreground} />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
+
 /* ---------------- SCREEN ---------------- */
 
 export default function TruckProfile() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
 
   /* ---------------- ROUTE PARAM ---------------- */
   const { truck_id } = useLocalSearchParams<{ truck_id?: string | string[] }>();
@@ -142,6 +186,10 @@ export default function TruckProfile() {
   const [showTrips, setShowTrips] = useState(true);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  // Date Picker State
+  const [dateField, setDateField] = useState<string | null>(null);
+  const [isPickerVisible, setIsPickerVisible] = useState(false);
+
   // Edit State
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -156,6 +204,8 @@ export default function TruckProfile() {
     unladen_weight: "",
     registered_rto: "",
     registered_owner_name: "",
+    container_dimension: "",
+    loading_capacity: "",
     registration_date: "",
     fitness_upto: "",
     pollution_upto: "",
@@ -186,6 +236,8 @@ export default function TruckProfile() {
         unladen_weight: truck.unladen_weight ? String(truck.unladen_weight) : "",
         registered_rto: truck.registered_rto || "",
         registered_owner_name: truck.registered_owner_name || "",
+        container_dimension: truck.container_dimension || "",
+        loading_capacity: truck.loading_capacity ? String(truck.loading_capacity) : "",
         registration_date: truck.registration_date ? new Date(truck.registration_date).toISOString().split('T')[0] : "",
         fitness_upto: truck.fitness_upto ? new Date(truck.fitness_upto).toISOString().split('T')[0] : "",
         pollution_upto: truck.pollution_upto ? new Date(truck.pollution_upto).toISOString().split('T')[0] : "",
@@ -201,13 +253,13 @@ export default function TruckProfile() {
     (t: any) => (typeof t.truck === 'object' ? t.truck?._id : t.truck) === id
   );
 
-  const driverMap = useMemo(
-    () =>
-      Object.fromEntries(
-        drivers.map((d) => [d._id, d.driver_name])
-      ),
-    [drivers]
-  );
+  const driverMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (drivers || []).forEach((d) => {
+      if (d && d._id) map[d._id] = d.driver_name;
+    });
+    return map;
+  }, [drivers]);
 
   /* ---------------- ACTIONS ---------------- */
   const handleUpdateTruck = async () => {
@@ -225,27 +277,44 @@ export default function TruckProfile() {
       } = editForm;
 
       const dateUpdates = {
-        registration_date,
-        fitness_upto,
-        pollution_upto,
-        road_tax_upto,
-        insurance_upto,
-        permit_upto,
-        national_permit_upto,
+        registration_date: registration_date || null,
+        fitness_upto: fitness_upto || null,
+        pollution_upto: pollution_upto || null,
+        road_tax_upto: road_tax_upto || null,
+        insurance_upto: insurance_upto || null,
+        permit_upto: permit_upto || null,
+        national_permit_upto: national_permit_upto || null,
       };
 
       await Promise.all([
         updateTruck(id, {
           ...basicInfo,
           unladen_weight: basicInfo.unladen_weight ? Number(basicInfo.unladen_weight) : undefined,
+          loading_capacity: basicInfo.loading_capacity ? Number(basicInfo.loading_capacity) : undefined,
         }),
         updateImportantDates(id, dateUpdates)
       ]);
 
       setShowEditModal(false);
+      Alert.alert("Success", "Truck details updated");
     } catch (e) {
       console.error(e);
+      Alert.alert("Error", "Failed to update truck details");
     }
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setIsPickerVisible(false);
+    if (selectedDate && dateField) {
+      const dateStr = selectedDate.toISOString().split("T")[0];
+      setEditForm(prev => ({ ...prev, [dateField]: dateStr }));
+    }
+    setDateField(null);
+  };
+
+  const showDatePicker = (field: string) => {
+    setDateField(field);
+    setIsPickerVisible(true);
   };
 
   /* ---------------- UPLOAD ---------------- */
@@ -300,6 +369,7 @@ export default function TruckProfile() {
   }
 
   const iconColor = isDark ? "#9ca3af" : "#64748b";
+  const theme = isDark ? THEME.dark : THEME.light;
 
   /* ---------------- UI ---------------- */
   return (
@@ -476,33 +546,171 @@ export default function TruckProfile() {
         </TouchableOpacity>
       )}
 
-      {/* EDIT MODAL */}
       <Modal visible={showEditModal} transparent animationType="slide" onRequestClose={() => setShowEditModal(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
           <View className="flex-1 bg-black/60 justify-end">
             <View className="bg-background rounded-t-3xl h-[85%]">
               <View className="px-6 py-4 border-b border-border/30 flex-row justify-between items-center">
-                <Text className="text-xl font-bold">Edit Truck</Text>
-                <TouchableOpacity onPress={() => setShowEditModal(false)} className="bg-muted p-2 rounded-full">
-                  <Ionicons name="close" size={20} color={isDark ? "#fff" : "#000"} />
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.foreground }}>Edit Truck Details</Text>
+                <TouchableOpacity onPress={() => setShowEditModal(false)} style={{ backgroundColor: theme.muted, padding: 8, borderRadius: 20 }}>
+                  <Ionicons name="close" size={20} color={theme.foreground} />
                 </TouchableOpacity>
               </View>
-              <ScrollView className="flex-1 px-6 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
-                <View className="space-y-4">
-                  <View>
-                    <Text className="text-xs font-bold text-muted-foreground mb-1 uppercase">Registration Number</Text>
-                    <TextInput value={editForm.registration_number} onChangeText={(t) => setEditForm(prev => ({ ...prev, registration_number: t }))} className="bg-muted px-4 py-3 rounded-xl text-base" placeholder="e.g. MH 12 AB 1234" />
+              <ScrollView className="flex-1 px-6 pt-4" contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+                <View style={{ gap: 16 }}>
+                  {/* BASIC INFO SECTION */}
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#16a34a', marginTop: 8, textTransform: 'uppercase' }}>Basic Information</Text>
+
+                  {[
+                    { label: "Registration Number", key: "registration_number", placeholder: "e.g. MH 12 AB 1234", caps: true },
+                    { label: "Registered Owner", key: "registered_owner_name", placeholder: "Full Owner Name" },
+                    { label: "Make", key: "make", placeholder: "e.g. Tata, Mahindra" },
+                    { label: "Model", key: "model", placeholder: "e.g. Prima 4425" },
+                    { label: "Vehicle Class", key: "vehicle_class", placeholder: "e.g. LCV, HCV" },
+                    { label: "Registered RTO", key: "registered_rto", placeholder: "e.g. Pune RTO" },
+                  ].map((field) => (
+                    <View key={field.key}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.mutedForeground, marginBottom: 4, textTransform: 'uppercase' }}>{field.label}</Text>
+                      <TextInput
+                        value={(editForm as any)[field.key]}
+                        onChangeText={(t) => setEditForm(prev => ({ ...prev, [field.key]: t }))}
+                        className="bg-muted px-4 py-3 rounded-xl text-base"
+                        style={{ color: theme.foreground }}
+                        placeholder={field.placeholder}
+                        placeholderTextColor={theme.mutedForeground}
+                        autoCapitalize={field.caps ? "characters" : "words"}
+                      />
+                    </View>
+                  ))}
+
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.mutedForeground, marginBottom: 4, textTransform: 'uppercase' }}>Unladen Weight (KG)</Text>
+                      <TextInput
+                        value={editForm.unladen_weight}
+                        keyboardType="numeric"
+                        onChangeText={(t) => setEditForm(prev => ({ ...prev, unladen_weight: t }))}
+                        className="bg-muted px-4 py-3 rounded-xl text-base"
+                        style={{ color: theme.foreground }}
+                        placeholder="0"
+                        placeholderTextColor={theme.mutedForeground}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.mutedForeground, marginBottom: 4, textTransform: 'uppercase' }}>Fuel Type</Text>
+                      <TextInput
+                        value={editForm.fuel_type}
+                        onChangeText={(t) => setEditForm(prev => ({ ...prev, fuel_type: t }))}
+                        className="bg-muted px-4 py-3 rounded-xl text-base"
+                        style={{ color: theme.foreground }}
+                        placeholder="Diesel/EV"
+                        placeholderTextColor={theme.mutedForeground}
+                      />
+                    </View>
                   </View>
-                  {/* ... other fields similarly ... */}
-                  <TouchableOpacity onPress={handleUpdateTruck} className="bg-blue-600 items-center justify-center py-4 rounded-xl mt-4">
-                    <Text className="text-white font-bold text-lg">Save Changes</Text>
+
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.mutedForeground, marginBottom: 4, textTransform: 'uppercase' }}>Loading Capacity</Text>
+                      <TextInput
+                        value={editForm.loading_capacity}
+                        keyboardType="numeric"
+                        onChangeText={(t) => setEditForm(prev => ({ ...prev, loading_capacity: t }))}
+                        className="bg-muted px-4 py-3 rounded-xl text-base"
+                        style={{ color: theme.foreground }}
+                        placeholder="0"
+                        placeholderTextColor={theme.mutedForeground}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.mutedForeground, marginBottom: 4, textTransform: 'uppercase' }}>Dimension</Text>
+                      <TextInput
+                        value={editForm.container_dimension}
+                        onChangeText={(t) => setEditForm(prev => ({ ...prev, container_dimension: t }))}
+                        className="bg-muted px-4 py-3 rounded-xl text-base"
+                        style={{ color: theme.foreground }}
+                        placeholder="e.g. 20ft"
+                        placeholderTextColor={theme.mutedForeground}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.mutedForeground, marginBottom: 4, textTransform: 'uppercase' }}>Chassis Number</Text>
+                      <TextInput
+                        value={editForm.chassis_number}
+                        autoCapitalize="characters"
+                        onChangeText={(t) => setEditForm(prev => ({ ...prev, chassis_number: t }))}
+                        className="bg-muted px-4 py-3 rounded-xl text-base"
+                        style={{ color: theme.foreground }}
+                        placeholder="Chassis No."
+                        placeholderTextColor={theme.mutedForeground}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.mutedForeground, marginBottom: 4, textTransform: 'uppercase' }}>Engine Number</Text>
+                      <TextInput
+                        value={editForm.engine_number}
+                        autoCapitalize="characters"
+                        onChangeText={(t) => setEditForm(prev => ({ ...prev, engine_number: t }))}
+                        className="bg-muted px-4 py-3 rounded-xl text-base"
+                        style={{ color: theme.foreground }}
+                        placeholder="Engine No."
+                        placeholderTextColor={theme.mutedForeground}
+                      />
+                    </View>
+                  </View>
+
+                  {/* DATES SECTION */}
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#16a34a', marginTop: 16, textTransform: 'uppercase' }}>Important Dates</Text>
+
+                  {[
+                    { label: "Registration Date", key: "registration_date" },
+                    { label: "Fitness Validity", key: "fitness_upto" },
+                    { label: "Pollution Expiry", key: "pollution_upto" },
+                    { label: "Road Tax Expiry", key: "road_tax_upto" },
+                    { label: "Insurance Expiry", key: "insurance_upto" },
+                    { label: "Permit Expiry", key: "permit_upto" },
+                    { label: "National Permit Expiry", key: "national_permit_upto" },
+                  ].map((field) => (
+                    <TouchableOpacity
+                      key={field.key}
+                      onPress={() => showDatePicker(field.key)}
+                      style={{ marginBottom: 4 }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.mutedForeground, marginBottom: 4, textTransform: 'uppercase' }}>{field.label}</Text>
+                      <View className="bg-muted px-4 py-3 rounded-xl flex-row justify-between items-center">
+                        <Text style={{ fontSize: 16, color: (editForm as any)[field.key] ? theme.foreground : theme.mutedForeground }}>
+                          {(editForm as any)[field.key] || "Select Date"}
+                        </Text>
+                        <Calendar size={18} color={theme.mutedForeground} />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+
+                  <TouchableOpacity
+                    onPress={handleUpdateTruck}
+                    style={{ backgroundColor: '#16a34a', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 24 }}
+                  >
+                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Save All Changes</Text>
                   </TouchableOpacity>
+
                   <View className="h-10" />
                 </View>
               </ScrollView>
             </View>
           </View>
         </KeyboardAvoidingView>
+
+        {isPickerVisible && (
+          <DateTimePicker
+            value={(editForm as any)[dateField!] ? new Date((editForm as any)[dateField!]) : new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={onDateChange}
+          />
+        )}
       </Modal>
 
       {/* IMAGE PREVIEW */}
@@ -519,37 +727,5 @@ export default function TruckProfile() {
         </TouchableOpacity>
       </Modal>
     </SafeAreaView>
-  );
-}
-
-/* ---------------- DOCUMENT CARD COMPONENT ---------------- */
-function DocumentCard({ label, url, expiring, expiryDate, onPress, onEdit }: any) {
-  return (
-    <View style={{ width: "47%" }}>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={{ aspectRatio: 1.3, width: "100%", backgroundColor: "#f3f4f6", borderRadius: 16, overflow: "hidden", position: "relative", borderWidth: 1, borderColor: "#e5e7eb" }}>
-        {url ? (
-          <>
-            <Image source={{ uri: url }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-            <TouchableOpacity onPress={onEdit} style={{ position: "absolute", top: 8, right: 8, backgroundColor: "rgba(0,0,0,0.6)", padding: 6, borderRadius: 20, zIndex: 10 }}>
-              <Pencil size={12} color="white" />
-            </TouchableOpacity>
-            {expiring && (
-              <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "rgba(220, 38, 38, 0.9)", padding: 4, alignItems: "center" }}>
-                <Text className="text-white text-[10px] font-bold">EXPIRING SOON</Text>
-              </View>
-            )}
-          </>
-        ) : (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", opacity: 0.5 }}>
-            <FileText size={32} color="#94a3b8" />
-            <Text style={{ fontSize: 10, fontWeight: "bold", marginTop: 6, textTransform: "uppercase", color: "#94a3b8" }}>{label}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-      <View style={{ marginTop: 6, paddingHorizontal: 4 }}>
-        <Text style={{ fontSize: 13, fontWeight: "600", color: "#6b7280" }}>{label}</Text>
-        {expiryDate && url && <Text style={{ fontSize: 11, color: expiring ? "#dc2626" : "#9ca3af" }}>Valid: {expiryDate}</Text>}
-      </View>
-    </View>
   );
 }

@@ -7,13 +7,13 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { loginWithEmail, postLoginFlow } from "../../hooks/useAuth";
 
 const COLORS = {

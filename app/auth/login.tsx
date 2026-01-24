@@ -5,11 +5,11 @@ import { Mail, Phone } from "lucide-react-native";
 import {
   Image,
   Platform,
-  SafeAreaView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const COLORS = {
   title: "#128C7E",

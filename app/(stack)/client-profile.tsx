@@ -76,6 +76,7 @@ export default function ClientProfile() {
   const [showEditTrxDatePicker, setShowEditTrxDatePicker] = useState(false);
 
   const [selectedTrips, setSelectedTrips] = useState<string[]>([]);
+  const [settlingInvoiceId, setSettlingInvoiceId] = useState<string | null>(null);
 
   // Edit Client Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -97,7 +98,12 @@ export default function ClientProfile() {
   const { locations } = useLocations();
 
 
-  const getId = (obj: any): string => (typeof obj === "object" ? obj?._id : obj);
+  const getId = (obj: any): string => {
+    if (!obj) return "";
+    if (typeof obj === "string") return obj;
+    if (typeof obj === "object" && obj._id) return obj._id;
+    return String(obj);
+  };
 
   const toggleTripSelection = (tripId: string) => {
     setSelectedTrips((prev) =>
@@ -133,39 +139,44 @@ export default function ClientProfile() {
     return status.toString().toLowerCase().replace(" ", "_");
   };
 
-  const driverMap = useMemo(
-    () =>
-      Object.fromEntries(
-        drivers.map((d) => [d._id, d.driver_name])
-      ),
-    [drivers]
-  );
+  const driverMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (drivers || []).forEach((d) => {
+      if (d && d._id) map[d._id] = d.driver_name;
+    });
+    return map;
+  }, [drivers]);
 
-  const truckMap = useMemo(
-    () =>
-      Object.fromEntries(
-        trucks.map((t) => [t._id, t.registration_number])
-      ),
-    [trucks]
-  );
+  const truckMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (trucks || []).forEach((t) => {
+      if (t && t._id) map[t._id] = t.registration_number;
+    });
+    return map;
+  }, [trucks]);
 
-  const locationMap = useMemo(
-    () =>
-      Object.fromEntries(
-        locations.map((l) => [l._id, l.location_name])
-      ),
-    [locations]
-  );
+  const locationMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (locations || []).forEach((l) => {
+      if (l && l._id) map[l._id] = l.location_name;
+    });
+    return map;
+  }, [locations]);
 
 
   // ✅ ADD — Invoice PDF (same approach as TripLog)
   const generateInvoicePDF = async (invoice: Invoice) => {
     try {
-      const invoiceTrips = trips.filter(
-        (t) =>
-          getId(t.client) === getId(invoice.client) &&
-          normalizeInvoiceStatus(t.invoiced_status) === "invoiced"
-      );
+      const invoiceTrips = invoice.items.map(item => {
+        const tripDetail = trips.find(t => getId(t) === getId(item.trip));
+        if (!tripDetail) return null;
+        return {
+          ...tripDetail,
+          cost_of_trip: item.trip_cost,
+          miscellaneous_expense: item.misc_expense,
+          _id: getId(item.trip)
+        } as Trip;
+      }).filter((t): t is Trip => t !== null);
 
       const subtotal = invoiceTrips.reduce(
         (acc, t) =>
@@ -295,7 +306,7 @@ export default function ClientProfile() {
   <div class="billto">
     <strong>Bill To:</strong><br />
     ${client?.client_name || ""}<br />
-    Logistics & Transportation Services
+    ${client?.office_address || "Logistics & Transportation Services"}
   </div>
 
   <table>
@@ -373,6 +384,7 @@ export default function ClientProfile() {
 `;
 
       const { uri } = await Print.printToFileAsync({ html });
+      // @ts-ignore
       const fileUri = `${FileSystem.documentDirectory}Invoice-${invoice.invoice_number || "N-A"}.pdf`;
 
       await FileSystem.moveAsync({ from: uri, to: fileUri });
@@ -393,31 +405,31 @@ export default function ClientProfile() {
     );
   }, [clients, id]);
 
-  const clientInvoices = invoices.filter(
-    (i: Invoice) => getId(i.client) === id
+  const clientInvoices = (invoices || []).filter(
+    (i: Invoice) => i && getId(i.client) === id
   );
 
-  const clientTrips = trips.filter(
-    (t: Trip) => getId(t.client) === id
+  const clientTrips = (trips || []).filter(
+    (t: Trip) => t && getId(t.client) === id
   );
 
   // 💰 CALCULATED AMOUNTS
   const unbilledAmount = useMemo(() => {
     return clientTrips
-      .filter((t) => normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced")
-      .reduce((sum, t) => sum + Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0), 0);
+      .filter((t) => t && normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced")
+      .reduce((sum, t) => sum + Number(t?.cost_of_trip || 0) + Number(t?.miscellaneous_expense || 0), 0);
   }, [clientTrips]);
 
   const billedAmount = useMemo(() => {
     return clientInvoices
-      .filter((i) => i.status !== "paid")
-      .reduce((sum, i) => sum + Number(i.total_amount || 0), 0);
+      .filter((i) => i && i.status === "pending")
+      .reduce((sum, i) => sum + Number(i?.total_amount || 0), 0);
   }, [clientInvoices]);
 
   const settledAmount = useMemo(() => {
-    return entries
-      .filter((e) => e.entry_type === "credit")
-      .reduce((sum, e) => sum + Number(e.amount), 0);
+    return (entries || [])
+      .filter((e) => e && e.entry_type === "credit")
+      .reduce((sum, e) => sum + Number(e?.amount || 0), 0);
   }, [entries]);
 
   /* ---------------- ACTIONS ---------------- */
@@ -466,10 +478,13 @@ export default function ClientProfile() {
 
     await addPayment({
       client_id: id,
+      invoice_id: settlingInvoiceId || undefined,
       amount: Number(paymentAmount),
       remarks: paymentRemarks,
       date: paymentDate.toISOString(),
     });
+
+    setSettlingInvoiceId(null);
 
     setPaymentAmount("");
     setPaymentRemarks("");
@@ -477,6 +492,8 @@ export default function ClientProfile() {
     setShowPaymentForm(false);
 
     fetchLedger(id);
+    fetchInvoices();
+    fetchTrips();
   };
 
   const handleUpdateTransaction = async () => {
@@ -504,6 +521,7 @@ export default function ClientProfile() {
 
   const handleSettleInvoice = async (invoice: Invoice) => {
     // Open payment modal pre-filled
+    setSettlingInvoiceId(invoice._id);
     setPaymentAmount((invoice.total_amount || 0).toString());
     setPaymentRemarks(`Settlement for Invoice #${invoice.invoice_number || "—"}`);
     setPaymentDate(new Date());
@@ -575,26 +593,26 @@ export default function ClientProfile() {
   /* ---------------- GUARDS ---------------- */
   if (userLoading || clientsLoading || !id) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" />
-      </SafeAreaView>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
     );
   }
 
   if (!client) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center">
-        <Text className="text-muted-foreground">Client not found</Text>
-      </SafeAreaView>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
+        <Text style={{ color: theme.mutedForeground }}>Client not found</Text>
+      </View>
     );
   }
 
   /* ---------------- UI ---------------- */
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <View className="px-6 py-4 flex-row items-center justify-between">
+      <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons
             name="arrow-back"
@@ -602,47 +620,48 @@ export default function ClientProfile() {
             color={isDark ? "#FFF" : "#000"}
           />
         </TouchableOpacity>
-        <Text className="text-lg font-semibold">Client Profile</Text>
-        <View className="w-6" />
+        <Text style={{ fontSize: 18, fontWeight: '600', color: theme.foreground }}>Client Profile</Text>
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView
-        className="flex-1 px-6"
+        style={{ flex: 1, paddingHorizontal: 24 }}
         contentContainerStyle={{ paddingBottom: 140 }}
+        showsVerticalScrollIndicator={false}
       >
         {/* Client Card */}
-        <View className="bg-card rounded-2xl p-4 mb-6">
-          <View className="flex-row items-center ">
-            <View className="w-14 h-14 bg-secondary rounded-full items-center justify-center mr-4">
+        <View style={{ backgroundColor: theme.card, borderRadius: 16, padding: 16, marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ width: 56, height: 56, backgroundColor: theme.secondary, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
               <Building2 size={26} color="#16a34a" />
             </View>
 
-            <View className="flex-1 ml-2">
-              <Text className="text-base font-semibold">
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: theme.foreground }}>
                 {client.client_name}
               </Text>
-              <Text className="text-xs text-muted-foreground">
+              <Text style={{ fontSize: 12, color: theme.mutedForeground }}>
                 {client.contact_person_name || "—"}
               </Text>
             </View>
 
             {/* EDIT CLIENT BUTTON */}
-            <TouchableOpacity onPress={openEditModal} className="bg-muted p-2 rounded-full">
-              <Edit size={16} color="black" />
+            <TouchableOpacity onPress={openEditModal} style={{ backgroundColor: theme.muted, padding: 8, borderRadius: 20 }}>
+              <Edit size={16} color={theme.foreground} />
             </TouchableOpacity>
           </View>
 
           {/* ACTION ROW */}
-          <View className="flex-row gap-4 mt-4">
+          <View style={{ flexDirection: 'row', gap: 16, marginTop: 16 }}>
             {/* CALL */}
             <TouchableOpacity
               onPress={() =>
                 client.contact_number &&
                 Linking.openURL(`tel:${client.contact_number}`)
               }
-              className="flex-1 bg-muted py-2 rounded-xl items-center"
+              style={{ flex: 1, backgroundColor: theme.muted, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
-              <Text className="font-semibold text-sm">📞 Call</Text>
+              <Text style={{ fontWeight: '600', fontSize: 14, color: theme.foreground }}>📞 Call</Text>
             </TouchableOpacity>
 
             {/* WHATSAPP */}
@@ -653,9 +672,9 @@ export default function ClientProfile() {
                   `https://wa.me/91${client.contact_number}?text=Hello ${client.client_name}`
                 )
               }
-              className="flex-1 bg-green-600 py-2 rounded-xl items-center"
+              style={{ flex: 1, backgroundColor: '#16a34a', paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
-              <Text className="font-semibold text-sm text-white">
+              <Text style={{ fontWeight: '600', fontSize: 14, color: 'white' }}>
                 💬 WhatsApp
               </Text>
             </TouchableOpacity>
@@ -663,19 +682,19 @@ export default function ClientProfile() {
         </View>
 
         {/* Summary */}
-        <View className="flex-row gap-2 mb-6">
-          <SummaryCard label="Billed Amount" value={billedAmount} />
-          <SummaryCard label="Unbilled Amount" value={unbilledAmount} />
-          <SummaryCard label="Settled Amount" value={settledAmount} green />
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
+          <SummaryCard label="Billed" value={billedAmount} />
+          <SummaryCard label="Unbilled" value={unbilledAmount} />
+          <SummaryCard label="Settled" value={settledAmount} green />
         </View>
 
         {/* Add Payment Button - Full Width Bar */}
         <TouchableOpacity
           onPress={() => setShowPaymentForm(true)}
-          className="bg-green-600 rounded-2xl py-4 flex-row items-center justify-center mb-6"
+          style={{ backgroundColor: '#16a34a', borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}
         >
           <Plus size={20} color="white" />
-          <Text className="text-white font-bold ml-2">Add Payment Entry</Text>
+          <Text style={{ color: 'white', fontWeight: 'bold', marginLeft: 8 }}>Add Payment Entry</Text>
         </TouchableOpacity>
 
 
@@ -803,25 +822,29 @@ export default function ClientProfile() {
           </KeyboardAvoidingView>
         </Modal>
 
-        {/* ... (Existing Tabs and Lists Code kept same as before but inside the component) ... */}
-        {/* For brevity, assuming the rest of the component (tabs, lists) is handled or you want me to reproduce it all. 
-            Since I am replacing the file content, I must reproduce it all.
-        */}
 
         {/* TABS HEADER */}
-        <View className="flex-row bg-muted/50 p-1 rounded-xl mb-4">
+        <View style={{ flexDirection: 'row', backgroundColor: theme.muted, padding: 4, borderRadius: 12, marginBottom: 16 }}>
           {(["unbilled", "billed", "settled"] as const).map((tab) => (
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
-              className={`flex-1 py-2 items-center rounded-lg ${activeTab === tab ? "bg-background shadow-sm" : ""
-                }`}
+              style={{
+                flex: 1,
+                paddingVertical: 8,
+                alignItems: 'center',
+                borderRadius: 8,
+                backgroundColor: activeTab === tab ? theme.background : 'transparent',
+                ...(activeTab === tab && { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 1 })
+              }}
             >
               <Text
-                className={`text-xs font-bold uppercase ${activeTab === tab
-                  ? "text-foreground"
-                  : "text-muted-foreground"
-                  }`}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  color: activeTab === tab ? theme.foreground : theme.mutedForeground
+                }}
               >
                 {tab}
               </Text>
@@ -832,60 +855,60 @@ export default function ClientProfile() {
         {/* 1) UNBILLED TRIPS */}
         {activeTab === "unbilled" && (
           <View>
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="font-bold text-lg">Unbilled Trips</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 18, color: theme.foreground }}>Unbilled Trips</Text>
               {selectedTrips.length > 0 && (
                 <TouchableOpacity
                   onPress={handleGenerateInvoice}
-                  className="bg-blue-600 px-4 py-2 rounded-lg flex-row items-center"
+                  style={{ backgroundColor: '#2563eb', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
                 >
                   <FileText size={14} color="white" />
-                  <Text className="text-white font-bold text-xs ml-2">
-                    Generate Invoice ({selectedTrips.length})
+                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12, marginLeft: 8 }}>
+                    Generate ({selectedTrips.length})
                   </Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            {clientTrips.filter(
-              (t) => normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced"
+            {clientTrips.filter((t) => t && normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced"
             ).length === 0 ? (
-              <Text className="text-center text-muted-foreground py-8">
+              <Text style={{ textAlign: 'center', color: theme.mutedForeground, paddingVertical: 32 }}>
                 No unbilled trips
               </Text>
             ) : (
               clientTrips
-                .filter(
-                  (t) =>
-                    normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced"
-                )
+                .filter((t) => t && normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced")
                 .map((trip) => {
-                  const isSelected = selectedTrips.includes(trip._id);
+                  const isSelected = selectedTrips.includes(trip?._id);
                   return (
                     <TouchableOpacity
-                      key={trip._id}
-                      onPress={() => toggleTripSelection(trip._id)}
+                      key={trip?._id}
+                      onPress={() => toggleTripSelection(trip?._id)}
                       activeOpacity={0.9}
-                      className={`p-4 rounded-xl mb-3 border ${isSelected
-                        ? "bg-blue-50 border-blue-200"
-                        : "bg-card border-transparent"
-                        }`}
+                      style={{
+                        padding: 16,
+                        borderRadius: 12,
+                        marginBottom: 12,
+                        borderWidth: 1,
+                        backgroundColor: isSelected ? (isDark ? '#1e3a8a' : '#eff6ff') : theme.card,
+                        borderColor: isSelected ? '#3b82f6' : 'transparent'
+                      }}
                     >
-                      <View className="flex-row justify-between mb-2">
-                        <Text className="font-bold text-base">
-                          {trip.trip_date ? String(trip.trip_date).split("T")[0] : "—"}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.foreground }}>
+                          {trip?.trip_date ? String(trip.trip_date).split("T")[0] : "—"}
                         </Text>
-                        <Text className="font-bold text-blue-600">
-                          ₹{Number(trip.cost_of_trip).toLocaleString()}
+                        <Text style={{ fontWeight: 'bold', color: '#2563eb' }}>
+                          ₹{Number(trip?.cost_of_trip || 0).toLocaleString()}
                         </Text>
                       </View>
-                      <Text className="text-xs text-muted-foreground">
-                        {locationMap[getId(trip.start_location)]} →{" "}
-                        {locationMap[getId(trip.end_location)]}
+                      <Text style={{ fontSize: 12, color: theme.mutedForeground }}>
+                        {locationMap[getId(trip?.start_location)] || "—"} →{" "}
+                        {locationMap[getId(trip?.end_location)] || "—"}
                       </Text>
-                      <Text className="text-xs text-muted-foreground mt-1">
-                        Truck: {truckMap[getId(trip.truck)]} • Driver:{" "}
-                        {driverMap[getId(trip.driver)]}
+                      <Text style={{ fontSize: 12, color: theme.mutedForeground, marginTop: 4 }}>
+                        Truck: {truckMap[getId(trip?.truck)] || "—"} • Driver:{" "}
+                        {driverMap[getId(trip?.driver)] || "—"}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -898,63 +921,79 @@ export default function ClientProfile() {
         {activeTab === "billed" && (
           <View>
             {clientInvoices.length === 0 ? (
-              <Text className="text-center text-muted-foreground py-8">
+              <Text style={{ textAlign: 'center', color: theme.mutedForeground, paddingVertical: 32 }}>
                 No invoices found
               </Text>
             ) : (
-              clientInvoices.map((inv) => (
-                <View
-                  key={inv._id}
-                  className="bg-card p-4 rounded-xl mb-3 border border-border"
-                >
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="font-bold text-base">
-                      #{inv.invoice_number || "—"}
-                    </Text>
-                    <View
-                      className={`px-2 py-0.5 rounded text-[10px] ${inv.status === "paid" ? "bg-green-100" : "bg-yellow-100"
-                        }`}
-                    >
-                      <Text
-                        className={`text-[10px] font-bold uppercase ${inv.status === "paid"
-                          ? "text-green-700"
-                          : "text-yellow-700"
-                          }`}
-                      >
-                        {inv.status || "Pending"}
+              clientInvoices.map((inv) => {
+                if (!inv) return null;
+                return (
+                  <View
+                    key={inv._id}
+                    style={{
+                      backgroundColor: theme.card,
+                      padding: 16,
+                      borderRadius: 12,
+                      marginBottom: 12,
+                      borderWidth: 1,
+                      borderColor: theme.border
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.foreground }}>
+                        #{inv.invoice_number || "—"}
                       </Text>
-                    </View>
-                  </View>
-
-                  <View className="flex-row justify-between items-center mt-2">
-                    <Text className="text-2xl font-bold">
-                      ₹{Number(inv.total_amount || 0).toLocaleString()}
-                    </Text>
-                    <View className="flex-row gap-2">
-                      <TouchableOpacity
-                        onPress={() => generateInvoicePDF(inv)}
-                        className="bg-secondary p-2 rounded-lg"
+                      <View
+                        style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                          borderRadius: 4,
+                          backgroundColor: inv.status === "paid" ? (isDark ? '#064e3b' : '#dcfce7') : (isDark ? '#451a03' : '#fef9c3')
+                        }}
                       >
-                        <Share2 size={18} color={isDark ? "white" : "black"} />
-                      </TouchableOpacity>
-
-                      {inv.status !== "paid" && (
-                        <TouchableOpacity
-                          onPress={() => handleSettleInvoice(inv)}
-                          className="bg-green-600 px-3 py-2 rounded-lg"
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 'bold',
+                            textTransform: 'uppercase',
+                            color: inv.status === "paid" ? '#10b981' : '#f59e0b'
+                          }}
                         >
-                          <Text className="text-white font-bold text-xs">
-                            Settle
-                          </Text>
-                        </TouchableOpacity>
-                      )}
+                          {inv.status || "Pending"}
+                        </Text>
+                      </View>
                     </View>
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                      <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.foreground }}>
+                        ₹{Number(inv.total_amount || 0).toLocaleString()}
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => generateInvoicePDF(inv)}
+                          style={{ backgroundColor: theme.secondary, padding: 8, borderRadius: 8 }}
+                        >
+                          <Share2 size={18} color={theme.foreground} />
+                        </TouchableOpacity>
+
+                        {inv.status !== "paid" && (
+                          <TouchableOpacity
+                            onPress={() => handleSettleInvoice(inv)}
+                            style={{ backgroundColor: '#16a34a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
+                          >
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+                              Settle
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                    <Text style={{ fontSize: 12, color: theme.mutedForeground, marginTop: 8 }}>
+                      Date: {inv.due_date ? String(inv.due_date).split("T")[0] : "—"}
+                    </Text>
                   </View>
-                  <Text className="text-xs text-muted-foreground mt-2">
-                    Date: {inv.due_date ? String(inv.due_date).split("T")[0] : "—"}
-                  </Text>
-                </View>
-              ))
+                );
+              })
             )}
           </View>
         )}
@@ -963,21 +1002,39 @@ export default function ClientProfile() {
         {activeTab === "settled" && (
           <View>
             {entries.length === 0 ? (
-              <Text className="text-center text-muted-foreground py-8">
+              <Text style={{ textAlign: 'center', color: theme.mutedForeground, paddingVertical: 32 }}>
                 No transactions found
               </Text>
             ) : (
               entries.map((entry) => {
+                if (!entry) return null;
                 const isCredit = entry.entry_type === "credit";
+                const invoiceNum = entry.remarks?.replace("Generated from Invoice #", "") || "—";
                 return (
                   <TouchableOpacity
                     key={entry._id}
                     onLongPress={() => openEditTransaction(entry)}
-                    className="bg-card p-4 rounded-xl mb-3 flex-row items-center border border-border"
+                    style={{
+                      backgroundColor: theme.card,
+                      padding: 16,
+                      borderRadius: 12,
+                      marginBottom: 12,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: theme.border
+                    }}
                   >
                     <View
-                      className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${isCredit ? "bg-green-100" : "bg-blue-100"
-                        }`}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 12,
+                        backgroundColor: isCredit ? (isDark ? '#064e3b' : '#dcfce7') : (isDark ? '#1e3a8a' : '#dbeafe')
+                      }}
                     >
                       {isCredit ? (
                         <ArrowDownLeft size={20} color="#16a34a" />
@@ -985,25 +1042,21 @@ export default function ClientProfile() {
                         <FileText size={20} color="#2563eb" />
                       )}
                     </View>
-                    <View className="flex-1">
-                      <Text className="font-bold text-sm">
-                        {isCredit
-                          ? "Payment Received"
-                          : `Invoice #${entry.remarks?.replace(
-                            "Generated from Invoice #",
-                            ""
-                          )}`}
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 14, color: theme.foreground }}>
+                        {isCredit ? "Payment Received" : `Invoice #${invoiceNum}`}
                       </Text>
-                      <Text className="text-xs text-muted-foreground">
-                        {String(entry.entry_date).split("T")[0]} • {entry.remarks}
+                      <Text style={{ fontSize: 12, color: theme.mutedForeground }}>
+                        {entry.entry_date ? String(entry.entry_date).split("T")[0] : "—"} • {entry.remarks || "—"}
                       </Text>
                     </View>
                     <Text
-                      className={`font-bold ${isCredit ? "text-green-600" : "text-foreground"
-                        }`}
+                      style={{
+                        fontWeight: 'bold',
+                        color: isCredit ? '#16a34a' : theme.foreground
+                      }}
                     >
-                      {isCredit ? "+" : ""}₹
-                      {Number(entry.amount).toLocaleString()}
+                      {isCredit ? "+" : ""}₹{Number(entry.amount || 0).toLocaleString()}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -1132,6 +1185,38 @@ export default function ClientProfile() {
                   onChangeText={(val) => setEditFormData(prev => ({ ...prev, contact_number: val }))}
                   keyboardType="phone-pad"
                   className="border border-input rounded-xl p-3"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-muted-foreground mb-1 font-medium">Alternate Phone</Text>
+                <TextInput
+                  value={editFormData.alternate_contact_number}
+                  onChangeText={(val) => setEditFormData(prev => ({ ...prev, alternate_contact_number: val }))}
+                  keyboardType="phone-pad"
+                  className="border border-input rounded-xl p-3"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-muted-foreground mb-1 font-medium">Email</Text>
+                <TextInput
+                  value={editFormData.email_address}
+                  onChangeText={(val) => setEditFormData(prev => ({ ...prev, email_address: val }))}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  className="border border-input rounded-xl p-3"
+                />
+              </View>
+
+              <View className="mb-6">
+                <Text className="text-muted-foreground mb-1 font-medium">Office Address</Text>
+                <TextInput
+                  value={editFormData.office_address}
+                  onChangeText={(val) => setEditFormData(prev => ({ ...prev, office_address: val }))}
+                  multiline
+                  numberOfLines={3}
+                  className="border border-input rounded-xl p-3 min-h-[80px]"
                 />
               </View>
 
