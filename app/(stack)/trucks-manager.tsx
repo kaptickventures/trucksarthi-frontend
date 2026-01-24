@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { Edit3, MapPin, Plus, Trash2 } from "lucide-react-native";
+import { Edit3, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import TruckFormModal from "../../components/TruckModal";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -22,6 +22,7 @@ export default function TrucksManager() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
 
   const {
     trucks,
@@ -37,15 +38,6 @@ export default function TrucksManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const requiredFields = [
-    "registration_number",
-    "registered_owner_name",
-    "chassis_number",
-    "engine_number",
-    "container_dimension",
-    "loading_capacity",
-  ];
-
   const [formData, setFormData] = useState({
     registration_number: "",
     chassis_number: "",
@@ -54,8 +46,6 @@ export default function TrucksManager() {
     container_dimension: "",
     loading_capacity: "",
   });
-
-  const insets = useSafeAreaInsets();
 
   /* ---------------- FETCH ---------------- */
   useFocusEffect(
@@ -138,24 +128,18 @@ export default function TrucksManager() {
     ]);
   };
 
-  /* ---------------- GUARD ---------------- */
   if (loading && !user) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#888" />
-        <Text className="mt-2 text-muted-foreground">
-          Loading...
-        </Text>
+      <View style={{ backgroundColor: colors.background }} className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
-  /* ---------------- UI ---------------- */
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <StatusBar barStyle={theme === "dark" ? "light-content" : "dark-content"} />
+    <SafeAreaView style={{ backgroundColor: colors.background }} className="flex-1">
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      {/* LIST */}
       <ScrollView
         className="flex-1 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -175,48 +159,44 @@ export default function TrucksManager() {
                   params: { truck_id: truck._id },
                 })
               }
-              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
+              className="bg-card border border-border rounded-2xl p-5 mb-4 shadow-sm"
             >
-              {/* INFO */}
-              <View className="flex-row items-start flex-1">
-                <View style={{ backgroundColor: colors.secondary, padding: 8, borderRadius: 12, marginRight: 12 }}>
-                  <MapPin size={18} color={colors.primary} />
-                </View>
-
-                <View className="flex-1">
-                  <Text className="text-card-foreground font-semibold text-base">
+              <View className="flex-row justify-between items-start mb-3">
+                <View className="flex-1 mr-3">
+                  <Text style={{ color: colors.foreground }} className="font-bold text-lg uppercase tracking-tight">
                     {truck.registration_number}
                   </Text>
-                  <Text className="text-muted-foreground text-xs mt-1">
-                    {truck.registered_owner_name}
+                  <Text className="text-muted-foreground text-xs font-medium uppercase tracking-widest mt-0.5">
+                    {truck.vehicle_class || "HCV"} • FLEET UNIT
                   </Text>
+                </View>
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation(); openModal(true, truck); }}
+                    className="w-10 h-10 bg-muted rounded-full items-center justify-center border border-border/20"
+                  >
+                    <Edit3 size={16} color={colors.foreground} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation(); handleDelete(truck._id); }}
+                    className="w-10 h-10 bg-red-500/10 rounded-full items-center justify-center"
+                  >
+                    <Trash2 size={16} color="#ef4444" />
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              {/* ACTIONS */}
-              <View className="flex-row items-center ml-3">
-                <TouchableOpacity
-                  onPressIn={(e) => e.stopPropagation()}
-                  onPress={() => openModal(true, truck)}
-                  className="p-2"
-                >
-                  <Edit3 size={20} color={colors.mutedForeground} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPressIn={(e) => e.stopPropagation()}
-                  onPress={() => handleDelete(truck._id)}
-                  className="p-2"
-                >
-                  <Trash2 size={20} color={colors.mutedForeground} />
-                </TouchableOpacity>
+              <View className="gap-y-1.5 pt-1">
+                <Text style={{ color: colors.foreground }} className="text-sm font-medium">🏢 {truck.registered_owner_name}</Text>
+                <Text style={{ color: colors.foreground }} className="text-sm font-medium">📦 {truck.loading_capacity ? `${truck.loading_capacity} Tons` : "Capacity N/A"} • {truck.container_dimension || "Dim. N/A"}</Text>
               </View>
             </TouchableOpacity>
           ))
         )}
       </ScrollView>
 
-      {/* FAB */}
+      {/* Floating Add Button */}
       <TouchableOpacity
         onPress={() => openModal(false)}
         className="absolute bottom-8 right-6 w-16 h-16 rounded-full justify-center items-center"

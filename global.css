@@ -49,7 +49,7 @@
     --chart-5: 0 70% 55%;
   }
 
-  .dark:root {
+  .dark {
     /* === WhatsApp Dark Mode === */
     --background: 210 28% 10%;               /* #111B21 */
     --foreground: 0 0% 95%;                  /* #EDEDED */

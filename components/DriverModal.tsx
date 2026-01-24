@@ -17,6 +17,7 @@ import {
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useThemeStore } from "../hooks/useThemeStore";
 import { getFileUrl } from "../lib/utils";
 
 type DriverFormData = {
@@ -43,6 +44,8 @@ export default function DriverFormModal({
     onSubmit,
     onClose,
 }: Props) {
+    const { colors, theme } = useThemeStore();
+    const isDark = theme === "dark";
     const translateY = useRef(new Animated.Value(0)).current;
     const insets = useSafeAreaInsets();
     const SCROLL_THRESHOLD = 40;
@@ -50,7 +53,7 @@ export default function DriverFormModal({
     const closeModal = () => {
         Animated.timing(translateY, {
             toValue: 800,
-            duration: 200,
+            duration: 250,
             useNativeDriver: true,
         }).start(() => {
             translateY.setValue(0);
@@ -67,10 +70,10 @@ export default function DriverFormModal({
             onPanResponderRelease: (_, state) => {
                 if (state.dy > 120) closeModal();
                 else {
-                    Animated.timing(translateY, {
+                    Animated.spring(translateY, {
                         toValue: 0,
-                        duration: 150,
                         useNativeDriver: true,
+                        bounciness: 4
                     }).start();
                 }
             },
@@ -100,14 +103,15 @@ export default function DriverFormModal({
 
     return (
         <Modal visible={visible} transparent animationType="fade">
-            <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
+            <Pressable className="flex-1 bg-black/60" onPress={closeModal}>
                 <Animated.View
                     {...panResponder.panHandlers}
-                    className="absolute bottom-0 w-full bg-background rounded-t-3xl"
+                    className="absolute bottom-0 w-full rounded-t-[42px]"
                     style={{
-                        height: "100%",
-                        paddingHorizontal: 20,
-                        paddingTop: insets.top + 20,
+                        backgroundColor: colors.background,
+                        height: "90%",
+                        paddingHorizontal: 24,
+                        paddingTop: 12,
                         transform: [{ translateY }],
                     }}
                 >
@@ -116,115 +120,126 @@ export default function DriverFormModal({
                         className="flex-1"
                     >
                         {/* Grab Handle */}
-                        <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
+                        <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-6 opacity-40" />
 
                         {/* Header */}
-                        <View className="flex-row justify-between items-center mb-5">
-                            <Text className="text-2xl font-semibold">
-                                {editing ? "Edit Driver" : "Add Driver"}
-                            </Text>
-                            <TouchableOpacity onPress={closeModal}>
-                                <X size={28} color="#888" />
+                        <View className="flex-row justify-between items-center mb-8 px-2">
+                            <View>
+                                <Text style={{ color: colors.foreground }} className="text-2xl font-black tracking-tight">
+                                    {editing ? "Update Profile" : "Register Driver"}
+                                </Text>
+                                <Text className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-widest">
+                                    Driver Information
+                                </Text>
+                            </View>
+                            <TouchableOpacity onPress={closeModal} className="w-10 h-10 bg-muted rounded-full items-center justify-center">
+                                <X size={22} color={colors.foreground} />
                             </TouchableOpacity>
                         </View>
 
                         {/* Form */}
                         <ScrollView showsVerticalScrollIndicator={false}>
-                            <View className="mb-4">
-                                <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                                    Driver Name <Text className="text-red-500">*</Text>
-                                </Text>
-                                <TextInput
-                                    className="border border-input rounded-xl p-3"
-                                    value={formData.driver_name}
-                                    onChangeText={(val) => setFormData({ ...formData, driver_name: val })}
-                                    placeholder="Enter driver name"
-                                />
-                            </View>
-
-                            <View className="mb-4">
-                                <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                                    Contact Number <Text className="text-red-500">*</Text>
-                                </Text>
-                                <TextInput
-                                    className="border border-input rounded-xl p-3"
-                                    value={formData.contact_number}
-                                    onChangeText={(val) => setFormData({ ...formData, contact_number: val })}
-                                    placeholder="Enter contact number"
-                                    keyboardType="phone-pad"
-                                />
-                            </View>
-
-                            {/* Identity Card */}
-                            <View className="mb-4">
-                                <Text className="text-muted-foreground mb-1 font-medium">
-                                    Identity Card Photo
-                                </Text>
-                                {formData.identity_card_url !== "" && (
-                                    <Image
-                                        source={{ uri: getFileUrl(formData.identity_card_url) || formData.identity_card_url }}
+                            <View className="gap-6 pb-12">
+                                <View>
+                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+                                        Full Name <Text style={{ color: colors.destructive }}>*</Text>
+                                    </Text>
+                                    <TextInput
+                                        className="rounded-2xl p-4 text-base font-bold"
                                         style={{
-                                            width: "100%",
-                                            height: 160,
-                                            borderRadius: 12,
-                                            marginBottom: 10,
+                                            backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                                            color: colors.foreground,
+                                            borderWidth: 1,
+                                            borderColor: isDark ? colors.border : colors.border + '30'
                                         }}
+                                        value={formData.driver_name}
+                                        onChangeText={(val) => setFormData({ ...formData, driver_name: val })}
+                                        placeholder="Enter full name"
+                                        placeholderTextColor={colors.mutedForeground + '60'}
                                     />
-                                )}
+                                </View>
+
+                                <View>
+                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+                                        Contact Number <Text style={{ color: colors.destructive }}>*</Text>
+                                    </Text>
+                                    <TextInput
+                                        className="rounded-2xl p-4 text-base font-bold"
+                                        style={{
+                                            backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                                            color: colors.foreground,
+                                            borderWidth: 1,
+                                            borderColor: isDark ? colors.border : colors.border + '30'
+                                        }}
+                                        value={formData.contact_number}
+                                        onChangeText={(val) => setFormData({ ...formData, contact_number: val })}
+                                        placeholder="Mobile number"
+                                        placeholderTextColor={colors.mutedForeground + '60'}
+                                        keyboardType="phone-pad"
+                                    />
+                                </View>
+
+                                {/* Identity Card */}
+                                <View>
+                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-3 ml-1">
+                                        Aadhaar / ID Proof
+                                    </Text>
+                                    {formData.identity_card_url !== "" ? (
+                                        <TouchableOpacity onPress={() => pickImage("identity_card_url")} activeOpacity={0.9}>
+                                            <Image
+                                                source={{ uri: getFileUrl(formData.identity_card_url) || formData.identity_card_url }}
+                                                className="w-full h-44 rounded-3xl mb-2"
+                                                style={{ backgroundColor: colors.muted }}
+                                            />
+                                            <Text className="text-center text-primary font-bold text-xs">Tap to change photo</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <TouchableOpacity
+                                            onPress={() => pickImage("identity_card_url")}
+                                            style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', borderStyle: 'dotted', borderColor: colors.border }}
+                                            className="w-full h-32 rounded-3xl border-2 items-center justify-center"
+                                        >
+                                            <Text style={{ color: colors.mutedForeground }} className="font-bold">Upload Aadhaar Photo</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+
+                                {/* License Card */}
+                                <View>
+                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-3 ml-1">
+                                        Driving License
+                                    </Text>
+                                    {formData.license_card_url !== "" ? (
+                                        <TouchableOpacity onPress={() => pickImage("license_card_url")} activeOpacity={0.9}>
+                                            <Image
+                                                source={{ uri: getFileUrl(formData.license_card_url) || formData.license_card_url }}
+                                                className="w-full h-44 rounded-3xl mb-2"
+                                                style={{ backgroundColor: colors.muted }}
+                                            />
+                                            <Text className="text-center text-primary font-bold text-xs">Tap to change photo</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <TouchableOpacity
+                                            onPress={() => pickImage("license_card_url")}
+                                            style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', borderStyle: 'dotted', borderColor: colors.border }}
+                                            className="w-full h-32 rounded-3xl border-2 items-center justify-center"
+                                        >
+                                            <Text style={{ color: colors.mutedForeground }} className="font-bold">Upload License Photo</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+
+                                {/* Actions */}
                                 <TouchableOpacity
-                                    onPress={() => pickImage("identity_card_url")}
-                                    className="bg-secondary p-3 rounded-xl"
+                                    onPress={onSubmit}
+                                    style={{ backgroundColor: colors.primary }}
+                                    className="py-5 rounded-[22px] mt-6 shadow-lg shadow-green-500/20"
                                 >
-                                    <Text className="text-center">
-                                        {formData.identity_card_url ? "Change Photo" : "Upload Photo"}
+                                    <Text style={{ color: colors.primaryForeground }} className="text-center font-black text-lg">
+                                        {editing ? "Apply Changes" : "Register Driver"}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
-
-                            {/* License Card */}
-                            <View className="mb-4">
-                                <Text className="text-muted-foreground mb-1 font-medium">
-                                    License Card Photo
-                                </Text>
-                                {formData.license_card_url !== "" && (
-                                    <Image
-                                        source={{ uri: getFileUrl(formData.license_card_url) || formData.license_card_url }}
-                                        style={{
-                                            width: "100%",
-                                            height: 160,
-                                            borderRadius: 12,
-                                            marginBottom: 10,
-                                        }}
-                                    />
-                                )}
-                                <TouchableOpacity
-                                    onPress={() => pickImage("license_card_url")}
-                                    className="bg-secondary p-3 rounded-xl"
-                                >
-                                    <Text className="text-center">
-                                        {formData.license_card_url ? "Change Photo" : "Upload Photo"}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* Save */}
-                            <TouchableOpacity
-                                onPress={onSubmit}
-                                className="bg-primary p-4 rounded-xl mb-3"
-                            >
-                                <Text className="text-center text-primary-foreground font-semibold">
-                                    {editing ? "Update" : "Save"}
-                                </Text>
-                            </TouchableOpacity>
-
-                            {/* Cancel */}
-                            <TouchableOpacity
-                                onPress={closeModal}
-                                className="border border-border p-4 rounded-xl"
-                            >
-                                <Text className="text-center text-muted-foreground">Cancel</Text>
-                            </TouchableOpacity>
-                            <View className="h-10" />
                         </ScrollView>
                     </KeyboardAvoidingView>
                 </Animated.View>

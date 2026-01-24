@@ -1,28 +1,21 @@
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { Clock, Home, PlusCircle } from "lucide-react-native";
-import React from "react";
-import { Platform, StatusBar, useColorScheme } from "react-native";
+import { Platform, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { THEME } from "../..//theme"; // adjust path if needed
+import { useThemeStore } from "../../hooks/useThemeStore";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { theme, colors } = useThemeStore();
+  const isDark = theme === "dark";
 
   // Theme-based colors
-  const backgroundColor = isDark ? THEME.dark.card : THEME.light.card;
-  const tabBarBorderColor = isDark ? THEME.dark.border : THEME.light.border;
-
-  // 💚 WhatsApp green active icons
-  const activeTintColor = isDark ? THEME.dark.primary : THEME.light.primary;
-
-  // Muted greys for inactive tabs
-  const inactiveTintColor = isDark
-    ? THEME.dark.mutedForeground
-    : THEME.light.mutedForeground;
+  const backgroundColor = colors.card;
+  const tabBarBorderColor = colors.border;
+  const activeTintColor = colors.primary;
+  const inactiveTintColor = colors.mutedForeground;
 
   if (Platform.OS === "ios") {
     return (
@@ -58,8 +51,8 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: activeTintColor,      // WhatsApp green
-          tabBarInactiveTintColor: inactiveTintColor,  // muted grey
+          tabBarActiveTintColor: activeTintColor,
+          tabBarInactiveTintColor: inactiveTintColor,
 
           tabBarStyle: {
             backgroundColor,
@@ -71,7 +64,7 @@ export default function TabLayout() {
           },
 
           sceneStyle: {
-            backgroundColor,
+            backgroundColor: colors.background,
           },
           lazy: true,
         }}

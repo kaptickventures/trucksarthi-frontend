@@ -9,15 +9,19 @@ import "../global.css";
 import { ThemeStoreProvider, useThemeStore } from "../hooks/useThemeStore";
 import { NAV_THEME } from "../theme";
 
+import { View } from "react-native";
+
 function MainLayout() {
   const { theme } = useThemeStore();
 
   return (
     <ThemeProvider value={NAV_THEME[theme]}>
-      <StatusBar
-        barStyle={theme === "dark" ? "light-content" : "dark-content"}
-      />
-      <Slot />
+      <View style={{ flex: 1 }} className={theme === "dark" ? "dark" : ""}>
+        <StatusBar
+          barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        />
+        <Slot />
+      </View>
     </ThemeProvider>
   );
 }

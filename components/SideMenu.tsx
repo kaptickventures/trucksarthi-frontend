@@ -10,14 +10,13 @@ import {
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  useColorScheme,
   View,
 } from "react-native";
 import "../global.css";
 import { logout } from "../hooks/useAuth";
+import { useThemeStore } from "../hooks/useThemeStore";
 import { useUser } from "../hooks/useUser";
 import { getFileUrl } from "../lib/utils";
-import { THEME } from "../theme";
 
 // 👉 Added Lucide Icon
 import { Clock } from "lucide-react-native";
@@ -49,22 +48,10 @@ export default function SideMenu({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const theme = THEME[colorScheme === "dark" ? "dark" : "light"];
+  const { colors, theme } = useThemeStore();
   const { user, loading } = useUser();
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
-
-  const colors = {
-    background: theme.background,
-    overlay: "rgba(0,0,0,0.45)",
-    text: theme.foreground,
-    subtext: theme.mutedForeground,
-    icon: theme.foreground,
-    avatarBg: theme.muted,
-    divider: theme.border,
-    highlight: theme.primary,
-  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -109,7 +96,7 @@ export default function SideMenu({
             style={{
               position: "absolute",
               inset: 0,
-              backgroundColor: colors.overlay,
+              backgroundColor: "rgba(0,0,0,0.45)",
               zIndex: 9998,
             }}
           />
@@ -137,7 +124,7 @@ export default function SideMenu({
             <View className="flex-row items-center mb-10">
               <View
                 className="w-16 h-16 rounded-full overflow-hidden items-center justify-center"
-                style={{ backgroundColor: colors.avatarBg }}
+                style={{ backgroundColor: colors.muted }}
               >
                 {user?.profile_picture_url ? (
                   <Image
@@ -148,17 +135,17 @@ export default function SideMenu({
                   <Ionicons
                     name="person-circle-outline"
                     size={58}
-                    color={colors.icon}
+                    color={colors.foreground}
                     style={{ opacity: 0.6 }}
                   />
                 )}
               </View>
 
               <View className="ml-4">
-                <Text className="text-xl font-semibold" style={{ color: colors.text }}>
+                <Text className="text-xl font-semibold" style={{ color: colors.foreground }}>
                   {loading ? "Loading..." : user?.name || "Guest"}
                 </Text>
-                <Text className="text-sm" style={{ color: colors.subtext }}>
+                <Text className="text-sm" style={{ color: colors.mutedForeground }}>
                   {user?.email || ""}
                 </Text>
               </View>
@@ -166,7 +153,7 @@ export default function SideMenu({
           </TouchableOpacity>
 
           {/* MAIN MENU */}
-          <Text className="text-base font-semibold mb-3" style={{ color: colors.subtext }}>
+          <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
             MAIN MENU
           </Text>
 
@@ -177,12 +164,12 @@ export default function SideMenu({
               className="flex-row items-center py-4"
             >
               {item.title === "Trip Log" ? (
-                <Clock size={24} color={colors.icon} />
+                <Clock size={24} color={colors.foreground} />
               ) : (
-                <Ionicons name={item.icon as any} size={24} color={colors.icon} />
+                <Ionicons name={item.icon as any} size={24} color={colors.foreground} />
               )}
 
-              <Text className="ml-4 text-lg" style={{ color: colors.text }}>
+              <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
                 {item.title}
               </Text>
             </TouchableOpacity>
@@ -190,7 +177,7 @@ export default function SideMenu({
 
           {/* MANAGER SECTION */}
           <View className="mt-8 mb-6">
-            <Text className="text-base font-semibold mb-3" style={{ color: colors.subtext }}>
+            <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
               MANAGER
             </Text>
 
@@ -200,8 +187,8 @@ export default function SideMenu({
                 onPress={() => navigate(item.route)}
                 className="flex-row items-center py-4"
               >
-                <Ionicons name={item.icon as any} size={24} color={colors.icon} />
-                <Text className="ml-4 text-lg" style={{ color: colors.text }}>
+                <Ionicons name={item.icon as any} size={24} color={colors.foreground} />
+                <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
                   {item.title}
                 </Text>
               </TouchableOpacity>

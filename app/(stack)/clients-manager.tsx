@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { MapPin, Plus, Trash2 } from "lucide-react-native";
+import { Edit3, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,13 +11,14 @@ import {
   StatusBar,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ClientFormModal from "../../components/ClientModal";
 import useClients from "../../hooks/useClient";
+import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
+import { THEME } from "../../theme";
 
 export default function ClientsManager() {
   const router = useRouter();
@@ -34,7 +35,8 @@ export default function ClientsManager() {
 
   const loading = userLoading || clientsLoading;
 
-  const isDark = useColorScheme() === "dark";
+  const { theme, colors } = useThemeStore();
+  const isDark = theme === "dark";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -187,32 +189,38 @@ export default function ClientsManager() {
                   params: { clientId: client._id }
                 })
               }
-              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
+              className="bg-card border border-border rounded-2xl p-5 mb-4 shadow-sm"
             >
-              <View className="flex-row items-start flex-1">
-                <View className="p-2 bg-secondary rounded-xl mr-3">
-                  <MapPin size={18} color="#2563EB" />
-                </View>
-
-                <View className="flex-1">
-                  <Text className="text-card-foreground font-semibold text-base">
+              <View className="flex-row justify-between items-start mb-3">
+                <View className="flex-1 mr-3">
+                  <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="font-bold text-lg tracking-tight">
                     {client.client_name}
                   </Text>
-                  <Text className="text-muted-foreground text-xs mt-1">
-                    {client.contact_person_name}
+                  <Text className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mt-1">
+                    Verified Partner
                   </Text>
+                </View>
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation(); openModal(true, client); }}
+                    className="w-10 h-10 bg-muted rounded-full items-center justify-center border border-border/20"
+                  >
+                    <Edit3 size={16} color={isDark ? THEME.dark.foreground : THEME.light.foreground} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation(); handleDelete(client._id); }}
+                    className="w-10 h-10 bg-red-500/10 rounded-full items-center justify-center"
+                  >
+                    <Trash2 size={16} color="#ef4444" />
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              <View className="flex-row items-center ml-3">
-
-                <TouchableOpacity
-                  onPressIn={(e) => e.stopPropagation()}
-                  onPress={() => handleDelete(client._id)}
-                  className="p-2"
-                >
-                  <Trash2 size={20} color="#999" />
-                </TouchableOpacity>
+              <View className="gap-y-1.5 pt-1">
+                <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-medium">👤 POC: {client.contact_person_name || "N/A"}</Text>
+                <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-medium">📞 {client.contact_number}</Text>
+                <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-medium" numberOfLines={1}>📍 {client.office_address || "Address N/A"}</Text>
               </View>
             </TouchableOpacity>
           ))

@@ -1,7 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { Edit3, MapPin, Plus, Trash2 } from "lucide-react-native";
+import { Edit3, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -181,45 +181,37 @@ export default function DriversManager() {
                     },
                   })
                 }
-                className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
+                className="bg-card border border-border rounded-2xl p-5 mb-4 shadow-sm"
               >
-                <View className="flex-row justify-between items-center">
-                  <View className="flex-row items-start flex-1">
-                    <View style={{ backgroundColor: colors.secondary, padding: 8, borderRadius: 12, marginRight: 12 }}>
-                      <MapPin size={18} color={colors.primary} />
-                    </View>
-
-                    <View className="flex-1">
-                      <Text className="text-card-foreground font-semibold text-base">
-                        {driver.driver_name}
-                      </Text>
-                      <Text className="text-muted-foreground text-xs mt-1">
-                        {driver.contact_number}
-                      </Text>
-                    </View>
+                <View className="flex-row justify-between items-start mb-3">
+                  <View className="flex-1 mr-3">
+                    <Text style={{ color: colors.foreground }} className="font-bold text-lg tracking-tight">
+                      {driver.driver_name}
+                    </Text>
+                    <Text className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mt-1">
+                      Commercial Operator
+                    </Text>
                   </View>
-
-                  <View className="flex-row items-center ml-3">
+                  <View className="flex-row gap-2">
                     <TouchableOpacity
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        openModal(true, driver);
-                      }}
-                      className="p-2"
+                      onPress={(e) => { e.stopPropagation(); openModal(true, driver); }}
+                      className="w-10 h-10 bg-muted rounded-full items-center justify-center border border-border/20"
                     >
-                      <Edit3 size={20} color={colors.mutedForeground} />
+                      <Edit3 size={16} color={colors.foreground} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        handleDelete(driver._id);
-                      }}
-                      className="p-2"
+                      onPress={(e) => { e.stopPropagation(); handleDelete(driver._id); }}
+                      className="w-10 h-10 bg-red-500/10 rounded-full items-center justify-center"
                     >
-                      <Trash2 size={20} color={colors.mutedForeground} />
+                      <Trash2 size={16} color="#ef4444" />
                     </TouchableOpacity>
                   </View>
+                </View>
+
+                <View className="gap-y-1.5 pt-1">
+                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">📞 {driver.contact_number}</Text>
+                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">📜 {driver.license_card_url ? "License Registered" : "License Missing"}</Text>
                 </View>
               </TouchableOpacity>
             );

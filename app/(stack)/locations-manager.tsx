@@ -1,5 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { Edit3, MapPin, Plus, Trash2 } from "lucide-react-native";
+import { Edit3, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -127,34 +127,36 @@ export default function LocationsManager() {
           locations.map((loc) => (
             <View
               key={loc._id}
-              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
+              className="bg-card border border-border rounded-2xl p-5 mb-4 shadow-sm"
             >
-              <View className="flex-row items-start flex-1">
-                <View className="p-2 bg-secondary rounded-xl mr-3">
-                  <MapPin size={18} color="#2563EB" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-card-foreground font-semibold text-base">
+              <View className="flex-row justify-between items-start mb-3">
+                <View className="flex-1 mr-3">
+                  <Text style={{ color: isDark ? "#FFF" : "#000" }} className="font-bold text-lg tracking-tight">
                     {loc.location_name}
                   </Text>
-                  <Text className="text-muted-foreground text-xs mt-1">
-                    {loc.complete_address}
+                  <Text className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mt-1">
+                    Verified Hub
                   </Text>
                 </View>
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    onPress={() => openModal(true, loc)}
+                    className="w-10 h-10 bg-muted rounded-full items-center justify-center border border-border/20"
+                  >
+                    <Edit3 size={16} color={isDark ? "#FFF" : "#000"} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handleDelete(loc._id)}
+                    className="w-10 h-10 bg-red-500/10 rounded-full items-center justify-center"
+                  >
+                    <Trash2 size={16} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View className="flex-row items-center ml-3">
-                <TouchableOpacity
-                  onPress={() => openModal(true, loc)}
-                  className="p-2"
-                >
-                  <Edit3 size={20} color="#999" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDelete(loc._id)}
-                  className="p-2"
-                >
-                  <Trash2 size={20} color="#999" />
-                </TouchableOpacity>
+
+              <View className="gap-y-1.5 pt-1">
+                <Text style={{ color: isDark ? "#F3F4F6" : "#4B5563" }} className="text-sm font-medium">📍 {loc.complete_address}</Text>
               </View>
             </View>
           ))

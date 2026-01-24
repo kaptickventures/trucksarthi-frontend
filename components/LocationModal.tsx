@@ -14,6 +14,7 @@ import {
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useThemeStore } from "../hooks/useThemeStore";
 
 type LocationFormData = {
     location_name: string;
@@ -37,6 +38,8 @@ export default function LocationFormModal({
     onSubmit,
     onClose,
 }: Props) {
+    const { colors, theme } = useThemeStore();
+    const isDark = theme === "dark";
     const translateY = useRef(new Animated.Value(0)).current;
     const insets = useSafeAreaInsets();
     const SCROLL_THRESHOLD = 40;
@@ -44,7 +47,7 @@ export default function LocationFormModal({
     const closeModal = () => {
         Animated.timing(translateY, {
             toValue: 800,
-            duration: 200,
+            duration: 250,
             useNativeDriver: true,
         }).start(() => {
             translateY.setValue(0);
@@ -61,10 +64,10 @@ export default function LocationFormModal({
             onPanResponderRelease: (_, state) => {
                 if (state.dy > 120) closeModal();
                 else {
-                    Animated.timing(translateY, {
+                    Animated.spring(translateY, {
                         toValue: 0,
-                        duration: 150,
                         useNativeDriver: true,
+                        bounciness: 4
                     }).start();
                 }
             },
@@ -73,14 +76,15 @@ export default function LocationFormModal({
 
     return (
         <Modal visible={visible} transparent animationType="fade">
-            <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
+            <Pressable className="flex-1 bg-black/60" onPress={closeModal}>
                 <Animated.View
                     {...panResponder.panHandlers}
-                    className="absolute bottom-0 w-full bg-background rounded-t-3xl"
+                    className="absolute bottom-0 w-full rounded-t-[42px]"
                     style={{
-                        height: "100%",
-                        paddingHorizontal: 20,
-                        paddingTop: insets.top + 20,
+                        backgroundColor: colors.background,
+                        height: "80%",
+                        paddingHorizontal: 24,
+                        paddingTop: 12,
                         transform: [{ translateY }],
                     }}
                 >
@@ -88,60 +92,77 @@ export default function LocationFormModal({
                         behavior={Platform.OS === "ios" ? "padding" : "height"}
                         className="flex-1"
                     >
-                        <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
+                        {/* Grab Handle */}
+                        <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-6 opacity-40" />
 
-                        <View className="flex-row justify-between items-center mb-5">
-                            <Text className="text-2xl font-semibold">
-                                {editing ? "Edit Location" : "Add Location"}
-                            </Text>
-                            <TouchableOpacity onPress={closeModal}>
-                                <X size={28} color="#888" />
+                        {/* Header */}
+                        <View className="flex-row justify-between items-center mb-8 px-2">
+                            <View>
+                                <Text style={{ color: colors.foreground }} className="text-2xl font-black tracking-tight">
+                                    {editing ? "Edit Point" : "Add Location"}
+                                </Text>
+                                <Text className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-widest">
+                                    Network Access Point
+                                </Text>
+                            </View>
+                            <TouchableOpacity onPress={closeModal} className="w-10 h-10 bg-muted rounded-full items-center justify-center">
+                                <X size={22} color={colors.foreground} />
                             </TouchableOpacity>
                         </View>
 
                         <ScrollView showsVerticalScrollIndicator={false}>
-                            <View className="mb-4">
-                                <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                                    Location Name <Text className="text-red-500">*</Text>
-                                </Text>
-                                <TextInput
-                                    className="border border-input rounded-xl p-3"
-                                    value={formData.location_name}
-                                    onChangeText={(val) => setFormData({ ...formData, location_name: val })}
-                                    placeholder="e.g. Pune, Mumbai Warehouse"
-                                />
+                            <View className="gap-6 pb-12">
+                                <View>
+                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+                                        Location Alias <Text style={{ color: colors.destructive }}>*</Text>
+                                    </Text>
+                                    <TextInput
+                                        className="rounded-2xl p-4 text-base font-bold"
+                                        style={{
+                                            backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                                            color: colors.foreground,
+                                            borderWidth: 1,
+                                            borderColor: isDark ? colors.border : colors.border + '30'
+                                        }}
+                                        value={formData.location_name}
+                                        onChangeText={(val) => setFormData({ ...formData, location_name: val })}
+                                        placeholder="e.g. Warehouse 1, Pune Main"
+                                        placeholderTextColor={colors.mutedForeground + '60'}
+                                    />
+                                </View>
+
+                                <View>
+                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+                                        Full Postal Address <Text style={{ color: colors.destructive }}>*</Text>
+                                    </Text>
+                                    <TextInput
+                                        className="rounded-2xl p-4 text-base font-bold min-h-[120px]"
+                                        style={{
+                                            backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                                            color: colors.foreground,
+                                            borderWidth: 1,
+                                            borderColor: isDark ? colors.border : colors.border + '30'
+                                        }}
+                                        value={formData.complete_address}
+                                        onChangeText={(val) => setFormData({ ...formData, complete_address: val })}
+                                        placeholder="Street, Landmark, City..."
+                                        placeholderTextColor={colors.mutedForeground + '60'}
+                                        multiline
+                                        numberOfLines={4}
+                                        textAlignVertical="top"
+                                    />
+                                </View>
+
+                                <TouchableOpacity
+                                    onPress={onSubmit}
+                                    style={{ backgroundColor: colors.primary }}
+                                    className="py-5 rounded-[22px] mt-6 shadow-lg shadow-green-500/20"
+                                >
+                                    <Text style={{ color: colors.primaryForeground }} className="text-center font-black text-lg">
+                                        {editing ? "Update Record" : "Save Location"}
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
-
-                            <View className="mb-6">
-                                <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                                    Complete Address <Text className="text-red-500">*</Text>
-                                </Text>
-                                <TextInput
-                                    className="border border-input rounded-xl p-3"
-                                    value={formData.complete_address}
-                                    onChangeText={(val) => setFormData({ ...formData, complete_address: val })}
-                                    placeholder="Enter full address"
-                                    multiline
-                                    numberOfLines={3}
-                                />
-                            </View>
-
-                            <TouchableOpacity
-                                onPress={onSubmit}
-                                className="bg-primary p-4 rounded-xl mb-3"
-                            >
-                                <Text className="text-center text-primary-foreground font-semibold">
-                                    {editing ? "Update" : "Save"}
-                                </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                onPress={closeModal}
-                                className="border border-border p-4 rounded-xl"
-                            >
-                                <Text className="text-center text-muted-foreground">Cancel</Text>
-                            </TouchableOpacity>
-                            <View className="h-10" />
                         </ScrollView>
                     </KeyboardAvoidingView>
                 </Animated.View>

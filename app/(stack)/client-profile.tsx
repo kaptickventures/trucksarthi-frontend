@@ -4,7 +4,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { ArrowDownLeft, Banknote, Building2, Edit, FileText, Plus, Share2, X } from "lucide-react-native";
+import { ArrowDownLeft, Banknote, Building2, Edit, FileText, MapPin, Plus, Share2, X } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -21,7 +21,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useColorScheme,
   View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -31,15 +30,15 @@ import { ClientLedger, useClientLedger } from "../../hooks/useClientLedger";
 import useDrivers from "../../hooks/useDriver";
 import { Invoice, useInvoices } from "../../hooks/useInvoice";
 import useLocations from "../../hooks/useLocation";
+import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrips, { Trip } from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
-import { THEME } from "../../theme";
 
 export default function ClientProfile() {
   const router = useRouter();
-  const isDark = useColorScheme() === "dark";
-  const theme = isDark ? THEME.dark : THEME.light;
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
   const { user, loading: userLoading } = useUser();
 
   /* ---------------- ROUTE PARAM ---------------- */
@@ -593,23 +592,23 @@ export default function ClientProfile() {
   /* ---------------- GUARDS ---------------- */
   if (userLoading || clientsLoading || !id) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
-        <ActivityIndicator size="large" color={theme.primary} />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (!client) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
-        <Text style={{ color: theme.mutedForeground }}>Client not found</Text>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
+        <Text style={{ color: colors.mutedForeground }}>Client not found</Text>
       </View>
     );
   }
 
   /* ---------------- UI ---------------- */
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -617,10 +616,10 @@ export default function ClientProfile() {
           <Ionicons
             name="arrow-back"
             size={24}
-            color={isDark ? "#FFF" : "#000"}
+            color={colors.foreground}
           />
         </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: '600', color: theme.foreground }}>Client Profile</Text>
+        <Text style={{ fontSize: 18, fontWeight: '600', color: colors.foreground }}>Client Profile</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -630,24 +629,24 @@ export default function ClientProfile() {
         showsVerticalScrollIndicator={false}
       >
         {/* Client Card */}
-        <View style={{ backgroundColor: theme.card, borderRadius: 16, padding: 16, marginBottom: 24 }}>
+        <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{ width: 56, height: 56, backgroundColor: theme.secondary, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+            <View style={{ width: 56, height: 56, backgroundColor: colors.secondary, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
               <Building2 size={26} color="#16a34a" />
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: theme.foreground }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: colors.foreground }}>
                 {client.client_name}
               </Text>
-              <Text style={{ fontSize: 12, color: theme.mutedForeground }}>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
                 {client.contact_person_name || "—"}
               </Text>
             </View>
 
             {/* EDIT CLIENT BUTTON */}
-            <TouchableOpacity onPress={openEditModal} style={{ backgroundColor: theme.muted, padding: 8, borderRadius: 20 }}>
-              <Edit size={16} color={theme.foreground} />
+            <TouchableOpacity onPress={openEditModal} style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}>
+              <Edit size={16} color={colors.foreground} />
             </TouchableOpacity>
           </View>
 
@@ -659,9 +658,9 @@ export default function ClientProfile() {
                 client.contact_number &&
                 Linking.openURL(`tel:${client.contact_number}`)
               }
-              style={{ flex: 1, backgroundColor: theme.muted, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
+              style={{ flex: 1, backgroundColor: colors.muted, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
-              <Text style={{ fontWeight: '600', fontSize: 14, color: theme.foreground }}>📞 Call</Text>
+              <Text style={{ fontWeight: '600', fontSize: 14, color: colors.foreground }}>📞 Call</Text>
             </TouchableOpacity>
 
             {/* WHATSAPP */}
@@ -688,15 +687,120 @@ export default function ClientProfile() {
           <SummaryCard label="Settled" value={settledAmount} green />
         </View>
 
+        {/* Tabs */}
+        <View className="flex-row mb-6 bg-muted/30 p-1 rounded-2xl">
+          {(["unbilled", "billed", "settled"] as const).map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              className={`flex-1 py-3 items-center rounded-xl ${activeTab === tab ? "bg-background" : ""}`}
+              style={activeTab === tab ? {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 2,
+              } : {}}
+            >
+              <Text className={`capitalize font-bold text-xs ${activeTab === tab ? "text-foreground" : "text-muted-foreground"}`}>{tab}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Tab Content */}
+        {activeTab === "unbilled" && (
+          <View>
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-lg font-bold text-foreground">Pending Trips</Text>
+              {selectedTrips.length > 0 && (
+                <TouchableOpacity onPress={handleGenerateInvoice} className="bg-primary px-4 py-2 rounded-lg">
+                  <Text className="text-white font-bold text-xs">Generate Invoice ({selectedTrips.length})</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {clientTrips.filter(t => normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced").map(trip => (
+              <TouchableOpacity
+                key={getId(trip)}
+                onPress={() => toggleTripSelection(getId(trip))}
+                className={`bg-card p-4 rounded-2xl mb-3 border ${selectedTrips.includes(getId(trip)) ? "border-primary" : "border-border/50"}`}
+              >
+                <View className="flex-row justify-between items-start mb-2">
+                  <View>
+                    <Text className="text-foreground font-bold">Trip #{getId(trip).slice(-6)}</Text>
+                    <Text className="text-muted-foreground text-xs">{trip.trip_date ? new Date(trip.trip_date as string).toLocaleDateString() : "N/A"}</Text>
+                  </View>
+                  <Text className="text-foreground font-bold text-lg">₹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
+                </View>
+                <View className="flex-row items-center gap-2">
+                  <MapPin size={14} color={colors.mutedForeground} />
+                  <Text className="text-muted-foreground text-xs" numberOfLines={1}>
+                    {locationMap[getId(trip.start_location)]} → {locationMap[getId(trip.end_location)]}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {activeTab === "billed" && (
+          <View>
+            <Text className="text-lg font-bold text-foreground mb-4">Invoices</Text>
+            {clientInvoices.map(invoice => (
+              <View key={getId(invoice)} className="bg-card p-4 rounded-2xl mb-3 border border-border/50">
+                <View className="flex-row justify-between items-center mb-3">
+                  <View>
+                    <Text className="text-foreground font-bold">Invoice #{invoice.invoice_number}</Text>
+                    <Text className="text-muted-foreground text-xs">Due: {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : "N/A"}</Text>
+                  </View>
+                  <View className={`px-2 py-1 rounded-md ${invoice.status === 'paid' ? 'bg-success/10' : 'bg-destructive/10'}`}>
+                    <Text className={`font-bold text-[10px] uppercase ${invoice.status === 'paid' ? 'text-success' : 'text-destructive'}`}>{invoice.status}</Text>
+                  </View>
+                </View>
+                <View className="flex-row justify-between items-center pt-3 border-t border-border/30">
+                  <Text className="text-foreground font-bold text-lg">₹{Number(invoice.total_amount).toLocaleString()}</Text>
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity onPress={() => generateInvoicePDF(invoice)} className="p-2 bg-muted rounded-lg">
+                      <Share2 size={16} color={colors.foreground} />
+                    </TouchableOpacity>
+                    {invoice.status !== 'paid' && (
+                      <TouchableOpacity onPress={() => handleSettleInvoice(invoice)} className="bg-primary px-4 py-2 rounded-lg">
+                        <Text className="text-white font-bold text-xs">Settle</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {activeTab === "settled" && (
+          <View>
+            <Text className="text-lg font-bold text-foreground mb-4">Payment History</Text>
+            {entries.filter(e => e.entry_type === 'credit').map(entry => (
+              <View key={getId(entry)} className="bg-card p-4 rounded-2xl mb-3 border border-border/50 flex-row items-center">
+                <View className="w-10 h-10 bg-success/10 rounded-full items-center justify-center mr-3">
+                  <ArrowDownLeft size={20} color="#16a34a" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-foreground font-bold">{entry.remarks || "Payment Received"}</Text>
+                  <Text className="text-muted-foreground text-xs">{new Date(entry.entry_date).toLocaleDateString()}</Text>
+                </View>
+                <Text className="text-success font-bold">₹{Number(entry.amount).toLocaleString()}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Add Payment Button - Full Width Bar */}
         <TouchableOpacity
           onPress={() => setShowPaymentForm(true)}
-          style={{ backgroundColor: '#16a34a', borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}
+          style={{ backgroundColor: '#16a34a', borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}
         >
           <Plus size={20} color="white" />
           <Text style={{ color: 'white', fontWeight: 'bold', marginLeft: 8 }}>Add Payment Entry</Text>
         </TouchableOpacity>
-
 
         {/* Payment Modal */}
         <Modal
@@ -707,16 +811,15 @@ export default function ClientProfile() {
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            className="flex-1 mb-8"
+            className="flex-1"
           >
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={() => setShowPaymentForm(false)}
+            <Pressable
               className="flex-1 bg-black/40 justify-end"
+              onPress={() => setShowPaymentForm(false)}
             >
-              <TouchableOpacity
-                activeOpacity={1}
+              <Pressable
                 className="bg-background rounded-t-3xl px-6 pt-4 pb-10"
+                onPress={(e) => e.stopPropagation()}
               >
                 <View className="items-center mb-6">
                   <View className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
@@ -724,9 +827,9 @@ export default function ClientProfile() {
 
                 <View className="flex-row justify-between items-center mb-6">
                   <View>
-                    <Text className="text-xl font-bold">Add Payment</Text>
+                    <Text className="text-xl font-bold text-foreground">Add Payment</Text>
                     <Text className="text-sm text-muted-foreground mt-0.5">
-                      {client.client_name}
+                      {client?.client_name || "Client"}
                     </Text>
                   </View>
 
@@ -737,7 +840,7 @@ export default function ClientProfile() {
                     <Ionicons
                       name="close"
                       size={18}
-                      color={isDark ? "#FFF" : "#000"}
+                      color={colors.foreground}
                     />
                   </TouchableOpacity>
                 </View>
@@ -751,7 +854,7 @@ export default function ClientProfile() {
                     onPress={() => setShowDatePicker(true)}
                     className="flex-row items-center bg-muted rounded-2xl px-4 py-3"
                   >
-                    <Text className="text-base font-medium">
+                    <Text className="text-base font-medium text-foreground">
                       {paymentDate.toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "long",
@@ -783,7 +886,8 @@ export default function ClientProfile() {
                       value={paymentAmount}
                       onChangeText={setPaymentAmount}
                       className="flex-1 ml-3 text-xl font-bold"
-                      placeholderTextColor="#94a3b8"
+                      style={{ color: colors.foreground }}
+                      placeholderTextColor={colors.mutedForeground}
                     />
                     <Text className="text-xs font-semibold text-muted-foreground">
                       INR
@@ -798,469 +902,133 @@ export default function ClientProfile() {
                   </Text>
 
                   <View className="flex-row items-center bg-muted rounded-2xl px-4 py-3">
+                    <FileText size={20} color={colors.mutedForeground} />
                     <TextInput
-                      placeholder="Enter remarks..."
+                      placeholder="Payment details (e.g., Bank Transfer)"
                       value={paymentRemarks}
                       onChangeText={setPaymentRemarks}
-                      className="flex-1 text-base"
-                      placeholderTextColor="#94a3b8"
+                      className="flex-1 ml-3 text-base"
+                      style={{ color: colors.foreground }}
+                      placeholderTextColor={colors.mutedForeground}
                     />
                   </View>
                 </View>
 
-                {/* SUBMIT */}
                 <TouchableOpacity
                   onPress={handleAddPayment}
-                  className="bg-green-600 rounded-2xl py-4 items-center"
+                  className="bg-primary py-4 rounded-2xl items-center"
                 >
-                  <Text className="text-white font-bold text-base">
-                    Save Payment
-                  </Text>
+                  <Text className="text-white font-bold text-lg">Save Payment</Text>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            </TouchableOpacity>
+              </Pressable>
+            </Pressable>
           </KeyboardAvoidingView>
         </Modal>
 
-
-        {/* TABS HEADER */}
-        <View style={{ flexDirection: 'row', backgroundColor: theme.muted, padding: 4, borderRadius: 12, marginBottom: 16 }}>
-          {(["unbilled", "billed", "settled"] as const).map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              style={{
-                flex: 1,
-                paddingVertical: 8,
-                alignItems: 'center',
-                borderRadius: 8,
-                backgroundColor: activeTab === tab ? theme.background : 'transparent',
-                ...(activeTab === tab && { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 1 })
-              }}
+        {/* Edit Client Modal */}
+        <Modal
+          visible={showEditModal}
+          transparent
+          animationType="slide"
+          onRequestClose={closeEditModal}
+        >
+          <View className="flex-1 bg-black/40 justify-end">
+            <Animated.View
+              {...panResponder.panHandlers}
+              className="bg-background rounded-t-3xl px-6 pt-4 pb-12"
+              style={{ transform: [{ translateY }] }}
             >
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase',
-                  color: activeTab === tab ? theme.foreground : theme.mutedForeground
-                }}
-              >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+              <View className="items-center mb-6">
+                <View className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
+              </View>
 
-        {/* 1) UNBILLED TRIPS */}
-        {activeTab === "unbilled" && (
-          <View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 18, color: theme.foreground }}>Unbilled Trips</Text>
-              {selectedTrips.length > 0 && (
-                <TouchableOpacity
-                  onPress={handleGenerateInvoice}
-                  style={{ backgroundColor: '#2563eb', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
-                >
-                  <FileText size={14} color="white" />
-                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12, marginLeft: 8 }}>
-                    Generate ({selectedTrips.length})
-                  </Text>
+              <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-xl font-bold text-foreground">Edit Client</Text>
+                <TouchableOpacity onPress={closeEditModal} className="w-9 h-9 rounded-full bg-muted items-center justify-center">
+                  <X size={20} color={colors.foreground} />
                 </TouchableOpacity>
-              )}
-            </View>
+              </View>
 
-            {clientTrips.filter((t) => t && normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced"
-            ).length === 0 ? (
-              <Text style={{ textAlign: 'center', color: theme.mutedForeground, paddingVertical: 32 }}>
-                No unbilled trips
-              </Text>
-            ) : (
-              clientTrips
-                .filter((t) => t && normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced")
-                .map((trip) => {
-                  const isSelected = selectedTrips.includes(trip?._id);
-                  return (
-                    <TouchableOpacity
-                      key={trip?._id}
-                      onPress={() => toggleTripSelection(trip?._id)}
-                      activeOpacity={0.9}
-                      style={{
-                        padding: 16,
-                        borderRadius: 12,
-                        marginBottom: 12,
-                        borderWidth: 1,
-                        backgroundColor: isSelected ? (isDark ? '#1e3a8a' : '#eff6ff') : theme.card,
-                        borderColor: isSelected ? '#3b82f6' : 'transparent'
-                      }}
-                    >
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.foreground }}>
-                          {trip?.trip_date ? String(trip.trip_date).split("T")[0] : "—"}
-                        </Text>
-                        <Text style={{ fontWeight: 'bold', color: '#2563eb' }}>
-                          ₹{Number(trip?.cost_of_trip || 0).toLocaleString()}
-                        </Text>
-                      </View>
-                      <Text style={{ fontSize: 12, color: theme.mutedForeground }}>
-                        {locationMap[getId(trip?.start_location)] || "—"} →{" "}
-                        {locationMap[getId(trip?.end_location)] || "—"}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: theme.mutedForeground, marginTop: 4 }}>
-                        Truck: {truckMap[getId(trip?.truck)] || "—"} • Driver:{" "}
-                        {driverMap[getId(trip?.driver)] || "—"}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })
-            )}
-          </View>
-        )}
-
-        {/* 2) BILLED INVOICES */}
-        {activeTab === "billed" && (
-          <View>
-            {clientInvoices.length === 0 ? (
-              <Text style={{ textAlign: 'center', color: theme.mutedForeground, paddingVertical: 32 }}>
-                No invoices found
-              </Text>
-            ) : (
-              clientInvoices.map((inv) => {
-                if (!inv) return null;
-                return (
-                  <View
-                    key={inv._id}
-                    style={{
-                      backgroundColor: theme.card,
-                      padding: 16,
-                      borderRadius: 12,
-                      marginBottom: 12,
-                      borderWidth: 1,
-                      borderColor: theme.border
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.foreground }}>
-                        #{inv.invoice_number || "—"}
-                      </Text>
-                      <View
-                        style={{
-                          paddingHorizontal: 8,
-                          paddingVertical: 2,
-                          borderRadius: 4,
-                          backgroundColor: inv.status === "paid" ? (isDark ? '#064e3b' : '#dcfce7') : (isDark ? '#451a03' : '#fef9c3')
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 'bold',
-                            textTransform: 'uppercase',
-                            color: inv.status === "paid" ? '#10b981' : '#f59e0b'
-                          }}
-                        >
-                          {inv.status || "Pending"}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                      <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.foreground }}>
-                        ₹{Number(inv.total_amount || 0).toLocaleString()}
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <TouchableOpacity
-                          onPress={() => generateInvoicePDF(inv)}
-                          style={{ backgroundColor: theme.secondary, padding: 8, borderRadius: 8 }}
-                        >
-                          <Share2 size={18} color={theme.foreground} />
-                        </TouchableOpacity>
-
-                        {inv.status !== "paid" && (
-                          <TouchableOpacity
-                            onPress={() => handleSettleInvoice(inv)}
-                            style={{ backgroundColor: '#16a34a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
-                          >
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
-                              Settle
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    </View>
-                    <Text style={{ fontSize: 12, color: theme.mutedForeground, marginTop: 8 }}>
-                      Date: {inv.due_date ? String(inv.due_date).split("T")[0] : "—"}
-                    </Text>
-                  </View>
-                );
-              })
-            )}
-          </View>
-        )}
-
-        {/* 3) SETTLED (Ledger) */}
-        {activeTab === "settled" && (
-          <View>
-            {entries.length === 0 ? (
-              <Text style={{ textAlign: 'center', color: theme.mutedForeground, paddingVertical: 32 }}>
-                No transactions found
-              </Text>
-            ) : (
-              entries.map((entry) => {
-                if (!entry) return null;
-                const isCredit = entry.entry_type === "credit";
-                const invoiceNum = entry.remarks?.replace("Generated from Invoice #", "") || "—";
-                return (
-                  <TouchableOpacity
-                    key={entry._id}
-                    onLongPress={() => openEditTransaction(entry)}
-                    style={{
-                      backgroundColor: theme.card,
-                      padding: 16,
-                      borderRadius: 12,
-                      marginBottom: 12,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      borderWidth: 1,
-                      borderColor: theme.border
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 12,
-                        backgroundColor: isCredit ? (isDark ? '#064e3b' : '#dcfce7') : (isDark ? '#1e3a8a' : '#dbeafe')
-                      }}
-                    >
-                      {isCredit ? (
-                        <ArrowDownLeft size={20} color="#16a34a" />
-                      ) : (
-                        <FileText size={20} color="#2563eb" />
-                      )}
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: 'bold', fontSize: 14, color: theme.foreground }}>
-                        {isCredit ? "Payment Received" : `Invoice #${invoiceNum}`}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: theme.mutedForeground }}>
-                        {entry.entry_date ? String(entry.entry_date).split("T")[0] : "—"} • {entry.remarks || "—"}
-                      </Text>
-                    </View>
-                    <Text
-                      style={{
-                        fontWeight: 'bold',
-                        color: isCredit ? '#16a34a' : theme.foreground
-                      }}
-                    >
-                      {isCredit ? "+" : ""}₹{Number(entry.amount || 0).toLocaleString()}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })
-            )}
-
-            {/* EDIT TRANSACTION MODAL */}
-            <Modal
-              visible={!!editingTransaction}
-              transparent
-              animationType="fade"
-              onRequestClose={() => setEditingTransaction(null)}
-            >
-              <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                className="flex-1 justify-end"
-              >
-                <TouchableOpacity
-                  activeOpacity={1}
-                  onPress={() => setEditingTransaction(null)}
-                  className="flex-1 bg-black/40"
-                />
-                <View className="bg-background rounded-t-3xl p-6">
-                  <Text className="text-lg font-bold mb-4">
-                    Edit Transaction
-                  </Text>
-
-                  {/* DATE */}
-                  <TouchableOpacity
-                    onPress={() => setShowEditTrxDatePicker(true)}
-                    className="bg-muted p-3 rounded-xl mb-4"
-                  >
-                    <Text>
-                      {editTrxDate.toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric"
-                      })}
-                    </Text>
-                  </TouchableOpacity>
-                  {showEditTrxDatePicker && (
-                    <DateTimePicker
-                      value={editTrxDate}
-                      mode="date"
-                      display="default"
-                      onChange={onEditTrxDateChange}
+              <ScrollView className="max-h-[70%]">
+                <View className="gap-4">
+                  <View>
+                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Client Name</Text>
+                    <TextInput
+                      className="bg-muted p-4 rounded-xl text-foreground"
+                      value={editFormData.client_name}
+                      onChangeText={(t) => setEditFormData(prev => ({ ...prev, client_name: t }))}
+                      placeholder="e.g. Acme Corp"
+                      placeholderTextColor={colors.mutedForeground}
                     />
-                  )}
-
-                  <TextInput
-                    value={editTrxAmount}
-                    onChangeText={setEditTrxAmount}
-                    keyboardType="numeric"
-                    placeholder="Amount"
-                    className="bg-muted p-3 rounded-xl mb-4 text-lg font-bold"
-                  />
-                  <TextInput
-                    value={editTrxRemarks}
-                    onChangeText={setEditTrxRemarks}
-                    placeholder="Remarks"
-                    className="bg-muted p-3 rounded-xl mb-6"
-                  />
-
-                  <TouchableOpacity
-                    onPress={handleUpdateTransaction}
-                    className="bg-primary p-4 rounded-xl items-center"
-                  >
-                    <Text className="text-primary-foreground font-bold">
-                      Update
-                    </Text>
-                  </TouchableOpacity>
+                  </View>
+                  <View>
+                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Contact Person</Text>
+                    <TextInput
+                      className="bg-muted p-4 rounded-xl text-foreground"
+                      value={editFormData.contact_person_name}
+                      onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_person_name: t }))}
+                      placeholder="Full Name"
+                      placeholderTextColor={colors.mutedForeground}
+                    />
+                  </View>
+                  <View className="flex-row gap-4">
+                    <View className="flex-1">
+                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Phone</Text>
+                      <TextInput
+                        className="bg-muted p-4 rounded-xl text-foreground"
+                        value={editFormData.contact_number}
+                        onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_number: t }))}
+                        keyboardType="phone-pad"
+                        placeholderTextColor={colors.mutedForeground}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Email</Text>
+                      <TextInput
+                        className="bg-muted p-4 rounded-xl text-foreground"
+                        value={editFormData.email_address}
+                        onChangeText={(t) => setEditFormData(prev => ({ ...prev, email_address: t }))}
+                        keyboardType="email-address"
+                        placeholderTextColor={colors.mutedForeground}
+                      />
+                    </View>
+                  </View>
+                  <View>
+                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Office Address</Text>
+                    <TextInput
+                      className="bg-muted p-4 rounded-xl text-foreground"
+                      value={editFormData.office_address}
+                      onChangeText={(t) => setEditFormData(prev => ({ ...prev, office_address: t }))}
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
+                      placeholderTextColor={colors.mutedForeground}
+                    />
+                  </View>
                 </View>
-              </KeyboardAvoidingView>
-            </Modal>
-          </View>
-        )}
-
-      </ScrollView>
-
-      {/* EDIT CLIENT MODAL (Similar to ClientsManager) */}
-      <Modal visible={showEditModal} transparent animationType="fade">
-        <Pressable className="flex-1 bg-black/40" onPress={closeEditModal}>
-          <Animated.View
-            {...panResponder.panHandlers}
-            className="absolute bottom-0 w-full bg-background rounded-t-3xl"
-            style={{
-              height: "100%",
-              paddingHorizontal: 20,
-              paddingTop: insets.top + 20,
-              transform: [{ translateY }],
-            }}
-          >
-            <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
-
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-2xl font-semibold">Edit Client</Text>
-              <TouchableOpacity onPress={closeEditModal}>
-                <X size={28} color={isDark ? "#AAA" : "#666"} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Reuse fields logic or hardcode for now */}
-              <View className="mb-4">
-                <Text className="text-muted-foreground mb-1 font-medium">Client Name *</Text>
-                <TextInput
-                  value={editFormData.client_name}
-                  onChangeText={(val) => setEditFormData(prev => ({ ...prev, client_name: val }))}
-                  className="border border-input rounded-xl p-3"
-                />
-              </View>
-
-              <View className="mb-4">
-                <Text className="text-muted-foreground mb-1 font-medium">Contact Person</Text>
-                <TextInput
-                  value={editFormData.contact_person_name}
-                  onChangeText={(val) => setEditFormData(prev => ({ ...prev, contact_person_name: val }))}
-                  className="border border-input rounded-xl p-3"
-                />
-              </View>
-
-              <View className="mb-4">
-                <Text className="text-muted-foreground mb-1 font-medium">Phone *</Text>
-                <TextInput
-                  value={editFormData.contact_number}
-                  onChangeText={(val) => setEditFormData(prev => ({ ...prev, contact_number: val }))}
-                  keyboardType="phone-pad"
-                  className="border border-input rounded-xl p-3"
-                />
-              </View>
-
-              <View className="mb-4">
-                <Text className="text-muted-foreground mb-1 font-medium">Alternate Phone</Text>
-                <TextInput
-                  value={editFormData.alternate_contact_number}
-                  onChangeText={(val) => setEditFormData(prev => ({ ...prev, alternate_contact_number: val }))}
-                  keyboardType="phone-pad"
-                  className="border border-input rounded-xl p-3"
-                />
-              </View>
-
-              <View className="mb-4">
-                <Text className="text-muted-foreground mb-1 font-medium">Email</Text>
-                <TextInput
-                  value={editFormData.email_address}
-                  onChangeText={(val) => setEditFormData(prev => ({ ...prev, email_address: val }))}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  className="border border-input rounded-xl p-3"
-                />
-              </View>
-
-              <View className="mb-6">
-                <Text className="text-muted-foreground mb-1 font-medium">Office Address</Text>
-                <TextInput
-                  value={editFormData.office_address}
-                  onChangeText={(val) => setEditFormData(prev => ({ ...prev, office_address: val }))}
-                  multiline
-                  numberOfLines={3}
-                  className="border border-input rounded-xl p-3 min-h-[80px]"
-                />
-              </View>
+              </ScrollView>
 
               <TouchableOpacity
                 onPress={handleUpdateClient}
-                className="bg-primary p-4 rounded-xl mt-4 mb-3"
+                className="bg-primary py-4 rounded-2xl items-center mt-6"
               >
-                <Text className="text-center text-primary-foreground font-semibold">Update Client</Text>
+                <Text className="text-white font-bold text-lg">Save Updates</Text>
               </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </Modal>
 
-              <TouchableOpacity
-                onPress={closeEditModal}
-                className="border border-border p-4 rounded-xl"
-              >
-                <Text className="text-center text-muted-foreground">Cancel</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </Animated.View>
-        </Pressable>
-      </Modal>
-
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-function SummaryCard({ label, value, green, red }: any) {
+function SummaryCard({ label, value, green }: any) {
+  const { colors } = useThemeStore();
   return (
-    <View className="flex-1 bg-card rounded-2xl p-3 justify-between min-h-[90px]">
-      <Text className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-        {label}
-      </Text>
-
-      <Text
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        className={`text-lg font-bold mt-2 ${green
-          ? "text-green-600"
-          : red
-            ? "text-red-600"
-            : "text-card-foreground"
-          }`}
-      >
-        ₹ {Number(value).toLocaleString()}
-      </Text>
+    <View style={{ backgroundColor: colors.card }} className="flex-1 p-4 rounded-2xl border border-border/50">
+      <Text className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{label}</Text>
+      <Text style={{ color: green ? colors.success : colors.foreground }} className="text-lg font-bold">₹{Number(value).toLocaleString()}</Text>
     </View>
   );
 }
