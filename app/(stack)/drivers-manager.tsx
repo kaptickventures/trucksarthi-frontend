@@ -10,19 +10,19 @@ import {
   StatusBar,
   Text,
   TouchableOpacity,
-  View,
-  useColorScheme
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import DriverFormModal from "../../components/DriverModal";
 import useDrivers from "../../hooks/useDriver";
+import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
-import { THEME } from "../../theme";
 
 export default function DriversManager() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
+  const { colors, theme } = useThemeStore();
 
   const {
     drivers,
@@ -34,9 +34,6 @@ export default function DriversManager() {
   } = useDrivers();
 
   const loading = userLoading || driversLoading;
-
-  const isDark = useColorScheme() === "dark";
-  const theme = isDark ? THEME.dark : THEME.light;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -148,9 +145,9 @@ export default function DriversManager() {
 
   if (loading && !user) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={{ marginTop: 8, color: theme.mutedForeground }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 8, color: colors.mutedForeground }}>
           Loading...
         </Text>
       </View>
@@ -158,8 +155,8 @@ export default function DriversManager() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar barStyle={theme === "dark" ? "light-content" : "dark-content"} />
 
       <ScrollView
         className="flex-1 px-5 pt-2"
@@ -188,8 +185,8 @@ export default function DriversManager() {
               >
                 <View className="flex-row justify-between items-center">
                   <View className="flex-row items-start flex-1">
-                    <View style={{ backgroundColor: theme.secondary, padding: 8, borderRadius: 12, marginRight: 12 }}>
-                      <MapPin size={18} color={theme.primary} />
+                    <View style={{ backgroundColor: colors.secondary, padding: 8, borderRadius: 12, marginRight: 12 }}>
+                      <MapPin size={18} color={colors.primary} />
                     </View>
 
                     <View className="flex-1">
@@ -210,7 +207,7 @@ export default function DriversManager() {
                       }}
                       className="p-2"
                     >
-                      <Edit3 size={20} color={theme.mutedForeground} />
+                      <Edit3 size={20} color={colors.mutedForeground} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -220,7 +217,7 @@ export default function DriversManager() {
                       }}
                       className="p-2"
                     >
-                      <Trash2 size={20} color={theme.mutedForeground} />
+                      <Trash2 size={20} color={colors.mutedForeground} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -235,7 +232,7 @@ export default function DriversManager() {
         onPress={() => openModal(false)}
         className="absolute bottom-8 right-6 w-16 h-16 rounded-full justify-center items-center"
         style={{
-          backgroundColor: theme.primary,
+          backgroundColor: colors.primary,
           elevation: 8,
           shadowColor: "#000",
           shadowOpacity: 0.25,
@@ -243,7 +240,7 @@ export default function DriversManager() {
           shadowOffset: { width: 0, height: 2 },
         }}
       >
-        <Plus color={theme.primaryForeground} size={28} />
+        <Plus color={colors.primaryForeground} size={28} />
       </TouchableOpacity>
 
       <DriverFormModal

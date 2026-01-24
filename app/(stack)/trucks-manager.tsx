@@ -9,19 +9,19 @@ import {
   StatusBar,
   Text,
   TouchableOpacity,
-  View,
-  useColorScheme
+  View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import TruckFormModal from "../../components/TruckModal";
+import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
-import { THEME } from "../../theme";
 
 export default function TrucksManager() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
+  const { colors, theme } = useThemeStore();
 
   const {
     trucks,
@@ -33,9 +33,6 @@ export default function TrucksManager() {
   } = useTrucks();
 
   const loading = userLoading || trucksLoading;
-
-  const isDark = useColorScheme() === "dark";
-  const theme = isDark ? THEME.dark : THEME.light;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -156,7 +153,7 @@ export default function TrucksManager() {
   /* ---------------- UI ---------------- */
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <StatusBar barStyle={theme === "dark" ? "light-content" : "dark-content"} />
 
       {/* LIST */}
       <ScrollView
@@ -182,8 +179,8 @@ export default function TrucksManager() {
             >
               {/* INFO */}
               <View className="flex-row items-start flex-1">
-                <View style={{ backgroundColor: theme.secondary, padding: 8, borderRadius: 12, marginRight: 12 }}>
-                  <MapPin size={18} color={theme.primary} />
+                <View style={{ backgroundColor: colors.secondary, padding: 8, borderRadius: 12, marginRight: 12 }}>
+                  <MapPin size={18} color={colors.primary} />
                 </View>
 
                 <View className="flex-1">
@@ -203,7 +200,7 @@ export default function TrucksManager() {
                   onPress={() => openModal(true, truck)}
                   className="p-2"
                 >
-                  <Edit3 size={20} color={theme.mutedForeground} />
+                  <Edit3 size={20} color={colors.mutedForeground} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -211,7 +208,7 @@ export default function TrucksManager() {
                   onPress={() => handleDelete(truck._id)}
                   className="p-2"
                 >
-                  <Trash2 size={20} color={theme.mutedForeground} />
+                  <Trash2 size={20} color={colors.mutedForeground} />
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -224,7 +221,7 @@ export default function TrucksManager() {
         onPress={() => openModal(false)}
         className="absolute bottom-8 right-6 w-16 h-16 rounded-full justify-center items-center"
         style={{
-          backgroundColor: theme.primary,
+          backgroundColor: colors.primary,
           elevation: 8,
           shadowColor: "#000",
           shadowOpacity: 0.25,
@@ -232,7 +229,7 @@ export default function TrucksManager() {
           shadowOffset: { width: 0, height: 2 },
         }}
       >
-        <Plus color={theme.primaryForeground} size={28} />
+        <Plus color={colors.primaryForeground} size={28} />
       </TouchableOpacity>
 
       <TruckFormModal

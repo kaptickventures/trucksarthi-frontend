@@ -6,9 +6,12 @@ import {
   HelpCircle,
   Languages,
   LogOut,
+  Monitor,
   MonitorSmartphone,
+  Moon,
   Palette,
-  Wallet,
+  Sun,
+  Wallet
 } from "lucide-react-native";
 import {
   Alert,
@@ -16,24 +19,25 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 
 import { logout } from "../../hooks/useAuth";
-import { THEME } from "../../theme";
+import { useThemeStore } from "../../hooks/useThemeStore";
 
 export default function Settings() {
   const router = useRouter();
-  const isDark = useColorScheme() === "dark";
-
-  // 💚 WhatsApp-like green
-  const theme = isDark ? THEME.dark : THEME.light;
-  const primaryColor = theme.primary;
+  const { mode, setMode, colors, theme } = useThemeStore();
 
   const handleLogout = async () => {
     await logout();
     router.replace("/auth/login");
   };
+
+  const THEME_OPTIONS = [
+    { id: "system", label: "System", icon: Monitor },
+    { id: "light", label: "Light", icon: Sun },
+    { id: "dark", label: "Dark", icon: Moon },
+  ] as const;
 
   return (
     <ScrollView className="flex-1 bg-background px-5 pt-10">
@@ -48,7 +52,7 @@ export default function Settings() {
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
       >
         <View className="flex-row items-center gap-2">
-          <Wallet size={20} color={primaryColor} />
+          <Wallet size={20} color={colors.primary} />
           <Text className="text-foreground text-base">Plans & Pricing</Text>
         </View>
       </TouchableOpacity>
@@ -59,7 +63,7 @@ export default function Settings() {
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-6"
       >
         <View className="flex-row items-center gap-2">
-          <FileDown size={20} color={primaryColor} />
+          <FileDown size={20} color={colors.primary} />
           <Text className="text-foreground text-base">Export Data</Text>
         </View>
       </TouchableOpacity>
@@ -69,6 +73,50 @@ export default function Settings() {
         App Preferences
       </Text>
 
+      {/* Theme Trigger */}
+      <View className="bg-card p-5 rounded-2xl mb-4 border border-border/50">
+        <View className="flex-row items-center gap-3 mb-6">
+          <View className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-primary/20' : 'bg-primary/10'}`}>
+            <Palette size={20} color={colors.primary} />
+          </View>
+          <View>
+            <Text className="text-foreground font-bold text-base">Appearance</Text>
+            <Text className="text-muted-foreground text-xs">Customize your workspace</Text>
+          </View>
+        </View>
+
+        <View className="flex-row bg-muted/30 p-1.5 rounded-2xl gap-1">
+          {THEME_OPTIONS.map((opt) => {
+            const Icon = opt.icon;
+            const isActive = mode === opt.id;
+
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                onPress={() => setMode(opt.id)}
+                className={`flex-1 flex-row items-center justify-center gap-2 py-3 rounded-xl ${isActive ? "bg-background" : "opacity-60"
+                  }`}
+                style={isActive ? {
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 2,
+                } : {}}
+              >
+                <Icon size={16} color={isActive ? colors.primary : colors.mutedForeground} />
+                <Text
+                  className={`font-bold text-xs uppercase tracking-tight ${isActive ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
       {/* Biometric Authentication */}
       <TouchableOpacity
         onPress={() =>
@@ -77,7 +125,7 @@ export default function Settings() {
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
       >
         <View className="flex-row items-center gap-2">
-          <Fingerprint size={20} color={primaryColor} />
+          <Fingerprint size={20} color={colors.primary} />
           <Text className="text-foreground text-base">
             Biometric Authentication
           </Text>
@@ -90,21 +138,10 @@ export default function Settings() {
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
       >
         <View className="flex-row items-center gap-2">
-          <Languages size={20} color={primaryColor} />
+          <Languages size={20} color={colors.primary} />
           <Text className="text-foreground text-base">App Language</Text>
         </View>
       </TouchableOpacity>
-
-      {/* Theme — NOW ONLY "System Default" */}
-      <View className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3">
-        <View className="flex-row items-center gap-2">
-          <Palette size={20} color={primaryColor} />
-          <Text className="text-foreground text-base">Theme</Text>
-        </View>
-        <Text className="text-muted-foreground text-sm">
-          System Default
-        </Text>
-      </View>
 
       {/* Notification Settings */}
       <TouchableOpacity
@@ -114,7 +151,7 @@ export default function Settings() {
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-6"
       >
         <View className="flex-row items-center gap-2">
-          <Bell size={20} color={primaryColor} />
+          <Bell size={20} color={colors.primary} />
           <Text className="text-foreground text-base">Notification Settings</Text>
         </View>
       </TouchableOpacity>
@@ -127,7 +164,7 @@ export default function Settings() {
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-8"
       >
         <View className="flex-row items-center gap-2">
-          <MonitorSmartphone size={20} color={primaryColor} />
+          <MonitorSmartphone size={20} color={colors.primary} />
           <Text className="text-foreground text-base">
             Use Truck Sarthi on Desktop
           </Text>
@@ -142,7 +179,7 @@ export default function Settings() {
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-10"
       >
         <View className="flex-row items-center gap-2">
-          <HelpCircle size={20} color={primaryColor} />
+          <HelpCircle size={20} color={colors.primary} />
           <Text className="text-foreground text-base">Help Center</Text>
         </View>
       </TouchableOpacity>
@@ -151,7 +188,7 @@ export default function Settings() {
       <TouchableOpacity
         onPress={handleLogout}
         className="flex-row items-center justify-center p-4 rounded-xl mb-10"
-        style={{ backgroundColor: theme.destructive }}
+        style={{ backgroundColor: colors.destructive }}
       >
         <LogOut size={20} color="#fff" />
         <Text className="text-white font-semibold text-base ml-2">Logout</Text>

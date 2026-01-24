@@ -1,46 +1,71 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { Appearance } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SystemUI from "expo-system-ui";
+import { useColorScheme as useNativeWindColorScheme } from "nativewind";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { Appearance, ColorSchemeName } from "react-native";
+import { THEME } from "../theme";
 
 type ThemeMode = "system" | "light" | "dark";
-type Theme = "light" | "dark";
+type ThemeType = "light" | "dark";
 
-const ThemeStoreContext = createContext<{
+interface ThemeContextType {
   mode: ThemeMode;
-  theme: Theme;
+  theme: ThemeType;
+  colors: typeof THEME.light;
   setMode: (mode: ThemeMode) => void;
-} | null>(null);
+}
+
+const ThemeStoreContext = createContext<ThemeContextType | null>(null);
+const STORAGE_KEY = "@user_theme_mode";
 
 export function ThemeStoreProvider({ children }: { children: React.ReactNode }) {
+  const { setColorScheme: setNwColorScheme } = useNativeWindColorScheme();
   const [mode, setMode] = useState<ThemeMode>("system");
-  const [theme, setTheme] = useState<Theme>(
+  const [theme, setTheme] = useState<ThemeType>(
     Appearance.getColorScheme() === "dark" ? "dark" : "light"
   );
 
-  // Automatically handle system theme
+  const applyTheme = (targetMode: ThemeMode, systemScheme: ColorSchemeName) => {
+    let next: ThemeType = "light";
+    if (targetMode === "system") {
+      next = systemScheme === "dark" ? "dark" : "light";
+    } else {
+      next = targetMode === "dark" ? "dark" : "light";
+    }
+
+    setTheme(next);
+    setNwColorScheme(next);
+    SystemUI.setBackgroundColorAsync(next === "dark" ? THEME.dark.background : THEME.light.background);
+  };
+
+  useEffect(() => {
+    (async () => {
+      const savedMode = await AsyncStorage.getItem(STORAGE_KEY);
+      if (savedMode) {
+        const validatedMode = savedMode as ThemeMode;
+        setMode(validatedMode);
+        applyTheme(validatedMode, Appearance.getColorScheme());
+      }
+    })();
+  }, []);
+
+  const updateMode = async (newMode: ThemeMode) => {
+    setMode(newMode);
+    await AsyncStorage.setItem(STORAGE_KEY, newMode);
+    applyTheme(newMode, Appearance.getColorScheme());
+  };
+
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      if (mode === "system") {
-        const next = colorScheme === "dark" ? "dark" : "light";
-        setTheme(next);
-        SystemUI.setBackgroundColorAsync(next === "dark" ? "#000" : "#fff");
-      }
+      if (mode === "system") applyTheme("system", colorScheme);
     });
-
     return () => subscription.remove();
   }, [mode]);
 
-  // When user picks light or dark manually
-  useEffect(() => {
-    if (mode !== "system") {
-      const next = mode === "dark" ? "dark" : "light";
-      setTheme(next);
-      SystemUI.setBackgroundColorAsync(next === "dark" ? "#000" : "#fff");
-    }
-  }, [mode]);
+  const colors = THEME[theme];
 
   return (
-    <ThemeStoreContext.Provider value={{ theme, mode, setMode }}>
+    <ThemeStoreContext.Provider value={{ mode, theme, colors, setMode: updateMode }}>
       {children}
     </ThemeStoreContext.Provider>
   );
