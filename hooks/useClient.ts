@@ -2,15 +2,7 @@ import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
-interface Client {
-  client_id: number;
-  client_name: string;
-  contact_person_name: string;
-  contact_number: string;
-  alternate_contact_number?: string;
-  email_address: string;
-  office_address?: string;
-}
+import { Client } from "../types/entity";
 
 export default function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -45,13 +37,13 @@ export default function useClients() {
   };
 
   const updateClient = async (
-    id: number,
+    id: string,
     updatedData: Partial<Client>
   ) => {
     try {
       const res = await API.put(`/api/clients/${id}`, updatedData);
       setClients((prev) =>
-        prev.map((c) => (c.client_id === id ? res.data : c))
+        prev.map((c) => (c._id === id ? res.data : c))
       );
       return res.data;
     } catch (error: any) {
@@ -64,11 +56,11 @@ export default function useClients() {
     }
   };
 
-  const deleteClient = async (id: number) => {
+  const deleteClient = async (id: string) => {
     try {
       await API.delete(`/api/clients/${id}`);
       setClients((prev) =>
-        prev.filter((c) => c.client_id !== id)
+        prev.filter((c) => c._id !== id)
       );
     } catch (error) {
       console.error(error);

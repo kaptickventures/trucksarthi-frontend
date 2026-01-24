@@ -88,10 +88,10 @@ export default function TripLog() {
 
   // FILTER STATE
   const [filters, setFilters] = useState({
-    driver_id: "" as string | null,
-    client_id: "" as string | null,
-    truck_id: "" as string | null,
-    location_id: "" as string | null,
+    driver: "" as string | null,
+    client: "" as string | null,
+    truck: "" as string | null,
+    location: "" as string | null,
     startDate: null as Date | null,
     endDate: null as Date | null,
   });
@@ -112,52 +112,80 @@ export default function TripLog() {
   const [selectedTrip, setSelectedTrip] = useState<any | null>(null);
 
   // Helper functions
-  const getDriverName = (id: number) =>
-    drivers.find((d) => d.driver_id === id)?.driver_name || "Unknown Driver";
+  const getId = (obj: any): string => (typeof obj === "object" ? obj?._id : obj);
 
-  const getClientName = (id: number) =>
-    clients.find((c) => c.client_id === id)?.client_name || "Unknown Client";
+  const getDriverName = (idOrObj: any) => {
+    const id = getId(idOrObj);
+    return drivers.find((d) => d._id === id)?.driver_name || "Unknown Driver";
+  };
 
-  const getTruckReg = (id: number) =>
-    trucks.find((t) => t.truck_id === id)?.registration_number || "Unknown Truck";
+  const getClientName = (idOrObj: any) => {
+    const id = getId(idOrObj);
+    return clients.find((c) => c._id === id)?.client_name || "Unknown Client";
+  };
 
-  const getLocationName = (id: number) =>
-    locations.find((l) => l.location_id === id)?.location_name || "Unknown";
+  const getTruckReg = (idOrObj: any) => {
+    const id = getId(idOrObj);
+    return (
+      trucks.find((t) => t._id === id)?.registration_number || "Unknown Truck"
+    );
+  };
+
+  const getLocationName = (idOrObj: any) => {
+    const id = getId(idOrObj);
+    return locations.find((l) => l._id === id)?.location_name || "Unknown";
+  };
 
   const sortedTrips = useMemo(() => {
     let filtered = [...(trips || [])];
 
-    if (filters.driver_id)
-      filtered = filtered.filter((t) => String(t.driver_id) === filters.driver_id);
+    if (filters.driver)
+      filtered = filtered.filter((t) => getId(t.driver) === filters.driver);
 
-    if (filters.client_id)
-      filtered = filtered.filter((t) => String(t.client_id) === filters.client_id);
+    if (filters.client)
+      filtered = filtered.filter((t) => getId(t.client) === filters.client);
 
-    if (filters.truck_id)
-      filtered = filtered.filter((t) => String(t.truck_id) === filters.truck_id);
+    if (filters.truck)
+      filtered = filtered.filter((t) => getId(t.truck) === filters.truck);
 
-    if (filters.location_id)
+    if (filters.location)
       filtered = filtered.filter(
         (t) =>
-          String(t.start_location_id) === filters.location_id ||
-          String(t.end_location_id) === filters.location_id
+          getId(t.start_location) === filters.location ||
+          getId(t.end_location) === filters.location
       );
 
     if (filters.startDate)
-      filtered = filtered.filter((t) => new Date(t.trip_date) >= filters.startDate!);
+      filtered = filtered.filter((t) => t.trip_date && new Date(t.trip_date) >= filters.startDate!);
 
     if (filters.endDate)
-      filtered = filtered.filter((t) => new Date(t.trip_date) <= filters.endDate!);
+      filtered = filtered.filter((t) => t.trip_date && new Date(t.trip_date) <= filters.endDate!);
 
     return filtered.sort(
-      (a, b) => new Date(b.trip_date).getTime() - new Date(a.trip_date).getTime()
+      (a, b) => {
+        const da = a.trip_date ? new Date(a.trip_date).getTime() : 0;
+        const db = b.trip_date ? new Date(b.trip_date).getTime() : 0;
+        return db - da;
+      }
     );
   }, [trips, filters]);
 
-  const driverItems = drivers.map((d) => ({ label: d.driver_name, value: String(d.driver_id) }));
-  const clientItems = clients.map((c) => ({ label: c.client_name, value: String(c.client_id) }));
-  const truckItems = trucks.map((t) => ({ label: t.registration_number, value: String(t.truck_id) }));
-  const locationItems = locations.map((l) => ({ label: l.location_name, value: String(l.location_id) }));
+  const driverItems = drivers.map((d) => ({
+    label: d.driver_name,
+    value: d._id,
+  }));
+  const clientItems = clients.map((c) => ({
+    label: c.client_name,
+    value: c._id,
+  }));
+  const truckItems = trucks.map((t) => ({
+    label: t.registration_number,
+    value: t._id,
+  }));
+  const locationItems = locations.map((l) => ({
+    label: l.location_name,
+    value: l._id,
+  }));
 
   const toggleFilters = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -225,14 +253,20 @@ export default function TripLog() {
             return `
         <div class="card">
           <div class="card-top">
-            <div>${fmt(new Date(t.trip_date))}</div>
+            <div>${t.trip_date ? fmt(new Date(t.trip_date)) : "No Date"}</div>
             <div>₹${total.toLocaleString()}</div>
           </div>
-          <div class="route">Route: ${getLocationName(t.start_location_id)} → ${getLocationName(t.end_location_id)}</div>
+          <div class="route">Route: ${getLocationName(t.start_location)} → ${getLocationName(t.end_location)}</div>
           <div class="meta-row">
-            <div class="meta-col"><div class="label">TRUCK</div><div class="value">${getTruckReg(t.truck_id)}</div></div>
-            <div class="meta-col"><div class="label">DRIVER</div><div class="value">${getDriverName(t.driver_id)}</div></div>
-            <div class="meta-col"><div class="label">CLIENT</div><div class="value">${getClientName(t.client_id)}</div></div>
+            <div class="meta-col"><div class="label">TRUCK</div><div class="value">${getTruckReg(
+              t.truck
+            )}</div></div>
+            <div class="meta-col"><div class="label">DRIVER</div><div class="value">${getDriverName(
+              t.driver
+            )}</div></div>
+            <div class="meta-col"><div class="label">CLIENT</div><div class="value">${getClientName(
+              t.client
+            )}</div></div>
           </div>
           <div class="cost-row">
             <div><div class="label">TRIP COST</div><div class="value">₹${Number(t.cost_of_trip).toLocaleString()}</div></div>
@@ -337,17 +371,17 @@ export default function TripLog() {
           sortedTrips.map((trip) => {
             const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
             return (
-              <View key={trip.trip_id} style={{ marginHorizontal: 12, marginBottom: 20 }}>
+              <View key={trip._id} style={{ marginHorizontal: 12, marginBottom: 20 }}>
                 <View className="bg-card border border-border rounded-2xl p-5 shadow-sm">
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                    <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>{new Date(trip.trip_date).toLocaleDateString("en-IN")}</Text>
+                    <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>{trip.trip_date ? new Date(trip.trip_date).toLocaleDateString("en-IN") : "No Date"}</Text>
                     <Text style={{ fontSize: 22, fontWeight: "800", color: THEME.light.primary }}>{`₹${totalCost.toLocaleString()}`}</Text>
                   </View>
-                  <Text style={{ fontSize: 18, fontWeight: "700", color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 10 }}>{getLocationName(trip.start_location_id)} → {getLocationName(trip.end_location_id)}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 10 }}>{getLocationName(trip.start_location)} → {getLocationName(trip.end_location)}</Text>
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🏢 {getClientName(trip.client_id)}</Text>
-                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🚚 {getTruckReg(trip.truck_id)}</Text>
-                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }}>👤 {getDriverName(trip.driver_id)}</Text>
+                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🏢 {getClientName(trip.client)}</Text>
+                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🚚 {getTruckReg(trip.truck)}</Text>
+                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }}>👤 {getDriverName(trip.driver)}</Text>
                   </View>
                   <View style={{ borderTopWidth: 1, borderTopColor: isDark ? THEME.dark.border : THEME.light.border, opacity: 0.6, marginVertical: 12 }} />
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
@@ -363,7 +397,7 @@ export default function TripLog() {
                       <TouchableOpacity onPress={() => {
                         Alert.alert("Delete", "Delete this trip?", [
                           { text: "Cancel", style: "cancel" },
-                          { text: "Delete", style: "destructive", onPress: async () => { await deleteTrip(trip.trip_id); fetchTrips(); } },
+                          { text: "Delete", style: "destructive", onPress: async () => { await deleteTrip(trip._id); fetchTrips(); } },
                         ]);
                       }} style={{ padding: 8 }}>
                         <Trash2 size={22} color="#ef4444" />

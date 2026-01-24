@@ -1,5 +1,5 @@
 // components/FilterSection.tsx
-import React from "react";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   Text,
   TouchableOpacity,
@@ -7,7 +7,6 @@ import {
   useColorScheme,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { THEME } from "../theme";
 
 interface Props {
@@ -74,7 +73,7 @@ export default function TripFilters({
 
             <DropDownPicker
               open={dropdowns.driver}
-              value={filters.driver_id}
+              value={filters.driver}
               items={driverItems}
               setOpen={(val) =>
                 setDropdowns((prev: any) => ({
@@ -86,8 +85,8 @@ export default function TripFilters({
               setValue={(val) =>
                 setFilters((prev: any) => ({
                   ...prev,
-                  driver_id:
-                    typeof val === "function" ? val(prev.driver_id) : val,
+                  driver:
+                    typeof val === "function" ? val(prev.driver) : val,
                 }))
               }
               placeholder="Select Driver"
@@ -122,7 +121,7 @@ export default function TripFilters({
 
             <DropDownPicker
               open={dropdowns.client}
-              value={filters.client_id}
+              value={filters.client}
               items={clientItems}
               setOpen={(val) =>
                 setDropdowns((prev: any) => ({
@@ -134,8 +133,8 @@ export default function TripFilters({
               setValue={(val) =>
                 setFilters((prev: any) => ({
                   ...prev,
-                  client_id:
-                    typeof val === "function" ? val(prev.client_id) : val,
+                  client:
+                    typeof val === "function" ? val(prev.client) : val,
                 }))
               }
               placeholder="Select Client"
@@ -173,7 +172,7 @@ export default function TripFilters({
 
             <DropDownPicker
               open={dropdowns.truck}
-              value={filters.truck_id}
+              value={filters.truck}
               items={truckItems}
               setOpen={(val) =>
                 setDropdowns((prev: any) => ({
@@ -185,8 +184,8 @@ export default function TripFilters({
               setValue={(val) =>
                 setFilters((prev: any) => ({
                   ...prev,
-                  truck_id:
-                    typeof val === "function" ? val(prev.truck_id) : val,
+                  truck:
+                    typeof val === "function" ? val(prev.truck) : val,
                 }))
               }
               placeholder="Select Truck"
@@ -221,7 +220,7 @@ export default function TripFilters({
 
             <DropDownPicker
               open={dropdowns.location}
-              value={filters.location_id}
+              value={filters.location}
               items={locationItems}
               setOpen={(val) =>
                 setDropdowns((prev: any) => ({
@@ -233,9 +232,9 @@ export default function TripFilters({
               setValue={(val) =>
                 setFilters((prev: any) => ({
                   ...prev,
-                  location_id:
+                  location:
                     typeof val === "function"
-                      ? val(prev.location_id)
+                      ? val(prev.location)
                       : val,
                 }))
               }
@@ -305,10 +304,10 @@ export default function TripFilters({
         <TouchableOpacity
           onPress={() =>
             setFilters({
-              driver_id: "",
-              client_id: "",
-              truck_id: "",
-              location_id: "",
+              driver: "",
+              client: "",
+              truck: "",
+              location: "",
               startDate: null,
               endDate: null,
             })

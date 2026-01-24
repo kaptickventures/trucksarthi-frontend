@@ -26,6 +26,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import useDrivers from "../../hooks/useDriver";
 import { useUser } from "../../hooks/useUser";
 import { getFileUrl } from "../../lib/utils";
+import { THEME } from "../../theme";
 
 export default function DriversManager() {
   const router = useRouter();
@@ -43,7 +44,9 @@ export default function DriversManager() {
   const loading = userLoading || driversLoading;
 
   const isDark = useColorScheme() === "dark";
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const theme = isDark ? THEME.dark : THEME.light;
+
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -112,7 +115,7 @@ export default function DriversManager() {
 
   const openModal = (editing = false, data?: any) => {
     if (editing && data) {
-      setEditingId(data.driver_id);
+      setEditingId(data._id);
       setFormData({
         driver_name: data.driver_name || "",
         contact_number: data.contact_number || "",
@@ -166,7 +169,7 @@ export default function DriversManager() {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     Alert.alert("Confirm Delete", "Delete this driver?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -206,13 +209,13 @@ export default function DriversManager() {
         ) : (
           drivers.map((driver) => (
             <TouchableOpacity
-              key={driver.driver_id}
+              key={driver._id}
               activeOpacity={0.85}
               onPress={() =>
                 router.push({
                   pathname: "/(stack)/driver-profile",
                   params: {
-                    driver_id: driver.driver_id,
+                    driver_id: driver._id,
                   },
                 })
               }
@@ -220,8 +223,8 @@ export default function DriversManager() {
             >
               <View className="flex-row justify-between items-center">
                 <View className="flex-row items-start flex-1">
-                  <View className="p-2 bg-secondary rounded-xl mr-3">
-                    <MapPin size={18} color="#2563EB" />
+                  <View style={{ backgroundColor: theme.secondary, padding: 8, borderRadius: 12, marginRight: 12 }}>
+                    <MapPin size={18} color={theme.primary} />
                   </View>
 
                   <View className="flex-1">
@@ -242,17 +245,17 @@ export default function DriversManager() {
                     }}
                     className="p-2"
                   >
-                    <Edit3 size={20} color="#999" />
+                    <Edit3 size={20} color={theme.mutedForeground} />
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={(e) => {
                       e.stopPropagation();
-                      handleDelete(driver.driver_id);
+                      handleDelete(driver._id);
                     }}
                     className="p-2"
                   >
-                    <Trash2 size={20} color="#999" />
+                    <Trash2 size={20} color={theme.mutedForeground} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -264,9 +267,17 @@ export default function DriversManager() {
       {/* Floating Add Button */}
       <TouchableOpacity
         onPress={() => openModal(false)}
-        className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full justify-center items-center"
+        className="absolute bottom-8 right-6 w-16 h-16 rounded-full justify-center items-center"
+        style={{
+          backgroundColor: theme.primary,
+          elevation: 8,
+          shadowColor: "#000",
+          shadowOpacity: 0.25,
+          shadowRadius: 4,
+          shadowOffset: { width: 0, height: 2 },
+        }}
       >
-        <Plus color="white" size={28} />
+        <Plus color={theme.primaryForeground} size={28} />
       </TouchableOpacity>
 
       {/* Modal */}
@@ -293,7 +304,7 @@ export default function DriversManager() {
                   {editingId ? "Edit Driver" : "Add Driver"}
                 </Text>
                 <TouchableOpacity onPress={closeModal}>
-                  <X size={28} color={isDark ? "#AAA" : "#666"} />
+                  <X size={28} color={theme.mutedForeground} />
                 </TouchableOpacity>
               </View>
 
@@ -379,7 +390,7 @@ export default function DriversManager() {
                   onPress={handleSubmit}
                   className="bg-primary p-4 rounded-xl mb-3"
                 >
-                  <Text className="text-center text-primary-foreground font-semibold">
+                  <Text style={{ color: theme.primaryForeground, textAlign: 'center', fontWeight: '600' }}>
                     {editingId ? "Update" : "Save"}
                   </Text>
                 </TouchableOpacity>

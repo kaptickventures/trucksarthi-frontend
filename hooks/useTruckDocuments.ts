@@ -2,20 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Platform } from "react-native";
 import API from "../app/api/axiosInstance";
 
-/* ---------------- TYPES ---------------- */
-
-export interface TruckDocument {
-  document_id: number;
-  truck_id: number;
-  document_type: string;
-  file_url: string;
-  expiry_date: string;
-  is_expiring_soon?: boolean;
-}
+import { TruckDocument } from "../types/entity";
 
 /* ---------------- HOOK ---------------- */
 
-export default function useTruckDocuments(truck_id?: number) {
+export default function useTruckDocuments(truck_id?: string) {
   const [documents, setDocuments] = useState<TruckDocument[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -42,7 +33,7 @@ export default function useTruckDocuments(truck_id?: number) {
 
   /* ---------------- UPLOAD / UPDATE ---------------- */
   const uploadDocument = async (data: {
-    truck_id: number;
+    truck_id: string;
     document_type: string;
     file: {
       uri: string;
@@ -86,7 +77,7 @@ export default function useTruckDocuments(truck_id?: number) {
       setDocuments((prev) => {
         const index = prev.findIndex(
           (d) =>
-            d.truck_id === truck_id &&
+            d.truck === truck_id &&
             d.document_type === normalizedType
         );
 
@@ -111,11 +102,11 @@ export default function useTruckDocuments(truck_id?: number) {
   };
 
   /* ---------------- DELETE ---------------- */
-  const deleteDocument = async (document_id: number) => {
+  const deleteDocument = async (document_id: string) => {
     try {
       await API.delete(`/api/truck-documents/${document_id}`);
       setDocuments((prev) =>
-        prev.filter((d) => d.document_id !== document_id)
+        prev.filter((d) => d._id !== document_id)
       );
     } catch (error: any) {
       console.error(error);

@@ -7,10 +7,15 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node",
-    "types": ["react", "react-native"],
+    "moduleResolution": "bundler",
+    "types": [
+      "react",
+      "react-native"
+    ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     }
   },
   "include": [

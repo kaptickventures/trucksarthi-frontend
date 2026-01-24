@@ -35,7 +35,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import useDrivers from "../../hooks/useDriver";
-import useTrips, { Trip } from "../../hooks/useTrip";
+import useTrips from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
 import useTruckDocuments from "../../hooks/useTruckDocuments";
 import { getFileUrl } from "../../lib/utils";
@@ -119,21 +119,19 @@ export default function TruckProfile() {
   const isDark = colorScheme === "dark";
 
   /* ---------------- ROUTE PARAM ---------------- */
-  const { truckId } = useLocalSearchParams<{ truckId?: string | string[] }>();
+  const { truck_id } = useLocalSearchParams<{ truck_id?: string | string[] }>();
 
-  const numericTruckId = useMemo(() => {
-    if (!truckId) return null;
-    const raw = Array.isArray(truckId) ? truckId[0] : truckId;
-    const n = Number(raw);
-    return Number.isNaN(n) ? null : n;
-  }, [truckId]);
+  const id = useMemo(() => {
+    if (!truck_id) return undefined;
+    return Array.isArray(truck_id) ? truck_id[0] : truck_id;
+  }, [truck_id]);
 
   /* ---------------- DATA HOOKS ---------------- */
   const { trucks, loading: trucksLoading, updateTruck, updateImportantDates } =
     useTrucks();
 
   const { documents, fetchDocuments, uploadDocument } =
-    useTruckDocuments(numericTruckId ?? undefined);
+    useTruckDocuments(id);
 
   const { trips } = useTrips();
   const { drivers } = useDrivers();
@@ -169,11 +167,9 @@ export default function TruckProfile() {
 
   /* ---------------- DERIVED ---------------- */
   const truck = useMemo(() => {
-    if (!numericTruckId) return undefined;
-    return trucks.find(
-      (t) => Number(t.truck_id) === Number(numericTruckId)
-    );
-  }, [trucks, numericTruckId]);
+    if (!id) return undefined;
+    return trucks.find((t) => t._id === id);
+  }, [trucks, id]);
 
   // Sync edit form when truck loads
   useEffect(() => {
@@ -183,39 +179,39 @@ export default function TruckProfile() {
         chassis_number: truck.chassis_number || "",
         engine_number: truck.engine_number || "",
         make: truck.make || "",
-        model: truck.model || "",
+        model: truck.vehicle_model || "",
         vehicle_class: truck.vehicle_class || "",
         fuel_type: truck.fuel_type || "",
         fuel_norms: truck.fuel_norms || "",
         unladen_weight: truck.unladen_weight ? String(truck.unladen_weight) : "",
         registered_rto: truck.registered_rto || "",
         registered_owner_name: truck.registered_owner_name || "",
-        registration_date: truck.registration_date ? truck.registration_date.split('T')[0] : "",
-        fitness_upto: truck.fitness_upto ? truck.fitness_upto.split('T')[0] : "",
-        pollution_upto: truck.pollution_upto ? truck.pollution_upto.split('T')[0] : "",
-        road_tax_upto: truck.road_tax_upto ? truck.road_tax_upto.split('T')[0] : "",
-        insurance_upto: truck.insurance_upto ? truck.insurance_upto.split('T')[0] : "",
-        permit_upto: truck.permit_upto ? truck.permit_upto.split('T')[0] : "",
-        national_permit_upto: truck.national_permit_upto ? truck.national_permit_upto.split('T')[0] : "",
+        registration_date: truck.registration_date ? new Date(truck.registration_date).toISOString().split('T')[0] : "",
+        fitness_upto: truck.fitness_upto ? new Date(truck.fitness_upto).toISOString().split('T')[0] : "",
+        pollution_upto: truck.pollution_upto ? new Date(truck.pollution_upto).toISOString().split('T')[0] : "",
+        road_tax_upto: truck.road_tax_upto ? new Date(truck.road_tax_upto).toISOString().split('T')[0] : "",
+        insurance_upto: truck.insurance_upto ? new Date(truck.insurance_upto).toISOString().split('T')[0] : "",
+        permit_upto: truck.permit_upto ? new Date(truck.permit_upto).toISOString().split('T')[0] : "",
+        national_permit_upto: truck.national_permit_upto ? new Date(truck.national_permit_upto).toISOString().split('T')[0] : "",
       });
     }
   }, [truck]);
 
   const truckTrips = trips.filter(
-    (t: Trip) => Number(t.truck_id) === Number(numericTruckId)
+    (t: any) => (typeof t.truck === 'object' ? t.truck?._id : t.truck) === id
   );
 
   const driverMap = useMemo(
     () =>
       Object.fromEntries(
-        drivers.map((d) => [Number(d.driver_id), d.driver_name])
+        drivers.map((d) => [d._id, d.driver_name])
       ),
     [drivers]
   );
 
   /* ---------------- ACTIONS ---------------- */
   const handleUpdateTruck = async () => {
-    if (!numericTruckId) return;
+    if (!id) return;
     try {
       const {
         registration_date,
@@ -239,11 +235,11 @@ export default function TruckProfile() {
       };
 
       await Promise.all([
-        updateTruck(numericTruckId, {
+        updateTruck(id, {
           ...basicInfo,
           unladen_weight: basicInfo.unladen_weight ? Number(basicInfo.unladen_weight) : undefined,
         }),
-        updateImportantDates(numericTruckId, dateUpdates)
+        updateImportantDates(id, dateUpdates)
       ]);
 
       setShowEditModal(false);
@@ -266,7 +262,7 @@ export default function TruckProfile() {
       const asset = result.assets[0];
 
       await uploadDocument({
-        truck_id: numericTruckId!,
+        truck_id: id!,
         document_type: type,
         expiry_date: new Date(
           Date.now() + 365 * 24 * 60 * 60 * 1000
@@ -287,7 +283,7 @@ export default function TruckProfile() {
   };
 
   /* ---------------- GUARDS ---------------- */
-  if (trucksLoading || !numericTruckId) {
+  if (trucksLoading || !id) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#16a34a" />
@@ -341,7 +337,7 @@ export default function TruckProfile() {
                 {truck.registration_number}
               </Text>
               <Text className="text-sm text-muted-foreground mt-0.5">
-                {truck.make} {truck.model}
+                {truck.make} {truck.vehicle_model}
               </Text>
             </View>
             <View className="bg-muted px-3 py-1 rounded-full">
@@ -373,17 +369,19 @@ export default function TruckProfile() {
 
           {showDates && (
             <View className="p-4 pt-1">
-              <DateItem label="Registration Date" date={truck.registration_date} isDark={isDark} />
+              <DateItem label="Registration Date" date={truck.registration_date ? new Date(truck.registration_date).toISOString() : undefined} isDark={isDark} />
               <View className="flex-row justify-between items-center py-3 border-b border-border/40">
                 <Text className="text-sm text-muted-foreground">Vehicle Age</Text>
-                <Text className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>{getVehicleAge(truck.registration_date)}</Text>
+                <Text className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}>
+                  {getVehicleAge(truck.registration_date ? new Date(truck.registration_date).toISOString() : undefined)}
+                </Text>
               </View>
-              <DateItem label="Fitness Upto" date={truck.fitness_upto} isDark={isDark} />
-              <DateItem label="Pollution Upto" date={truck.pollution_upto} isDark={isDark} />
-              <DateItem label="Road Tax Upto" date={truck.road_tax_upto} isDark={isDark} />
-              <DateItem label="Insurance Upto" date={truck.insurance_upto} isDark={isDark} />
-              <DateItem label="Permit Valid Upto" date={truck.permit_upto} isDark={isDark} />
-              <DateItem label="National Permit Upto" date={truck.national_permit_upto} isDark={isDark} />
+              <DateItem label="Fitness Upto" date={truck.fitness_upto ? new Date(truck.fitness_upto).toISOString() : undefined} isDark={isDark} />
+              <DateItem label="Pollution Upto" date={truck.pollution_upto ? new Date(truck.pollution_upto).toISOString() : undefined} isDark={isDark} />
+              <DateItem label="Road Tax Upto" date={truck.road_tax_upto ? new Date(truck.road_tax_upto).toISOString() : undefined} isDark={isDark} />
+              <DateItem label="Insurance Upto" date={truck.insurance_upto ? new Date(truck.insurance_upto).toISOString() : undefined} isDark={isDark} />
+              <DateItem label="Permit Valid Upto" date={truck.permit_upto ? new Date(truck.permit_upto).toISOString() : undefined} isDark={isDark} />
+              <DateItem label="National Permit Upto" date={truck.national_permit_upto ? new Date(truck.national_permit_upto).toISOString() : undefined} isDark={isDark} />
             </View>
           )}
         </View>
@@ -403,7 +401,8 @@ export default function TruckProfile() {
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
                 {DOCUMENT_TYPES.map((type) => {
                   const doc = documents.find((d) => d.document_type === type);
-                  const expiring = doc && isExpiringSoon(doc.expiry_date);
+                  const expiryString = doc?.expiry_date ? new Date(doc.expiry_date).toISOString() : "";
+                  const expiring = doc && isExpiringSoon(expiryString);
 
                   return (
                     <DocumentCard
@@ -411,7 +410,7 @@ export default function TruckProfile() {
                       label={type}
                       url={getFileUrl(doc?.file_url)}
                       expiring={expiring}
-                      expiryDate={formatDate(doc?.expiry_date)}
+                      expiryDate={formatDate(expiryString)}
                       onPress={() => doc?.file_url ? setPreviewImage(getFileUrl(doc.file_url)) : handleUpload(type)}
                       onEdit={() => handleUpload(type)}
                     />
@@ -440,11 +439,11 @@ export default function TruckProfile() {
                 </View>
               ) : (
                 truckTrips.map((t) => (
-                  <View key={t.trip_id} className="bg-muted/40 rounded-xl p-4 mb-3 border border-border/30">
+                  <View key={t._id} className="bg-muted/40 rounded-xl p-4 mb-3 border border-border/30">
                     <View className="flex-row justify-between items-start mb-2">
                       <View>
-                        <Text className="font-bold text-base">Trip #{t.trip_id}</Text>
-                        <Text className="text-xs text-muted-foreground mt-0.5">{formatDate(t.trip_date)}</Text>
+                        <Text className="font-bold text-base">Trip #{t._id.slice(-6)}</Text>
+                        <Text className="text-xs text-muted-foreground mt-0.5">{formatDate(t.trip_date as string)}</Text>
                       </View>
                       <View className={`px-2 py-1 rounded ${t.invoiced_status === 'invoiced' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-yellow-100 dark:bg-yellow-900/30'}`}>
                         <Text className={`font-bold text-xs ${t.invoiced_status === 'invoiced' ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
@@ -459,7 +458,7 @@ export default function TruckProfile() {
                       </View>
                       <View className="items-end">
                         <Text className="text-xs text-muted-foreground uppercase">Driver</Text>
-                        <Text className="font-semibold text-sm">{driverMap[t.driver_id] || "Unknown"}</Text>
+                        <Text className="font-semibold text-sm">{driverMap[typeof t.driver === 'object' ? (t.driver as any)?._id : t.driver] || "Unknown"}</Text>
                       </View>
                     </View>
                   </View>

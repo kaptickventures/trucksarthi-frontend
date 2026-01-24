@@ -35,7 +35,7 @@ export default function ClientsManager() {
   const loading = userLoading || clientsLoading;
 
   const isDark = useColorScheme() === "dark";
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const requiredFields = ["client_name", "contact_number"];
@@ -84,7 +84,7 @@ export default function ClientsManager() {
 
   const openModal = (editing = false, data?: any) => {
     if (editing && data) {
-      setEditingId(data.client_id);
+      setEditingId(data._id);
       setFormData({
         client_name: data.client_name || "",
         contact_person_name: data.contact_person_name || "",
@@ -139,7 +139,7 @@ export default function ClientsManager() {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     Alert.alert("Confirm Delete", "Delete this client?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -179,12 +179,12 @@ export default function ClientsManager() {
         ) : (
           clients.map((client) => (
             <TouchableOpacity
-              key={client.client_id}
+              key={client._id}
               activeOpacity={0.85}
               onPress={() =>
                 router.push({
                   pathname: "/client-profile",
-                  params: { clientId: client.client_id }
+                  params: { clientId: client._id }
                 })
               }
               className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
@@ -208,7 +208,7 @@ export default function ClientsManager() {
 
                 <TouchableOpacity
                   onPressIn={(e) => e.stopPropagation()}
-                  onPress={() => handleDelete(client.client_id)}
+                  onPress={() => handleDelete(client._id)}
                   className="p-2"
                 >
                   <Trash2 size={20} color="#999" />

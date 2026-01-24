@@ -4,38 +4,18 @@ import API from "../app/api/axiosInstance";
 
 /* ---------------- TYPES ---------------- */
 
-export type TransactionNature =
-  | "paid_by_driver"
-  | "received_by_driver";
+import { CounterpartyType, DriverLedger, LedgerDirection, TransactionNature } from "../types/entity";
 
-export type CounterpartyType =
-  | "owner"
-  | "vendor"
-  | "client";
-
-export interface DriverLedgerEntry {
-  entry_id: number;
-  driver_id: number;
-  entry_date: string;
-
-  transaction_nature: TransactionNature;
-  counterparty_type: CounterpartyType;
-  counterparty_id?: number | null;
-
-  direction: "to" | "from";
-  amount: number;
-  remarks: string;
-  title: string;
-}
+export type { CounterpartyType, DriverLedger, LedgerDirection, TransactionNature };
 
 /* ---------------- HOOK ---------------- */
 
 export default function useDriverFinance() {
-  const [entries, setEntries] = useState<DriverLedgerEntry[]>([]);
+  const [entries, setEntries] = useState<DriverLedger[]>([]);
   const [loading, setLoading] = useState(false);
 
   /* ---------------- FETCH LEDGER ---------------- */
-  const fetchDriverLedger = useCallback(async (driverId: number) => {
+  const fetchDriverLedger = useCallback(async (driverId: string) => {
     try {
       setLoading(true);
       const res = await API.get(
@@ -51,7 +31,7 @@ export default function useDriverFinance() {
   }, []);
 
   /* ---------------- FETCH BALANCE ---------------- */
-  const fetchDriverSummary = async (driverId: number) => {
+  const fetchDriverSummary = async (driverId: string) => {
     try {
       const res = await API.get(
         `/api/driver-ledger/driver/${driverId}/balance`
@@ -69,10 +49,11 @@ export default function useDriverFinance() {
 
   /* ---------------- ADD ENTRY ---------------- */
   const addLedgerEntry = async (data: {
-    driver_id: number;
+    driver_id: string;
     transaction_nature: TransactionNature;
     counterparty_type: CounterpartyType;
-    counterparty_id?: number | null;
+    counterparty_id?: string | null;
+    direction: LedgerDirection;
     amount: number;
     remarks: string;
   }) => {

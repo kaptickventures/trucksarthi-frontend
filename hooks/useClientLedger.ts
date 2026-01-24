@@ -2,22 +2,15 @@ import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
-export interface LedgerEntry {
-  entry_id: string; // "INV-5" | "PAY-12"
-  client_id: number;
-  invoice_id?: number;
-  entry_date: string;
-  amount: number;
-  entry_type: "debit" | "credit";
-  remarks?: string;
-}
+import { ClientLedger } from "../types/entity";
+export type { ClientLedger };
 
 export function useClientLedger() {
-  const [entries, setEntries] = useState<LedgerEntry[]>([]);
+  const [entries, setEntries] = useState<ClientLedger[]>([]);
   const [loading, setLoading] = useState(false);
 
   // 📒 Fetch full ledger (Invoices + Payments)
-  const fetchLedger = useCallback(async (client_id: number) => {
+  const fetchLedger = useCallback(async (client_id: string) => {
     try {
       setLoading(true);
       const res = await API.get(`/api/ledger/client/${client_id}`);
@@ -31,7 +24,7 @@ export function useClientLedger() {
   }, []);
 
   // 📊 Fetch derived summary (SOURCE OF TRUTH)
-  const fetchSummary = async (client_id: number) => {
+  const fetchSummary = async (client_id: string) => {
     try {
       const res = await API.get(
         `/api/ledger/client/${client_id}/summary`
@@ -50,15 +43,19 @@ export function useClientLedger() {
 
   // 💳 Add payment (CREDIT ONLY)
   const addPayment = async (data: {
-    client_id: number;
-    invoice_id?: number;
+    client_id: string;
+    invoice_id?: string;
     amount: number;
     remarks?: string;
     date?: string; // ISO string
   }) => {
     try {
       await API.post(`/api/ledger/entry`, {
-        ...data,
+        client: data.client_id,
+        invoice: data.invoice_id,
+        amount: data.amount,
+        remarks: data.remarks,
+        date: data.date,
         entry_type: "credit",
       });
 
@@ -77,7 +74,7 @@ export function useClientLedger() {
   // ✏️ Update ledger entry
   const updateEntry = async (
     entry_id: string,
-    data: { amount?: number; remarks?: string; date?: string, client_id: number }
+    data: { amount?: number; remarks?: string; date?: string, client_id: string }
   ) => {
     try {
       await API.put(`/api/ledger/entry/${entry_id}`, data);

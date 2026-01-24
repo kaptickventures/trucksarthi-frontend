@@ -35,7 +35,7 @@ export default function LocationsManager() {
   const loading = userLoading || locationsLoading;
 
   const isDark = useColorScheme() === "dark";
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     location_name: "",
     complete_address: "",
@@ -74,7 +74,7 @@ export default function LocationsManager() {
 
   const openModal = (editing = false, data?: any) => {
     if (editing && data) {
-      setEditingId(data.location_id);
+      setEditingId(data._id);
       setFormData({
         location_name: data.location_name,
         complete_address: data.complete_address || "",
@@ -118,7 +118,7 @@ export default function LocationsManager() {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     Alert.alert("Confirm Delete", "Delete this location?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -159,7 +159,7 @@ export default function LocationsManager() {
         ) : (
           locations.map((loc) => (
             <View
-              key={loc.location_id}
+              key={loc._id}
               className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
             >
               <View className="flex-row items-start flex-1">
@@ -183,7 +183,7 @@ export default function LocationsManager() {
                   <Edit3 size={20} color="#999" />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => handleDelete(loc.location_id)}
+                  onPress={() => handleDelete(loc._id)}
                   className="p-2"
                 >
                   <Trash2 size={20} color="#999" />

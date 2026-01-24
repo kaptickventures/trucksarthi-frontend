@@ -1,22 +1,22 @@
-import React, { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react-native";
+import { useEffect, useRef, useState } from "react";
 import {
-  Modal,
-  Pressable,
+  Alert,
   Animated,
+  Modal,
   PanResponder,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
   useColorScheme,
-  Alert,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
-import { X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { THEME } from "../theme"; // ← make sure this path matches your project
 import "../global.css";
+import { THEME } from "../theme"; // ← make sure this path matches your project
 
 /* ---------------- Types ---------------- */
 type DropdownKey = "truck" | "driver" | "client" | "start" | "end";
@@ -39,8 +39,8 @@ interface Props {
   drivers: any[];
   clients: any[];
   locations: any[];
-  onSave: (tripId: number, data: any) => Promise<void> | void;
-  onDelete: (tripId: number) => Promise<void> | void;
+  onSave: (tripId: string, data: any) => Promise<void> | void;
+  onDelete: (tripId: string) => Promise<void> | void;
 }
 
 export default function EditTripModal({
@@ -98,17 +98,19 @@ export default function EditTripModal({
     }
   };
 
+  const getId = (obj: any): string => (typeof obj === "object" ? obj?._id : obj);
+
   useEffect(() => {
     if (!trip) return;
 
     setRawTripDate(String(trip.trip_date ?? ""));
 
     setForm({
-      truck_id: String(trip.truck_id ?? ""),
-      driver_id: String(trip.driver_id ?? ""),
-      client_id: String(trip.client_id ?? ""),
-      start_location_id: String(trip.start_location_id ?? ""),
-      end_location_id: String(trip.end_location_id ?? ""),
+      truck_id: String(getId(trip.truck) ?? ""),
+      driver_id: String(getId(trip.driver) ?? ""),
+      client_id: String(getId(trip.client) ?? ""),
+      start_location_id: String(getId(trip.start_location) ?? ""),
+      end_location_id: String(getId(trip.end_location) ?? ""),
       cost_of_trip: String(trip.cost_of_trip ?? ""),
       miscellaneous_expense: String(trip.miscellaneous_expense ?? ""),
       notes: trip.notes ?? "",
@@ -156,31 +158,31 @@ export default function EditTripModal({
       label: "Truck",
       key: "truck_id" as FormKey,
       openKey: "truck" as DropdownKey,
-      items: trucks.map((t) => ({ label: t.registration_number, value: String(t.truck_id) })),
+      items: trucks.map((t) => ({ label: t.registration_number, value: t._id })),
     },
     {
       label: "Driver",
       key: "driver_id" as FormKey,
       openKey: "driver" as DropdownKey,
-      items: drivers.map((d) => ({ label: d.driver_name, value: String(d.driver_id) })),
+      items: drivers.map((d) => ({ label: d.driver_name, value: d._id })),
     },
     {
       label: "Client",
       key: "client_id" as FormKey,
       openKey: "client" as DropdownKey,
-      items: clients.map((c) => ({ label: c.client_name, value: String(c.client_id) })),
+      items: clients.map((c) => ({ label: c.client_name, value: c._id })),
     },
     {
       label: "Start Location",
       key: "start_location_id" as FormKey,
       openKey: "start" as DropdownKey,
-      items: locations.map((l) => ({ label: l.location_name, value: String(l.location_id) })),
+      items: locations.map((l) => ({ label: l.location_name, value: l._id })),
     },
     {
       label: "End Location",
       key: "end_location_id" as FormKey,
       openKey: "end" as DropdownKey,
-      items: locations.map((l) => ({ label: l.location_name, value: String(l.location_id) })),
+      items: locations.map((l) => ({ label: l.location_name, value: l._id })),
     },
   ] as const;
 
@@ -200,18 +202,18 @@ export default function EditTripModal({
 
     const payload = {
       trip_date: rawTripDate,
-      truck_id: Number(form.truck_id),
-      driver_id: Number(form.driver_id),
-      client_id: Number(form.client_id),
-      start_location_id: Number(form.start_location_id),
-      end_location_id: Number(form.end_location_id),
+      truck: form.truck_id,
+      driver: form.driver_id,
+      client: form.client_id,
+      start_location: form.start_location_id,
+      end_location: form.end_location_id,
       cost_of_trip: Number(form.cost_of_trip),
       miscellaneous_expense: Number(form.miscellaneous_expense || 0),
       notes: form.notes,
     };
 
     try {
-      await onSave(trip.trip_id, payload);
+      await onSave(trip._id, payload);
     } catch {
       Alert.alert("Error", "Failed to save trip");
     }
@@ -225,7 +227,7 @@ export default function EditTripModal({
         style: "destructive",
         onPress: async () => {
           try {
-            await onDelete(trip.trip_id);
+            await onDelete(trip._id);
           } catch {
             Alert.alert("Error", "Failed to delete trip");
           }

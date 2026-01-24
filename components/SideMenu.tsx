@@ -156,10 +156,10 @@ export default function SideMenu({
 
               <View className="ml-4">
                 <Text className="text-xl font-semibold" style={{ color: colors.text }}>
-                  {loading ? "Loading..." : user?.full_name || "Guest"}
+                  {loading ? "Loading..." : user?.name || "Guest"}
                 </Text>
                 <Text className="text-sm" style={{ color: colors.subtext }}>
-                  {user?.email_address || ""}
+                  {user?.email || ""}
                 </Text>
               </View>
             </View>

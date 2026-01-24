@@ -2,19 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
-export interface Trip {
-  trip_id: number;
-  trip_date: string;
-  truck_id: number;
-  driver_id: number;
-  client_id: number;
-  start_location_id: number;
-  end_location_id: number;
-  cost_of_trip: number;
-  miscellaneous_expense: number;
-  notes: string;
-  invoiced_status: "invoiced" | "not_invoiced";
-}
+import { Trip } from "../types/entity";
+export { Trip };
 
 interface UseTripsOptions {
   autoFetch?: boolean;
@@ -57,11 +46,11 @@ export default function useTrips(options: UseTripsOptions = {}) {
     }
   };
 
-  const updateTrip = async (tripId: number, updateData: any) => {
+  const updateTrip = async (tripId: string, updateData: any) => {
     try {
       const res = await API.put(`/api/trips/${tripId}`, updateData);
       setTrips((prev) =>
-        prev.map((t) => (t.trip_id === tripId ? res.data : t))
+        prev.map((t) => (t._id === tripId ? res.data : t))
       );
       return res.data;
     } catch (error) {
@@ -71,10 +60,10 @@ export default function useTrips(options: UseTripsOptions = {}) {
     }
   };
 
-  const deleteTrip = async (tripId: number) => {
+  const deleteTrip = async (tripId: string) => {
     try {
       await API.delete(`/api/trips/${tripId}`);
-      setTrips((prev) => prev.filter((t) => t.trip_id !== tripId));
+      setTrips((prev) => prev.filter((t) => t._id !== tripId));
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to delete trip");

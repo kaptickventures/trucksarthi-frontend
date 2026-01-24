@@ -9,13 +9,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
   Animated,
   KeyboardAvoidingView,
   Linking,
   Modal,
   PanResponder,
   Platform,
+  Pressable,
   ScrollView,
   StatusBar,
   Text,
@@ -27,27 +27,27 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import useClients from "../../hooks/useClient";
-import { LedgerEntry, useClientLedger } from "../../hooks/useClientLedger";
+import { ClientLedger, useClientLedger } from "../../hooks/useClientLedger";
 import useDrivers from "../../hooks/useDriver";
 import { Invoice, useInvoices } from "../../hooks/useInvoice";
 import useLocations from "../../hooks/useLocation";
 import useTrips, { Trip } from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
+import { THEME } from "../../theme";
 
 export default function ClientProfile() {
   const router = useRouter();
   const isDark = useColorScheme() === "dark";
+  const theme = isDark ? THEME.dark : THEME.light;
   const { user, loading: userLoading } = useUser();
 
   /* ---------------- ROUTE PARAM ---------------- */
   const { clientId } = useLocalSearchParams<{ clientId?: string | string[] }>();
 
-  const numericClientId = useMemo(() => {
-    if (!clientId) return null;
-    if (Array.isArray(clientId)) return Number(clientId[0]);
-    const n = Number(clientId);
-    return Number.isNaN(n) ? null : n;
+  const id = useMemo(() => {
+    if (!clientId) return undefined;
+    return Array.isArray(clientId) ? clientId[0] : clientId;
   }, [clientId]);
 
   const {
@@ -69,13 +69,13 @@ export default function ClientProfile() {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Transaction Edit
-  const [editingTransaction, setEditingTransaction] = useState<LedgerEntry | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<ClientLedger | null>(null);
   const [editTrxAmount, setEditTrxAmount] = useState("");
   const [editTrxRemarks, setEditTrxRemarks] = useState("");
   const [editTrxDate, setEditTrxDate] = useState(new Date());
   const [showEditTrxDatePicker, setShowEditTrxDatePicker] = useState(false);
 
-  const [selectedTrips, setSelectedTrips] = useState<number[]>([]);
+  const [selectedTrips, setSelectedTrips] = useState<string[]>([]);
 
   // Edit Client Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -97,7 +97,9 @@ export default function ClientProfile() {
   const { locations } = useLocations();
 
 
-  const toggleTripSelection = (tripId: number) => {
+  const getId = (obj: any): string => (typeof obj === "object" ? obj?._id : obj);
+
+  const toggleTripSelection = (tripId: string) => {
     setSelectedTrips((prev) =>
       prev.includes(tripId)
         ? prev.filter((id) => id !== tripId)
@@ -117,13 +119,13 @@ export default function ClientProfile() {
 
   /* ---------------- FETCH ---------------- */
   useEffect(() => {
-    if (!numericClientId) return;
+    if (!id) return;
 
     fetchClients();
     fetchInvoices();
     fetchTrips();
-    fetchLedger(numericClientId);
-  }, [numericClientId]);
+    fetchLedger(id);
+  }, [id]);
 
   /* ---------------- HELPERS ---------------- */
   const normalizeInvoiceStatus = (status: any) => {
@@ -134,7 +136,7 @@ export default function ClientProfile() {
   const driverMap = useMemo(
     () =>
       Object.fromEntries(
-        drivers.map((d) => [Number(d.driver_id), d.driver_name])
+        drivers.map((d) => [d._id, d.driver_name])
       ),
     [drivers]
   );
@@ -142,7 +144,7 @@ export default function ClientProfile() {
   const truckMap = useMemo(
     () =>
       Object.fromEntries(
-        trucks.map((t) => [Number(t.truck_id), t.registration_number])
+        trucks.map((t) => [t._id, t.registration_number])
       ),
     [trucks]
   );
@@ -150,7 +152,7 @@ export default function ClientProfile() {
   const locationMap = useMemo(
     () =>
       Object.fromEntries(
-        locations.map((l) => [Number(l.location_id), l.location_name])
+        locations.map((l) => [l._id, l.location_name])
       ),
     [locations]
   );
@@ -161,7 +163,7 @@ export default function ClientProfile() {
     try {
       const invoiceTrips = trips.filter(
         (t) =>
-          Number(t.client_id) === Number(invoice.client_id) &&
+          getId(t.client) === getId(invoice.client) &&
           normalizeInvoiceStatus(t.invoiced_status) === "invoiced"
       );
 
@@ -278,7 +280,7 @@ export default function ClientProfile() {
   <div class="meta">
     <div>
       <strong>Invoice Number</strong><br />
-      ${invoice.invoice_number}
+      ${invoice.invoice_number || "—"}
     </div>
     <div>
       <strong>Invoice Date</strong><br />
@@ -315,18 +317,18 @@ export default function ClientProfile() {
               Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0);
 
             const driverName =
-              driverMap[t.driver_id] || "—";
+              driverMap[getId(t.driver)] || "—";
 
             const truckNumber =
-              truckMap[t.truck_id] || "—";
+              truckMap[getId(t.truck)] || "—";
 
-            const route = `${locationMap[t.start_location_id] || "—"
-              } → ${locationMap[t.end_location_id] || "—"
+            const route = `${locationMap[getId(t.start_location)] || "—"
+              } → ${locationMap[getId(t.end_location)] || "—"
               }`;
 
             return `
         <tr>
-          <td>${t.trip_date}</td>
+          <td>${t.trip_date ? String(t.trip_date).split("T")[0] : "—"}</td>
           <td>${route}</td>
           <td>${truckNumber}</td>
           <td>${driverName}</td>
@@ -371,7 +373,7 @@ export default function ClientProfile() {
 `;
 
       const { uri } = await Print.printToFileAsync({ html });
-      const fileUri = `${FileSystem.documentDirectory}Invoice-${invoice.invoice_number}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}Invoice-${invoice.invoice_number || "N-A"}.pdf`;
 
       await FileSystem.moveAsync({ from: uri, to: fileUri });
       await Sharing.shareAsync(fileUri);
@@ -385,18 +387,18 @@ export default function ClientProfile() {
 
   /* ---------------- DERIVED ---------------- */
   const client = useMemo(() => {
-    if (!numericClientId) return undefined;
+    if (!id) return undefined;
     return clients.find(
-      (c) => Number(c.client_id) === Number(numericClientId)
+      (c) => c._id === id
     );
-  }, [clients, numericClientId]);
+  }, [clients, id]);
 
   const clientInvoices = invoices.filter(
-    (i: Invoice) => Number(i.client_id) === Number(numericClientId)
+    (i: Invoice) => getId(i.client) === id
   );
 
   const clientTrips = trips.filter(
-    (t: Trip) => Number(t.client_id) === Number(numericClientId)
+    (t: Trip) => getId(t.client) === id
   );
 
   // 💰 CALCULATED AMOUNTS
@@ -409,7 +411,7 @@ export default function ClientProfile() {
   const billedAmount = useMemo(() => {
     return clientInvoices
       .filter((i) => i.status !== "paid")
-      .reduce((sum, i) => sum + Number(i.total_amount), 0);
+      .reduce((sum, i) => sum + Number(i.total_amount || 0), 0);
   }, [clientInvoices]);
 
   const settledAmount = useMemo(() => {
@@ -435,13 +437,13 @@ export default function ClientProfile() {
   };
 
   const handleGenerateInvoice = async () => {
-    if (!selectedTrips.length || !numericClientId) {
+    if (!selectedTrips.length || !id) {
       Alert.alert("Select uninvoiced trips");
       return;
     }
 
     await createInvoice({
-      client_id: numericClientId,
+      client_id: id,
       tripIds: selectedTrips,
       due_date: new Date().toISOString().split("T")[0],
     });
@@ -449,11 +451,11 @@ export default function ClientProfile() {
     setSelectedTrips([]);
     fetchInvoices();
     fetchTrips();
-    fetchLedger(numericClientId);
+    fetchLedger(id);
   };
 
   const handleAddPayment = async () => {
-    if (!paymentAmount || !numericClientId) {
+    if (!paymentAmount || !id) {
       Alert.alert("Enter amount");
       return;
     }
@@ -463,7 +465,7 @@ export default function ClientProfile() {
     }
 
     await addPayment({
-      client_id: numericClientId,
+      client_id: id,
       amount: Number(paymentAmount),
       remarks: paymentRemarks,
       date: paymentDate.toISOString(),
@@ -474,14 +476,14 @@ export default function ClientProfile() {
     setPaymentDate(new Date());
     setShowPaymentForm(false);
 
-    fetchLedger(numericClientId);
+    fetchLedger(id);
   };
 
   const handleUpdateTransaction = async () => {
-    if (!editingTransaction || !editTrxAmount || !numericClientId) return;
+    if (!editingTransaction || !editTrxAmount || !id) return;
 
-    await updateEntry(editingTransaction.entry_id, {
-      client_id: numericClientId,
+    await updateEntry(editingTransaction._id, {
+      client_id: id,
       amount: Number(editTrxAmount),
       remarks: editTrxRemarks,
       date: editTrxDate.toISOString(),
@@ -489,10 +491,10 @@ export default function ClientProfile() {
     });
 
     setEditingTransaction(null);
-    fetchLedger(numericClientId);
+    fetchLedger(id);
   };
 
-  const openEditTransaction = (entry: LedgerEntry) => {
+  const openEditTransaction = (entry: ClientLedger) => {
     setEditingTransaction(entry);
     setEditTrxAmount(entry.amount.toString());
     setEditTrxRemarks(entry.remarks || "");
@@ -502,8 +504,8 @@ export default function ClientProfile() {
 
   const handleSettleInvoice = async (invoice: Invoice) => {
     // Open payment modal pre-filled
-    setPaymentAmount(invoice.total_amount.toString());
-    setPaymentRemarks(`Settlement for Invoice #${invoice.invoice_number}`);
+    setPaymentAmount((invoice.total_amount || 0).toString());
+    setPaymentRemarks(`Settlement for Invoice #${invoice.invoice_number || "—"}`);
     setPaymentDate(new Date());
     setShowPaymentForm(true);
   };
@@ -558,10 +560,10 @@ export default function ClientProfile() {
       return;
     }
 
-    if (!numericClientId) return;
+    if (!id) return;
 
     try {
-      await updateClient(numericClientId, editFormData);
+      await updateClient(id, editFormData);
       Alert.alert("Success", "Client updated successfully.");
       closeEditModal();
       fetchClients();
@@ -571,7 +573,7 @@ export default function ClientProfile() {
   };
 
   /* ---------------- GUARDS ---------------- */
-  if (userLoading || clientsLoading || !numericClientId) {
+  if (userLoading || clientsLoading || !id) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" />
@@ -817,8 +819,8 @@ export default function ClientProfile() {
             >
               <Text
                 className={`text-xs font-bold uppercase ${activeTab === tab
-                    ? "text-foreground"
-                    : "text-muted-foreground"
+                  ? "text-foreground"
+                  : "text-muted-foreground"
                   }`}
               >
                 {tab}
@@ -858,32 +860,32 @@ export default function ClientProfile() {
                     normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced"
                 )
                 .map((trip) => {
-                  const isSelected = selectedTrips.includes(trip.trip_id);
+                  const isSelected = selectedTrips.includes(trip._id);
                   return (
                     <TouchableOpacity
-                      key={trip.trip_id}
-                      onPress={() => toggleTripSelection(trip.trip_id)}
+                      key={trip._id}
+                      onPress={() => toggleTripSelection(trip._id)}
                       activeOpacity={0.9}
                       className={`p-4 rounded-xl mb-3 border ${isSelected
-                          ? "bg-blue-50 border-blue-200"
-                          : "bg-card border-transparent"
+                        ? "bg-blue-50 border-blue-200"
+                        : "bg-card border-transparent"
                         }`}
                     >
                       <View className="flex-row justify-between mb-2">
                         <Text className="font-bold text-base">
-                          {trip.trip_date.split("T")[0]}
+                          {trip.trip_date ? String(trip.trip_date).split("T")[0] : "—"}
                         </Text>
                         <Text className="font-bold text-blue-600">
                           ₹{Number(trip.cost_of_trip).toLocaleString()}
                         </Text>
                       </View>
                       <Text className="text-xs text-muted-foreground">
-                        {locationMap[trip.start_location_id]} →{" "}
-                        {locationMap[trip.end_location_id]}
+                        {locationMap[getId(trip.start_location)]} →{" "}
+                        {locationMap[getId(trip.end_location)]}
                       </Text>
                       <Text className="text-xs text-muted-foreground mt-1">
-                        Truck: {truckMap[trip.truck_id]} • Driver:{" "}
-                        {driverMap[trip.driver_id]}
+                        Truck: {truckMap[getId(trip.truck)]} • Driver:{" "}
+                        {driverMap[getId(trip.driver)]}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -902,12 +904,12 @@ export default function ClientProfile() {
             ) : (
               clientInvoices.map((inv) => (
                 <View
-                  key={inv.invoice_id}
+                  key={inv._id}
                   className="bg-card p-4 rounded-xl mb-3 border border-border"
                 >
                   <View className="flex-row justify-between mb-2">
                     <Text className="font-bold text-base">
-                      #{inv.invoice_number}
+                      #{inv.invoice_number || "—"}
                     </Text>
                     <View
                       className={`px-2 py-0.5 rounded text-[10px] ${inv.status === "paid" ? "bg-green-100" : "bg-yellow-100"
@@ -915,18 +917,18 @@ export default function ClientProfile() {
                     >
                       <Text
                         className={`text-[10px] font-bold uppercase ${inv.status === "paid"
-                            ? "text-green-700"
-                            : "text-yellow-700"
+                          ? "text-green-700"
+                          : "text-yellow-700"
                           }`}
                       >
-                        {inv.status}
+                        {inv.status || "Pending"}
                       </Text>
                     </View>
                   </View>
 
                   <View className="flex-row justify-between items-center mt-2">
                     <Text className="text-2xl font-bold">
-                      ₹{Number(inv.total_amount).toLocaleString()}
+                      ₹{Number(inv.total_amount || 0).toLocaleString()}
                     </Text>
                     <View className="flex-row gap-2">
                       <TouchableOpacity
@@ -949,7 +951,7 @@ export default function ClientProfile() {
                     </View>
                   </View>
                   <Text className="text-xs text-muted-foreground mt-2">
-                    Date: {inv.invoice_date.split("T")[0]}
+                    Date: {inv.due_date ? String(inv.due_date).split("T")[0] : "—"}
                   </Text>
                 </View>
               ))
@@ -969,7 +971,7 @@ export default function ClientProfile() {
                 const isCredit = entry.entry_type === "credit";
                 return (
                   <TouchableOpacity
-                    key={entry.entry_id}
+                    key={entry._id}
                     onLongPress={() => openEditTransaction(entry)}
                     className="bg-card p-4 rounded-xl mb-3 flex-row items-center border border-border"
                   >
@@ -993,7 +995,7 @@ export default function ClientProfile() {
                           )}`}
                       </Text>
                       <Text className="text-xs text-muted-foreground">
-                        {entry.entry_date.split("T")[0]} • {entry.remarks}
+                        {String(entry.entry_date).split("T")[0]} • {entry.remarks}
                       </Text>
                     </View>
                     <Text

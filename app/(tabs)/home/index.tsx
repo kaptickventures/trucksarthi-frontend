@@ -155,25 +155,45 @@ export default function HomeScreen() {
           </View>
 
           {recentTrips.length > 0 ? (
-            recentTrips.map((trip) => (
-              <View
-                key={trip.trip_id}
-                className="flex-row justify-between items-center bg-secondary p-3 rounded-xl mb-2"
-              >
-                <View className="flex-1">
-                  <Text className="text-card-foreground font-medium text-sm">Trip #{trip.trip_id}</Text>
-                  <Text className="text-muted-foreground text-xs mt-1">
-                    Truck {trip.truck_id} • Driver {trip.driver_id}
-                  </Text>
+            recentTrips.map((trip) => {
+              const getId = (obj: any): string =>
+                typeof obj === "object" ? obj?._id : obj;
+              const tripId = trip._id;
+              const truckId = getId(trip.truck);
+              const driverId = getId(trip.driver);
+              const dateStr = trip.trip_date
+                ? new Date(trip.trip_date).toLocaleDateString("en-IN")
+                : "No Date";
+              const cost = trip.cost_of_trip ?? 0;
+
+              return (
+                <View
+                  key={tripId}
+                  className="flex-row justify-between items-center bg-secondary p-3 rounded-xl mb-2"
+                >
+                  <View className="flex-1">
+                    <Text className="text-card-foreground font-medium text-sm">
+                      Trip #{tripId.slice(-6)}
+                    </Text>
+                    <Text className="text-muted-foreground text-[10px] mt-1">
+                      Truck: {truckId.slice(-6)} • Driver: {driverId.slice(-6)}
+                    </Text>
+                  </View>
+                  <View className="items-end">
+                    <Text className="text-primary font-semibold">
+                      ₹{cost.toLocaleString()}
+                    </Text>
+                    <Text className="text-muted-foreground text-[10px]">
+                      {dateStr}
+                    </Text>
+                  </View>
                 </View>
-                <View className="items-end">
-                  <Text className="text-primary font-semibold">₹{trip.cost_of_trip.toLocaleString()}</Text>
-                  <Text className="text-muted-foreground text-xs">{trip.trip_date}</Text>
-                </View>
-              </View>
-            ))
+              );
+            })
           ) : (
-            <Text className="text-muted-foreground text-center py-4">No trips found.</Text>
+            <Text className="text-muted-foreground text-center py-4">
+              No trips found.
+            </Text>
           )}
         </View>
       </ScrollView>

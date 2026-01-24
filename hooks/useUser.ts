@@ -1,23 +1,9 @@
+import * as ImagePicker from "expo-image-picker";
 import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import API from "../app/api/axiosInstance";
 
-interface User {
-  id: string;
-  _id?: string; // MongoDB ID fallback
-  firebase_uid: string;
-  full_name?: string;
-  email_address?: string;
-  phone_number?: string;
-  company_name?: string;
-  address?: string;
-  profile_picture_url?: string;
-  date_of_birth?: string | null;
-  gstin?: string;
-  bank_name?: string;
-  account_holder_name?: string;
-  ifsc_code?: string;
-}
+import { User } from "../types/entity";
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
@@ -41,7 +27,7 @@ export function useUser() {
       try {
         if (!user) throw new Error("User not loaded");
         // Using PUT to update user details instead of non-existent sync endpoint
-        const res = await API.put(`/api/users/${user.firebase_uid || user.id || (user as any)._id}`, data);
+        const res = await API.put(`/api/users/${user._id}`, data);
         setUser(res.data); // Update local state
         return res.data;
       } catch (err) {
@@ -57,7 +43,7 @@ export function useUser() {
       if (!user) throw new Error("User not authenticated");
 
       try {
-        const res = await API.put(`/api/users/${user.firebase_uid || user.id}`, data);
+        const res = await API.put(`/api/users/${user._id}`, data);
         setUser(res.data);
         return res.data;
       } catch (err) {
@@ -72,7 +58,7 @@ export function useUser() {
     if (!user) throw new Error("User not authenticated");
 
     try {
-      await API.delete(`/api/users/${user.firebase_uid || user.id}`);
+      await API.delete(`/api/users/${user._id}`);
       setUser(null);
     } catch (err) {
       console.error("❌ Failed to delete user:", err);
@@ -84,7 +70,7 @@ export function useUser() {
     if (!user) return false;
 
     try {
-      const res = await API.get(`/api/users/check-profile/${user.firebase_uid || user.id}`);
+      const res = await API.get(`/api/users/check-profile/${user._id}`);
       return res.data.profileCompleted;
     } catch (err) {
       console.error("❌ Failed to check profile completion:", err);
@@ -97,7 +83,7 @@ export function useUser() {
   }, [fetchUser]);
 
   const uploadProfilePicture = useCallback(
-    async (file: any) => {
+    async (file: ImagePicker.ImagePickerAsset) => {
       if (!user) throw new Error("User not authenticated");
 
       try {
@@ -106,12 +92,12 @@ export function useUser() {
         
         formData.append("file", {
           uri: fileUri,
-          name: file.name || "profile.jpg",
+          name: file.fileName || "profile.jpg",
           type: file.mimeType || "image/jpeg",
         } as any);
 
         const res = await API.post(
-          `/api/users/${user.firebase_uid || user.id}/profile-picture`,
+          `/api/users/${user._id}/profile-picture`,
           formData,
           {
             headers: {

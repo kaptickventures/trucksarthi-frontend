@@ -11,7 +11,7 @@ export async function loginWithEmail(email: string, pass: string) {
     return { token, user };
   } catch (err: any) {
     console.error("❌ Login error:", err.response?.data || err.message);
-    throw err;
+    throw err.response?.data?.error || err.message || "Login failed";
   }
 }
 
@@ -22,7 +22,7 @@ export async function sendOtp(phone: string) {
     return true;
   } catch (err: any) {
     console.error("❌ Send OTP error:", err.response?.data || err.message);
-    throw err;
+    throw err.response?.data?.error || err.message || "Failed to send OTP";
   }
 }
 
@@ -36,7 +36,7 @@ export async function loginWithPhone(phone: string, otp: string) {
     return { token, user };
   } catch (err: any) {
     console.error("❌ Phone login error:", err.response?.data || err.message);
-    throw err;
+    throw err.response?.data?.error || err.message || "Phone login failed";
   }
 }
 
@@ -50,7 +50,7 @@ export async function registerUser(name: string, email: string, pass: string) {
     return { token, user };
   } catch (err: any) {
     console.error("❌ Registration error:", err.response?.data || err.message);
-    throw err;
+    throw err.response?.data?.error || err.message || "Registration failed";
   }
 }
 
@@ -75,7 +75,7 @@ export async function postLoginFlow(router: any) {
       return;
     }
 
-    const res = await API.get(`/api/users/check-profile/${user.firebase_uid || user.id || user._id}`);
+    const res = await API.get(`/api/users/check-profile/${user._id}`);
     const completed = res.data?.profileCompleted;
 
     if (completed) {

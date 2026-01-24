@@ -263,24 +263,24 @@ export default function AddTrip() {
 
       if (currentType === "Client") {
         created = await addClient(newItemForm);
-        setFormData((p) => ({ ...p, client_id: String(created.client_id) }));
+        setFormData((p) => ({ ...p, client_id: created._id }));
       }
       if (currentType === "Driver") {
         created = await addDriver(newItemForm);
-        setFormData((p) => ({ ...p, driver_id: String(created.driver_id) }));
+        setFormData((p) => ({ ...p, driver_id: created._id }));
       }
       if (currentType === "Truck") {
         created = await addTruck(newItemForm);
-        setFormData((p) => ({ ...p, truck_id: String(created.truck_id) }));
+        setFormData((p) => ({ ...p, truck_id: created._id }));
       }
       if (currentType === "Location") {
         created = await addLocation(newItemForm);
         setFormData((p) => ({
           ...p,
           start_location_id:
-            p.start_location_id || String(created.location_id),
+            p.start_location_id || created._id,
           end_location_id:
-            p.end_location_id || String(created.location_id),
+            p.end_location_id || created._id,
         }));
       }
 
@@ -299,7 +299,7 @@ export default function AddTrip() {
       openKey: "truck" as DropdownKeys,
       items: trucks.map((t) => ({
         label: t.registration_number,
-        value: String(t.truck_id),
+        value: t._id,
       })),
       addType: "Truck" as EntityType,
     },
@@ -309,7 +309,7 @@ export default function AddTrip() {
       openKey: "driver" as DropdownKeys,
       items: drivers.map((d) => ({
         label: d.driver_name,
-        value: String(d.driver_id),
+        value: d._id,
       })),
       addType: "Driver" as EntityType,
     },
@@ -319,7 +319,7 @@ export default function AddTrip() {
       openKey: "client" as DropdownKeys,
       items: clients.map((c) => ({
         label: c.client_name,
-        value: String(c.client_id),
+        value: c._id,
       })),
       addType: "Client" as EntityType,
     },
@@ -329,7 +329,7 @@ export default function AddTrip() {
       openKey: "start" as DropdownKeys,
       items: locations.map((l) => ({
         label: l.location_name,
-        value: String(l.location_id),
+        value: l._id,
       })),
       addType: "Location" as EntityType,
     },
@@ -339,7 +339,7 @@ export default function AddTrip() {
       openKey: "end" as DropdownKeys,
       items: locations.map((l) => ({
         label: l.location_name,
-        value: String(l.location_id),
+        value: l._id,
       })),
       addType: "Location" as EntityType,
     },
@@ -494,11 +494,11 @@ export default function AddTrip() {
               onPress={async () => {
                 try {
                   await addTrip({
-                    truck_id: Number(formData.truck_id),
-                    driver_id: Number(formData.driver_id),
-                    client_id: Number(formData.client_id),
-                    start_location_id: Number(formData.start_location_id),
-                    end_location_id: Number(formData.end_location_id),
+                    truck: formData.truck_id,
+                    driver: formData.driver_id,
+                    client: formData.client_id,
+                    start_location: formData.start_location_id,
+                    end_location: formData.end_location_id,
                     cost_of_trip: Number(formData.cost_of_trip),
                     miscellaneous_expense: Number(
                       formData.miscellaneous_expense || 0

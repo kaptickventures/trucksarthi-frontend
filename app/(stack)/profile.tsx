@@ -42,11 +42,11 @@ export default function Profile() {
   };
 
   const [formData, setFormData] = useState({
-    full_name: "",
+    name: "",
     company_name: "",
     date_of_birth: "",
-    phone_number: "",
-    email_address: "",
+    phone: "",
+    email: "",
     address: "",
     gstin: "",
     bank_name: "",
@@ -65,11 +65,11 @@ export default function Profile() {
   useEffect(() => {
     if (user) {
       setFormData({
-        full_name: user.full_name ?? "",
+        name: user.name ?? "",
         company_name: user.company_name ?? "",
-        date_of_birth: user.date_of_birth?.substring(0, 10) ?? "",
-        phone_number: user.phone_number ?? "+91 ",
-        email_address: user.email_address ?? "",
+        date_of_birth: typeof user.date_of_birth === 'string' ? user.date_of_birth.substring(0, 10) : user.date_of_birth ? new Date(user.date_of_birth).toISOString().substring(0, 10) : "",
+        phone: user.phone ?? "+91 ",
+        email: user.email ?? "",
         address: user.address ?? "",
         gstin: user.gstin ?? "",
         bank_name: user.bank_name ?? "",
@@ -111,11 +111,7 @@ export default function Profile() {
         setProfileImage(file.uri);
 
         // Actual upload
-        await uploadProfilePicture({
-          uri: file.uri,
-          name: file.fileName || "profile.jpg",
-          mimeType: file.type || "image/jpeg",
-        });
+        await uploadProfilePicture(file);
 
         Alert.alert("Success", "Profile photo updated!");
         refreshUser();
@@ -147,11 +143,7 @@ export default function Profile() {
         setProfileImage(file.uri);
 
         // Actual upload
-        await uploadProfilePicture({
-          uri: file.uri,
-          name: file.fileName || "profile.jpg",
-          mimeType: file.type || "image/jpeg",
-        });
+        await uploadProfilePicture(file);
 
         Alert.alert("Success", "Profile photo updated!");
         refreshUser();
@@ -202,7 +194,7 @@ export default function Profile() {
       setLoading(true);
 
       await updateUser({
-        full_name: formData.full_name,
+        name: formData.name,
         company_name: formData.company_name,
         date_of_birth: formData.date_of_birth,
         address: formData.address,
@@ -305,7 +297,7 @@ export default function Profile() {
             {/* Text */}
             <View style={{ flex: 1, marginLeft: 22 }}>
               <Text className="text-2xl font-semibold text-foreground">
-                {formData.full_name || "Your Name"}
+                {formData.name || "Your Name"}
               </Text>
 
               <Text className="text-base text-muted-foreground mt-1">
@@ -313,11 +305,11 @@ export default function Profile() {
               </Text>
 
               <Text className="text-sm text-muted-foreground mt-3">
-                {formData.email_address}
+                {formData.email}
               </Text>
 
               <Text className="text-sm text-muted-foreground mt-1">
-                {formData.phone_number}
+                {formData.phone}
               </Text>
 
               {!isEditing && (
@@ -353,7 +345,7 @@ export default function Profile() {
 
         {/* Form */}
         <View className="space-y-5">
-          <InputField label="Full Name *" editable={isEditing} value={formData.full_name} onChange={(t: string) => markChanged("full_name", t)} />
+          <InputField label="Name *" editable={isEditing} value={formData.name} onChange={(t: string) => markChanged("name", t)} />
 
           <InputField label="Company Name *" editable={isEditing} value={formData.company_name} onChange={(t: string) => markChanged("company_name", t)} />
 
@@ -402,9 +394,9 @@ export default function Profile() {
             )}
           </View>
 
-          <InputField label="Phone Number" editable={false} value={formData.phone_number} />
+          <InputField label="Phone Number" editable={false} value={formData.phone} />
 
-          <InputField label="Email Address" editable={false} value={formData.email_address} />
+          <InputField label="Email Address" editable={false} value={formData.email} />
 
           <InputField label="Address *" editable={isEditing} multiline numberOfLines={4} value={formData.address} onChange={(t: string) => markChanged("address", t)} />
 

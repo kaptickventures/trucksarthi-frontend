@@ -2,13 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Platform } from "react-native";
 import API from "../app/api/axiosInstance";
 
-export interface Driver {
-  driver_id: number;
-  driver_name: string;
-  contact_number: string;
-  identity_card_url?: string;  
-  license_card_url?: string;   
-}
+import { Driver } from "../types/entity";
 
 export default function useDrivers() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -39,11 +33,11 @@ export default function useDrivers() {
     }
   };
 
-  const updateDriver = async (id: number, updatedData: Partial<Driver>) => {
+  const updateDriver = async (id: string, updatedData: Partial<Driver>) => {
     try {
       const res = await API.put(`/api/drivers/${id}`, updatedData);
       setDrivers((prev) =>
-        prev.map((d) => (d.driver_id === id ? res.data : d))
+        prev.map((d) => (d._id === id ? res.data : d))
       );
       return res.data;
     } catch (error: any) {
@@ -54,7 +48,7 @@ export default function useDrivers() {
   };
 
   /* ---------------- UPLOAD DOCUMENTS ---------------- */
-  const uploadLicense = async (driverId: number, file: any) => {
+  const uploadLicense = async (driverId: string, file: any) => {
     try {
       const formData = new FormData();
       formData.append("file", {
@@ -69,7 +63,7 @@ export default function useDrivers() {
 
       setDrivers((prev) =>
         prev.map((d) =>
-          d.driver_id === driverId
+          d._id === driverId
             ? { ...d, license_card_url: res.data.file_url || res.data.license_card_url }
             : d
         )
@@ -83,7 +77,7 @@ export default function useDrivers() {
     }
   };
 
-  const uploadAadhaar = async (driverId: number, file: any) => {
+  const uploadAadhaar = async (driverId: string, file: any) => {
     try {
       const formData = new FormData();
       formData.append("file", {
@@ -98,7 +92,7 @@ export default function useDrivers() {
 
       setDrivers((prev) =>
         prev.map((d) =>
-          d.driver_id === driverId
+          d._id === driverId
             ? { ...d, identity_card_url: res.data.file_url || res.data.identity_card_url }
             : d
         )
@@ -112,10 +106,10 @@ export default function useDrivers() {
     }
   };
 
-  const deleteDriver = async (id: number) => {
+  const deleteDriver = async (id: string) => {
     try {
       await API.delete(`/api/drivers/${id}`);
-      setDrivers((prev) => prev.filter((d) => d.driver_id !== id));
+      setDrivers((prev) => prev.filter((d) => d._id !== id));
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to delete driver");

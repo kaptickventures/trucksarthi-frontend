@@ -2,22 +2,8 @@ import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
-export interface Invoice {
-  invoice_id: number;
-  invoice_number: string;
-  client_id: number;
-  total_amount: number; // DISPLAY ONLY
-  due_date: string;
-  status: "pending" | "paid" | "partial";
-  invoice_date: string;
-}
-
-export interface InvoiceItem {
-  trip_id: number;
-  trip_cost: number;
-  misc_expense: number;
-  total: number;
-}
+import { Invoice } from "../types/entity";
+export { Invoice };
 
 export function useInvoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -38,13 +24,10 @@ export function useInvoices() {
   }, []);
 
   // 📄 Invoice details
-  const getInvoiceById = async (id: number) => {
+  const getInvoiceById = async (id: string) => {
     try {
       const res = await API.get(`/api/invoices/${id}`);
-      return res.data as {
-        invoice: Invoice;
-        items: InvoiceItem[];
-      };
+      return res.data as Invoice;
     } catch (error) {
       console.error("❌ getInvoiceById failed", error);
       Alert.alert("Error", "Failed to load invoice details");
@@ -54,8 +37,8 @@ export function useInvoices() {
 
   // ➕ Create invoice
   const createInvoice = async (data: {
-    client_id: number;
-    tripIds: number[];
+    client_id: string;
+    tripIds: string[];
     due_date: string;
   }) => {
     try {
@@ -73,7 +56,7 @@ export function useInvoices() {
   };
 
   // ❌ Delete invoice
-  const deleteInvoice = async (id: number) => {
+  const deleteInvoice = async (id: string) => {
     try {
       await API.delete(`/api/invoices/${id}`);
       await fetchInvoices();

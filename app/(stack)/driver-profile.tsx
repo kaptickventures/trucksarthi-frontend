@@ -34,13 +34,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import useDrivers from "../../hooks/useDriver";
 import useDriverFinance, { CounterpartyType, TransactionNature } from "../../hooks/useDriverFinance";
 import { getFileUrl } from "../../lib/utils";
+import { THEME } from "../../theme";
 
 export default function DriverProfile() {
   const router = useRouter();
   const isDark = useColorScheme() === "dark";
+  const theme = isDark ? THEME.dark : THEME.light;
   const { driver_id } = useLocalSearchParams<{ driver_id: string }>();
   const DRIVER_ID = useMemo(
-    () => (driver_id ? Number(driver_id) : null),
+    () => driver_id || null,
     [driver_id]
   );
 
@@ -50,7 +52,7 @@ export default function DriverProfile() {
   const driver = useMemo(() => {
     if (!DRIVER_ID || drivers.length === 0) return null;
     return drivers.find(
-      (d) => Number(d.driver_id) === Number(DRIVER_ID)
+      (d) => d._id === DRIVER_ID
     );
   }, [drivers, DRIVER_ID]);
 
@@ -146,6 +148,7 @@ export default function DriverProfile() {
       counterparty_type: counterpartyType,
       amount: Number(amount),
       remarks,
+      direction: transactionNature === "paid_by_driver" ? "to" : "from",
     });
 
     setAmount("");
@@ -204,8 +207,8 @@ export default function DriverProfile() {
         {/* Profile Card */}
         <View className="bg-card rounded-2xl p-4 mb-6">
           <View className="flex-row items-center ">
-            <View className="w-14 h-14 bg-secondary rounded-full items-center justify-center mr-4">
-              <User size={24} color="#16a34a" />
+            <View style={{ backgroundColor: theme.secondary, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+              <User size={24} color={theme.primary} />
             </View>
 
             <View className="flex-1 ml-2">
@@ -246,7 +249,7 @@ export default function DriverProfile() {
                   `https://wa.me/91${driver.contact_number}?text=Hello ${driver.driver_name}`
                 )
               }
-              className="flex-1 bg-green-600 py-2 rounded-xl items-center"
+              style={{ backgroundColor: theme.primary, flex: 1, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
               <Text className="font-semibold text-sm text-white">
                 💬 WhatsApp
@@ -285,10 +288,10 @@ export default function DriverProfile() {
         {/* Add Entry Button - Full Width Bar */}
         <TouchableOpacity
           onPress={() => setShowModal(true)}
-          className="bg-green-600 rounded-2xl py-4 flex-row items-center justify-center mb-6"
+          style={{ backgroundColor: theme.primary, borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}
         >
-          <Plus size={20} color="white" />
-          <Text className="text-white font-bold ml-2">Add Ledger Entry</Text>
+          <Plus size={20} color={theme.primaryForeground} />
+          <Text style={{ color: theme.primaryForeground, fontWeight: 'bold', marginLeft: 8 }}>Add Ledger Entry</Text>
         </TouchableOpacity>
 
         {/* Ledger */}
@@ -309,7 +312,7 @@ export default function DriverProfile() {
 
               return (
                 <View
-                  key={item.entry_id}
+                  key={item._id}
                   className={`flex-row items-center p-4 ${index !== Math.min(entries.length, visibleEntries) - 1
                     ? "border-b border-border/50"
                     : ""
@@ -320,7 +323,7 @@ export default function DriverProfile() {
                       }`}
                   >
                     {isCredit ? (
-                      <ArrowDownLeft size={20} color="#16a34a" />
+                      <ArrowDownLeft size={20} color={theme.success} />
                     ) : (
                       <ArrowUpRight size={20} color="#dc2626" />
                     )}
@@ -328,10 +331,10 @@ export default function DriverProfile() {
 
                   <View className="flex-1">
                     <Text className="font-bold text-sm">
-                      {getTransactionTitle(item.transaction_nature, item.counterparty_type)}
+                      {getTransactionTitle(item.transaction_nature || "", item.counterparty_type || "")}
                     </Text>
                     <Text className="text-[12px] text-muted-foreground mt-0.5">
-                      {item.entry_date?.split("T")[0] || item.entry_date} {item.remarks ? `• ${item.remarks}` : ""}
+                      {item.entry_date ? String(item.entry_date).split("T")[0] : "—"} {item.remarks ? `• ${item.remarks}` : ""}
                     </Text>
                   </View>
 
@@ -352,8 +355,8 @@ export default function DriverProfile() {
                 onPress={() => setVisibleEntries(prev => prev + 10)}
                 className="py-3 items-center flex-row justify-center bg-muted/30"
               >
-                <Text className="text-green-600 text-xs font-semibold mr-1">Load More Entries</Text>
-                <ChevronDown size={14} color="#16a34a" />
+                <Text style={{ color: theme.primary, fontSize: 12, fontWeight: '600', marginRight: 4 }}>Load More Entries</Text>
+                <ChevronDown size={14} color={theme.primary} />
               </TouchableOpacity>
             )}
           </View>
@@ -364,10 +367,10 @@ export default function DriverProfile() {
       {!showModal && (
         <TouchableOpacity
           onPress={() => setShowModal(true)}
-          className="absolute bottom-6 right-6 bg-green-600 w-14 h-14 rounded-full items-center justify-center shadow-lg"
-          style={{ elevation: 5 }}
+          className="absolute bottom-6 right-6 w-14 h-14 rounded-full items-center justify-center shadow-lg"
+          style={{ elevation: 5, backgroundColor: theme.primary }}
         >
-          <Plus size={26} color="white" />
+          <Plus size={26} color={theme.primaryForeground} />
         </TouchableOpacity>
       )}
 
@@ -477,7 +480,7 @@ export default function DriverProfile() {
                 </Text>
 
                 <View className="flex-row items-center bg-muted rounded-2xl px-4 h-14">
-                  <Banknote size={20} color="#16a34a" />
+                  <Banknote size={20} color={theme.primary} />
                   <TextInput
                     placeholder="0"
                     keyboardType="numeric"
@@ -517,9 +520,9 @@ export default function DriverProfile() {
               <TouchableOpacity
                 onPress={handleSaveEntry}
                 activeOpacity={0.9}
-                className="bg-green-600 py-4 rounded-2xl items-center"
+                style={{ backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 16, alignItems: 'center' }}
               >
-                <Text className="text-white font-bold text-base">
+                <Text style={{ color: theme.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>
                   Save Entry
                 </Text>
               </TouchableOpacity>

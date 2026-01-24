@@ -27,7 +27,8 @@ export default function Settings() {
   const isDark = useColorScheme() === "dark";
 
   // 💚 WhatsApp-like green
-  const primaryColor = isDark ? THEME.dark.primary : THEME.light.primary;
+  const theme = isDark ? THEME.dark : THEME.light;
+  const primaryColor = theme.primary;
 
   const handleLogout = async () => {
     await logout();
@@ -149,7 +150,8 @@ export default function Settings() {
       {/* ===================== LOGOUT ===================== */}
       <TouchableOpacity
         onPress={handleLogout}
-        className="flex-row items-center justify-center bg-red-600 p-4 rounded-xl mb-10"
+        className="flex-row items-center justify-center p-4 rounded-xl mb-10"
+        style={{ backgroundColor: theme.destructive }}
       >
         <LogOut size={20} color="#fff" />
         <Text className="text-white font-semibold text-base ml-2">Logout</Text>

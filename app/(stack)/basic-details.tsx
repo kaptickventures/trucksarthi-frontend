@@ -22,7 +22,7 @@ export default function BasicDetailsScreen() {
     const router = useRouter();
     const { user, loading: userLoading, syncUser, uploadProfilePicture } = useUser();
 
-    const [full_name, setFullName] = useState("");
+    const [name, setName] = useState("");
     const [email_address, setEmail] = useState("");
     const [phone_number, setPhone] = useState("");
     const [company_name, setCompany] = useState("");
@@ -34,9 +34,9 @@ export default function BasicDetailsScreen() {
     useEffect(() => {
         if (!user) return;
 
-        setFullName(user.full_name ?? "");
-        setEmail(user.email_address ?? "");
-        setPhone(user.phone_number ?? "");
+        setName(user.name ?? "");
+        setEmail(user.email ?? "");
+        setPhone(user.phone ?? "");
         setCompany(user.company_name ?? "");
         setAddress(user.address ?? "");
         setProfileUrl(user.profile_picture_url ?? null);
@@ -83,7 +83,7 @@ export default function BasicDetailsScreen() {
     };
 
     const onSave = async () => {
-        if (!full_name || !company_name || !date_of_birth || !address) {
+        if (!name || !company_name || !date_of_birth || !address) {
             Alert.alert("Missing Fields", "Please fill all required fields.");
             return;
         }
@@ -97,9 +97,9 @@ export default function BasicDetailsScreen() {
         try {
             setSaving(true);
             await syncUser({
-                full_name,
-                email_address,
-                phone_number,
+                name,
+                email: email_address,
+                phone: phone_number,
                 company_name,
                 address,
                 date_of_birth: `${yyyy}-${mm}-${dd}`,
@@ -141,7 +141,7 @@ export default function BasicDetailsScreen() {
                         <Text style={styles.muted}>Add Profile Picture</Text>
                     </TouchableOpacity>
 
-                    <TextInput style={styles.input} placeholder="Full Name *" value={full_name} onChangeText={setFullName} />
+                    <TextInput style={styles.input} placeholder="Name *" value={name} onChangeText={setName} />
                     <TextInput style={styles.input} placeholder="Company Name *" value={company_name} onChangeText={setCompany} />
                     <TextInput
                         style={styles.input}
@@ -152,20 +152,20 @@ export default function BasicDetailsScreen() {
                         maxLength={10}
                     />
                     <TextInput
-                        style={[styles.input, user?.phone_number ? styles.disabledInput : null]}
+                        style={[styles.input, user?.phone ? styles.disabledInput : null]}
                         placeholder="Phone Number *"
                         value={phone_number}
                         onChangeText={setPhone}
                         keyboardType="phone-pad"
-                        editable={!user?.phone_number}
+                        editable={!user?.phone}
                     />
                     <TextInput
-                        style={[styles.input, user?.email_address ? styles.disabledInput : null]}
+                        style={[styles.input, user?.email ? styles.disabledInput : null]}
                         placeholder="Email Address *"
                         value={email_address}
                         onChangeText={setEmail}
                         autoCapitalize="none"
-                        editable={!user?.email_address}
+                        editable={!user?.email}
                     />
                     <TextInput style={[styles.input, styles.textArea]} placeholder="Address *" value={address} onChangeText={setAddress} multiline />
 

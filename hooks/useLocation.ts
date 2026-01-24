@@ -2,13 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
-export interface Location {
-  location_id: number;
-  location_name: string;
-  complete_address?: string;
-  latitude?: number;
-  longitude?: number;
-}
+import { Location } from "../types/entity";
 
 export default function useLocations() {
   const [locations, setLocations] = useState<Location[]>([]);
@@ -39,11 +33,11 @@ export default function useLocations() {
     }
   };
 
-  const updateLocation = async (id: number, updatedData: Partial<Location>) => {
+  const updateLocation = async (id: string, updatedData: Partial<Location>) => {
     try {
       const res = await API.put(`/api/locations/${id}`, updatedData);
       setLocations((prev) =>
-        prev.map((l) => (l.location_id === id ? res.data : l))
+        prev.map((l) => (l._id === id ? res.data : l))
       );
       return res.data;
     } catch (error: any) {
@@ -53,10 +47,10 @@ export default function useLocations() {
     }
   };
 
-  const deleteLocation = async (id: number) => {
+  const deleteLocation = async (id: string) => {
     try {
       await API.delete(`/api/locations/${id}`);
-      setLocations((prev) => prev.filter((l) => l.location_id !== id));
+      setLocations((prev) => prev.filter((l) => l._id !== id));
     } catch (error: any) {
       console.error("Delete error:", error.response?.data || error);
       Alert.alert("Error", error.response?.data?.error || "Failed to delete location");

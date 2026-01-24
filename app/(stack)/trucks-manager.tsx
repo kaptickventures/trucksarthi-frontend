@@ -23,6 +23,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
+import { THEME } from "../../theme";
 
 export default function TrucksManager() {
   const router = useRouter();
@@ -40,7 +41,9 @@ export default function TrucksManager() {
   const loading = userLoading || trucksLoading;
 
   const isDark = useColorScheme() === "dark";
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const theme = isDark ? THEME.dark : THEME.light;
+
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const requiredFields = [
@@ -95,7 +98,7 @@ export default function TrucksManager() {
   /* ---------------- MODAL ---------------- */
   const openModal = (editing = false, data?: any) => {
     if (editing && data) {
-      setEditingId(data.truck_id);
+      setEditingId(data._id);
       setFormData({
         registration_number: data.registration_number || "",
         chassis_number: data.chassis_number || "",
@@ -159,7 +162,7 @@ export default function TrucksManager() {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     Alert.alert("Confirm Delete", "Delete this truck?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -202,20 +205,20 @@ export default function TrucksManager() {
         ) : (
           trucks.map((truck) => (
             <TouchableOpacity
-              key={truck.truck_id}
+              key={truck._id}
               activeOpacity={0.85}
               onPress={() =>
                 router.push({
                   pathname: "/(stack)/trucks-profile",
-                  params: { truckId: truck.truck_id },
+                  params: { truck_id: truck._id },
                 })
               }
               className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm flex-row justify-between items-center"
             >
               {/* INFO */}
               <View className="flex-row items-start flex-1">
-                <View className="p-2 bg-secondary rounded-xl mr-3">
-                  <MapPin size={18} color="#2563EB" />
+                <View style={{ backgroundColor: theme.secondary, padding: 8, borderRadius: 12, marginRight: 12 }}>
+                  <MapPin size={18} color={theme.primary} />
                 </View>
 
                 <View className="flex-1">
@@ -235,15 +238,15 @@ export default function TrucksManager() {
                   onPress={() => openModal(true, truck)}
                   className="p-2"
                 >
-                  <Edit3 size={20} color="#999" />
+                  <Edit3 size={20} color={theme.mutedForeground} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPressIn={(e) => e.stopPropagation()}
-                  onPress={() => handleDelete(truck.truck_id)}
+                  onPress={() => handleDelete(truck._id)}
                   className="p-2"
                 >
-                  <Trash2 size={20} color="#999" />
+                  <Trash2 size={20} color={theme.mutedForeground} />
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -254,8 +257,9 @@ export default function TrucksManager() {
       {/* FAB */}
       <TouchableOpacity
         onPress={() => openModal(false)}
-        className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full justify-center items-center"
+        className="absolute bottom-8 right-6 w-16 h-16 rounded-full justify-center items-center"
         style={{
+          backgroundColor: theme.primary,
           elevation: 8,
           shadowColor: "#000",
           shadowOpacity: 0.25,
@@ -263,7 +267,7 @@ export default function TrucksManager() {
           shadowOffset: { width: 0, height: 2 },
         }}
       >
-        <Plus color="white" size={28} />
+        <Plus color={theme.primaryForeground} size={28} />
       </TouchableOpacity>
 
       {/* MODAL */}
@@ -290,7 +294,7 @@ export default function TrucksManager() {
                   {editingId ? "Edit Truck" : "Add Truck"}
                 </Text>
                 <TouchableOpacity onPress={closeModal}>
-                  <X size={28} color="#888" />
+                  <X size={28} color={theme.mutedForeground} />
                 </TouchableOpacity>
               </View>
 
@@ -312,7 +316,7 @@ export default function TrucksManager() {
                           setFormData({ ...formData, [key]: val })
                         }
                         placeholder={`Enter ${label}`}
-                        placeholderTextColor="#888"
+                        placeholderTextColor={theme.mutedForeground}
                         keyboardType={isCapacity ? "numeric" : "default"}
                         autoCapitalize={
                           key === "registration_number"
@@ -328,7 +332,7 @@ export default function TrucksManager() {
                   onPress={handleSubmit}
                   className="bg-primary p-4 rounded-xl mb-3"
                 >
-                  <Text className="text-center text-primary-foreground font-semibold">
+                  <Text style={{ color: theme.primaryForeground, textAlign: 'center', fontWeight: '600' }}>
                     {editingId ? "Update" : "Save"}
                   </Text>
                 </TouchableOpacity>
