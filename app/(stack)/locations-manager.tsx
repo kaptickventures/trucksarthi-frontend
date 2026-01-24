@@ -1,22 +1,18 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { Edit3, MapPin, Plus, Trash2, X } from "lucide-react-native";
-import { useCallback, useRef, useState } from "react";
+import { Edit3, MapPin, Plus, Trash2 } from "lucide-react-native";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Animated,
-  Modal,
-  PanResponder,
-  Pressable,
   ScrollView,
   StatusBar,
   Text,
-  TextInput,
   TouchableOpacity,
   useColorScheme,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import LocationFormModal from "../../components/LocationModal";
 import useLocations from "../../hooks/useLocation";
 import { useUser } from "../../hooks/useUser";
 
@@ -42,35 +38,13 @@ export default function LocationsManager() {
   });
 
   const [modalVisible, setModalVisible] = useState(false);
-  const translateY = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
-  const SCROLL_THRESHOLD = 40; // Only swipe down when dragging near top
 
   useFocusEffect(
     useCallback(() => {
       fetchLocations();
     }, [fetchLocations])
   );
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (_, gestureState) => gestureState.y0 < SCROLL_THRESHOLD,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) translateY.setValue(gestureState.dy);
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 120) {
-          closeModal();
-        } else {
-          Animated.timing(translateY, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
 
   const openModal = (editing = false, data?: any) => {
     if (editing && data) {
@@ -87,14 +61,7 @@ export default function LocationsManager() {
   };
 
   const closeModal = () => {
-    Animated.timing(translateY, {
-      toValue: 800,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      translateY.setValue(0);
-      setModalVisible(false);
-    });
+    setModalVisible(false);
   };
 
   const handleSubmit = async () => {
@@ -209,76 +176,14 @@ export default function LocationsManager() {
         <Plus color="white" size={28} />
       </TouchableOpacity>
 
-      {/* Modal */}
-      <Modal transparent visible={modalVisible} animationType="fade">
-        <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
-          <Animated.View
-            {...panResponder.panHandlers}
-            className="absolute bottom-0 w-full bg-background rounded-t-3xl"
-            style={{
-              height: "100%",
-              paddingHorizontal: 20,
-              paddingTop: insets.top + 20,
-              transform: [{ translateY }],
-            }}
-          >
-            <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
-            <View className="flex-row justify-between items-center mb-4">
-              <Text
-                className={`text-2xl font-semibold ${isDark ? "text-white" : "text-black"
-                  }`}
-              >
-                {editingId ? "Edit Location" : "Add Location"}
-              </Text>
-              <TouchableOpacity onPress={closeModal}>
-                <X size={28} color={isDark ? "#AAA" : "#666"} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text className="text-muted-foreground mb-1 font-medium">
-                Location Name
-              </Text>
-              <TextInput
-                className="border text-input-text border-input rounded-xl p-3 mb-4"
-                value={formData.location_name}
-                onChangeText={(val) =>
-                  setFormData((prev) => ({ ...prev, location_name: val }))
-                }
-              />
-              <Text className="text-muted-foreground mb-1 font-medium">
-                Complete Address
-              </Text>
-              <TextInput
-                className="border text-input-text border-input rounded-xl p-3 mb-6"
-                value={formData.complete_address}
-                onChangeText={(val) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    complete_address: val,
-                  }))
-                }
-              />
-
-              <TouchableOpacity
-                onPress={handleSubmit}
-                className="bg-primary p-4 rounded-xl mb-3"
-              >
-                <Text className="text-center text-primary-foreground font-semibold">
-                  {editingId ? "Update" : "Save"}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={closeModal}
-                className="border border-border p-4 rounded-xl"
-              >
-                <Text className="text-center text-muted-foreground">Cancel</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </Animated.View>
-        </Pressable>
-      </Modal>
+      <LocationFormModal
+        visible={modalVisible}
+        editing={!!editingId}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleSubmit}
+        onClose={closeModal}
+      />
     </SafeAreaView>
   );
 }

@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRouter } from "expo-router";
+import { Briefcase, Building2, Calendar, Hash, Landmark, Mail, MapPin, Phone, Save, ShieldCheck, User as UserIcon } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,6 +16,7 @@ import {
   View
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { SafeAreaView } from "react-native-safe-area-context";
 import "../../global.css";
 import { useUser } from "../../hooks/useUser";
 import { getFileUrl } from "../../lib/utils";
@@ -38,6 +40,8 @@ export default function Profile() {
     primaryForeground: isDark
       ? THEME.dark.primaryForeground
       : THEME.light.primaryForeground,
+    background: isDark ? THEME.dark.background : THEME.light.background,
+    foreground: isDark ? THEME.dark.foreground : THEME.light.foreground,
     shadow: isDark ? "#00000055" : "#00000022",
   };
 
@@ -61,6 +65,7 @@ export default function Profile() {
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dobDate, setDobDate] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState<"personal" | "company" | "financial">("personal");
 
   useEffect(() => {
     if (user) {
@@ -226,230 +231,253 @@ export default function Profile() {
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <KeyboardAwareScrollView
-        enableOnAndroid
-        keyboardShouldPersistTaps="handled"
-        extraScrollHeight={140}
-        extraHeight={180}
-        contentContainerStyle={{ padding: 16, paddingBottom: 260 }}
-      >
-        {/* Card */}
-        <View
-          style={{
-            backgroundColor: theme.card,
-            borderColor: theme.border,
-            borderWidth: 1,
-            padding: 24,
-            borderRadius: 26,
-            marginBottom: 32,
-            shadowColor: theme.shadow,
-            shadowOpacity: 1,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 4 },
-          }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      <View style={{ flex: 1 }}>
+
+
+        <KeyboardAwareScrollView
+          enableOnAndroid
+          keyboardShouldPersistTaps="handled"
+          extraScrollHeight={140}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
         >
-          <View className="flex-row items-center">
-            {/* Image */}
-            <View>
-              <View
-                className="w-28 h-28 rounded-2xl overflow-hidden items-center justify-center bg-muted border border-border"
-              >
+          {/* PREMIUM HEADER SECTION */}
+          <View style={{ alignItems: 'center', marginVertical: 24 }}>
+            <View style={{ position: 'relative' }}>
+              <View style={{
+                width: 120,
+                height: 120,
+                borderRadius: 60,
+                borderWidth: 4,
+                borderColor: '#16a34a',
+                overflow: 'hidden',
+                backgroundColor: theme.muted
+              }}>
                 {profileImage ? (
-                  <Image
-                    source={{ uri: getFileUrl(profileImage) || "" }}
-                    style={{ width: 112, height: 112, borderRadius: 20 }}
-                  />
+                  <Image source={{ uri: getFileUrl(profileImage) || "" }} style={{ width: '100%', height: '100%' }} />
                 ) : (
-                  <Ionicons
-                    name="person-circle-outline"
-                    size={112}
-                    color={theme.mutedForeground}
-                  />
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    <UserIcon size={60} color={theme.mutedForeground} />
+                  </View>
                 )}
               </View>
-
-              {/* Camera button */}
               <TouchableOpacity
-                onPress={() => {
-                  if (!isEditing) setIsEditing(true);
-                  showPhotoOptions();
-                }}
+                onPress={() => { if (!isEditing) setIsEditing(true); showPhotoOptions(); }}
                 style={{
-                  position: "absolute",
-                  bottom: -6,
-                  right: -6,
-                  width: 38,
-                  height: 38,
-                  borderRadius: 19,
-                  backgroundColor: theme.primary,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  shadowColor: theme.shadow,
-                  shadowOpacity: 0.4,
-                  shadowRadius: 5,
+                  position: 'absolute',
+                  bottom: 0,
+                  right: 0,
+                  backgroundColor: '#16a34a',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 3,
+                  borderColor: theme.background
                 }}
               >
-                <Ionicons name="camera" size={17} color={theme.primaryForeground} />
+                <Ionicons name="camera" size={16} color="white" />
               </TouchableOpacity>
             </View>
 
-            {/* Text */}
-            <View style={{ flex: 1, marginLeft: 22 }}>
-              <Text className="text-2xl font-semibold text-foreground">
-                {formData.name || "Your Name"}
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.foreground, marginTop: 16 }}>
+              {formData.name || "User Name"}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+              <Building2 size={14} color={theme.mutedForeground} />
+              <Text style={{ fontSize: 14, color: theme.mutedForeground, marginLeft: 6 }}>
+                {formData.company_name || "Enterprise"}
               </Text>
+            </View>
 
-              <Text className="text-base text-muted-foreground mt-1">
-                {formData.company_name || "Company Name"}
+            <TouchableOpacity
+              onPress={() => setIsEditing(!isEditing)}
+              style={{
+                marginTop: 16,
+                backgroundColor: isEditing ? '#fee2e2' : '#f0fdf4',
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20
+              }}
+            >
+              <Text style={{ color: isEditing ? '#ef4444' : '#16a34a', fontWeight: 'bold', fontSize: 13 }}>
+                {isEditing ? "Discard Changes" : "Edit Profile"}
               </Text>
+            </TouchableOpacity>
+          </View>
 
-              <Text className="text-sm text-muted-foreground mt-3">
-                {formData.email}
-              </Text>
+          {/* TAB NAVIGATION */}
+          <View style={{ flexDirection: 'row', paddingHorizontal: 24, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+            {[
+              { id: 'personal', label: 'Personal', icon: <UserIcon size={16} color={activeTab === 'personal' ? '#16a34a' : theme.mutedForeground} /> },
+              { id: 'company', label: 'Business', icon: <Briefcase size={16} color={activeTab === 'company' ? '#16a34a' : theme.mutedForeground} /> },
+              { id: 'financial', label: 'Banking', icon: <Landmark size={16} color={activeTab === 'financial' ? '#16a34a' : theme.mutedForeground} /> }
+            ].map((tab) => (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => setActiveTab(tab.id as any)}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 12,
+                  borderBottomWidth: 2,
+                  borderBottomColor: activeTab === tab.id ? '#16a34a' : 'transparent',
+                  gap: 6
+                }}
+              >
+                {tab.icon}
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: activeTab === tab.id ? 'bold' : '600',
+                  color: activeTab === tab.id ? '#16a34a' : theme.mutedForeground
+                }}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-              <Text className="text-sm text-muted-foreground mt-1">
-                {formData.phone}
-              </Text>
+          {/* TAB CONTENT */}
+          <View style={{ padding: 24 }}>
+            {activeTab === 'personal' && (
+              <View style={{ gap: 20 }}>
+                <SectionHeader title="Basic Details" icon={<UserIcon size={18} color="#16a34a" />} />
+                <ProfileInput label="Full Name" value={formData.name} editable={isEditing} onChange={(v: string) => markChanged("name", v)} icon={<UserIcon size={18} color={theme.mutedForeground} />} />
+                <ProfileInput label="Email Address" value={formData.email} editable={false} icon={<Mail size={18} color={theme.mutedForeground} />} />
+                <ProfileInput label="Phone Number" value={formData.phone} editable={false} icon={<Phone size={18} color={theme.mutedForeground} />} />
 
-              {!isEditing && (
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.mutedForeground, marginBottom: -12, textTransform: 'uppercase' }}>Date of Birth</Text>
                 <TouchableOpacity
-                  onPress={() => setIsEditing(true)}
+                  disabled={!isEditing}
+                  onPress={() => setShowDatePicker(true)}
                   style={{
-                    marginTop: 12,
-                    alignSelf: "flex-start",
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    flexDirection: "row",
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.06)"
-                      : "rgba(0,0,0,0.06)",
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: theme.card,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14
                   }}
                 >
-                  <Ionicons name="pencil" size={14} color={theme.primary} />
-                  <Text
-                    style={{
-                      marginLeft: 6,
-                      fontWeight: "600",
-                      color: theme.primary,
-                    }}
-                  >
-                    Edit
+                  <Calendar size={18} color={theme.mutedForeground} />
+                  <Text style={{ marginLeft: 12, color: theme.foreground, fontSize: 16 }}>
+                    {formData.date_of_birth || "Select Date"}
                   </Text>
                 </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
 
-        {/* Form */}
-        <View className="space-y-5">
-          <InputField label="Name *" editable={isEditing} value={formData.name} onChange={(t: string) => markChanged("name", t)} />
-
-          <InputField label="Company Name *" editable={isEditing} value={formData.company_name} onChange={(t: string) => markChanged("company_name", t)} />
-
-          {/* DOB */}
-          <View>
-            <Text className="text-foreground mb-2 mt-2 font-medium">Date of Birth *</Text>
-            <TouchableOpacity onPress={() => isEditing && setShowDatePicker(true)}>
-              <View className="border border-border rounded-lg p-3 bg-card">
-                <Text className="text-foreground">{formData.date_of_birth || "YYYY-MM-DD"}</Text>
-              </View>
-            </TouchableOpacity>
-
-            {showDatePicker && (
-              <View style={{ marginTop: 6 }}>
-                <DateTimePicker
-                  value={dobDate ?? new Date()}
-                  mode="date"
-                  display={Platform.OS === "ios" ? "spinner" : "default"}
-                  maximumDate={new Date()}
-                  onChange={onChangeDate}
-                />
-
-                {Platform.OS === "ios" && (
-                  <TouchableOpacity
-                    onPress={() => setShowDatePicker(false)}
-                    style={{
-                      marginTop: 10,
-                      alignSelf: "flex-end",
-                      backgroundColor: theme.primary,
-                      paddingVertical: 8,
-                      paddingHorizontal: 16,
-                      borderRadius: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: theme.primaryForeground,
-                        fontWeight: "600",
-                      }}
-                    >
-                      Done
-                    </Text>
-                  </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={dobDate || new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onChangeDate}
+                  />
                 )}
               </View>
             )}
-          </View>
 
-          <InputField label="Phone Number" editable={false} value={formData.phone} />
-
-          <InputField label="Email Address" editable={false} value={formData.email} />
-
-          <InputField label="Address *" editable={isEditing} multiline numberOfLines={4} value={formData.address} onChange={(t: string) => markChanged("address", t)} />
-
-          <InputField label="GSTIN" editable={isEditing} value={formData.gstin} onChange={(t: string) => markChanged("gstin", t)} />
-
-          <InputField label="Bank Name" editable={isEditing} value={formData.bank_name} onChange={(t: string) => markChanged("bank_name", t)} />
-
-          <InputField label="Account Holder Name" editable={isEditing} value={formData.account_holder_name} onChange={(t: string) => markChanged("account_holder_name", t)} />
-
-          <InputField label="IFSC Code" editable={isEditing} autoCapitalize="characters" value={formData.ifsc_code} onChange={(t: string) => markChanged("ifsc_code", t)} />
-        </View>
-
-        {/* Save button */}
-        {isEditing && hasChanges && (
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={loading}
-            className={`mt-8 rounded-xl py-4 items-center ${loading ? "bg-muted" : "bg-primary"}`}
-          >
-            {loading ? (
-              <ActivityIndicator color={theme.primaryForeground} />
-            ) : (
-              <Text className="text-primary-foreground font-semibold text-base">
-                Save Changes
-              </Text>
+            {activeTab === 'company' && (
+              <View style={{ gap: 20 }}>
+                <SectionHeader title="Business Information" icon={<Briefcase size={18} color="#16a34a" />} />
+                <ProfileInput label="Company Name" value={formData.company_name} editable={isEditing} onChange={(v: string) => markChanged("company_name", v)} icon={<Building2 size={18} color={theme.mutedForeground} />} />
+                <ProfileInput label="GST Number" value={formData.gstin} editable={isEditing} onChange={(v: string) => markChanged("gstin", v)} icon={<Hash size={18} color={theme.mutedForeground} />} placeholder="Optional" />
+                <ProfileInput label="Office Address" value={formData.address} editable={isEditing} onChange={(v: string) => markChanged("address", v)} icon={<MapPin size={18} color={theme.mutedForeground} />} multiline placeholder="Full street address" />
+              </View>
             )}
-          </TouchableOpacity>
-        )}
-      </KeyboardAwareScrollView>
-    </View>
+
+            {activeTab === 'financial' && (
+              <View style={{ gap: 20 }}>
+                <SectionHeader title="Settlement Details" icon={<Landmark size={18} color="#16a34a" />} />
+                <ProfileInput label="Bank Name" value={formData.bank_name} editable={isEditing} onChange={(v: string) => markChanged("bank_name", v)} icon={<Landmark size={18} color={theme.mutedForeground} />} />
+                <ProfileInput label="Account Holder" value={formData.account_holder_name} editable={isEditing} onChange={(v: string) => markChanged("account_holder_name", v)} icon={<UserIcon size={18} color={theme.mutedForeground} />} />
+                <ProfileInput label="IFSC Code" value={formData.ifsc_code} editable={isEditing} onChange={(v: string) => markChanged("ifsc_code", v)} icon={<ShieldCheck size={18} color={theme.mutedForeground} />} autoCapitalize="characters" />
+              </View>
+            )}
+
+            {isEditing && hasChanges && (
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={loading}
+                style={{
+                  backgroundColor: '#16a34a',
+                  marginTop: 40,
+                  borderRadius: 16,
+                  paddingVertical: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#16a34a',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 6
+                }}
+              >
+                {loading ? <ActivityIndicator color="white" /> : (
+                  <>
+                    <Save size={20} color="white" />
+                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16, marginLeft: 10 }}>Save Profile Updates</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </KeyboardAwareScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
-const InputField = ({
-  label,
-  editable,
-  value,
-  onChange,
-  multiline = false,
-  numberOfLines = 1,
-  autoCapitalize = "none",
-}: any) => (
-  <View>
-    <Text className="text-foreground mb-2 mt-2 font-medium">{label}</Text>
-    <TextInput
-      editable={editable}
-      multiline={multiline}
-      numberOfLines={numberOfLines}
-      autoCapitalize={autoCapitalize}
-      className={`border border-border rounded-lg p-3 bg-card text-foreground ${!editable && "opacity-60"
-        }`}
-      value={value}
-      onChangeText={onChange}
-    />
+const SectionHeader = ({ title, icon }: any) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+    {icon}
+    <Text style={{ fontSize: 16, fontWeight: 'bold', marginLeft: 8, color: '#16a34a' }}>{title}</Text>
   </View>
 );
+
+const ProfileInput = ({ label, value, editable, onChange, icon, multiline, placeholder, autoCapitalize }: any) => {
+  const isDark = useColorScheme() === "dark";
+  const theme = isDark ? THEME.dark : THEME.light;
+
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.mutedForeground, textTransform: 'uppercase' }}>{label}</Text>
+      <View style={{
+        flexDirection: 'row',
+        alignItems: multiline ? 'flex-start' : 'center',
+        backgroundColor: theme.card,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: multiline ? 12 : 0,
+        opacity: editable === false ? 0.7 : 1
+      }}>
+        <View style={{ marginTop: multiline ? 4 : 0 }}>{icon}</View>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          editable={editable}
+          placeholder={placeholder}
+          placeholderTextColor={theme.mutedForeground}
+          multiline={multiline}
+          autoCapitalize={autoCapitalize}
+          style={{
+            flex: 1,
+            paddingVertical: multiline ? 0 : 14,
+            paddingHorizontal: 12,
+            fontSize: 16,
+            color: theme.foreground,
+            textAlignVertical: multiline ? 'top' : 'center'
+          }}
+        />
+      </View>
+    </View>
+  );
+};

@@ -3,31 +3,27 @@ import { useNavigation, useRouter } from "expo-router";
 import {
   useEffect,
   useLayoutEffect,
-  useRef,
-  useState,
+  useState
 } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  PanResponder,
-  Platform,
-  Pressable,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   useColorScheme,
-  View,
+  View
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ClientFormModal from "../../../components/ClientModal";
+import DriverFormModal from "../../../components/DriverModal";
+import LocationFormModal from "../../../components/LocationModal";
 import SideMenu from "../../../components/SideMenu";
+import TruckFormModal from "../../../components/TruckModal";
 import "../../../global.css";
 
 /* ---------------- Hooks ---------------- */
@@ -189,105 +185,149 @@ export default function AddTrip() {
   });
 
   /* ---------------- Modal Logic ---------------- */
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [currentType, setCurrentType] = useState<EntityType>("Client");
-  const [newItemForm, setNewItemForm] = useState<NewItemForm>({});
-  const translateY = useRef(new Animated.Value(0)).current;
+  const [isClientModalVisible, setIsClientModalVisible] = useState(false);
+  const [isDriverModalVisible, setIsDriverModalVisible] = useState(false);
+  const [isTruckModalVisible, setIsTruckModalVisible] = useState(false);
+  const [isLocationModalVisible, setIsLocationModalVisible] = useState(false);
+
+  const [clientFormData, setClientFormData] = useState({
+    client_name: "",
+    contact_person_name: "",
+    contact_number: "",
+    alternate_contact_number: "",
+    email_address: "",
+    office_address: "",
+  });
+
+  const [driverFormData, setDriverFormData] = useState({
+    driver_name: "",
+    contact_number: "",
+    identity_card_url: "",
+    license_card_url: "",
+  });
+
+  const [truckFormData, setTruckFormData] = useState({
+    registration_number: "",
+    chassis_number: "",
+    engine_number: "",
+    registered_owner_name: "",
+    container_dimension: "",
+    loading_capacity: "",
+  });
+
+  const [locationFormData, setLocationFormData] = useState({
+    location_name: "",
+    complete_address: "",
+  });
+
   const insets = useSafeAreaInsets();
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (_, state) => state.y0 < 80,
-      onPanResponderMove: (_, state) => {
-        if (state.dy > 0) translateY.setValue(state.dy);
-      },
-      onPanResponderRelease: (_, state) => {
-        if (state.dy > 120) closeEntityModal();
-        else
-          Animated.timing(translateY, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }).start();
-      },
-    })
-  ).current;
-
   const openAddModal = (type: EntityType) => {
-    setCurrentType(type);
-    setNewItemForm(
-      type === "Client"
-        ? {
-          client_name: "",
-          contact_person_name: "",
-          contact_number: "",
-          email_address: "",
-          office_address: "",
-        }
-        : type === "Driver"
-          ? {
-            driver_name: "",
-            contact_number: "",
-            license_number: "",
-            address: "",
-          }
-          : type === "Truck"
-            ? {
-              registration_number: "",
-              model: "",
-              capacity: "",
-              owner_name: "",
-            }
-            : {
-              location_name: "",
-              address: "",
-            }
-    );
-    setIsModalVisible(true);
+    if (type === "Client") {
+      setClientFormData({
+        client_name: "",
+        contact_person_name: "",
+        contact_number: "",
+        alternate_contact_number: "",
+        email_address: "",
+        office_address: "",
+      });
+      setIsClientModalVisible(true);
+    } else if (type === "Driver") {
+      setDriverFormData({
+        driver_name: "",
+        contact_number: "",
+        identity_card_url: "",
+        license_card_url: "",
+      });
+      setIsDriverModalVisible(true);
+    } else if (type === "Truck") {
+      setTruckFormData({
+        registration_number: "",
+        chassis_number: "",
+        engine_number: "",
+        registered_owner_name: "",
+        container_dimension: "",
+        loading_capacity: "",
+      });
+      setIsTruckModalVisible(true);
+    } else if (type === "Location") {
+      setLocationFormData({
+        location_name: "",
+        complete_address: "",
+      });
+      setIsLocationModalVisible(true);
+    }
   };
 
-  const closeEntityModal = () => {
-    Animated.timing(translateY, {
-      toValue: 800,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      translateY.setValue(0);
-      setIsModalVisible(false);
-    });
-  };
-
-  const handleAddNew = async () => {
+  const handleAddDriver = async () => {
+    if (!driverFormData.driver_name || !driverFormData.contact_number) {
+      Alert.alert("⚠️ Missing Fields", "Name and contact info required.");
+      return;
+    }
     try {
-      let created: any = null;
-
-      if (currentType === "Client") {
-        created = await addClient(newItemForm);
-        setFormData((p) => ({ ...p, client_id: created._id }));
-      }
-      if (currentType === "Driver") {
-        created = await addDriver(newItemForm);
-        setFormData((p) => ({ ...p, driver_id: created._id }));
-      }
-      if (currentType === "Truck") {
-        created = await addTruck(newItemForm);
-        setFormData((p) => ({ ...p, truck_id: created._id }));
-      }
-      if (currentType === "Location") {
-        created = await addLocation(newItemForm);
-        setFormData((p) => ({
-          ...p,
-          start_location_id:
-            p.start_location_id || created._id,
-          end_location_id:
-            p.end_location_id || created._id,
-        }));
-      }
-
-      Alert.alert("Success", `${currentType} added successfully`);
-      closeEntityModal();
+      const created = await addDriver(driverFormData);
+      setFormData((p) => ({ ...p, driver_id: created._id }));
+      setIsDriverModalVisible(false);
+      Alert.alert("Success", "Driver added successfully");
+      fetchDrivers();
     } catch {
-      Alert.alert("Error", `Failed to add ${currentType}`);
+      Alert.alert("Error", "Failed to add driver");
+    }
+  };
+
+  const handleAddTruck = async () => {
+    if (!truckFormData.registration_number || !truckFormData.registered_owner_name) {
+      Alert.alert("⚠️ Missing Fields", "Registration number and owner required.");
+      return;
+    }
+    try {
+      const created = await addTruck({
+        ...truckFormData,
+        loading_capacity: truckFormData.loading_capacity ? Number(truckFormData.loading_capacity) : undefined
+      });
+      setFormData((p) => ({ ...p, truck_id: created._id }));
+      setIsTruckModalVisible(false);
+      Alert.alert("Success", "Truck added successfully");
+      fetchTrucks();
+    } catch {
+      Alert.alert("Error", "Failed to add truck");
+    }
+  };
+
+  const handleAddLocation = async () => {
+    if (!locationFormData.location_name || !locationFormData.complete_address) {
+      Alert.alert("⚠️ Missing Fields", "Name and address required.");
+      return;
+    }
+    try {
+      const created = await addLocation(locationFormData);
+      if (!formData.start_location_id) {
+        setFormData((p) => ({ ...p, start_location_id: created._id }));
+      } else if (!formData.end_location_id) {
+        setFormData((p) => ({ ...p, end_location_id: created._id }));
+      }
+      setIsLocationModalVisible(false);
+      Alert.alert("Success", "Location added successfully");
+      fetchLocations();
+    } catch {
+      Alert.alert("Error", "Failed to add location");
+    }
+  };
+
+  const handleAddClient = async () => {
+    if (!clientFormData.client_name || !clientFormData.contact_number) {
+      Alert.alert("⚠️ Missing Fields", "Please fill name and contact number.");
+      return;
+    }
+    try {
+      const created = await addClient(clientFormData);
+      setFormData((p) => ({ ...p, client_id: created._id }));
+      setIsClientModalVisible(false);
+      Alert.alert("Success", "Client added successfully");
+      fetchClients();
+    } catch {
+      Alert.alert("Error", "Failed to add client");
     }
   };
 
@@ -534,79 +574,42 @@ export default function AddTrip() {
         <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
       </KeyboardAwareScrollView>
 
-      {/* Modal */}
-      <Modal transparent visible={isModalVisible} animationType="fade">
-        <Pressable className="flex-1 bg-black/40" onPress={closeEntityModal}>
-          <Animated.View
-            {...panResponder.panHandlers}
-            className="absolute bottom-0 w-full bg-background rounded-t-3xl"
-            style={{
-              height: "100%",
-              paddingHorizontal: 20,
-              paddingTop: insets.top + 20,
-              transform: [{ translateY }],
-            }}
-          >
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              className="flex-1"
-            >
-              <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
+      {/* Shared Modals */}
+      <ClientFormModal
+        visible={isClientModalVisible}
+        editing={false}
+        formData={clientFormData}
+        setFormData={setClientFormData}
+        onSubmit={handleAddClient}
+        onClose={() => setIsClientModalVisible(false)}
+      />
 
-              <View className="flex-row justify-between items-center mb-5">
-                <Text
-                  className={`text-2xl font-semibold ${isDark ? "text-white" : "text-black"
-                    }`}
-                >
-                  Add New {currentType}
-                </Text>
-                <TouchableOpacity onPress={closeEntityModal}>
-                  <Ionicons name="close" size={28} color={isDark ? "#AAA" : "#666"} />
-                </TouchableOpacity>
-              </View>
+      <DriverFormModal
+        visible={isDriverModalVisible}
+        editing={false}
+        formData={driverFormData}
+        setFormData={setDriverFormData}
+        onSubmit={handleAddDriver}
+        onClose={() => setIsDriverModalVisible(false)}
+      />
 
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {Object.keys(newItemForm).map((key) => (
-                  <View key={key} className="mb-6">
-                    <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                      {key.replace(/_/g, " ")}
-                      {["client_name", "driver_name", "registration_number", "location_name"].includes(key) && (
-                        <Text className="text-red-500"> *</Text>
-                      )}
-                    </Text>
-                    <TextInput
-                      value={newItemForm[key]}
-                      onChangeText={(val) =>
-                        setNewItemForm((prev) => ({ ...prev, [key]: val }))
-                      }
-                      placeholder={`Enter ${key.replace(/_/g, " ")}`}
-                      placeholderTextColor={placeholder}
-                      keyboardType={key.includes("number") ? "numeric" : "default"}
-                      className="border border-input text-input-text rounded-xl p-3 bg-input-bg"
-                    />
-                  </View>
-                ))}
+      <TruckFormModal
+        visible={isTruckModalVisible}
+        editing={false}
+        formData={truckFormData}
+        setFormData={setTruckFormData}
+        onSubmit={handleAddTruck}
+        onClose={() => setIsTruckModalVisible(false)}
+      />
 
-                <TouchableOpacity
-                  onPress={handleAddNew}
-                  className="bg-primary p-4 rounded-xl mb-3"
-                >
-                  <Text className="text-center text-primary-foreground font-semibold">
-                    Save {currentType}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={closeEntityModal}
-                  className="border border-border p-4 rounded-xl"
-                >
-                  <Text className="text-center text-muted-foreground">Cancel</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </KeyboardAvoidingView>
-          </Animated.View>
-        </Pressable>
-      </Modal>
+      <LocationFormModal
+        visible={isLocationModalVisible}
+        editing={false}
+        formData={locationFormData}
+        setFormData={setLocationFormData}
+        onSubmit={handleAddLocation}
+        onClose={() => setIsLocationModalVisible(false)}
+      />
     </View>
   );
 }

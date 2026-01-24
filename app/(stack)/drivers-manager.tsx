@@ -1,31 +1,23 @@
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { Edit3, MapPin, Plus, Trash2, X } from "lucide-react-native";
-import { useCallback, useRef, useState } from "react";
+import { Edit3, MapPin, Plus, Trash2 } from "lucide-react-native";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Animated,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  PanResponder,
-  Platform,
-  Pressable,
   ScrollView,
   StatusBar,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
+  useColorScheme
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import DriverFormModal from "../../components/DriverModal";
 import useDrivers from "../../hooks/useDriver";
 import { useUser } from "../../hooks/useUser";
-import { getFileUrl } from "../../lib/utils";
 import { THEME } from "../../theme";
 
 export default function DriversManager() {
@@ -61,10 +53,6 @@ export default function DriversManager() {
     "contact_number",
   ];
 
-  const translateY = useRef(new Animated.Value(0)).current;
-  const insets = useSafeAreaInsets();
-  const SCROLL_THRESHOLD = 40;
-
   /* ---------------- FETCH ON FOCUS ---------------- */
   useFocusEffect(
     useCallback(() => {
@@ -95,24 +83,6 @@ export default function DriversManager() {
   };
 
   /* ---------------- MODAL GESTURE ---------------- */
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (_, state) => state.y0 < SCROLL_THRESHOLD,
-      onPanResponderMove: (_, state) => {
-        if (state.dy > 0) translateY.setValue(state.dy);
-      },
-      onPanResponderRelease: (_, state) => {
-        if (state.dy > 120) closeModal();
-        else
-          Animated.timing(translateY, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }).start();
-      },
-    })
-  ).current;
-
   const openModal = (editing = false, data?: any) => {
     if (editing && data) {
       setEditingId(data._id);
@@ -135,14 +105,7 @@ export default function DriversManager() {
   };
 
   const closeModal = () => {
-    Animated.timing(translateY, {
-      toValue: 800,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      translateY.setValue(0);
-      setModalVisible(false);
-    });
+    setModalVisible(false);
   };
 
   /* ---------------- SUBMIT ---------------- */
@@ -283,134 +246,14 @@ export default function DriversManager() {
         <Plus color={theme.primaryForeground} size={28} />
       </TouchableOpacity>
 
-      {/* Modal */}
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
-          <Animated.View
-            {...panResponder.panHandlers}
-            className="absolute bottom-0 w-full bg-background rounded-t-3xl"
-            style={{
-              height: "100%",
-              paddingHorizontal: 20,
-              paddingTop: insets.top + 20,
-              transform: [{ translateY }],
-            }}
-          >
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              className="flex-1"
-            >
-              <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
-
-              <View className="flex-row justify-between items-center mb-5">
-                <Text className="text-2xl font-semibold">
-                  {editingId ? "Edit Driver" : "Add Driver"}
-                </Text>
-                <TouchableOpacity onPress={closeModal}>
-                  <X size={28} color={theme.mutedForeground} />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {requiredFields.map((key) => (
-                  <View key={key} className="mb-4">
-                    <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                      {key.replaceAll("_", " ")}{" "}
-                      <Text className="text-red-500">*</Text>
-                    </Text>
-                    <TextInput
-                      className="border border-input rounded-xl p-3"
-                      value={formData[key]}
-                      onChangeText={(val) =>
-                        setFormData({ ...formData, [key]: val })
-                      }
-                      keyboardType={
-                        key === "contact_number"
-                          ? "phone-pad"
-                          : "default"
-                      }
-                    />
-                  </View>
-                ))}
-
-                {/* Identity Card */}
-                <View className="mb-4">
-                  <Text className="text-muted-foreground mb-1 font-medium">
-                    Identity Card Photo
-                  </Text>
-                  {formData.identity_card_url !== "" && (
-                    <Image
-                      source={{ uri: getFileUrl(formData.identity_card_url) || formData.identity_card_url }}
-                      style={{
-                        width: "100%",
-                        height: 160,
-                        borderRadius: 12,
-                        marginBottom: 10,
-                      }}
-                    />
-                  )}
-                  <TouchableOpacity
-                    onPress={() => pickImage("identity_card_url")}
-                    className="bg-secondary p-3 rounded-xl"
-                  >
-                    <Text className="text-center">
-                      {formData.identity_card_url
-                        ? "Change Photo"
-                        : "Upload Photo"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* License Card */}
-                <View className="mb-4">
-                  <Text className="text-muted-foreground mb-1 font-medium">
-                    License Card Photo
-                  </Text>
-                  {formData.license_card_url !== "" && (
-                    <Image
-                      source={{ uri: getFileUrl(formData.license_card_url) || formData.license_card_url }}
-                      style={{
-                        width: "100%",
-                        height: 160,
-                        borderRadius: 12,
-                        marginBottom: 10,
-                      }}
-                    />
-                  )}
-                  <TouchableOpacity
-                    onPress={() => pickImage("license_card_url")}
-                    className="bg-secondary p-3 rounded-xl"
-                  >
-                    <Text className="text-center">
-                      {formData.license_card_url
-                        ? "Change Photo"
-                        : "Upload Photo"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  onPress={handleSubmit}
-                  className="bg-primary p-4 rounded-xl mb-3"
-                >
-                  <Text style={{ color: theme.primaryForeground, textAlign: 'center', fontWeight: '600' }}>
-                    {editingId ? "Update" : "Save"}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={closeModal}
-                  className="border border-border p-4 rounded-xl"
-                >
-                  <Text className="text-center text-muted-foreground">
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </KeyboardAvoidingView>
-          </Animated.View>
-        </Pressable>
-      </Modal>
+      <DriverFormModal
+        visible={modalVisible}
+        editing={!!editingId}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleSubmit}
+        onClose={closeModal}
+      />
     </SafeAreaView>
   );
 }
