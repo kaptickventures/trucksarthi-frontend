@@ -1,18 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation, useRouter } from "expo-router";
 import {
   useEffect,
   useLayoutEffect,
+  useRef,
   useState
 } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
+  Platform,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   useColorScheme,
   View
 } from "react-native";
@@ -175,6 +176,12 @@ export default function AddTrip() {
     miscellaneous_expense: "",
     notes: "",
   });
+
+  const costRef = useRef<TextInput>(null);
+  const miscRef = useRef<TextInput>(null);
+  const notesRef = useRef<TextInput>(null);
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [dropdowns, setDropdowns] = useState<Record<DropdownKeys, boolean>>({
     truck: false,
@@ -398,140 +405,197 @@ export default function AddTrip() {
     <View style={{ flex: 1, backgroundColor }}>
       <KeyboardAwareScrollView
         enableOnAndroid
-        extraScrollHeight={70}
+        extraScrollHeight={100}
         keyboardShouldPersistTaps="handled"
+        enableAutomaticScroll={true}
         contentContainerStyle={{
-          padding: 16,
-          paddingBottom: 250,
+          paddingBottom: 100,
           backgroundColor,
         }}
         style={{ backgroundColor }}
       >
-
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View>
-            {/* Date */}
-            <Text className="text-foreground mb-2 font-medium">
-              Date <Text className="text-red-500">*</Text>
-            </Text>
-            <TextInput
-              editable={false}
-              value={formData.date}
-              className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
+        <View className="flex-1 pb-10">
+          {/* Section: Trip Logistics */}
+          <View className="bg-card border-y border-border mb-3">
+            <WhatsAppItem
+              icon="calendar-outline"
+              label="Trip Date"
+              value={new Date(formData.date).toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+              })}
+              onPress={() => setShowDatePicker(true)}
+              foregroundColor={foregroundColor}
+              inputText={inputText}
             />
+            <Divider />
 
-            {/* Dropdowns */}
-            {dropdownData.map((d, index) => (
-              <View key={d.key} style={{ marginBottom: 30, zIndex: 5000 - index }}>
-                <Text className="text-foreground mb-2 font-medium">
-                  {d.label} <Text className="text-red-500">*</Text>
-                </Text>
+            <WhatsAppDropdown
+              icon="person-outline"
+              label="Client"
+              value={formData.client_id}
+              items={clients.map(c => ({ label: c.client_name, value: c._id }))}
+              open={dropdowns.client}
+              onOpen={() => setDropdowns({ truck: false, driver: false, client: true, start: false, end: false })}
+              setOpen={(val: any) => setDropdowns(prev => ({ ...prev, client: typeof val === 'function' ? val(prev.client) : val }))}
+              setValue={(val: any) => setFormData(p => ({ ...p, client_id: val }))}
+              onAdd={() => openAddModal("Client")}
+              placeholder="Select Client"
+              zIndex={6000}
+              inputBg={inputBg}
+              inputBorder={inputBorder}
+              inputText={inputText}
+              cardBg={cardBg}
+              placeholderColor={placeholder}
+            />
+          </View>
 
-                <View className="flex-row items-center">
-                  <View style={{ flex: 1, marginRight: 10 }}>
-                    <DropDownPicker
-                      open={dropdowns[d.openKey]}
-                      value={formData[d.key]}
-                      items={d.items}
-                      setOpen={(open) =>
-                        setDropdowns((prev) => ({
-                          ...prev,
-                          [d.openKey]: typeof open === "function" ? open(prev[d.openKey]) : open,
-                        }))
-                      }
-                      setValue={(cb) =>
-                        setFormData((prev) => ({ ...prev, [d.key]: cb(prev[d.key]) }))
-                      }
-                      placeholder={`Select ${d.label}`}
-                      listMode="SCROLLVIEW"
-                      maxHeight={150}
-                      scrollViewProps={{ nestedScrollEnabled: true }}
-                      style={{
-                        height: 48,
-                        backgroundColor: inputBg,
-                        borderColor: inputBorder,
-                      }}
-                      dropDownContainerStyle={{
-                        backgroundColor: cardBg,
-                        borderColor: inputBorder,
-                      }}
-                      textStyle={{
-                        color: inputText,
-                        fontSize: 15,
-                      }}
-                      placeholderStyle={{
-                        color: placeholder,
-                      }}
-                    />
-                  </View>
+          <View className="bg-card border-y border-border mb-3">
+            <WhatsAppDropdown
+              icon="location-outline"
+              label="Origin"
+              value={formData.start_location_id}
+              items={locations.map(l => ({ label: l.location_name, value: l._id }))}
+              open={dropdowns.start}
+              onOpen={() => setDropdowns({ truck: false, driver: false, client: false, start: true, end: false })}
+              setOpen={(val: any) => setDropdowns(prev => ({ ...prev, start: typeof val === 'function' ? val(prev.start) : val }))}
+              setValue={(val: any) => setFormData(p => ({ ...p, start_location_id: val }))}
+              onAdd={() => openAddModal("Location")}
+              placeholder="Starting Point"
+              zIndex={5000}
+              inputBg={inputBg}
+              inputBorder={inputBorder}
+              inputText={inputText}
+              cardBg={cardBg}
+              placeholderColor={placeholder}
+            />
+            <Divider />
+            <WhatsAppDropdown
+              icon="navigate-outline"
+              label="Destination"
+              value={formData.end_location_id}
+              items={locations.map(l => ({ label: l.location_name, value: l._id }))}
+              open={dropdowns.end}
+              onOpen={() => setDropdowns({ truck: false, driver: false, client: false, start: false, end: true })}
+              setOpen={(val: any) => setDropdowns(prev => ({ ...prev, end: typeof val === 'function' ? val(prev.end) : val }))}
+              setValue={(val: any) => setFormData(p => ({ ...p, end_location_id: val }))}
+              onAdd={() => openAddModal("Location")}
+              placeholder="Going To"
+              zIndex={4000}
+              inputBg={inputBg}
+              inputBorder={inputBorder}
+              inputText={inputText}
+              cardBg={cardBg}
+              placeholderColor={placeholder}
+            />
+          </View>
 
-                  {/* Add Button */}
-                  <TouchableOpacity
-                    onPress={() => openAddModal(d.addType)}
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 12,
-                      backgroundColor: inputBg,
-                      borderWidth: 1,
-                      borderColor: inputBorder,
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: inputText,
-                        fontSize: 22,
-                        fontWeight: "600",
-                        marginTop: -2,
-                      }}
-                    >
-                      +
-                    </Text>
-                  </TouchableOpacity>
+          <View className="bg-card border-y border-border mb-3">
+            <WhatsAppDropdown
+              icon="bus-outline"
+              label="Truck"
+              value={formData.truck_id}
+              items={trucks.map(t => ({ label: t.registration_number, value: t._id }))}
+              open={dropdowns.truck}
+              onOpen={() => setDropdowns({ truck: true, driver: false, client: false, start: false, end: false })}
+              setOpen={(val: any) => setDropdowns(prev => ({ ...prev, truck: typeof val === 'function' ? val(prev.truck) : val }))}
+              setValue={(val: any) => setFormData(p => ({ ...p, truck_id: val }))}
+              onAdd={() => openAddModal("Truck")}
+              placeholder="Assign Truck"
+              zIndex={3000}
+              inputBg={inputBg}
+              inputBorder={inputBorder}
+              inputText={inputText}
+              cardBg={cardBg}
+              placeholderColor={placeholder}
+            />
+            <Divider />
+            <WhatsAppDropdown
+              icon="person-circle-outline"
+              label="Driver"
+              value={formData.driver_id}
+              items={drivers.map(d => ({ label: d.driver_name, value: d._id }))}
+              open={dropdowns.driver}
+              onOpen={() => setDropdowns({ truck: false, driver: true, client: false, start: false, end: false })}
+              setOpen={(val: any) => setDropdowns(prev => ({ ...prev, driver: typeof val === 'function' ? val(prev.driver) : val }))}
+              setValue={(val: any) => setFormData(p => ({ ...p, driver_id: val }))}
+              onAdd={() => openAddModal("Driver")}
+              placeholder="Assign Driver"
+              zIndex={2000}
+              inputBg={inputBg}
+              inputBorder={inputBorder}
+              inputText={inputText}
+              cardBg={cardBg}
+              placeholderColor={placeholder}
+            />
+          </View>
+
+          <View className="bg-card border-y border-border mb-3 p-4">
+            <View className="flex-row items-center mb-6">
+              <View className="w-10 items-center">
+                <Ionicons name="cash-outline" size={20} color={THEME.light.primary} />
+              </View>
+              <View className="flex-1 ml-3 flex-row space-x-6">
+                <View className="flex-1 border-b border-border pb-1">
+                  <Text className="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">Trip Cost (₹)</Text>
+                  <TextInput
+                    keyboardType="numeric"
+                    placeholder="0.00"
+                    placeholderTextColor={THEME.light.mutedForeground}
+                    value={formData.cost_of_trip}
+                    onChangeText={(v) => setFormData({ ...formData, cost_of_trip: v })}
+                    style={{ color: inputText, fontSize: 16, padding: 0, fontWeight: '400' }}
+                    returnKeyType="next"
+                    onSubmitEditing={() => miscRef.current?.focus()}
+                  />
+                </View>
+                <View className="flex-1 border-b border-border pb-1">
+                  <Text className="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">Misc (₹)</Text>
+                  <TextInput
+                    keyboardType="numeric"
+                    placeholder="0.00"
+                    placeholderTextColor={THEME.light.mutedForeground}
+                    value={formData.miscellaneous_expense}
+                    onChangeText={(v) => setFormData({ ...formData, miscellaneous_expense: v })}
+                    style={{ color: inputText, fontSize: 16, padding: 0, fontWeight: '400' }}
+                    ref={miscRef}
+                    returnKeyType="next"
+                    onSubmitEditing={() => notesRef.current?.focus()}
+                  />
                 </View>
               </View>
-            ))}
+            </View>
 
-            {/* Cost */}
-            <Text className="text-foreground mb-2 font-medium">
-              Cost of Trip (₹) <Text className="text-red-500">*</Text>
-            </Text>
-            <TextInput
-              keyboardType="numeric"
-              value={formData.cost_of_trip}
-              onChangeText={(v) => setFormData({ ...formData, cost_of_trip: v })}
-              className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
-            />
+            <View className="flex-row items-start">
+              <View className="w-10 items-center mt-1">
+                <Ionicons name="create-outline" size={20} color={THEME.light.primary} />
+              </View>
+              <View className="flex-1 ml-3 border-b border-border pb-1">
+                <Text className="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">Notes</Text>
+                <TextInput
+                  multiline
+                  placeholder="Tap to add notes..."
+                  placeholderTextColor={THEME.light.mutedForeground}
+                  value={formData.notes}
+                  onChangeText={(v) => setFormData({ ...formData, notes: v })}
+                  style={{ color: inputText, fontSize: 16, padding: 0, minHeight: 60, textAlignVertical: 'top' }}
+                  ref={notesRef}
+                />
+              </View>
+            </View>
+          </View>
 
-            {/* Miscellaneous */}
-            <Text className="text-foreground mb-2 font-medium">
-              Miscellaneous Expense (₹)
-            </Text>
-            <TextInput
-              keyboardType="numeric"
-              value={formData.miscellaneous_expense}
-              onChangeText={(v) =>
-                setFormData({ ...formData, miscellaneous_expense: v })
-              }
-              className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-6"
-            />
-
-            {/* Notes */}
-            <Text className="text-foreground mb-2 font-medium">Notes</Text>
-            <TextInput
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-              value={formData.notes}
-              onChangeText={(v) => setFormData({ ...formData, notes: v })}
-              className="border border-input rounded-lg p-3 bg-input-bg text-input-text mb-10"
-            />
-
-            {/* Submit Button */}
+          <View className="px-6 mt-8">
             <TouchableOpacity
+              activeOpacity={0.8}
               onPress={async () => {
+                const required = ['truck_id', 'driver_id', 'client_id', 'start_location_id', 'end_location_id', 'cost_of_trip'];
+                const missing = required.filter(k => !formData[k as keyof TripForm]);
+                if (missing.length > 0) {
+                  Alert.alert("Required Fields", "Please complete all fields to save the trip.");
+                  return;
+                }
                 try {
                   await addTrip({
                     truck: formData.truck_id,
@@ -540,13 +604,10 @@ export default function AddTrip() {
                     start_location: formData.start_location_id,
                     end_location: formData.end_location_id,
                     cost_of_trip: Number(formData.cost_of_trip),
-                    miscellaneous_expense: Number(
-                      formData.miscellaneous_expense || 0
-                    ),
+                    miscellaneous_expense: Number(formData.miscellaneous_expense || 0),
                     notes: formData.notes,
                   });
-
-                  Alert.alert("Success", "Trip created successfully!");
+                  Alert.alert("Success", "Trip saved successfully!");
                   setFormData({
                     date: new Date().toISOString().split("T")[0],
                     truck_id: "",
@@ -559,17 +620,29 @@ export default function AddTrip() {
                     notes: "",
                   });
                 } catch {
-                  Alert.alert("Error", "Failed to add trip");
+                  Alert.alert("Error", "Could not save trip. Try again.");
                 }
               }}
-              className="bg-primary rounded-xl p-4 items-center mt-2"
+              className="bg-primary py-4 rounded-xl items-center shadow-md shadow-primary/20"
             >
-              <Text className="text-primary-foreground font-semibold text-base">
-                Add Trip
-              </Text>
+              <Text className="text-white font-bold text-lg">Save Trip</Text>
             </TouchableOpacity>
           </View>
-        </TouchableWithoutFeedback>
+        </View>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={new Date(formData.date)}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) {
+                setFormData({ ...formData, date: selectedDate.toISOString().split("T")[0] });
+              }
+            }}
+          />
+        )}
 
         <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
       </KeyboardAwareScrollView>
@@ -610,6 +683,208 @@ export default function AddTrip() {
         onSubmit={handleAddLocation}
         onClose={() => setIsLocationModalVisible(false)}
       />
+    </View>
+  );
+}
+
+/* ---------------- Components ---------------- */
+
+function WhatsAppDropdown({
+  icon,
+  label,
+  value,
+  items,
+  open,
+  onOpen,
+  setOpen,
+  setValue,
+  onAdd,
+  placeholder,
+  zIndex,
+  inputBg,
+  inputBorder,
+  inputText,
+  cardBg,
+  placeholderColor,
+}: any) {
+  return (
+    <View style={{ zIndex }}>
+      <View className="flex-row items-center p-4">
+        <View className="w-10 items-center">
+          <Ionicons name={icon as any} size={20} color={THEME.light.primary} />
+        </View>
+        <View className="flex-1 ml-3">
+          <View className="flex-row items-center justify-between mb-0.5">
+            <Text className="text-[10px] text-primary font-bold uppercase tracking-widest">{label}</Text>
+            <TouchableOpacity
+              onPress={onAdd}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{ paddingRight: 2 }}
+            >
+              <Ionicons name="add" size={18} color={THEME.light.primary} />
+            </TouchableOpacity>
+          </View>
+          <DropDownPicker
+            open={open}
+            value={value}
+            items={items}
+            setOpen={setOpen}
+            onOpen={onOpen}
+            setValue={setValue}
+            placeholder={placeholder}
+            listMode="SCROLLVIEW"
+            maxHeight={150}
+            scrollViewProps={{ nestedScrollEnabled: true }}
+            style={{
+              borderWidth: 0,
+              backgroundColor: 'transparent',
+              paddingHorizontal: 0,
+              minHeight: 30,
+            }}
+            dropDownContainerStyle={{
+              backgroundColor: cardBg,
+              borderColor: inputBorder,
+              borderRadius: 12,
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            }}
+            textStyle={{ color: inputText, fontSize: 16, fontWeight: '400' }}
+            placeholderStyle={{ color: THEME.light.mutedForeground, fontSize: 16 }}
+            showArrowIcon={true}
+            ArrowDownIconComponent={() => <Ionicons name="chevron-down" size={16} color={THEME.light.mutedForeground} />}
+            ArrowUpIconComponent={() => <Ionicons name="chevron-up" size={16} color={THEME.light.mutedForeground} />}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function WhatsAppItem({ icon, label, value, onPress, foregroundColor, inputText, isPlaceholder }: any) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      className="flex-row items-center p-4"
+    >
+      <View className="w-10 items-center">
+        <Ionicons name={icon as any} size={20} color={THEME.light.primary} />
+      </View>
+      <View className="flex-1 ml-3">
+        <Text className="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">{label}</Text>
+        <Text
+          style={{
+            color: isPlaceholder ? THEME.light.mutedForeground : inputText,
+            fontSize: 16,
+            fontWeight: '400'
+          }}
+        >
+          {value}
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={THEME.light.mutedForeground} />
+    </TouchableOpacity>
+  );
+}
+
+function Divider() {
+  return <View className="h-[1px] bg-border ml-14 mr-4" />;
+}
+
+function Section({ children, title, icon, cardBg }: { children: React.ReactNode; title: string; icon: string; cardBg: string }) {
+  return (
+    <View className="mb-6 p-6 rounded-[32px] shadow-sm" style={{ backgroundColor: cardBg }}>
+      <View className="flex-row items-center mb-6">
+        <View className="p-2.5 rounded-2xl" style={{ backgroundColor: THEME.light.accent }}>
+          <Ionicons name={icon as any} size={18} color={THEME.light.primary} />
+        </View>
+        <Text className="ml-3 text-lg font-extrabold text-foreground tracking-tight">{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+interface DropdownFieldProps {
+  label: string;
+  value: string;
+  items: { label: string; value: string }[];
+  open: boolean;
+  setOpen: (val: boolean | ((prev: boolean) => boolean)) => void;
+  setValue: (val: any) => void;
+  onAdd: () => void;
+  placeholder: string;
+  zIndex: number;
+  inputBg: string;
+  inputBorder: string;
+  inputText: string;
+  cardBg: string;
+  placeholderColor: string;
+  marginBottom?: number;
+  hideLabelPrefix?: boolean;
+}
+
+function DropdownField({
+  label,
+  value,
+  items,
+  open,
+  setOpen,
+  setValue,
+  onAdd,
+  placeholder,
+  zIndex,
+  inputBg,
+  inputBorder,
+  inputText,
+  cardBg,
+  placeholderColor,
+  marginBottom = 20,
+  hideLabelPrefix = false
+}: DropdownFieldProps) {
+  return (
+    <View style={{ zIndex, marginBottom }}>
+      <Text className="text-[11px] font-bold mb-2 opacity-40 uppercase tracking-widest" style={{ color: THEME.light.foreground }}>
+        {label} {!hideLabelPrefix && <Text className="text-destructive">*</Text>}
+      </Text>
+      <View className="flex-row items-center">
+        <View style={{ flex: 1 }}>
+          <DropDownPicker
+            open={open}
+            value={value}
+            items={items}
+            setOpen={setOpen}
+            setValue={(cb) => setValue(cb(value))}
+            placeholder={placeholder}
+            listMode="SCROLLVIEW"
+            maxHeight={150}
+            scrollViewProps={{ nestedScrollEnabled: true }}
+            style={{
+              height: 50,
+              backgroundColor: inputBg,
+              borderColor: inputBorder,
+              borderRadius: 16,
+            }}
+            dropDownContainerStyle={{
+              backgroundColor: cardBg,
+              borderColor: inputBorder,
+              borderRadius: 14,
+            }}
+            textStyle={{ color: inputText, fontSize: 14, fontWeight: '500' }}
+            placeholderStyle={{ color: placeholderColor, fontSize: 14 }}
+          />
+        </View>
+        <TouchableOpacity
+          onPress={onAdd}
+          className="ml-2.5 h-[50px] w-[50px] rounded-2xl items-center justify-center border"
+          style={{ backgroundColor: inputBg, borderColor: inputBorder }}
+        >
+          <Ionicons name="add" size={22} color={THEME.light.primary} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

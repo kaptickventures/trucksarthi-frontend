@@ -138,7 +138,7 @@ export default function DriverFormModal({
                         </View>
 
                         {/* Form */}
-                        <ScrollView showsVerticalScrollIndicator={false}>
+                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
                             <View className="gap-6 pb-12">
                                 <View>
                                     <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">

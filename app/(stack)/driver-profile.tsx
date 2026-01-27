@@ -4,17 +4,18 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  FileText,
   Pencil,
+  Share2,
+  Trash2,
   User as UserIcon
 } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Modal,
   ScrollView,
+  Share,
   StatusBar,
   Text,
   TextInput,
@@ -23,6 +24,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Skeleton } from "../../components/Skeleton";
 import useDrivers from "../../hooks/useDriver";
 import useDriverFinance, { TransactionNature } from "../../hooks/useDriverFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -52,16 +54,37 @@ export default function DriverProfile() {
     }
   }, [driver_id]);
 
+  const handleShare = async () => {
+    if (!driver) return;
+    try {
+      const message = `Driver Details:\nName: ${driver.driver_name}\nContact: ${driver.contact_number}`;
+      await Share.share({ message });
+    } catch (error) {
+      Alert.alert("Error", "Could not share driver details.");
+    }
+  };
+
   const handleUpload = async (type: "LICENSE" | "AADHAAR") => {
     if (!driver_id) return;
     try {
+      const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!granted) {
+        Alert.alert("Permission required", "Allow access to your photos to upload documents.");
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        quality: 0.3,
+        quality: 0.5,
       });
       if (result.canceled) return;
-      const file = { uri: result.assets[0].uri, name: `${type.toLowerCase()}.jpg`, type: "image/jpeg" };
+      const asset = result.assets[0];
+      const file = {
+        uri: asset.uri,
+        name: asset.fileName || `${type.toLowerCase()}.jpg`,
+        type: asset.mimeType || "image/jpeg"
+      };
       if (type === "LICENSE") await uploadLicense(driver_id, file);
       else await uploadAadhaar(driver_id, file);
       Alert.alert("Success", "Document uploaded successfully");
@@ -92,9 +115,52 @@ export default function DriverProfile() {
 
   if (driverLoading || !driver) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <Skeleton width={24} height={24} borderRadius={12} />
+            <Skeleton width={120} height={24} />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 16 }}>
+            <Skeleton width={24} height={24} borderRadius={12} />
+            <Skeleton width={24} height={24} borderRadius={12} />
+            <Skeleton width={24} height={24} borderRadius={12} />
+          </View>
+        </View>
+
+        <View style={{ padding: 24, marginHorizontal: 20, marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+            <Skeleton width={64} height={64} borderRadius={32} />
+            <View style={{ marginLeft: 16, gap: 8 }}>
+              <Skeleton width={150} height={28} />
+              <Skeleton width={100} height={16} />
+            </View>
+          </View>
+          <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 20 }} />
+          <View style={{ gap: 8 }}>
+            <Skeleton width={100} height={14} />
+            <Skeleton width={200} height={40} />
+          </View>
+        </View>
+
+        <View style={{ paddingHorizontal: 20, marginBottom: 32 }}>
+          <Skeleton width={100} height={24} style={{ marginBottom: 16 }} />
+          <View style={{ flexDirection: 'row', gap: 16 }}>
+            <Skeleton style={{ flex: 1, aspectRatio: 1, borderRadius: 20 }} />
+            <Skeleton style={{ flex: 1, aspectRatio: 1, borderRadius: 20 }} />
+          </View>
+        </View>
+
+        <View style={{ paddingHorizontal: 20 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+            <Skeleton width={150} height={24} />
+            <Skeleton width={80} height={30} borderRadius={8} />
+          </View>
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} width="100%" height={72} borderRadius={16} style={{ marginBottom: 12 }} />
+          ))}
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -102,11 +168,25 @@ export default function DriverProfile() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={theme === "dark" ? "light-content" : "dark-content"} />
 
-      <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center' }}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: '700', color: colors.foreground, marginLeft: 16 }}>Driver Profile</Text>
+      <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={colors.foreground} />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.foreground, marginLeft: 16 }}>Driver Profile</Text>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: 16 }}>
+          <TouchableOpacity onPress={handleShare}>
+            <Share2 size={22} color={colors.foreground} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Alert.alert("Coming Soon", "Edit functionality is in the main list.")}>
+            <Pencil size={22} color={colors.foreground} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Alert.alert("Coming Soon", "Delete functionality is in the main list.")}>
+            <Trash2 size={22} color={colors.destructive} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -219,7 +299,21 @@ function DocumentCard({ label, url, onPress, onEdit }: any) {
   const { colors } = useThemeStore();
   return (
     <View style={{ flex: 1 }}>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={{ aspectRatio: 1, width: "100%", backgroundColor: colors.card, borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: colors.border, justifyContent: 'center', alignItems: 'center' }}>
+      <TouchableOpacity
+        onPress={url ? onPress : onEdit}
+        activeOpacity={0.85}
+        style={{
+          aspectRatio: 1,
+          width: "100%",
+          backgroundColor: colors.card,
+          borderRadius: 20,
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: colors.border,
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
+      >
         {url ? (
           <>
             <Image source={{ uri: url }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
@@ -228,9 +322,9 @@ function DocumentCard({ label, url, onPress, onEdit }: any) {
             </TouchableOpacity>
           </>
         ) : (
-          <View style={{ alignItems: "center", opacity: 0.5 }}>
-            <FileText size={32} color={colors.mutedForeground} />
-            <Text style={{ fontSize: 10, fontWeight: "bold", marginTop: 8, color: colors.mutedForeground }}>MISSING</Text>
+          <View style={{ alignItems: "center", opacity: 0.7 }}>
+            <Ionicons name="add-circle-outline" size={32} color={colors.primary} />
+            <Text style={{ fontSize: 10, fontWeight: "bold", marginTop: 8, color: colors.primary }}>TAP TO UPLOAD</Text>
           </View>
         )}
       </TouchableOpacity>

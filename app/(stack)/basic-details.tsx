@@ -124,10 +124,10 @@ export default function BasicDetailsScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
             >
-                <ScrollView contentContainerStyle={styles.scroll}>
+                <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
                     <Text style={styles.title}>Complete Your Profile</Text>
 
                     <TouchableOpacity onPress={pickImage} style={styles.avatarWrap}>

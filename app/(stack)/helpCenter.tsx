@@ -1,13 +1,14 @@
 // app/settings/help-center.tsx
+import { Ionicons } from "@expo/vector-icons";
+import { Mail, Phone } from "lucide-react-native";
 import {
+  Alert,
+  Linking,
+  ScrollView,
   Text,
   TouchableOpacity,
-  ScrollView,
-  Linking,
-  Alert,
   View,
 } from "react-native";
-import { Phone, Mail, MessageCircle } from "lucide-react-native";
 
 const PHONE = "9319595984";
 const EMAIL = "trucksarthi@gmail.com";
@@ -37,7 +38,7 @@ export default function HelpCenter() {
         >
           <View className="flex-row items-center">
             <View className="bg-green-600 p-3 rounded-xl">
-              <MessageCircle size={20} color="#fff" />
+              <Ionicons name="logo-whatsapp" size={24} color="#fff" />
             </View>
             <View className="ml-4">
               <Text className="text-foreground font-semibold text-base">

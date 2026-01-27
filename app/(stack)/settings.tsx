@@ -1,7 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from "expo-router";
 import {
   Bell,
-  FileDown,
   Fingerprint,
   HelpCircle,
   Languages,
@@ -13,9 +14,11 @@ import {
   Sun,
   Wallet
 } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -24,9 +27,44 @@ import {
 import { logout } from "../../hooks/useAuth";
 import { useThemeStore } from "../../hooks/useThemeStore";
 
+const BIOMETRIC_KEY = "@user_biometric_enabled";
+
 export default function Settings() {
   const router = useRouter();
   const { mode, setMode, colors, theme } = useThemeStore();
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      setIsBiometricSupported(compatible && enrolled);
+
+      const saved = await AsyncStorage.getItem(BIOMETRIC_KEY);
+      setIsBiometricEnabled(saved === "true");
+    })();
+  }, []);
+
+  const toggleBiometric = async (value: boolean) => {
+    if (value) {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Authenticate to enable biometrics",
+        fallbackLabel: "Use Passcode",
+      });
+      if (result.success) {
+        setIsBiometricEnabled(true);
+        await AsyncStorage.setItem(BIOMETRIC_KEY, "true");
+        Alert.alert("Success", "Biometric login enabled!");
+      } else {
+        Alert.alert("Failed", "Authentication failed.");
+        setIsBiometricEnabled(false);
+      }
+    } else {
+      setIsBiometricEnabled(false);
+      await AsyncStorage.setItem(BIOMETRIC_KEY, "false");
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -57,16 +95,7 @@ export default function Settings() {
         </View>
       </TouchableOpacity>
 
-      {/* Export Data */}
-      <TouchableOpacity
-        onPress={() => Alert.alert("Coming Soon", "Export Data placeholder")}
-        className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-6"
-      >
-        <View className="flex-row items-center gap-2">
-          <FileDown size={20} color={colors.primary} />
-          <Text className="text-foreground text-base">Export Data</Text>
-        </View>
-      </TouchableOpacity>
+
 
       {/* ===================== APP PREFERENCES ===================== */}
       <Text className="text-lg font-semibold text-foreground mb-3">
@@ -118,19 +147,23 @@ export default function Settings() {
       </View>
 
       {/* Biometric Authentication */}
-      <TouchableOpacity
-        onPress={() =>
-          Alert.alert("Coming Soon", "Biometric Authentication placeholder")
-        }
-        className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
-      >
-        <View className="flex-row items-center gap-2">
-          <Fingerprint size={20} color={colors.primary} />
-          <Text className="text-foreground text-base">
-            Biometric Authentication
-          </Text>
+      {/* Biometric Authentication */}
+      {isBiometricSupported && (
+        <View className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3">
+          <View className="flex-row items-center gap-2">
+            <Fingerprint size={20} color={colors.primary} />
+            <Text className="text-foreground text-base">
+              Biometric Login
+            </Text>
+          </View>
+          <Switch
+            value={isBiometricEnabled}
+            onValueChange={toggleBiometric}
+            trackColor={{ false: colors.muted, true: colors.primary }}
+            thumbColor="#f4f3f4"
+          />
         </View>
-      </TouchableOpacity>
+      )}
 
       {/* App Language */}
       <TouchableOpacity

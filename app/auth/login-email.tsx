@@ -55,7 +55,7 @@ export default function LoginEmail() {
       </TouchableOpacity>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -65,6 +65,7 @@ export default function LoginEmail() {
             alignItems: "center",
             padding: 32,
           }}
+          keyboardShouldPersistTaps="handled"
         >
           <Image
             source={require("../../assets/images/TruckSarthi-Graphic.png")}

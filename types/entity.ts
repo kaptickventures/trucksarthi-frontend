@@ -27,6 +27,7 @@ export interface User {
   gstin?: string;
   bank_name?: string;
   account_holder_name?: string;
+  account_number?: string;
   ifsc_code?: string;
 
   createdAt?: ISODate;

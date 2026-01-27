@@ -51,10 +51,14 @@ export default function useDrivers() {
   const uploadLicense = async (driverId: string, file: any) => {
     try {
       const formData = new FormData();
+      const fileUri = Platform.OS === "android" && !file.uri.startsWith("file://")
+        ? `file://${file.uri}`
+        : file.uri.replace("file://", "");
+
       formData.append("file", {
-        uri: Platform.OS === 'android' ? file.uri : file.uri.replace('file://', ''),
-        name: file.name || 'license.jpg',
-        type: file.mimeType || 'image/jpeg',
+        uri: fileUri,
+        name: file.name || file.fileName || 'license.jpg',
+        type: file.type || file.mimeType || 'image/jpeg',
       } as any);
 
       const res = await API.post(`/api/drivers/${driverId}/license`, formData, {
@@ -80,10 +84,14 @@ export default function useDrivers() {
   const uploadAadhaar = async (driverId: string, file: any) => {
     try {
       const formData = new FormData();
+      const fileUri = Platform.OS === "android" && !file.uri.startsWith("file://")
+        ? `file://${file.uri}`
+        : file.uri.replace("file://", "");
+
       formData.append("file", {
-        uri: Platform.OS === 'android' ? file.uri : file.uri.replace('file://', ''),
-        name: file.name || 'aadhaar.jpg',
-        type: file.mimeType || 'image/jpeg',
+        uri: fileUri,
+        name: file.name || file.fileName || 'aadhaar.jpg',
+        type: file.type || file.mimeType || 'image/jpeg',
       } as any);
 
       const res = await API.post(`/api/drivers/${driverId}/aadhaar`, formData, {

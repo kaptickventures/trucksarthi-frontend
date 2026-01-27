@@ -7,7 +7,6 @@ import * as Sharing from "expo-sharing";
 import { ArrowDownLeft, Banknote, Building2, Edit, FileText, MapPin, Plus, Share2, X } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   KeyboardAvoidingView,
@@ -25,6 +24,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Skeleton } from "../../components/Skeleton";
 import useClients from "../../hooks/useClient";
 import { ClientLedger, useClientLedger } from "../../hooks/useClientLedger";
 import useDrivers from "../../hooks/useDriver";
@@ -592,9 +592,49 @@ export default function ClientProfile() {
   /* ---------------- GUARDS ---------------- */
   if (userLoading || clientsLoading || !id) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Skeleton width={24} height={24} borderRadius={12} />
+          <Skeleton width={120} height={24} />
+          <View style={{ width: 24 }} />
+        </View>
+
+        <View style={{ paddingHorizontal: 24 }}>
+          {/* Client Card Skeleton */}
+          <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <Skeleton width={56} height={56} borderRadius={28} style={{ marginRight: 16 }} />
+              <View style={{ gap: 8 }}>
+                <Skeleton width={150} height={20} />
+                <Skeleton width={100} height={14} />
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 16, marginTop: 16 }}>
+              <Skeleton style={{ flex: 1, height: 40, borderRadius: 12 }} />
+              <Skeleton style={{ flex: 1, height: 40, borderRadius: 12 }} />
+            </View>
+          </View>
+
+          {/* Summary Row Skeleton */}
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
+            <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+            <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+            <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+          </View>
+
+          {/* Tabs Skeleton */}
+          <View style={{ flexDirection: 'row', marginBottom: 24, gap: 8 }}>
+            <Skeleton style={{ flex: 1, height: 40, borderRadius: 12 }} />
+            <Skeleton style={{ flex: 1, height: 40, borderRadius: 12 }} />
+            <Skeleton style={{ flex: 1, height: 40, borderRadius: 12 }} />
+          </View>
+
+          {/* List Skeleton */}
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} width="100%" height={100} borderRadius={16} style={{ marginBottom: 12 }} />
+          ))}
+        </View>
+      </SafeAreaView>
     );
   }
 

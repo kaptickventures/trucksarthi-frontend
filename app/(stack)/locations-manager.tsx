@@ -2,7 +2,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Edit3, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StatusBar,
@@ -13,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import LocationFormModal from "../../components/LocationModal";
+import { Skeleton } from "../../components/Skeleton";
 import useLocations from "../../hooks/useLocation";
 import { useUser } from "../../hooks/useUser";
 
@@ -101,12 +101,25 @@ export default function LocationsManager() {
 
   if (loading && !user) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#888" />
-        <Text className="mt-2 text-muted-foreground">
-          Loading...
-        </Text>
-      </View>
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="px-5 pt-2">
+          {[1, 2, 3, 4, 5].map(i => (
+            <View key={i} className="bg-card border border-border rounded-2xl p-5 mb-4 shadow-sm">
+              <View className="flex-row justify-between mb-3">
+                <View style={{ gap: 8 }}>
+                  <Skeleton width={150} height={24} borderRadius={4} />
+                  <Skeleton width={80} height={12} borderRadius={4} />
+                </View>
+                <View className="flex-row gap-2">
+                  <Skeleton width={40} height={40} borderRadius={20} />
+                  <Skeleton width={40} height={40} borderRadius={20} />
+                </View>
+              </View>
+              <Skeleton width="100%" height={20} borderRadius={4} />
+            </View>
+          ))}
+        </View>
+      </SafeAreaView>
     );
   }
 

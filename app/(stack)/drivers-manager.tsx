@@ -1,12 +1,13 @@
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { Edit3, Plus, Trash2 } from "lucide-react-native";
+import { Edit3, Plus, Share2, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Share,
   StatusBar,
   Text,
   TouchableOpacity,
@@ -143,6 +144,17 @@ export default function DriversManager() {
     ]);
   };
 
+  const handleShare = async (driver: any) => {
+    try {
+      const message = `Driver Details:\nName: ${driver.driver_name}\nContact: ${driver.contact_number}`;
+      await Share.share({
+        message,
+      });
+    } catch (error) {
+      Alert.alert("Error", "Could not share driver details.");
+    }
+  };
+
   if (loading && !user) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
@@ -198,6 +210,13 @@ export default function DriversManager() {
                       className="w-10 h-10 bg-muted rounded-full items-center justify-center border border-border/20"
                     >
                       <Edit3 size={16} color={colors.foreground} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={(e) => { e.stopPropagation(); handleShare(driver); }}
+                      className="w-10 h-10 bg-blue-500/10 rounded-full items-center justify-center"
+                    >
+                      <Share2 size={16} color="#3b82f6" />
                     </TouchableOpacity>
 
                     <TouchableOpacity

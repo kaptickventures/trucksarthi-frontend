@@ -12,6 +12,7 @@ import {
   MapPin,
   Pencil,
   Settings,
+  Share2,
   Truck,
   User as UserIcon,
   Weight,
@@ -26,6 +27,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Share,
   StatusBar,
   Text,
   TextInput,
@@ -140,6 +142,20 @@ export default function TruckProfile() {
   const [isPickerVisible, setIsPickerVisible] = useState(false);
 
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<Record<string, boolean>>({
+    registration_number: true,
+    make_model: true,
+    registered_owner_name: true,
+    chassis_number: false,
+    engine_number: false,
+    fuel_norms: false,
+    unladen_weight: false,
+    vehicle_age: false,
+    fitness_upto: false,
+    insurance_upto: false,
+  });
+
   const [editForm, setEditForm] = useState({
     registration_number: "",
     chassis_number: "",
@@ -234,6 +250,30 @@ export default function TruckProfile() {
     } catch (e) { console.error(e); }
   };
 
+  const handleShareDetails = async () => {
+    if (!truck) return;
+    try {
+      let message = `🚚 *Truck Details: ${truck.registration_number}*\n\n`;
+
+      if (selectedTags.make_model) message += `🔹 Brand: ${truck.make} ${truck.vehicle_model}\n`;
+      if (selectedTags.registered_owner_name) message += `👤 Owner: ${truck.registered_owner_name}\n`;
+      if (selectedTags.chassis_number) message += `🔢 Chassis: ${truck.chassis_number}\n`;
+      if (selectedTags.engine_number) message += `⚙️ Engine: ${truck.engine_number}\n`;
+      if (selectedTags.fuel_norms) message += `⛽ Norms: ${truck.fuel_norms || "BS-VI"}\n`;
+      if (selectedTags.unladen_weight) message += `⚖️ Weight: ${truck.unladen_weight || "-"} kg\n`;
+      if (selectedTags.vehicle_age) message += `⏳ Age: ${getVehicleAge(truck.registration_date as string)}\n`;
+      if (selectedTags.fitness_upto) message += `✅ Fitness: ${formatDate(truck.fitness_upto as string)}\n`;
+      if (selectedTags.insurance_upto) message += `🛡️ Insurance: ${formatDate(truck.insurance_upto as string)}\n`;
+
+      message += `\nShared via TruckSarthi`;
+
+      await Share.share({ message });
+      setShowShareModal(false);
+    } catch (error) {
+      Alert.alert("Error", "Failed to share details");
+    }
+  };
+
   if (trucksLoading || !id) {
     return (
       <View style={{ backgroundColor: colors.background }} className="flex-1 items-center justify-center">
@@ -260,9 +300,14 @@ export default function TruckProfile() {
         </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: '700', color: colors.foreground, marginLeft: 16 }}>Truck Profile</Text>
         <View style={{ flex: 1 }} />
-        <TouchableOpacity onPress={() => setShowEditModal(true)}>
-          <Pencil size={20} color={colors.foreground} />
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-4">
+          <TouchableOpacity onPress={() => setShowShareModal(true)}>
+            <Share2 size={20} color={colors.foreground} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowEditModal(true)}>
+            <Pencil size={20} color={colors.foreground} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -453,6 +498,54 @@ export default function TruckProfile() {
         {isPickerVisible && (
           <DateTimePicker value={(editForm as any)[dateField!] ? new Date((editForm as any)[dateField!]) : new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onDateChange} />
         )}
+      </Modal>
+
+      {/* SHARE MODAL */}
+      <Modal visible={showShareModal} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: colors.background, padding: 24, borderTopLeftRadius: 32, borderTopRightRadius: 32 }}>
+            <View style={{ width: 40, height: 5, backgroundColor: colors.border, alignSelf: 'center', borderRadius: 3, marginBottom: 24 }} />
+            <View className="flex-row justify-between items-center mb-6">
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>Select details to share</Text>
+              <TouchableOpacity onPress={() => setShowShareModal(false)}>
+                <X size={24} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex-row flex-wrap gap-2 mb-8">
+              {[
+                { label: "Number", key: "registration_number" },
+                { label: "Make/Model", key: "make_model" },
+                { label: "Owner", key: "registered_owner_name" },
+                { label: "Chassis", key: "chassis_number" },
+                { label: "Engine", key: "engine_number" },
+                { label: "Norms", key: "fuel_norms" },
+                { label: "Weight", key: "unladen_weight" },
+                { label: "Vehicle Age", key: "vehicle_age" },
+                { label: "Fitness Date", key: "fitness_upto" },
+                { label: "Insurance Date", key: "insurance_upto" },
+              ].map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  onPress={() => setSelectedTags(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
+                  className={`px-4 py-2 rounded-full border ${selectedTags[item.key] ? 'bg-primary border-primary' : 'bg-transparent border-border'}`}
+                >
+                  <Text style={{ color: selectedTags[item.key] ? colors.primaryForeground : colors.mutedForeground }} className="text-xs font-bold">
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              onPress={handleShareDetails}
+              style={{ backgroundColor: colors.primary }}
+              className="py-4 rounded-2xl items-center mb-4"
+            >
+              <Text className="text-white font-bold text-base">Share Selected Details</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
       {/* IMAGE PREVIEW */}

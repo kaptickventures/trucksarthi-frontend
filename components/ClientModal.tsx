@@ -114,7 +114,7 @@ export default function ClientFormModal({
             </View>
 
             {/* Form */}
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
               {[...REQUIRED_FIELDS, ...OPTIONAL_FIELDS].map((key) => (
                 <View key={key} className="mb-4">
                   <Text className="text-muted-foreground mb-1 font-medium capitalize">
@@ -136,8 +136,8 @@ export default function ClientFormModal({
                       key.includes("number")
                         ? "phone-pad"
                         : key.includes("email")
-                        ? "email-address"
-                        : "default"
+                          ? "email-address"
+                          : "default"
                     }
                     multiline={key === "office_address"}
                   />

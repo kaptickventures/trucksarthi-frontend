@@ -118,96 +118,99 @@ export default function SideMenu({
           paddingVertical: 40,
         }}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Profile */}
-          <TouchableOpacity onPress={() => navigate("/profile")}>
-            <View className="flex-row items-center mb-10">
-              <View
-                className="w-16 h-16 rounded-full overflow-hidden items-center justify-center"
-                style={{ backgroundColor: colors.muted }}
-              >
-                {user?.profile_picture_url ? (
-                  <Image
-                    source={{ uri: getFileUrl(user.profile_picture_url) || "" }}
-                    className="w-full h-full"
-                  />
-                ) : (
-                  <Ionicons
-                    name="person-circle-outline"
-                    size={58}
-                    color={colors.foreground}
-                    style={{ opacity: 0.6 }}
-                  />
-                )}
+        <View style={{ flex: 1 }}>
+          {/* STATIC PROFILE HEADER (Sticky) */}
+          <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 24, marginBottom: 16 }}>
+            <TouchableOpacity onPress={() => navigate("/profile")}>
+              <View className="flex-row items-center">
+                <View
+                  className="w-16 h-16 rounded-full overflow-hidden items-center justify-center"
+                  style={{ backgroundColor: colors.muted }}
+                >
+                  {user?.profile_picture_url ? (
+                    <Image
+                      source={{ uri: getFileUrl(user.profile_picture_url) || "" }}
+                      className="w-full h-full"
+                    />
+                  ) : (
+                    <Ionicons
+                      name="person-circle-outline"
+                      size={58}
+                      color={colors.foreground}
+                      style={{ opacity: 0.6 }}
+                    />
+                  )}
+                </View>
+
+                <View className="ml-4">
+                  <Text className="text-xl font-semibold" style={{ color: colors.foreground }}>
+                    {loading ? "Loading..." : user?.name || "Guest"}
+                  </Text>
+                  <Text className="text-sm" style={{ color: colors.mutedForeground }}>
+                    {user?.email || ""}
+                  </Text>
+                </View>
               </View>
-
-              <View className="ml-4">
-                <Text className="text-xl font-semibold" style={{ color: colors.foreground }}>
-                  {loading ? "Loading..." : user?.name || "Guest"}
-                </Text>
-                <Text className="text-sm" style={{ color: colors.mutedForeground }}>
-                  {user?.email || ""}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          {/* MAIN MENU */}
-          <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-            MAIN MENU
-          </Text>
-
-          {LINKS.map((item, idx) => (
-            <TouchableOpacity
-              key={idx}
-              onPress={() => navigate(item.route)}
-              className="flex-row items-center py-4"
-            >
-              {item.title === "Trip Log" ? (
-                <Clock size={24} color={colors.foreground} />
-              ) : (
-                <Ionicons name={item.icon as any} size={24} color={colors.foreground} />
-              )}
-
-              <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                {item.title}
-              </Text>
             </TouchableOpacity>
-          ))}
+          </View>
 
-          {/* MANAGER SECTION */}
-          <View className="mt-8 mb-6">
+          {/* SCROLLABLE MENU ITEMS */}
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            {/* MAIN MENU */}
             <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-              MANAGER
+              MAIN MENU
             </Text>
 
-            {MANAGER_LINKS.map((item, idx) => (
+            {LINKS.map((item, idx) => (
               <TouchableOpacity
                 key={idx}
                 onPress={() => navigate(item.route)}
                 className="flex-row items-center py-4"
               >
-                <Ionicons name={item.icon as any} size={24} color={colors.foreground} />
+                {item.title === "Trip Log" ? (
+                  <Clock size={24} color={colors.foreground} />
+                ) : (
+                  <Ionicons name={item.icon as any} size={24} color={colors.foreground} />
+                )}
+
                 <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
                   {item.title}
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
 
-          {/* Logout */}
-          <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4">
-            <Ionicons name="log-out-outline" size={26} color="#ef4444" />
-            <Text
-              className="ml-4 text-lg font-medium"
-              style={{ color: "#ef4444" }}
-            >
-              Logout
-            </Text>
-          </TouchableOpacity>
+            {/* MANAGER SECTION */}
+            <View className="mt-8 mb-6">
+              <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
+                MANAGER
+              </Text>
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
+              {MANAGER_LINKS.map((item, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() => navigate(item.route)}
+                  className="flex-row items-center py-4"
+                >
+                  <Ionicons name={item.icon as any} size={24} color={colors.foreground} />
+                  <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                    {item.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Logout */}
+            <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4">
+              <Ionicons name="log-out-outline" size={26} color="#ef4444" />
+              <Text
+                className="ml-4 text-lg font-medium"
+                style={{ color: "#ef4444" }}
+              >
+                Logout
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
       </Animated.View>
     </>
   );

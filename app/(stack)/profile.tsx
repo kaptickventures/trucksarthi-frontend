@@ -50,6 +50,7 @@ export default function Profile() {
     gstin: "",
     bank_name: "",
     account_holder_name: "",
+    account_number: "",
     ifsc_code: "",
   });
 
@@ -68,12 +69,13 @@ export default function Profile() {
         name: user.name ?? "",
         company_name: user.company_name ?? "",
         date_of_birth: typeof user.date_of_birth === 'string' ? user.date_of_birth.substring(0, 10) : user.date_of_birth ? new Date(user.date_of_birth).toISOString().substring(0, 10) : "",
-        phone: user.phone ?? "+91 ",
+        phone: user.phone ?? "",
         email: user.email ?? "",
         address: user.address ?? "",
         gstin: user.gstin ?? "",
         bank_name: user.bank_name ?? "",
         account_holder_name: user.account_holder_name ?? "",
+        account_number: user.account_number ?? "",
         ifsc_code: user.ifsc_code ?? "",
       });
 
@@ -231,7 +233,7 @@ export default function Profile() {
             <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 4 }}>
               {formData.company_name || "Enterprise Account"}
             </Text>
-
+ 
             <TouchableOpacity
               onPress={() => setIsEditing(!isEditing)}
               style={{
@@ -282,7 +284,7 @@ export default function Profile() {
                 <SectionHeader title="Basic Details" icon={<UserIcon size={18} color={colors.primary} />} />
                 <ProfileInput label="Full Name" value={formData.name} editable={isEditing} onChange={(v: string) => markChanged("name", v)} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
                 <ProfileInput label="Email Address" value={formData.email} editable={false} icon={<Mail size={18} color={colors.mutedForeground} />} />
-                <ProfileInput label="Phone Number" value={formData.phone} editable={false} icon={<Phone size={18} color={colors.mutedForeground} />} />
+                <ProfileInput label="Phone Number" value={formData.phone} editable={isEditing} onChange={(v: string) => markChanged("phone", v)} icon={<Phone size={18} color={colors.mutedForeground} />} />
 
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: -12, textTransform: 'uppercase' }}>Date of Birth</Text>
                 <TouchableOpacity
@@ -323,6 +325,7 @@ export default function Profile() {
                 <SectionHeader title="Settlement Details" icon={<Landmark size={18} color={colors.primary} />} />
                 <ProfileInput label="Bank Name" value={formData.bank_name} editable={isEditing} onChange={(v: string) => markChanged("bank_name", v)} icon={<Landmark size={18} color={colors.mutedForeground} />} />
                 <ProfileInput label="Account Holder" value={formData.account_holder_name} editable={isEditing} onChange={(v: string) => markChanged("account_holder_name", v)} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
+                <ProfileInput label="Account Number" value={formData.account_number} editable={isEditing} onChange={(v: string) => markChanged("account_number", v)} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Enter account number" />
                 <ProfileInput label="IFSC Code" value={formData.ifsc_code} editable={isEditing} onChange={(v: string) => markChanged("ifsc_code", v)} icon={<ShieldCheck size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
               </View>
             )}

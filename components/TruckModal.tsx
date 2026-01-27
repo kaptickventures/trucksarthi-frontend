@@ -124,7 +124,7 @@ export default function TruckFormModal({
                         </View>
 
                         {/* Form */}
-                        <ScrollView showsVerticalScrollIndicator={false}>
+                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
                             <View className="gap-5 pb-10">
                                 {fields.map((field) => (
                                     <View key={field.key}>

@@ -1,13 +1,13 @@
+import { Ionicons } from "@expo/vector-icons";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack, useRouter } from "expo-router";
 import {
-  useColorScheme,
-  TouchableOpacity,
   Platform,
   StatusBar,
+  TouchableOpacity,
+  useColorScheme,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 import { THEME } from "../../theme";
 
@@ -77,6 +77,7 @@ export default function StackLayout() {
             name="profile"
             options={{
               title: "Profile",
+              headerShown: false,
               contentStyle: { backgroundColor },
             }}
           />
