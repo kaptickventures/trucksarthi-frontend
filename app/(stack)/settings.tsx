@@ -105,7 +105,7 @@ export default function Settings() {
       {/* Theme Trigger */}
       <View className="bg-card p-5 rounded-2xl mb-4 border border-border/50">
         <View className="flex-row items-center gap-3 mb-6">
-          <View className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-primary/20' : 'bg-primary/10'}`}>
+          <View className={`p-2 rounded-lg`}>
             <Palette size={20} color={colors.primary} />
           </View>
           <View>

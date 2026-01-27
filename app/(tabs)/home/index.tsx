@@ -1,14 +1,15 @@
+
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
 import { useLayoutEffect, useState } from "react";
 import {
-  ActivityIndicator,
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import SideMenu from "../../../components/SideMenu";
+import { Skeleton } from "../../../components/Skeleton";
 import "../../../global.css";
 import { useThemeStore } from "../../../hooks/useThemeStore";
 import useTrips from "../../../hooks/useTrip";
@@ -21,8 +22,8 @@ export default function HomeScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
 
-  const { user, loading: userLoading } = useUser();
-  const { loading: tripsLoading, totalRevenue, totalTrips, recentTrips } = useTrips();
+  const { user, loading: userLoading, refreshUser } = useUser();
+  const { loading: tripsLoading, totalRevenue, totalTrips, recentTrips, fetchTrips } = useTrips();
 
   const loading = userLoading || tripsLoading;
 
@@ -75,16 +76,44 @@ export default function HomeScreen() {
 
   if (loading && !user) {
     return (
-      <View style={{ backgroundColor: colors.background }} className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text className="text-muted-foreground mt-2">Loading...</Text>
-      </View>
+      <ScrollView style={{ backgroundColor: colors.background }} className="flex-1 p-4">
+        {/* Stats Skeleton */}
+        <View className="flex-row justify-between mb-4">
+          <Skeleton style={{ flex: 1, height: 80, borderRadius: 16, marginRight: 8 }} />
+          <Skeleton style={{ flex: 1, height: 80, borderRadius: 16, marginLeft: 8 }} />
+        </View>
+
+        {/* Add Trip Button Skeleton */}
+        <Skeleton width="100%" height={56} borderRadius={28} style={{ marginBottom: 12 }} />
+
+        {/* Quick Actions Skeleton */}
+        <View className="flex-row gap-2 justify-between mt-2 mb-6">
+          <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+          <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+          <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+          <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+        </View>
+
+        {/* Recent Trips Skeleton */}
+        <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+            <Skeleton width={120} height={20} borderRadius={4} />
+            <Skeleton width={60} height={16} borderRadius={4} />
+          </View>
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} width="100%" height={70} borderRadius={12} style={{ marginBottom: 8 }} />
+          ))}
+        </View>
+      </ScrollView>
     );
   }
 
   return (
     <>
-      <ScrollView style={{ backgroundColor: colors.background }} className="flex-1 p-4">
+      <ScrollView
+        style={{ backgroundColor: colors.background }}
+        className="flex-1 p-4"
+      >
         {/* ====== Stats Section ====== */}
         <View className="flex-row justify-between mb-4">
           <View style={{ backgroundColor: colors.card }} className="flex-1 rounded-2xl p-4 mr-2">

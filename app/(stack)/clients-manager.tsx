@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import { Edit3, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   PanResponder,
@@ -15,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ClientFormModal from "../../components/ClientModal";
+import { Skeleton } from "../../components/Skeleton";
 import useClients from "../../hooks/useClient";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
@@ -157,11 +157,26 @@ export default function ClientsManager() {
 
   if (loading && !user) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#888" />
-        <Text className="mt-2 text-muted-foreground">
-          Loading...
-        </Text>
+      <View style={{ backgroundColor: colors.background, flex: 1, paddingHorizontal: 20, paddingTop: 10 }}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <View key={i} style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View style={{ gap: 8 }}>
+                <Skeleton width={140} height={20} borderRadius={4} />
+                <Skeleton width={100} height={12} borderRadius={4} />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Skeleton width={40} height={40} borderRadius={20} />
+                <Skeleton width={40} height={40} borderRadius={20} />
+              </View>
+            </View>
+            <View style={{ gap: 6 }}>
+              <Skeleton width={180} height={14} borderRadius={4} />
+              <Skeleton width={120} height={14} borderRadius={4} />
+              <Skeleton width={200} height={14} borderRadius={4} />
+            </View>
+          </View>
+        ))}
       </View>
     );
   }
