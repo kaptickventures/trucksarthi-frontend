@@ -1,4 +1,4 @@
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useState } from "react";
 import {
@@ -48,7 +48,13 @@ export default function LoginEmail() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <TouchableOpacity
-        onPress={() => router.back()}
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace("/auth/login");
+          }
+        }}
         style={{ position: "absolute", top: 24, left: 24, padding: 8 }}
       >
         <ChevronLeft size={32} color="#111B21" />
@@ -113,14 +119,18 @@ export default function LoginEmail() {
             )}
           </TouchableOpacity>
 
+          <View className="mt-4 flex-row">
+            <Text style={{ color: COLORS.subtitle }}>Forgot password? </Text>
+            <TouchableOpacity onPress={() => router.push("/auth/login-email-otp")}>
+              <Text style={{ color: COLORS.link }}>Login with OTP</Text>
+            </TouchableOpacity>
+          </View>
+
           <View className="mt-6 flex-row">
             <Text style={{ color: COLORS.subtitle }}>No account?</Text>
-            <Link
-              href="/auth/signup-email"
-              style={{ marginLeft: 6, color: COLORS.link }}
-            >
-              Sign Up
-            </Link>
+            <TouchableOpacity onPress={() => router.push("/auth/signup-email")}>
+              <Text style={{ marginLeft: 6, color: COLORS.link }}>Sign Up</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

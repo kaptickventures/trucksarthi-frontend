@@ -1,6 +1,6 @@
 // app/auth/login.tsx
 import { LinearGradient } from "expo-linear-gradient";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Mail, Phone } from "lucide-react-native";
 import {
   Image,
@@ -90,22 +90,19 @@ export default function LoginOptions() {
           <Text className="ml-2 font-semibold">Continue with Email</Text>
         </TouchableOpacity>
 
-        {/* OR Divider */}
-        <View className="flex-row items-center my-2 w-full">
-          <View className="flex-1 h-[1px] bg-gray-300" />
-          <Text className="text-gray-500 px-3 text-xs">OR</Text>
-          <View className="flex-1 h-[1px] bg-gray-300" />
-        </View>
-
-        {/* Google Login Coming Soon */}
-        <View
-          className="flex-row items-center justify-center bg-white py-3 rounded-xl w-full border opacity-60"
-          style={{ borderColor: COLORS.googleBorder }}
+        {/* Email OTP Login */}
+        <TouchableOpacity
+          onPress={() => router.push("/auth/login-email-otp")}
+          className="flex-row items-center justify-center w-full py-3 rounded-xl mb-4 border"
+          style={{
+            backgroundColor: COLORS.buttonBg,
+            borderColor: COLORS.buttonBorder,
+          }}
         >
-          <Text className="font-medium text-gray-600">
-            Google Login — Coming Soon 🚀
-          </Text>
-        </View>
+          <Mail size={20} color="#111B21" />
+          <Text className="ml-2 font-semibold">Continue with Email OTP</Text>
+        </TouchableOpacity>
+
 
         {/* Signup Redirect */}
         <View className="mt-6 flex-row">
@@ -113,13 +110,11 @@ export default function LoginOptions() {
             New here?
           </Text>
 
-          <Link
-            href="/auth/signup-email"
-            style={{ color: COLORS.link }}
-            className="font-semibold ml-2 text-sm"
-          >
-            Create Account
-          </Link>
+          <TouchableOpacity onPress={() => router.push("/auth/signup-email")}>
+            <Text style={{ color: COLORS.link }} className="font-semibold ml-2 text-sm">
+              Create Account
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>

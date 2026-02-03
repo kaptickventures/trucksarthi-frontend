@@ -14,6 +14,7 @@ import "../../../global.css";
 import { useThemeStore } from "../../../hooks/useThemeStore";
 import useTrips from "../../../hooks/useTrip";
 import { useUser } from "../../../hooks/useUser";
+import useTruckDocuments from "../../../hooks/useTruckDocuments";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -24,8 +25,19 @@ export default function HomeScreen() {
 
   const { user, loading: userLoading, refreshUser } = useUser();
   const { loading: tripsLoading, totalRevenue, totalTrips, recentTrips, fetchTrips } = useTrips();
+  const { documents, loading: docsLoading } = useTruckDocuments();
 
-  const loading = userLoading || tripsLoading;
+  // Filter expiring documents (next 30 days)
+  const expiringDocs = documents.filter(doc => {
+    if (!doc.expiry_date || doc.status === 'expired') return false;
+    const expiry = new Date(doc.expiry_date);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 30;
+  });
+
+  const loading = userLoading || tripsLoading || docsLoading;
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -161,6 +173,27 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* ====== Reminders Card ====== */}
+        {expiringDocs.length > 0 && (
+          <TouchableOpacity
+            onPress={() => router.push("/documents-manager" as any)}
+            style={{ backgroundColor: '#FEF2F2' }} // light red bg
+            className="rounded-2xl p-4 mb-6 border border-red-100"
+          >
+            <View className="flex-row items-center mb-2">
+              <View className="bg-red-100 p-2 rounded-full mr-3">
+                <Ionicons name="alert-circle" size={20} color="#EF4444" />
+              </View>
+              <View>
+                <Text className="text-red-800 font-bold text-base">Action Required</Text>
+                <Text className="text-red-600 text-xs">
+                  {expiringDocs.length} documents expiring soon
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* ====== Recent Trips ====== */}
         <View style={{ backgroundColor: colors.card }} className="rounded-2xl p-4 mb-6">

@@ -1,104 +1,158 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal } from "react-native";
-import { Plus, Edit, Trash2 } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { Folder } from "lucide-react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  StatusBar
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
-interface Client {
-  id: string;
-  name: string;
-  contactPerson: string;
-  contactNumber: string;
-  alternateNumber?: string;
-  email: string;
-  address: string;
-}
+import { useThemeStore } from "../../hooks/useThemeStore";
+import useTrucks from "../../hooks/useTruck";
 
 export default function DocumentManager() {
-  const [clients, setClients] = useState<Client[]>([
-    {
-      id: "1",
-      name: "ABC Logistics",
-      contactPerson: "Amit Sharma",
-      contactNumber: "+91 98765 12345",
-      email: "contact@abclogistics.com",
-      address: "Mumbai, Maharashtra",
-    },
-  ]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState<Omit<Client, "id">>({
-    name: "",
-    contactPerson: "",
-    contactNumber: "",
-    alternateNumber: "",
-    email: "",
-    address: "",
-  });
+  const router = useRouter();
+  const { theme, colors } = useThemeStore();
+  const isDark = theme === "dark";
+  const { trucks, loading, fetchTrucks } = useTrucks();
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSubmit = () => {
-    setClients([...clients, { ...formData, id: Date.now().toString() }]);
-    setIsOpen(false);
-    setFormData({
-      name: "",
-      contactPerson: "",
-      contactNumber: "",
-      alternateNumber: "",
-      email: "",
-      address: "",
-    });
-  };
+  const filteredTrucks = trucks.filter((truck) =>
+    truck.registration_number.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const renderItem = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => router.push({ pathname: "/(stack)/document-details", params: { truckId: item._id } } as any)}
+      style={{
+        backgroundColor: colors.card,
+        borderColor: colors.border,
+        borderWidth: 1,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+      }}
+    >
+      <View
+        style={{
+          width: 50,
+          height: 50,
+          borderRadius: 25,
+          backgroundColor: colors.primary + '15', // 15% opacity
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: 16,
+        }}
+      >
+        <Folder size={24} color={colors.primary} />
+      </View>
+
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: colors.foreground }}>
+          {item.registration_number}
+        </Text>
+        <Text style={{ fontSize: 13, color: colors.mutedForeground, marginTop: 2 }}>
+          {item.make} {item.vehicle_model}
+        </Text>
+      </View>
+
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          backgroundColor: isDark ? '#333' : '#f0f0f0',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
-    <ScrollView className="flex-1 bg-background p-4 space-y-4">
-      <TouchableOpacity
-        onPress={() => setIsOpen(true)}
-        className="bg-primary py-3 rounded-lg flex-row justify-center items-center"
-      >
-        <Plus color="white" size={18} />
-        <Text className="text-primary-foreground ml-2 font-semibold">Add Client</Text>
-      </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <Modal visible={isOpen} animationType="slide">
-        <ScrollView className="flex-1 bg-card p-5">
-          <Text className="text-xl font-semibold text-foreground mb-4">Add New Client</Text>
-
-          {Object.keys(formData).map((key) => (
-            <View key={key} className="mb-3">
-              <Text className="text-muted-foreground mb-1 capitalize">
-                {key.replace(/([A-Z])/g, " $1")}
-              </Text>
-              <TextInput
-                className="border border-border rounded-lg p-3 text-foreground bg-background"
-                value={(formData as any)[key]}
-                onChangeText={(val) => setFormData({ ...formData, [key]: val })}
-              />
-            </View>
-          ))}
-
-          <TouchableOpacity onPress={handleSubmit} className="bg-primary p-3 rounded-lg">
-            <Text className="text-center text-primary-foreground font-semibold">Add Client</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setIsOpen(false)} className="mt-4 p-3 border border-border rounded-lg">
-            <Text className="text-center text-muted-foreground font-medium">Cancel</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </Modal>
-
-      {clients.map((client) => (
-        <View key={client.id} className="bg-card border border-border rounded-lg p-4">
-          <View className="flex-row justify-between mb-2">
-            <Text className="font-semibold text-lg text-foreground">{client.name}</Text>
-            <View className="flex-row gap-2">
-              <Edit color="#666" size={20} />
-              <Trash2 color="#666" size={20} />
-            </View>
-          </View>
-
-          <Text className="text-muted-foreground">Contact: {client.contactPerson}</Text>
-          <Text className="text-primary">{client.contactNumber}</Text>
-          <Text className="text-muted-foreground">{client.email}</Text>
-          <Text className="text-muted-foreground">{client.address}</Text>
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 }}>
+        {/* Search Bar */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 12, // Increased padding
+          }}
+        >
+          <Ionicons name="search" size={20} color={colors.mutedForeground} />
+          <TextInput
+            style={{
+              flex: 1,
+              marginLeft: 10,
+              fontSize: 16,
+              color: colors.foreground,
+            }}
+            placeholder="Search by truck number..."
+            placeholderTextColor={colors.mutedForeground}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          )}
         </View>
-      ))}
-    </ScrollView>
+      </View>
+
+      {loading && filteredTrucks.length === 0 ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredTrucks}
+          renderItem={renderItem}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={fetchTrucks}
+              tintColor={colors.primary}
+            />
+          }
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 100 }}>
+              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: colors.muted + '20', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <Folder size={40} color={colors.mutedForeground} />
+              </View>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: colors.mutedForeground }}>No trucks found</Text>
+            </View>
+          }
+        />
+      )}
+    </SafeAreaView>
   );
 }

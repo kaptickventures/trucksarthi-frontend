@@ -48,6 +48,8 @@ export default function Profile() {
     email: "",
     address: "",
     gstin: "",
+    pan_number: "",
+    name_as_on_pan: "",
     bank_name: "",
     account_holder_name: "",
     account_number: "",
@@ -73,6 +75,8 @@ export default function Profile() {
         email: user.email ?? "",
         address: user.address ?? "",
         gstin: user.gstin ?? "",
+        pan_number: user.pan_number ?? "",
+        name_as_on_pan: user.name_as_on_pan ?? "",
         bank_name: user.bank_name ?? "",
         account_holder_name: user.account_holder_name ?? "",
         account_number: user.account_number ?? "",
@@ -146,6 +150,7 @@ export default function Profile() {
   const handleSave = async () => {
     try {
       setLoading(true);
+      console.log("DEBUG: Saving Profile FormData:", JSON.stringify(formData, null, 2));
       await updateUser({
         ...formData,
         profile_picture_url: profileImage ?? undefined,
@@ -233,7 +238,7 @@ export default function Profile() {
             <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 4 }}>
               {formData.company_name || "Enterprise Account"}
             </Text>
- 
+
             <TouchableOpacity
               onPress={() => setIsEditing(!isEditing)}
               style={{
@@ -308,13 +313,18 @@ export default function Profile() {
                 {showDatePicker && (
                   <DateTimePicker value={dobDate || new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} />
                 )}
+
+                {/* PAN Details */}
+                <SectionHeader title="Identity Verification" icon={<ShieldCheck size={18} color={colors.primary} />} />
+                <ProfileInput label="PAN Number" value={formData.pan_number} editable={isEditing} onChange={(v: string) => markChanged("pan_number", v)} icon={<Hash size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
+                <ProfileInput label="Name as on PAN" value={formData.name_as_on_pan} editable={isEditing} onChange={(v: string) => markChanged("name_as_on_pan", v)} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
               </View>
             )}
 
             {activeTab === 'company' && (
               <View style={{ gap: 20 }}>
                 <SectionHeader title="Business Information" icon={<Briefcase size={18} color={colors.primary} />} />
-                <ProfileInput label="Company Name" value={formData.company_name} editable={isEditing} onChange={(v: string) => markChanged("company_name", v)} icon={<Building2 size={18} color={colors.mutedForeground} />} />
+                <ProfileInput label="Company Name (As per GSTIN)" value={formData.company_name} editable={isEditing} onChange={(v: string) => markChanged("company_name", v)} icon={<Building2 size={18} color={colors.mutedForeground} />} />
                 <ProfileInput label="GST Number" value={formData.gstin} editable={isEditing} onChange={(v: string) => markChanged("gstin", v)} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Optional" />
                 <ProfileInput label="Office Address" value={formData.address} editable={isEditing} onChange={(v: string) => markChanged("address", v)} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Full street address" />
               </View>

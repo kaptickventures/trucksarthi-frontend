@@ -98,7 +98,8 @@ export default function StackLayout() {
           <Stack.Screen name="helpCenter" options={{ title: "Help Center" }} />
 
           <Stack.Screen name="basic-details" options={{ title: "TruckSarthi" }} />
-
+          <Stack.Screen name="documents-manager" options={{ title: "Documents" }} />
+          <Stack.Screen name="document-details" options={{ title: "Document Details", headerShown: false }} />
         </Stack>
       </GestureHandlerRootView>
     </BottomSheetModalProvider>

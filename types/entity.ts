@@ -25,6 +25,8 @@ export interface User {
   profile_picture_url?: string;
 
   gstin?: string;
+  pan_number?: string;
+  name_as_on_pan?: string;
   bank_name?: string;
   account_holder_name?: string;
   account_number?: string;

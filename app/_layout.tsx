@@ -1,7 +1,7 @@
 // App.tsx
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { ThemeProvider } from "@react-navigation/native";
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import { StatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import 'react-native-reanimated'; // MUST be at top
@@ -20,7 +20,7 @@ function MainLayout() {
         <StatusBar
           barStyle={theme === "dark" ? "light-content" : "dark-content"}
         />
-        <Slot />
+        <Stack screenOptions={{ headerShown: false }} />
       </View>
     </ThemeProvider>
   );

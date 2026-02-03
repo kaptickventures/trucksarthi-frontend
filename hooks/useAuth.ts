@@ -16,9 +16,35 @@ export async function loginWithEmail(email: string, pass: string) {
 }
 
 
-export async function sendOtp(phone: string) {
+export async function requestEmailOtp(email: string) {
   try {
-    await API.post("/api/auth/send-otp", { phone });
+    await API.post("/api/auth/send-otp", { email });
+    return true;
+  } catch (err: any) {
+    console.error("❌ Send OTP error:", err.response?.data || err.message);
+    throw err.response?.data?.error || err.response?.data?.message || err.message || "Failed to send OTP";
+  }
+}
+
+export async function verifyEmailOtp(email: string, otp: string) {
+  try {
+    const res = await API.post("/api/auth/verify-otp", { email, otp });
+    const { token, user } = res.data;
+    if (token) {
+      await AsyncStorage.setItem("userToken", token);
+    }
+    return { token, user };
+  } catch (err: any) {
+    console.error("❌ Email OTP login error:", err.response?.data || err.message);
+    throw err.response?.data?.error || err.response?.data?.message || err.message || "OTP login failed";
+  }
+}
+
+// Deprecated or unused phone OTP function (renaming/keeping for safety but not using)
+export async function sendPhoneOtp(phone: string) {
+  try {
+    // This endpoint might not exist or logic changed
+    await API.post("/api/auth/send-otp", { phone }); // Warning: Backend expects email now at this route
     return true;
   } catch (err: any) {
     console.error("❌ Send OTP error:", err.response?.data || err.message);

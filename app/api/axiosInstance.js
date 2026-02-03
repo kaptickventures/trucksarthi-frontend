@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_BASE_URL || "https://trucksarthi.cloud",
+  baseURL: process.env.EXPO_PUBLIC_BASE_URL,
 });
 
 // Request Interceptor: Attach JWT Token

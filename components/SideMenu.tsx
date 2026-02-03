@@ -23,8 +23,10 @@ import { Clock } from "lucide-react-native";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
+
 const LINKS = [
   { title: "Trip Log", icon: "clock", route: "/tripLog" as const },
+  { title: "Documents", icon: "folder", route: "/documents-manager" as const },
   { title: "Settings", icon: "settings-outline", route: "/settings" as const },
 ] as const;
 
@@ -72,7 +74,7 @@ export default function SideMenu({
 
   const navigate = (path: RoutePath) => {
     onClose();
-    router.push(path);
+    router.push(path as any);
   };
 
   const handleLogout = async () => {
@@ -169,6 +171,8 @@ export default function SideMenu({
               >
                 {item.title === "Trip Log" ? (
                   <Clock size={24} color={colors.foreground} />
+                ) : item.title === "Documents" ? (
+                  <Ionicons name="folder-outline" size={24} color={colors.foreground} />
                 ) : (
                   <Ionicons name={item.icon as any} size={24} color={colors.foreground} />
                 )}
