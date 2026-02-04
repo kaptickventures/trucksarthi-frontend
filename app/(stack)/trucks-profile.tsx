@@ -41,7 +41,7 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrips from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
 import useTruckDocuments from "../../hooks/useTruckDocuments";
-import { getFileUrl } from "../../lib/utils";
+import { getFileUrl, formatDate as globalFormatDate } from "../../lib/utils";
 
 /* ---------------- HELPERS ---------------- */
 
@@ -68,14 +68,7 @@ const getVehicleAge = (dateString?: string) => {
   return `${years}y ${months}m`;
 };
 
-const formatDate = (dateString?: string) => {
-  if (!dateString) return "N/A";
-  return new Date(dateString).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
+const formatDate = (dateString?: string) => globalFormatDate(dateString);
 
 const DOCUMENT_TYPES = ["RC", "INSURANCE", "PERMIT", "FITNESS"];
 
@@ -481,7 +474,7 @@ export default function TruckProfile() {
                   <TouchableOpacity key={f.key} activeOpacity={0.7} onPress={() => { setDateField(f.key); setIsPickerVisible(true); }}>
                     <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8 }}>{f.label}</Text>
                     <View style={{ backgroundColor: colors.card, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ color: (editForm as any)[f.key] ? colors.foreground : colors.mutedForeground }}>{(editForm as any)[f.key] || "Select Date"}</Text>
+                      <Text style={{ color: (editForm as any)[f.key] ? colors.foreground : colors.mutedForeground }}>{(editForm as any)[f.key] ? globalFormatDate((editForm as any)[f.key]) : "Select Date"}</Text>
                       <Calendar size={18} color={colors.primary} />
                     </View>
                   </TouchableOpacity>

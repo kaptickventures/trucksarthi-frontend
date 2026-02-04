@@ -35,6 +35,7 @@ import { THEME } from "../../../theme";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { formatDate } from "../../../lib/utils";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   // @ts-ignore
@@ -194,14 +195,7 @@ export default function TripLog() {
 
   const generatePDF = async () => {
     try {
-      const fmt = (d: Date | null) =>
-        d
-          ? d.toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          })
-          : null;
+      const fmt = (d: Date | null) => formatDate(d);
 
       let dateRangeText = "";
 
@@ -245,7 +239,7 @@ export default function TripLog() {
     <div class="subtitle">By Kaptick Labs</div>
     <div class="divider"></div>
     <div class="section-title">Trip Report</div>
-    <div class="generated">Generated on ${new Date().toLocaleString("en-IN")}</div>
+    <div class="generated">Generated on ${formatDate(new Date())}</div>
     ${dateRangeText ? `<div class="daterange">${dateRangeText}</div>` : ""}
     ${sortedTrips
           .map((t) => {
@@ -319,7 +313,7 @@ export default function TripLog() {
     });
   }, [navigation, isDark, menuVisible]);
 
-  const formatDate = (d: Date | null) => d ? d.toISOString().split("T")[0] : "Select Date";
+  const formatDateLocal = (d: Date | null) => d ? formatDate(d) : "Select Date";
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -337,7 +331,7 @@ export default function TripLog() {
           toggleFilters={toggleFilters}
           showDatePicker={showDatePicker}
           setShowDatePicker={setShowDatePicker}
-          formatDate={formatDate}
+          formatDate={formatDateLocal}
         />
 
         <View style={{ marginHorizontal: 12, marginTop: 8, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -374,7 +368,7 @@ export default function TripLog() {
               <View key={trip._id} style={{ marginHorizontal: 12, marginBottom: 20 }}>
                 <View className="bg-card border border-border rounded-2xl p-5 shadow-sm">
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                    <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>{trip.trip_date ? new Date(trip.trip_date).toLocaleDateString("en-IN") : "No Date"}</Text>
+                    <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : "No Date"}</Text>
                     <Text style={{ fontSize: 22, fontWeight: "800", color: THEME.light.primary }}>{`₹${totalCost.toLocaleString()}`}</Text>
                   </View>
                   <Text style={{ fontSize: 18, fontWeight: "700", color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 10 }}>{getLocationName(trip.start_location)} → {getLocationName(trip.end_location)}</Text>

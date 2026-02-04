@@ -34,6 +34,7 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrips, { Trip } from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
+import { formatDate } from "../../lib/utils";
 
 export default function ClientProfile() {
   const router = useRouter();
@@ -187,11 +188,8 @@ export default function ClientProfile() {
       const tax = subtotal * taxRate;
       const grandTotal = subtotal + tax;
 
-      const today = new Date().toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      });
+      const today = formatDate(new Date());
+
 
       const html = `
 <!DOCTYPE html>
@@ -338,7 +336,7 @@ export default function ClientProfile() {
 
             return `
         <tr>
-          <td>${t.trip_date ? String(t.trip_date).split("T")[0] : "—"}</td>
+          <td>${t.trip_date ? formatDate(t.trip_date) : "—"}</td>
           <td>${route}</td>
           <td>${truckNumber}</td>
           <td>${driverName}</td>
@@ -375,7 +373,7 @@ export default function ClientProfile() {
   <div class="footer">
     <p>Thank you for your business!</p>
     <p>TruckSarthi – Your Trusted Logistics Partner</p>
-    <p>Generated on ${new Date().toLocaleString("en-IN")}</p>
+    <p>Generated on ${formatDate(new Date())}</p>
   </div>
 
 </body>
@@ -768,7 +766,7 @@ export default function ClientProfile() {
                 <View className="flex-row justify-between items-start mb-2">
                   <View>
                     <Text className="text-foreground font-bold">Trip #{getId(trip).slice(-6)}</Text>
-                    <Text className="text-muted-foreground text-xs">{trip.trip_date ? new Date(trip.trip_date as string).toLocaleDateString() : "N/A"}</Text>
+                    <Text className="text-muted-foreground text-xs">{trip.trip_date ? formatDate(trip.trip_date) : "N/A"}</Text>
                   </View>
                   <Text className="text-foreground font-bold text-lg">₹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
                 </View>
@@ -791,7 +789,7 @@ export default function ClientProfile() {
                 <View className="flex-row justify-between items-center mb-3">
                   <View>
                     <Text className="text-foreground font-bold">Invoice #{invoice.invoice_number}</Text>
-                    <Text className="text-muted-foreground text-xs">Due: {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : "N/A"}</Text>
+                    <Text className="text-muted-foreground text-xs">Due: {invoice.due_date ? formatDate(invoice.due_date) : "N/A"}</Text>
                   </View>
                   <View className={`px-2 py-1 rounded-md ${invoice.status === 'paid' ? 'bg-success/10' : 'bg-destructive/10'}`}>
                     <Text className={`font-bold text-[10px] uppercase ${invoice.status === 'paid' ? 'text-success' : 'text-destructive'}`}>{invoice.status}</Text>
@@ -825,7 +823,7 @@ export default function ClientProfile() {
                 </View>
                 <View className="flex-1">
                   <Text className="text-foreground font-bold">{entry.remarks || "Payment Received"}</Text>
-                  <Text className="text-muted-foreground text-xs">{new Date(entry.entry_date).toLocaleDateString()}</Text>
+                  <Text className="text-muted-foreground text-xs">{formatDate(entry.entry_date)}</Text>
                 </View>
                 <Text className="text-success font-bold">₹{Number(entry.amount).toLocaleString()}</Text>
               </View>
@@ -895,11 +893,8 @@ export default function ClientProfile() {
                     className="flex-row items-center bg-muted rounded-2xl px-4 py-3"
                   >
                     <Text className="text-base font-medium text-foreground">
-                      {paymentDate.toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })}
+                      {formatDate(paymentDate)}
+
                     </Text>
                   </TouchableOpacity>
                   {showDatePicker && (

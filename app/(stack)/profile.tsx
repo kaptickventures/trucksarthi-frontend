@@ -32,7 +32,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import "../../global.css";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
-import { getFileUrl } from "../../lib/utils";
+import { formatDate, getFileUrl } from "../../lib/utils";
 
 export default function Profile() {
   const router = useRouter();
@@ -307,7 +307,7 @@ export default function Profile() {
                   }}
                 >
                   <Calendar size={18} color={colors.mutedForeground} />
-                  <Text style={{ marginLeft: 12, color: colors.foreground, fontSize: 16 }}>{formData.date_of_birth || "Select Date"}</Text>
+                  <Text style={{ marginLeft: 12, color: colors.foreground, fontSize: 16 }}>{formData.date_of_birth ? formatDate(formData.date_of_birth) : "Select Date"}</Text>
                 </TouchableOpacity>
 
                 {showDatePicker && (

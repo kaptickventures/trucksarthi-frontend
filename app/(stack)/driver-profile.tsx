@@ -28,7 +28,7 @@ import { Skeleton } from "../../components/Skeleton";
 import useDrivers from "../../hooks/useDriver";
 import useDriverFinance, { TransactionNature } from "../../hooks/useDriverFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
-import { getFileUrl } from "../../lib/utils";
+import { formatDate, getFileUrl } from "../../lib/utils";
 
 export default function DriverProfile() {
   const router = useRouter();
@@ -235,7 +235,7 @@ export default function DriverProfile() {
               </View>
               <View style={{ marginLeft: 16, flex: 1 }}>
                 <Text style={{ fontWeight: '700', color: colors.foreground }}>{entry.remarks}</Text>
-                <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 2 }}>{new Date(entry.entry_date).toLocaleDateString()}</Text>
+                <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 2 }}>{formatDate(entry.entry_date)}</Text>
               </View>
               <Text style={{ fontWeight: '800', fontSize: 16, color: entry.direction === 'from' ? colors.destructive : colors.success }}>
                 {entry.direction === 'from' ? '-' : '+'}₹{entry.amount}

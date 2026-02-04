@@ -23,7 +23,7 @@ import {
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTruckDocuments from "../../hooks/useTruckDocuments";
-import { getFileUrl } from "../../lib/utils";
+import { formatDate as globalFormatDate, getFileUrl } from "../../lib/utils";
 
 export default function DocumentDetails() {
     const { truckId } = useLocalSearchParams<{ truckId: string }>();
@@ -43,14 +43,7 @@ export default function DocumentDetails() {
     const [uploading, setUploading] = useState(false);
 
     // Helper
-    const formatDate = (dateString?: string | Date) => {
-        if (!dateString) return "N/A";
-        return new Date(dateString).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
-    };
+    const formatDate = (dateString?: string | Date) => globalFormatDate(dateString);
 
     const isExpiring = (dateString?: string) => {
         if (!dateString) return false;

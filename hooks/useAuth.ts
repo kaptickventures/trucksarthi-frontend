@@ -43,18 +43,17 @@ export async function verifyEmailOtp(email: string, otp: string) {
 // Deprecated or unused phone OTP function (renaming/keeping for safety but not using)
 export async function sendPhoneOtp(phone: string) {
   try {
-    // This endpoint might not exist or logic changed
-    await API.post("/api/auth/send-otp", { phone }); // Warning: Backend expects email now at this route
+    await API.post("/api/auth/request-phone-otp", { phone });
     return true;
   } catch (err: any) {
     console.error("❌ Send OTP error:", err.response?.data || err.message);
-    throw err.response?.data?.error || err.message || "Failed to send OTP";
+    throw err.response?.data?.error || err.response?.data?.message || err.message || "Failed to send OTP";
   }
 }
 
 export async function loginWithPhone(phone: string, otp: string) {
   try {
-    const res = await API.post("/api/auth/phone", { phone, otp });
+    const res = await API.post("/api/auth/verify-phone-otp", { phone, otp });
     const { token, user } = res.data;
     if (token) {
       await AsyncStorage.setItem("userToken", token);
@@ -62,7 +61,7 @@ export async function loginWithPhone(phone: string, otp: string) {
     return { token, user };
   } catch (err: any) {
     console.error("❌ Phone login error:", err.response?.data || err.message);
-    throw err.response?.data?.error || err.message || "Phone login failed";
+    throw err.response?.data?.error || err.response?.data?.message || err.message || "Phone login failed";
   }
 }
 

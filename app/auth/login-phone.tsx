@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { loginWithPhone, postLoginFlow, sendOtp } from "../../hooks/useAuth";
+import { loginWithPhone, postLoginFlow, sendPhoneOtp } from "../../hooks/useAuth";
 
 const COLORS = {
   title: "#128C7E",
@@ -46,11 +46,11 @@ export default function LoginPhone() {
     }
     try {
       setLoading(true);
-      await sendOtp(phoneNumber);
+      await sendPhoneOtp(phoneNumber);
       setOtpSent(true);
       Alert.alert("OTP Sent", `Sent to ${phoneNumber}`);
     } catch (error: any) {
-      Alert.alert("Error", error.response?.data?.error || "Failed to send OTP.");
+      Alert.alert("Error", typeof error === "string" ? error : error.message || "Failed to send OTP.");
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ export default function LoginPhone() {
       await loginWithPhone(phoneNumber, code);
       await postLoginFlow(router);
     } catch (err: any) {
-      Alert.alert("Invalid OTP", err.response?.data?.error || "Failed to verify.");
+      Alert.alert("Invalid OTP", typeof err === "string" ? err : err.message || "Failed to verify.");
     } finally {
       setLoading(false);
     }

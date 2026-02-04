@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useThemeStore } from "../hooks/useThemeStore";
 
 type ClientFormData = {
   client_name: string;
@@ -49,6 +50,8 @@ export default function ClientFormModal({
   onSubmit,
   onClose,
 }: Props) {
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
   const translateY = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const SCROLL_THRESHOLD = 40;
@@ -85,12 +88,13 @@ export default function ClientFormModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <Pressable className="flex-1 bg-background" onPress={closeModal}>
+      <Pressable className="flex-1 bg-black/60" onPress={closeModal}>
         <Animated.View
           {...panResponder.panHandlers}
-          className="absolute bottom-0 w-full bg-background rounded-t-3xl"
+          className="absolute bottom-0 w-full rounded-t-3xl"
           style={{
-            height: "100%",
+            backgroundColor: colors.background,
+            height: "90%",
             paddingHorizontal: 20,
             paddingTop: insets.top + 20,
             transform: [{ translateY }],
@@ -105,11 +109,11 @@ export default function ClientFormModal({
 
             {/* Header */}
             <View className="flex-row justify-between items-center mb-5">
-              <Text className="text-2xl font-semibold">
+              <Text style={{ color: colors.foreground }} className="text-2xl font-semibold">
                 {editing ? "Edit Client" : "Add Client"}
               </Text>
               <TouchableOpacity onPress={closeModal}>
-                <X size={28} color="#888" />
+                <X size={28} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
 
@@ -125,13 +129,19 @@ export default function ClientFormModal({
                   </Text>
 
                   <TextInput
-                    className="border border-input rounded-xl p-3"
+                    className="rounded-xl p-3"
+                    style={{
+                      backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                      color: colors.foreground,
+                      borderWidth: 1,
+                      borderColor: colors.border
+                    }}
                     value={(formData as any)[key]}
                     onChangeText={(val) =>
                       setFormData({ ...formData, [key]: val })
                     }
                     placeholder={`Enter ${key.replaceAll("_", " ")}`}
-                    placeholderTextColor="#888"
+                    placeholderTextColor={colors.mutedForeground}
                     keyboardType={
                       key.includes("number")
                         ? "phone-pad"
@@ -147,9 +157,10 @@ export default function ClientFormModal({
               {/* Save */}
               <TouchableOpacity
                 onPress={onSubmit}
-                className="bg-primary p-4 rounded-xl mb-3"
+                style={{ backgroundColor: colors.primary }}
+                className="p-4 rounded-xl mb-3"
               >
-                <Text className="text-center text-primary-foreground font-semibold">
+                <Text style={{ color: colors.primaryForeground }} className="text-center font-semibold">
                   {editing ? "Update" : "Save"}
                 </Text>
               </TouchableOpacity>

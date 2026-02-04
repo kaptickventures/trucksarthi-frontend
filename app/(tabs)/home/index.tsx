@@ -15,6 +15,7 @@ import { useThemeStore } from "../../../hooks/useThemeStore";
 import useTrips from "../../../hooks/useTrip";
 import { useUser } from "../../../hooks/useUser";
 import useTruckDocuments from "../../../hooks/useTruckDocuments";
+import { formatDate } from "../../../lib/utils";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -212,7 +213,7 @@ export default function HomeScreen() {
               const truckId = getId(trip.truck);
               const driverId = getId(trip.driver);
               const dateStr = trip.trip_date
-                ? new Date(trip.trip_date).toLocaleDateString("en-IN")
+                ? formatDate(trip.trip_date)
                 : "No Date";
               const cost = trip.cost_of_trip ?? 0;
 
