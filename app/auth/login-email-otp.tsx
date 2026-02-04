@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Mail, ShieldCheck, Lock, Send } from "lucide-react-native";
 import { useState } from "react";
 import {
     ActivityIndicator,
@@ -14,136 +14,223 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { postLoginFlow, requestEmailOtp, verifyEmailOtp } from "../../hooks/useAuth";
+import { requestEmailOtp, verifyEmailOtp, postLoginFlow } from "../../hooks/useAuth";
+import { THEME } from "../../theme";
 
-const COLORS = {
-    title: "#128C7E",
-    subtitle: "#666666",
-    inputBg: "#F0F0F0",
-    buttonBg: "#111B21",
-    link: "#25D366",
-};
-
-export default function LoginEmailOtp() {
+export default function LoginEmailOTP() {
     const router = useRouter();
     const [email, setEmail] = useState("");
+    const [otp, setOtp] = useState("");
     const [loading, setLoading] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
-    const [otp, setOtp] = useState("");
 
-    const handleSendOtp = async () => {
-        if (!email) return Alert.alert("Error", "Please enter email.");
+    const handleSendOTP = async () => {
+        if (!email || !email.includes("@")) {
+            return Alert.alert("Invalid Email", "Please enter a valid email address.");
+        }
         try {
             setLoading(true);
-            await requestEmailOtp(email.trim());
+            await requestEmailOtp(email);
             setOtpSent(true);
-            Alert.alert("Success", `OTP sent to ${email}`);
-        } catch (e: any) {
-            Alert.alert("Failed", String(e));
+        } catch (error: any) {
+            Alert.alert("Error", error || "Failed to send OTP.");
         } finally {
             setLoading(false);
         }
     };
 
-    const handleVerifyOtp = async () => {
-        if (!email || !otp) return Alert.alert("Error", "Enter Request details");
+    const handleVerifyOTP = async () => {
+        if (otp.length < 4) return Alert.alert("Error", "Please enter the OTP.");
         try {
             setLoading(true);
-            await verifyEmailOtp(email.trim(), otp.trim());
+            await verifyEmailOtp(email, otp);
             await postLoginFlow(router);
-        } catch (e: any) {
-            Alert.alert("Failed", String(e));
+        } catch (err: any) {
+            Alert.alert("Login Failed", err || "Invalid OTP.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
-            <TouchableOpacity
-                onPress={() => {
-                    if (router.canGoBack()) {
-                        router.back();
-                    } else {
-                        router.replace("/auth/login");
-                    }
-                }}
-                style={{ position: "absolute", top: 24, left: 24, padding: 8, zIndex: 10 }}
-            >
-                <ChevronLeft size={32} color="#111B21" />
-            </TouchableOpacity>
-
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
             >
                 <ScrollView
-                    contentContainerStyle={{
-                        flexGrow: 1,
-                        justifyContent: "center",
-                        alignItems: "center",
-                        padding: 32,
-                    }}
+                    contentContainerStyle={{ flexGrow: 1 }}
                     keyboardShouldPersistTaps="handled"
                 >
-                    <Image
-                        source={require("../../assets/images/TruckSarthi-Graphic.png")}
-                        resizeMode="contain"
-                        style={{ width: "70%", height: 100, marginBottom: 20 }}
-                    />
-
-                    <Text className="text-4xl font-extrabold" style={{ color: COLORS.title }}>
-                        Login via OTP
-                    </Text>
-
-                    <Text className="mt-2 mb-8 text-center" style={{ color: COLORS.subtitle }}>
-                        Enter your email to receive a login code
-                    </Text>
-
-                    <TextInput
-                        value={email}
-                        onChangeText={setEmail}
-                        placeholder="Email"
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                        editable={!otpSent}
-                        className="w-full border rounded-xl p-4 mb-4"
-                        style={{ backgroundColor: COLORS.inputBg }}
-                    />
-
-                    {otpSent && (
-                        <TextInput
-                            value={otp}
-                            onChangeText={setOtp}
-                            placeholder="Enter 6-digit OTP"
-                            keyboardType="number-pad"
-                            className="w-full border rounded-xl p-4 mb-6"
-                            style={{ backgroundColor: COLORS.inputBg }}
-                        />
-                    )}
-
-                    <TouchableOpacity
-                        onPress={otpSent ? handleVerifyOtp : handleSendOtp}
-                        disabled={loading}
-                        className="w-full py-3 rounded-xl items-center"
-                        style={{ backgroundColor: COLORS.buttonBg }}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <Text style={{ color: "white", fontWeight: "600" }}>
-                                {otpSent ? "Verify & Login" : "Send OTP"}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
-
-                    <View className="mt-6 flex-row">
-                        <Text style={{ color: COLORS.subtitle }}>Prefer password?</Text>
-                        <TouchableOpacity onPress={() => router.replace("/auth/login-email")}>
-                            <Text style={{ marginLeft: 6, color: COLORS.link }}>Login with Password</Text>
+                    {/* Header */}
+                    <View style={{ padding: 24, flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity
+                            onPress={() => router.back()}
+                            style={{ padding: 8, marginLeft: -8 }}
+                        >
+                            <ChevronLeft size={28} color="#111B21" />
                         </TouchableOpacity>
                     </View>
 
+                    <View style={{ paddingHorizontal: 32, flex: 1, justifyContent: 'center' }}>
+                        <View style={{ marginBottom: 40 }}>
+                            <Image
+                                source={require("../../assets/images/TruckSarthi-Graphic.png")}
+                                style={{ width: 170, height: 50, marginBottom: 24 }}
+                                resizeMode="contain"
+                            />
+                            <Text style={{ fontSize: 32, fontWeight: '800', color: '#111B21', letterSpacing: -0.5 }}>
+                                {otpSent ? "Check Email" : "Email Login"}
+                            </Text>
+                            <Text style={{ fontSize: 16, color: '#666666', marginTop: 8 }}>
+                                {otpSent
+                                    ? `OTP sent to ${email}`
+                                    : "Enter your email to receive a login code"}
+                            </Text>
+                        </View>
+
+                        {!otpSent ? (
+                            <View style={{ gap: 20 }}>
+                                <View>
+                                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#999999', marginBottom: 8, marginLeft: 4 }}>
+                                        WORK EMAIL
+                                    </Text>
+                                    <View style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        backgroundColor: '#F8F9FA',
+                                        borderRadius: 16,
+                                        borderWidth: 1.5,
+                                        borderColor: '#E9ECEF',
+                                        paddingHorizontal: 16
+                                    }}>
+                                        <Mail size={20} color="#666666" />
+                                        <TextInput
+                                            value={email}
+                                            onChangeText={setEmail}
+                                            keyboardType="email-address"
+                                            autoCapitalize="none"
+                                            placeholder="name@company.com"
+                                            style={{
+                                                flex: 1,
+                                                paddingVertical: 16,
+                                                paddingHorizontal: 12,
+                                                fontSize: 16,
+                                                fontWeight: '600',
+                                                color: '#111B21'
+                                            }}
+                                        />
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    disabled={loading}
+                                    onPress={handleSendOTP}
+                                    style={{
+                                        backgroundColor: THEME.light.primary,
+                                        borderRadius: 16,
+                                        paddingVertical: 18,
+                                        alignItems: 'center',
+                                        flexDirection: 'row',
+                                        justifyContent: 'center',
+                                        gap: 10
+                                    }}
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator color="white" />
+                                    ) : (
+                                        <>
+                                            <Send size={18} color="white" />
+                                            <Text style={{ color: 'white', fontSize: 16, fontWeight: '700' }}>Send OTP</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <View style={{ gap: 24 }}>
+                                <View>
+                                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#999999', marginBottom: 8, marginLeft: 4 }}>
+                                        6-DIGIT OTP
+                                    </Text>
+                                    <View style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        backgroundColor: '#F8F9FA',
+                                        borderRadius: 16,
+                                        borderWidth: 1.5,
+                                        borderColor: '#E9ECEF',
+                                        paddingHorizontal: 16
+                                    }}>
+                                        <Lock size={20} color="#666666" />
+                                        <TextInput
+                                            value={otp}
+                                            onChangeText={setOtp}
+                                            placeholder="······"
+                                            keyboardType="number-pad"
+                                            maxLength={6}
+                                            style={{
+                                                flex: 1,
+                                                paddingVertical: 16,
+                                                paddingHorizontal: 12,
+                                                fontSize: 28,
+                                                fontWeight: '700',
+                                                letterSpacing: 8,
+                                                color: '#111B21',
+                                                textAlign: 'center'
+                                            }}
+                                        />
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    disabled={loading}
+                                    onPress={handleVerifyOTP}
+                                    style={{
+                                        backgroundColor: '#111B21',
+                                        borderRadius: 16,
+                                        paddingVertical: 18,
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator color="white" />
+                                    ) : (
+                                        <Text style={{ color: 'white', fontSize: 16, fontWeight: '700' }}>Login Now</Text>
+                                    )}
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setOtpSent(false);
+                                        setOtp("");
+                                    }}
+                                    style={{ alignSelf: 'center' }}
+                                >
+                                    <Text style={{ color: THEME.light.primary, fontWeight: '700', fontSize: 14 }}>
+                                        Try with different email
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        <TouchableOpacity
+                            onPress={() => router.push("/auth/login-email")}
+                            style={{ marginTop: 32, paddingVertical: 12, alignItems: 'center' }}
+                        >
+                            <Text style={{ color: '#666666', fontSize: 14 }}>
+                                Login with <Text style={{ color: THEME.light.primary, fontWeight: '700' }}>Password</Text> instead
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={{ padding: 40, alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <ShieldCheck size={14} color="#10B981" />
+                            <Text style={{ color: '#999999', fontSize: 11, fontWeight: '700' }}>ENCRYPTED SESSION</Text>
+                        </View>
+                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>

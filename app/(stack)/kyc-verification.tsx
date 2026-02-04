@@ -1,0 +1,293 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { CheckCircle, ShieldCheck, XCircle, Loader2, CreditCard, Building2 } from "lucide-react-native";
+import React, { useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import "../../global.css";
+import { useThemeStore } from "../../hooks/useThemeStore";
+import { useUser } from "../../hooks/useUser";
+import { useKYC } from "../../hooks/useKYC";
+
+export default function KYCVerification() {
+    const router = useRouter();
+    const { colors } = useThemeStore();
+    const { user, refreshUser, updateUser } = useUser();
+    const { verifyPAN, verifyGSTIN, loading: kycLoading } = useKYC();
+
+    const [pan, setPan] = useState(user?.pan_number || "");
+    const [gstin, setGstin] = useState(user?.gstin || "");
+    const [panName, setPanName] = useState(user?.name_as_on_pan || "");
+    const [activeTab, setActiveTab] = useState<"pan" | "gstin">("pan");
+
+    const handleVerifyPAN = async () => {
+        if (!pan || pan.length !== 10) {
+            Alert.alert("Error", "Please enter a valid 10-digit PAN number");
+            return;
+        }
+        try {
+            const result = await verifyPAN(pan, panName || undefined);
+            if (result.verified) {
+                const verifiedName = result.data?.registered_name || panName;
+
+                Alert.alert(
+                    "Verification Successful",
+                    `PAN verified for ${verifiedName}. Would you like to save these details to your profile?`,
+                    [
+                        {
+                            text: "No",
+                            style: "cancel",
+                            onPress: () => refreshUser()
+                        },
+                        {
+                            text: "Yes, Save Details",
+                            onPress: async () => {
+                                try {
+                                    await updateUser({
+                                        pan_number: pan,
+                                        name_as_on_pan: verifiedName
+                                    });
+                                    Alert.alert("Success", "Profile updated successfully!");
+                                    refreshUser();
+                                } catch (err) {
+                                    Alert.alert("Error", "Verified but could not update profile.");
+                                }
+                            }
+                        }
+                    ]
+                );
+            } else {
+                Alert.alert("Verification Failed", result.message || "Invalid PAN details");
+            }
+        } catch (error: any) {
+            Alert.alert("Error", error.response?.data?.message || "Something went wrong during PAN verification");
+        }
+    };
+
+    const handleVerifyGSTIN = async () => {
+        if (!gstin) {
+            Alert.alert("Error", "Please enter a GSTIN");
+            return;
+        }
+        try {
+            const result = await verifyGSTIN(gstin);
+            if (result.verified) {
+                const legalName = result.data?.legal_name_of_business;
+
+                Alert.alert(
+                    "Verification Successful",
+                    `GSTIN verified for ${legalName || gstin}. Save this business to your profile?`,
+                    [
+                        { text: "No", style: "cancel", onPress: () => refreshUser() },
+                        {
+                            text: "Yes, Save",
+                            onPress: async () => {
+                                try {
+                                    await updateUser({
+                                        gstin: gstin,
+                                        company_name: legalName || undefined
+                                    });
+                                    Alert.alert("Success", "Business profile updated!");
+                                    refreshUser();
+                                } catch (err) {
+                                    Alert.alert("Error", "Verified but failed to update profile.");
+                                }
+                            }
+                        }
+                    ]
+                );
+            } else {
+                Alert.alert("Verification Failed", result.message || "Invalid GSTIN details");
+            }
+        } catch (error: any) {
+            Alert.alert("Error", error.response?.data?.message || "Something went wrong during GSTIN verification");
+        }
+    };
+
+    return (
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+            <View style={{ flex: 1 }}>
+                {/* Header */}
+                <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                    <TouchableOpacity onPress={() => router.back()}>
+                        <Ionicons name="arrow-back" size={24} color={colors.foreground} />
+                    </TouchableOpacity>
+                    <Text style={{ fontSize: 20, fontWeight: '700', color: colors.foreground }}>KYC Verification</Text>
+                </View>
+
+                <ScrollView contentContainerStyle={{ padding: 24 }}>
+                    <View style={{ backgroundColor: colors.primary + '10', padding: 20, borderRadius: 16, marginBottom: 24, flexDirection: 'row', gap: 15, alignItems: 'center' }}>
+                        <ShieldCheck size={32} color={colors.primary} />
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ color: colors.foreground, fontWeight: 'bold', fontSize: 16 }}>Complete Your KYC</Text>
+                            <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>Verify your identity to unlock all features and ensure secure payouts.</Text>
+                        </View>
+                    </View>
+
+                    {/* Tabs */}
+                    <View style={{ flexDirection: 'row', backgroundColor: colors.card, padding: 4, borderRadius: 12, marginBottom: 24 }}>
+                        <TouchableOpacity
+                            onPress={() => setActiveTab('pan')}
+                            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'pan' ? colors.background : 'transparent' }}
+                        >
+                            <Text style={{ fontWeight: 'bold', color: activeTab === 'pan' ? colors.primary : colors.mutedForeground }}>PAN Card</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setActiveTab('gstin')}
+                            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'gstin' ? colors.background : 'transparent' }}
+                        >
+                            <Text style={{ fontWeight: 'bold', color: activeTab === 'gstin' ? colors.primary : colors.mutedForeground }}>GSTIN</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* PAN Section */}
+                    {activeTab === 'pan' && (
+                        <View>
+                            <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                    <CreditCard size={24} color={colors.primary} />
+                                    {user?.is_pan_verified ? (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                            <CheckCircle size={14} color="#16a34a" />
+                                            <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
+                                        </View>
+                                    ) : (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                            <XCircle size={14} color="#dc2626" />
+                                            <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
+                                        </View>
+                                    )}
+                                </View>
+
+                                <View style={{ gap: 16 }}>
+                                    <View>
+                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: 8, textTransform: 'uppercase' }}>PAN Number</Text>
+                                        <TextInput
+                                            value={pan}
+                                            onChangeText={setPan}
+                                            placeholder="ABCDE1234F"
+                                            placeholderTextColor={colors.mutedForeground}
+                                            autoCapitalize="characters"
+                                            maxLength={10}
+                                            editable={!user?.is_pan_verified}
+                                            style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                                        />
+                                    </View>
+                                    <View>
+                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: 8, textTransform: 'uppercase' }}>Name as per PAN</Text>
+                                        <TextInput
+                                            value={panName}
+                                            onChangeText={setPanName}
+                                            placeholder="John Doe"
+                                            placeholderTextColor={colors.mutedForeground}
+                                            editable={!user?.is_pan_verified}
+                                            style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                                        />
+                                    </View>
+                                </View>
+
+                                {!user?.is_pan_verified && (
+                                    <TouchableOpacity
+                                        onPress={handleVerifyPAN}
+                                        disabled={kycLoading}
+                                        style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10 }}
+                                    >
+                                        {kycLoading ? <ActivityIndicator color={colors.primaryForeground} /> : (
+                                            <>
+                                                <ShieldCheck size={20} color={colors.primaryForeground} />
+                                                <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Verify PAN Card</Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {user?.is_pan_verified && user.kyc_data?.pan_details && (
+                                <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
+                                    <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Details:</Text>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 4 }}>Registered Name: {user.kyc_data.pan_details.registered_name}</Text>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Type: {user.kyc_data.pan_details.type}</Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
+
+                    {/* GSTIN Section */}
+                    {activeTab === 'gstin' && (
+                        <View>
+                            <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                    <Building2 size={24} color={colors.primary} />
+                                    {user?.is_gstin_verified ? (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                            <CheckCircle size={14} color="#16a34a" />
+                                            <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
+                                        </View>
+                                    ) : (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                            <XCircle size={14} color="#dc2626" />
+                                            <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
+                                        </View>
+                                    )}
+                                </View>
+
+                                <View style={{ gap: 16 }}>
+                                    <View>
+                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: 8, textTransform: 'uppercase' }}>GSTIN</Text>
+                                        <TextInput
+                                            value={gstin}
+                                            onChangeText={setGstin}
+                                            placeholder="29AAICP2912R1ZR"
+                                            placeholderTextColor={colors.mutedForeground}
+                                            autoCapitalize="characters"
+                                            editable={!user?.is_gstin_verified}
+                                            style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                                        />
+                                    </View>
+                                </View>
+
+                                {!user?.is_gstin_verified && (
+                                    <TouchableOpacity
+                                        onPress={handleVerifyGSTIN}
+                                        disabled={kycLoading}
+                                        style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10 }}
+                                    >
+                                        {kycLoading ? <ActivityIndicator color={colors.primaryForeground} /> : (
+                                            <>
+                                                <ShieldCheck size={20} color={colors.primaryForeground} />
+                                                <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Verify GSTIN</Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {user?.is_gstin_verified && user.kyc_data?.gstin_details && (
+                                <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
+                                    <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Business Details:</Text>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 4 }}>Trade Name: {user.kyc_data.gstin_details.trade_name_of_business}</Text>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Taxpayer Type: {user.kyc_data.gstin_details.taxpayer_type}</Text>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Status: {user.kyc_data.gstin_details.gst_in_status}</Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
+
+                    <View style={{ marginTop: 40, alignItems: 'center' }}>
+                        <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: 'center' }}>
+                            All data is processed securely through Cashfree Payments and complies with Indian security standards.
+                        </Text>
+                    </View>
+                </ScrollView>
+            </View>
+        </SafeAreaView>
+    );
+}

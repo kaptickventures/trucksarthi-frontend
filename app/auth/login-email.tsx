@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Mail, Lock, ShieldCheck, ArrowRight, UserPlus } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -15,14 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { loginWithEmail, postLoginFlow } from "../../hooks/useAuth";
-
-const COLORS = {
-  title: "#128C7E",
-  subtitle: "#666666",
-  inputBg: "#F0F0F0",
-  buttonBg: "#111B21",
-  link: "#25D366",
-};
+import { THEME } from "../../theme";
 
 export default function LoginEmail() {
   const router = useRouter();
@@ -30,107 +23,165 @@ export default function LoginEmail() {
   const [pw, setPw] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const login = async () => {
-    if (!email || !pw) {
-      return Alert.alert("Error", "Please enter email and password.");
+  const handleLogin = async () => {
+    if (!email.trim() || !pw.trim()) {
+      return Alert.alert("Missing Details", "Please enter both your email and password.");
     }
     try {
       setLoading(true);
       await loginWithEmail(email.trim(), pw.trim());
       await postLoginFlow(router);
     } catch (e: any) {
-      Alert.alert("Login Failed", e.response?.data?.error || e.message || "Try again.");
+      Alert.alert("Login Failed", e || "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <TouchableOpacity
-        onPress={() => {
-          if (router.canGoBack()) {
-            router.back();
-          } else {
-            router.replace("/auth/login");
-          }
-        }}
-        style={{ position: "absolute", top: 24, left: 24, padding: 8 }}
-      >
-        <ChevronLeft size={32} color="#111B21" />
-      </TouchableOpacity>
-
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            padding: 32,
-          }}
+          contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Image
-            source={require("../../assets/images/TruckSarthi-Graphic.png")}
-            resizeMode="contain"
-            style={{ width: "70%", height: 100, marginBottom: 20 }}
-          />
-
-          <Text className="text-4xl font-extrabold" style={{ color: COLORS.title }}>
-            Login
-          </Text>
-
-          <Text className="mt-2 mb-8 text-center" style={{ color: COLORS.subtitle }}>
-            Continue with your email
-          </Text>
-
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            className="w-full border rounded-xl p-4 mb-4"
-            style={{ backgroundColor: COLORS.inputBg }}
-          />
-
-          <TextInput
-            value={pw}
-            onChangeText={setPw}
-            placeholder="Password"
-            secureTextEntry
-            className="w-full border rounded-xl p-4 mb-6"
-            style={{ backgroundColor: COLORS.inputBg }}
-          />
-
-          <TouchableOpacity
-            onPress={login}
-            disabled={loading}
-            className="w-full py-3 rounded-xl items-center"
-            style={{ backgroundColor: COLORS.buttonBg }}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={{ color: "white", fontWeight: "600" }}>Login</Text>
-            )}
-          </TouchableOpacity>
-
-          <View className="mt-4 flex-row">
-            <Text style={{ color: COLORS.subtitle }}>Forgot password? </Text>
-            <TouchableOpacity onPress={() => router.push("/auth/login-email-otp")}>
-              <Text style={{ color: COLORS.link }}>Login with OTP</Text>
+          {/* Header */}
+          <View style={{ padding: 24, flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ padding: 8, marginLeft: -8 }}
+            >
+              <ChevronLeft size={28} color="#111B21" />
             </TouchableOpacity>
           </View>
 
-          <View className="mt-6 flex-row">
-            <Text style={{ color: COLORS.subtitle }}>No account?</Text>
-            <TouchableOpacity onPress={() => router.push("/auth/signup-email")}>
-              <Text style={{ marginLeft: 6, color: COLORS.link }}>Sign Up</Text>
-            </TouchableOpacity>
+          <View style={{ paddingHorizontal: 32, flex: 1, justifyContent: 'center' }}>
+            <View style={{ marginBottom: 40 }}>
+              <Image
+                source={require("../../assets/images/TruckSarthi-Graphic.png")}
+                style={{ width: 170, height: 50, marginBottom: 24 }}
+                resizeMode="contain"
+              />
+              <Text style={{ fontSize: 32, fontWeight: '800', color: '#111B21', letterSpacing: -0.5 }}>
+                Welcome Back
+              </Text>
+              <Text style={{ fontSize: 16, color: '#666666', marginTop: 8 }}>
+                Sign in with your email and password
+              </Text>
+            </View>
+
+            <View style={{ gap: 16 }}>
+              <View>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#999999', marginBottom: 8, marginLeft: 4 }}>EMAIL ADDRESS</Text>
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#F8F9FA',
+                  borderRadius: 16,
+                  borderWidth: 1.5,
+                  borderColor: '#E9ECEF',
+                  paddingHorizontal: 16
+                }}>
+                  <Mail size={18} color="#999999" />
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="name@company.com"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    style={{
+                      flex: 1,
+                      paddingVertical: 16,
+                      paddingHorizontal: 12,
+                      fontSize: 16,
+                      fontWeight: '600',
+                      color: '#111B21'
+                    }}
+                  />
+                </View>
+              </View>
+
+              <View>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#999999', marginBottom: 8, marginLeft: 4 }}>PASSWORD</Text>
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#F8F9FA',
+                  borderRadius: 16,
+                  borderWidth: 1.5,
+                  borderColor: '#E9ECEF',
+                  paddingHorizontal: 16
+                }}>
+                  <Lock size={18} color="#999999" />
+                  <TextInput
+                    value={pw}
+                    onChangeText={setPw}
+                    secureTextEntry
+                    placeholder="••••••••"
+                    style={{
+                      flex: 1,
+                      paddingVertical: 16,
+                      paddingHorizontal: 12,
+                      fontSize: 16,
+                      fontWeight: '600',
+                      color: '#111B21'
+                    }}
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                disabled={loading}
+                onPress={handleLogin}
+                style={{
+                  backgroundColor: '#111B21',
+                  borderRadius: 16,
+                  paddingVertical: 18,
+                  alignItems: 'center',
+                  marginTop: 12,
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  gap: 10
+                }}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <>
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '700' }}>Login Account</Text>
+                    <ArrowRight size={18} color={THEME.light.primary} strokeWidth={3} />
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ marginTop: 32, alignItems: 'center', gap: 12 }}>
+              <TouchableOpacity onPress={() => router.push("/auth/login-email-otp")}>
+                <Text style={{ color: THEME.light.primary, fontWeight: '700', fontSize: 14 }}>
+                  Forgot password? Use Email OTP
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => router.push("/auth/signup-email")}
+                style={{ paddingVertical: 12 }}
+              >
+                <Text style={{ color: '#666666', fontSize: 14 }}>
+                  Don't have an account? <Text style={{ color: THEME.light.primary, fontWeight: '700' }}>Sign Up</Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <ShieldCheck size={14} color="#10B981" />
+              <Text style={{ color: '#999999', fontSize: 11, fontWeight: '700' }}>SECURE LOGIN</Text>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -18,7 +18,8 @@ export default function Index() {
           // Verify token by fetching user
           const user = await getCurrentUser();
           if (user) {
-            router.replace("/(tabs)/home");
+            const { postLoginFlow } = await import("../hooks/useAuth");
+            await postLoginFlow(router);
           } else {
             // Token might be invalid/expired
             await AsyncStorage.removeItem("userToken");

@@ -31,6 +31,12 @@ export interface User {
   account_holder_name?: string;
   account_number?: string;
   ifsc_code?: string;
+  is_gstin_verified?: boolean;
+  is_pan_verified?: boolean;
+  kyc_data?: {
+    pan_details?: any;
+    gstin_details?: any;
+  };
 
   createdAt?: ISODate;
   updatedAt?: ISODate;

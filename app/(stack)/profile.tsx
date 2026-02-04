@@ -316,7 +316,34 @@ export default function Profile() {
 
                 {/* PAN Details */}
                 <SectionHeader title="Identity Verification" icon={<ShieldCheck size={18} color={colors.primary} />} />
-                <ProfileInput label="PAN Number" value={formData.pan_number} editable={isEditing} onChange={(v: string) => markChanged("pan_number", v)} icon={<Hash size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
+
+                <TouchableOpacity
+                  onPress={() => router.push("/kyc-verification" as any)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: (user?.is_pan_verified && user?.is_gstin_verified) ? '#f0fdf4' : '#fff7ed',
+                    padding: 12,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: (user?.is_pan_verified && user?.is_gstin_verified) ? '#bbf7d0' : '#fed7aa',
+                    marginBottom: 8
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <ShieldCheck size={20} color={(user?.is_pan_verified && user?.is_gstin_verified) ? '#16a34a' : '#ea580c'} />
+                    <View>
+                      <Text style={{ fontWeight: 'bold', fontSize: 14, color: (user?.is_pan_verified && user?.is_gstin_verified) ? '#16a34a' : '#ea580c' }}>
+                        KYC Status: {(user?.is_pan_verified && user?.is_gstin_verified) ? 'Verified' : 'Pending'}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: colors.mutedForeground }}>Tap to complete your verification</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+                </TouchableOpacity>
+
+                <ProfileInput label="PAN Number" value={formData.pan_number} editable={isEditing && !user?.is_pan_verified} onChange={(v: string) => markChanged("pan_number", v)} icon={<Hash size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
                 <ProfileInput label="Name as on PAN" value={formData.name_as_on_pan} editable={isEditing} onChange={(v: string) => markChanged("name_as_on_pan", v)} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
               </View>
             )}
@@ -325,7 +352,7 @@ export default function Profile() {
               <View style={{ gap: 20 }}>
                 <SectionHeader title="Business Information" icon={<Briefcase size={18} color={colors.primary} />} />
                 <ProfileInput label="Company Name (As per GSTIN)" value={formData.company_name} editable={isEditing} onChange={(v: string) => markChanged("company_name", v)} icon={<Building2 size={18} color={colors.mutedForeground} />} />
-                <ProfileInput label="GST Number" value={formData.gstin} editable={isEditing} onChange={(v: string) => markChanged("gstin", v)} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Optional" />
+                <ProfileInput label="GST Number" value={formData.gstin} editable={isEditing && !user?.is_gstin_verified} onChange={(v: string) => markChanged("gstin", v)} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Optional" />
                 <ProfileInput label="Office Address" value={formData.address} editable={isEditing} onChange={(v: string) => markChanged("address", v)} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Full street address" />
               </View>
             )}

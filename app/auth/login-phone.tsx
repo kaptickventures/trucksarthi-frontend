@@ -1,10 +1,11 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
-import { ChevronLeft, Smartphone } from "lucide-react-native";
-import { useState } from "react";
+import { ChevronLeft, Smartphone, ShieldCheck, Lock } from "lucide-react-native";
+import { useState, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,15 +17,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { loginWithPhone, postLoginFlow, sendPhoneOtp } from "../../hooks/useAuth";
+import { THEME } from "../../theme";
 
-const COLORS = {
-  title: "#128C7E",
-  subtitle: "#666666",
-  inputBg: "#F0F0F0",
-  buttonBg: "#111B21",
-  buttonText: "#FFFFFF",
-  link: "#25D366",
-};
+const { width } = Dimensions.get("window");
 
 export default function LoginPhone() {
   const router = useRouter();
@@ -33,6 +28,7 @@ export default function LoginPhone() {
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
+  // Formatting phone number
   const formatPhone = (text: string) => {
     let numbers = text.replace(/\D+/g, "");
     if (numbers.startsWith("91")) numbers = numbers.slice(2);
@@ -40,156 +36,215 @@ export default function LoginPhone() {
     setPhoneNumber("+91" + numbers);
   };
 
-  const sendOTP = async () => {
+  const handleSendOTP = async () => {
     if (phoneNumber.length !== 13) {
-      return Alert.alert("Invalid Number", "Enter a valid 10-digit number.");
+      return Alert.alert("Invalid Number", "Please enter a valid 10-digit mobile number.");
     }
     try {
       setLoading(true);
       await sendPhoneOtp(phoneNumber);
       setOtpSent(true);
-      Alert.alert("OTP Sent", `Sent to ${phoneNumber}`);
     } catch (error: any) {
-      Alert.alert("Error", typeof error === "string" ? error : error.message || "Failed to send OTP.");
+      Alert.alert("Error", error || "Failed to send OTP. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const verifyOTP = async () => {
-    if (!code) return Alert.alert("Error", "Enter the OTP.");
+  const handleVerifyOTP = async () => {
+    if (code.length < 4) return Alert.alert("Error", "Please enter the complete OTP.");
     try {
       setLoading(true);
-      // Here we hit POST /api/auth/verify-phone with phone and otp
       await loginWithPhone(phoneNumber, code);
       await postLoginFlow(router);
     } catch (err: any) {
-      Alert.alert("Invalid OTP", typeof err === "string" ? err : err.message || "Failed to verify.");
+      Alert.alert("Verification Failed", err || "Invalid OTP. Please check and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white relative">
-      <TouchableOpacity
-        onPress={() => router.back()}
-        style={{ position: "absolute", top: 24, left: 24, zIndex: 99, padding: 8 }}
-      >
-        <ChevronLeft size={32} color="#111B21" />
-      </TouchableOpacity>
-
-      <LinearGradient
-        colors={[
-          "rgba(37,211,102,0.40)",
-          "rgba(18,140,126,0.25)",
-          "rgba(18,140,126,0.10)",
-          "transparent",
-        ]}
-        style={{
-          width: 850,
-          height: 850,
-          top: -200,
-          borderRadius: 9999,
-          position: "absolute",
-          alignSelf: "center",
-        }}
-      />
-
+    <SafeAreaView style={{ flex: 1, backgroundColor: THEME.light.background }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            paddingHorizontal: 32,
-          }}
+          contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Image
-            source={require("../../assets/images/TruckSarthi-Graphic.png")}
-            style={{ width: "70%", height: 90, marginBottom: 20 }}
-            resizeMode="contain"
-          />
+          {/* Header */}
+          <View style={{ padding: 24, flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ padding: 8, marginLeft: -8 }}
+            >
+              <ChevronLeft size={28} color={THEME.light.foreground} />
+            </TouchableOpacity>
+          </View>
 
-          <Text className="text-4xl font-extrabold" style={{ color: COLORS.title }}>
-            Phone Login
-          </Text>
-          <Text className="mt-1 mb-8 text-center" style={{ color: COLORS.subtitle }}>
-            Enter your mobile number
-          </Text>
-
-          {!otpSent ? (
-            <>
-              <TextInput
-                value={phoneNumber}
-                onChangeText={formatPhone}
-                keyboardType="phone-pad"
-                className="w-full border rounded-xl p-4 mb-6"
-                style={{ backgroundColor: COLORS.inputBg }}
+          <View style={{ paddingHorizontal: 32, flex: 1, justifyContent: 'center' }}>
+            <View style={{ marginBottom: 40 }}>
+              <Image
+                source={require("../../assets/images/TruckSarthi-Graphic.png")}
+                style={{ width: 180, height: 60, marginBottom: 24 }}
+                resizeMode="contain"
               />
+              <Text style={{ fontSize: 32, fontWeight: '800', color: THEME.light.foreground, letterSpacing: -0.5 }}>
+                {otpSent ? "Verification" : "Mobile Number"}
+              </Text>
+              <Text style={{ fontSize: 16, color: THEME.light.mutedForeground, marginTop: 8 }}>
+                {otpSent
+                  ? `We've sent a code to ${phoneNumber}`
+                  : "Enter your phone number to continue"}
+              </Text>
+            </View>
 
-              <TouchableOpacity
-                disabled={loading}
-                onPress={sendOTP}
-                className="w-full py-3 rounded-xl items-center"
-                style={{ backgroundColor: COLORS.buttonBg }}
-              >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <View className="flex-row items-center">
-                    <Smartphone size={20} color="white" />
-                    <Text className="ml-2 text-white font-semibold">Send OTP</Text>
+            {!otpSent ? (
+              <View style={{ gap: 20 }}>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: THEME.light.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
+                    Phone Number
+                  </Text>
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#F8F9FA',
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: '#E9ECEF',
+                    paddingHorizontal: 16
+                  }}>
+                    <Smartphone size={20} color={THEME.light.mutedForeground} />
+                    <TextInput
+                      value={phoneNumber}
+                      onChangeText={formatPhone}
+                      keyboardType="phone-pad"
+                      placeholder="+91 XXXXX XXXXX"
+                      style={{
+                        flex: 1,
+                        paddingVertical: 16,
+                        paddingHorizontal: 12,
+                        fontSize: 18,
+                        fontWeight: '600',
+                        color: THEME.light.foreground
+                      }}
+                    />
                   </View>
-                )}
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <TextInput
-                value={code}
-                onChangeText={setCode}
-                placeholder="6 digit OTP"
-                keyboardType="number-pad"
-                maxLength={6}
-                className="w-full border rounded-xl p-4 mb-6 text-center tracking-widest"
-                style={{ backgroundColor: COLORS.inputBg }}
-              />
+                </View>
 
-              <TouchableOpacity
-                disabled={loading}
-                onPress={verifyOTP}
-                className="w-full py-3 rounded-xl items-center"
-                style={{ backgroundColor: COLORS.buttonBg }}
-              >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white font-semibold">Verify & Continue</Text>
-                )}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={loading}
+                  onPress={handleSendOTP}
+                  style={{
+                    backgroundColor: THEME.light.primary,
+                    borderRadius: 16,
+                    paddingVertical: 18,
+                    alignItems: 'center',
+                    shadowColor: THEME.light.primary,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 8,
+                    elevation: 4
+                  }}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '700' }}>Get OTP</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ gap: 24 }}>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: THEME.light.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
+                    OTP Code
+                  </Text>
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#F8F9FA',
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: '#E9ECEF',
+                    paddingHorizontal: 16
+                  }}>
+                    <Lock size={20} color={THEME.light.mutedForeground} />
+                    <TextInput
+                      value={code}
+                      onChangeText={setCode}
+                      placeholder="Enter 6 digit code"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 16,
+                        paddingHorizontal: 12,
+                        fontSize: 24,
+                        fontWeight: '700',
+                        letterSpacing: 4,
+                        color: THEME.light.foreground
+                      }}
+                    />
+                  </View>
+                </View>
 
-              <TouchableOpacity
-                onPress={() => {
-                  setOtpSent(false);
-                  setCode("");
-                }}
-              >
-                <Text className="mt-4" style={{ color: COLORS.link }}>
-                  Change number
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={loading}
+                  onPress={handleVerifyOTP}
+                  style={{
+                    backgroundColor: THEME.light.foreground,
+                    borderRadius: 16,
+                    paddingVertical: 18,
+                    alignItems: 'center'
+                  }}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '700' }}>Verify OTP</Text>
+                  )}
+                </TouchableOpacity>
 
-          <View className="mt-8">
-            <Link href="/auth/login-email" style={{ color: COLORS.link }}>
-              Use Email Instead
-            </Link>
+                <TouchableOpacity
+                  onPress={() => {
+                    setOtpSent(false);
+                    setCode("");
+                  }}
+                  style={{ alignSelf: 'center' }}
+                >
+                  <Text style={{ color: THEME.light.primary, fontWeight: '600', fontSize: 14 }}>
+                    Change phone number?
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <View style={{ marginTop: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <View style={{ height: 1.5, flex: 1, backgroundColor: '#E9ECEF' }} />
+              <Text style={{ color: THEME.light.mutedForeground, fontSize: 12, fontWeight: '600' }}>SECURE LOGIN</Text>
+              <View style={{ height: 1.5, flex: 1, backgroundColor: '#E9ECEF' }} />
+            </View>
+
+            <TouchableOpacity
+              onPress={() => router.push("/auth/login-email")}
+              style={{ marginTop: 24, paddingVertical: 12, alignItems: 'center' }}
+            >
+              <Text style={{ color: THEME.light.mutedForeground, fontSize: 14 }}>
+                Try <Text style={{ color: THEME.light.primary, fontWeight: '700' }}>Email Login</Text> instead
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ padding: 32, alignItems: 'center' }}>
+            <Text style={{ color: THEME.light.mutedForeground, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
+              By continuing, you agree to our <Text style={{ fontWeight: 'bold' }}>Terms of Service</Text> and <Text style={{ fontWeight: 'bold' }}>Privacy Policy</Text>
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

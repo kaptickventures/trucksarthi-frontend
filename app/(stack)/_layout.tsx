@@ -96,6 +96,7 @@ export default function StackLayout() {
           <Stack.Screen name="driver-profile" options={{ title: "Driver Profile", headerShown: false }} />
           <Stack.Screen name="trucks-profile" options={{ title: "Truck Profile", headerShown: false }} />
           <Stack.Screen name="helpCenter" options={{ title: "Help Center" }} />
+          <Stack.Screen name="kyc-verification" options={{ title: "KYC Verification", headerShown: false }} />
 
           <Stack.Screen name="basic-details" options={{ title: "TruckSarthi" }} />
           <Stack.Screen name="documents-manager" options={{ title: "Documents" }} />
