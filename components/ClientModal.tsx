@@ -34,13 +34,15 @@ type Props = {
   onClose: () => void;
 };
 
-const REQUIRED_FIELDS = ["client_name", "contact_number"];
-const OPTIONAL_FIELDS = [
+const REQUIRED_FIELDS = [
+  "client_name",
+  "contact_number",
   "contact_person_name",
   "alternate_contact_number",
   "email_address",
   "office_address",
 ];
+const OPTIONAL_FIELDS: string[] = [];
 
 export default function ClientFormModal({
   visible,
@@ -121,8 +123,14 @@ export default function ClientFormModal({
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
               {[...REQUIRED_FIELDS, ...OPTIONAL_FIELDS].map((key) => (
                 <View key={key} className="mb-4">
-                  <Text className="text-muted-foreground mb-1 font-medium capitalize">
-                    {key.replaceAll("_", " ")}
+                  <Text className="text-muted-foreground mb-1 font-medium">
+                    {key === "client_name" ? "Client Name" :
+                      key === "contact_number" ? "Client Contact" :
+                        key === "contact_person_name" ? "Contact Person" :
+                          key === "alternate_contact_number" ? "Alternate Contact" :
+                            key === "email_address" ? "Email Address" :
+                              key === "office_address" ? "Office Address" :
+                                key.replaceAll("_", " ")}
                     {REQUIRED_FIELDS.includes(key) && (
                       <Text className="text-red-500"> *</Text>
                     )}

@@ -53,13 +53,15 @@ export default function ClientsManager() {
     }
   }, [fetchClients]);
 
-  const requiredFields = ["client_name", "contact_number"];
-  const optionalFields = [
+  const REQUIRED_FIELDS = [
+    "client_name",
+    "contact_number",
     "contact_person_name",
     "alternate_contact_number",
     "email_address",
     "office_address",
   ];
+  const OPTIONAL_FIELDS: string[] = [];
 
   const [formData, setFormData] = useState({
     client_name: "",
@@ -134,8 +136,10 @@ export default function ClientsManager() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.client_name || !formData.contact_number) {
-      Alert.alert("⚠️ Missing Fields", "Please fill all required fields.");
+    const missingFields = REQUIRED_FIELDS.filter(f => !formData[f as keyof typeof formData]);
+    if (missingFields.length > 0) {
+      const labels = missingFields.map(f => f.replaceAll("_", " ").toUpperCase());
+      Alert.alert("⚠️ Missing Fields", `Please fill the following required fields:\n\n• ${labels.join("\n• ")}`);
       return;
     }
 
@@ -259,21 +263,29 @@ export default function ClientsManager() {
       </ScrollView>
 
       {/* Floating Add Button */}
-      {/* Floating Add Button - Removed as per request (Client creation via dedicated flow) 
       <TouchableOpacity
         onPress={() => openModal(false)}
-        className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full justify-center items-center"
+        activeOpacity={0.8}
         style={{
-          elevation: 8,
+          position: 'absolute',
+          bottom: 30,
+          right: 25,
+          backgroundColor: colors.primary,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          justifyContent: 'center',
+          alignItems: 'center',
+          elevation: 5,
           shadowColor: "#000",
-          shadowOpacity: 0.25,
-          shadowRadius: 4,
-          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.3,
+          shadowRadius: 5,
+          shadowOffset: { width: 0, height: 3 },
+          zIndex: 999
         }}
       >
-        <Plus color="white" size={28} />
+        <Plus color="#FFFFFF" size={28} strokeWidth={3} />
       </TouchableOpacity>
-      */}
 
       {/* Full Screen Modal */}
       <ClientFormModal

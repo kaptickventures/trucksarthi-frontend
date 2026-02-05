@@ -589,8 +589,20 @@ export default function ClientProfile() {
   };
 
   const handleUpdateClient = async () => {
-    if (!editFormData.client_name || !editFormData.contact_number) {
-      Alert.alert("⚠️ Missing Fields", "Please fill all required fields.");
+    const requiredFields = [
+      "client_name",
+      "contact_number",
+      "contact_person_name",
+      "alternate_contact_number",
+      "email_address",
+      "office_address"
+    ];
+
+    const missingFields = requiredFields.filter(f => !editFormData[f as keyof typeof editFormData]);
+
+    if (missingFields.length > 0) {
+      const labels = missingFields.map(f => f.replaceAll("_", " ").toUpperCase());
+      Alert.alert("⚠️ Missing Fields", `Please fill the following required fields:\n\n• ${labels.join("\n• ")}`);
       return;
     }
 
@@ -1009,7 +1021,7 @@ export default function ClientProfile() {
               <ScrollView className="max-h-[70%]">
                 <View className="gap-4">
                   <View>
-                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Client Name</Text>
+                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Client Name *</Text>
                     <TextInput
                       className="bg-muted p-4 rounded-xl text-foreground"
                       value={editFormData.client_name}
@@ -1019,7 +1031,7 @@ export default function ClientProfile() {
                     />
                   </View>
                   <View>
-                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Contact Person</Text>
+                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Contact Person *</Text>
                     <TextInput
                       className="bg-muted p-4 rounded-xl text-foreground"
                       value={editFormData.contact_person_name}
@@ -1030,7 +1042,7 @@ export default function ClientProfile() {
                   </View>
                   <View className="flex-row gap-4">
                     <View className="flex-1">
-                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Phone</Text>
+                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Client Contact *</Text>
                       <TextInput
                         className="bg-muted p-4 rounded-xl text-foreground"
                         value={editFormData.contact_number}
@@ -1040,7 +1052,7 @@ export default function ClientProfile() {
                       />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Email</Text>
+                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Email *</Text>
                       <TextInput
                         className="bg-muted p-4 rounded-xl text-foreground"
                         value={editFormData.email_address}
@@ -1051,7 +1063,7 @@ export default function ClientProfile() {
                     </View>
                   </View>
                   <View>
-                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Office Address</Text>
+                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Office Address *</Text>
                     <TextInput
                       className="bg-muted p-4 rounded-xl text-foreground"
                       value={editFormData.office_address}
