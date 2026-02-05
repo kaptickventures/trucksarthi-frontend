@@ -44,7 +44,7 @@ export default function LoginOptions() {
           {/* Top Section */}
           <View>
             <Image
-              source={require("../../assets/images/Trucksarthi-Graphic.png")}
+              source={require("../../assets/images/TruckSarthi-Graphic.png")}
               style={{ width: 180, height: 60, marginBottom: 40, tintColor: isDark ? colors.foreground : undefined }}
               resizeMode="contain"
             />

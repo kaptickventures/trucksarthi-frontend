@@ -91,7 +91,7 @@ export default function LoginPhone() {
           <View style={{ paddingHorizontal: 32, flex: 1, justifyContent: 'center' }}>
             <View style={{ marginBottom: 40 }}>
               <Image
-                source={require("../../assets/images/Trucksarthi-Graphic.png")}
+                source={require("../../assets/images/TruckSarthi-Graphic.png")}
                 style={{ width: 180, height: 60, marginBottom: 24, tintColor: isDark ? colors.foreground : undefined }}
                 resizeMode="contain"
               />

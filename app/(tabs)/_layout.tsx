@@ -94,6 +94,13 @@ export default function TabLayout() {
             tabBarIcon: ({ color }) => <Clock size={22} color={color} />,
           }}
         />
+
+        <Tabs.Screen
+          name="reminders"
+          options={{
+            href: null,
+          }}
+        />
       </Tabs>
     </>
   );

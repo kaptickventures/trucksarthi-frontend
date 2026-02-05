@@ -61,7 +61,7 @@ export default function StackLayout() {
 
             headerRight: () => (
               <TouchableOpacity
-                onPress={() => router.push("/notifications")}
+                onPress={() => router.push("/reminders" as any)}
                 style={{ padding: 6 }}
               >
                 <Ionicons

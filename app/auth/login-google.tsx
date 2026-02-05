@@ -8,17 +8,19 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { THEME } from "../../theme";
+import { useThemeStore } from "../../hooks/useThemeStore";
 
 export default function LoginGoogle() {
   const router = useRouter();
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
 
   const handleGoogleLogin = () => {
     Alert.alert("Maintenance", "Google login is currently being upgraded for better security. Please use Phone or Email login for now.");
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ flex: 1, paddingHorizontal: 32 }}>
         {/* Header */}
         <View style={{ paddingTop: 24, paddingBottom: 40 }}>
@@ -26,7 +28,7 @@ export default function LoginGoogle() {
             onPress={() => router.back()}
             style={{ padding: 8, marginLeft: -8 }}
           >
-            <ChevronLeft size={28} color="#111B21" />
+            <ChevronLeft size={28} color={colors.foreground} />
           </TouchableOpacity>
         </View>
 
@@ -34,15 +36,15 @@ export default function LoginGoogle() {
           {/* Logo */}
           <Image
             source={require("../../assets/images/TruckSarthi-Graphic.png")}
-            style={{ width: 180, height: 60, marginBottom: 40 }}
+            style={{ width: 180, height: 60, marginBottom: 40, tintColor: isDark ? colors.foreground : undefined }}
             resizeMode="contain"
           />
 
           <View style={{ alignItems: 'center', marginBottom: 40 }}>
-            <Text style={{ fontSize: 24, fontWeight: '800', color: '#111B21', textAlign: 'center' }}>
+            <Text style={{ fontSize: 24, fontWeight: '800', color: colors.foreground, textAlign: 'center' }}>
               Google Authentication
             </Text>
-            <Text style={{ fontSize: 16, color: '#666666', marginTop: 8, textAlign: 'center' }}>
+            <Text style={{ fontSize: 16, color: colors.mutedForeground, marginTop: 8, textAlign: 'center' }}>
               Seamless access with your Google account
             </Text>
           </View>
@@ -56,9 +58,9 @@ export default function LoginGoogle() {
               alignItems: 'center',
               justifyContent: 'center',
               width: '100%',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: isDark ? colors.card : '#FFFFFF',
               borderWidth: 1.5,
-              borderColor: '#E9ECEF',
+              borderColor: isDark ? colors.border : '#E9ECEF',
               paddingVertical: 18,
               borderRadius: 16,
               gap: 12,
@@ -73,7 +75,7 @@ export default function LoginGoogle() {
               source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }}
               style={{ width: 24, height: 24 }}
             />
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#111B21' }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.foreground }}>
               Sign in with Google
             </Text>
           </TouchableOpacity>
@@ -82,7 +84,7 @@ export default function LoginGoogle() {
             onPress={() => router.replace("/auth/login-phone")}
             style={{ marginTop: 24 }}
           >
-            <Text style={{ color: THEME.light.primary, fontWeight: '700', fontSize: 14 }}>
+            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 14 }}>
               Use Phone Number instead
             </Text>
           </TouchableOpacity>
@@ -90,8 +92,8 @@ export default function LoginGoogle() {
 
         <View style={{ paddingVertical: 40, alignItems: 'center' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <ShieldCheck size={14} color="#10B981" />
-            <Text style={{ color: '#999999', fontSize: 11, fontWeight: '700' }}>GOOGLE SECURE SESSIONS</Text>
+            <ShieldCheck size={14} color={colors.primary} />
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>GOOGLE SECURE SESSIONS</Text>
           </View>
         </View>
       </View>
