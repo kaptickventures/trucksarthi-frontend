@@ -15,10 +15,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { requestEmailOtp, verifyEmailOtp, postLoginFlow } from "../../hooks/useAuth";
-import { THEME } from "../../theme";
+import { useThemeStore } from "../../hooks/useThemeStore";
 
 export default function LoginEmailOTP() {
     const router = useRouter();
+    const { colors, theme } = useThemeStore();
+    const isDark = theme === "dark";
+
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
     const [loading, setLoading] = useState(false);
@@ -30,7 +33,7 @@ export default function LoginEmailOTP() {
         }
         try {
             setLoading(true);
-            await requestEmailOtp(email);
+            await requestEmailOtp(email.toLowerCase().trim());
             setOtpSent(true);
         } catch (error: any) {
             Alert.alert("Error", error || "Failed to send OTP.");
@@ -43,7 +46,7 @@ export default function LoginEmailOTP() {
         if (otp.length < 4) return Alert.alert("Error", "Please enter the OTP.");
         try {
             setLoading(true);
-            await verifyEmailOtp(email, otp);
+            await verifyEmailOtp(email.toLowerCase().trim(), otp);
             await postLoginFlow(router);
         } catch (err: any) {
             Alert.alert("Login Failed", err || "Invalid OTP.");
@@ -53,7 +56,7 @@ export default function LoginEmailOTP() {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
@@ -68,21 +71,21 @@ export default function LoginEmailOTP() {
                             onPress={() => router.back()}
                             style={{ padding: 8, marginLeft: -8 }}
                         >
-                            <ChevronLeft size={28} color="#111B21" />
+                            <ChevronLeft size={28} color={colors.foreground} />
                         </TouchableOpacity>
                     </View>
 
                     <View style={{ paddingHorizontal: 32, flex: 1, justifyContent: 'center' }}>
                         <View style={{ marginBottom: 40 }}>
                             <Image
-                                source={require("../../assets/images/TruckSarthi-Graphic.png")}
-                                style={{ width: 170, height: 50, marginBottom: 24 }}
+                                source={require("../../assets/images/Trucksarthi-Graphic.png")}
+                                style={{ width: 170, height: 50, marginBottom: 24, tintColor: isDark ? colors.foreground : undefined }}
                                 resizeMode="contain"
                             />
-                            <Text style={{ fontSize: 32, fontWeight: '800', color: '#111B21', letterSpacing: -0.5 }}>
+                            <Text style={{ fontSize: 32, fontWeight: '800', color: colors.foreground, letterSpacing: -0.5 }}>
                                 {otpSent ? "Check Email" : "Email Login"}
                             </Text>
-                            <Text style={{ fontSize: 16, color: '#666666', marginTop: 8 }}>
+                            <Text style={{ fontSize: 16, color: colors.mutedForeground, marginTop: 8 }}>
                                 {otpSent
                                     ? `OTP sent to ${email}`
                                     : "Enter your email to receive a login code"}
@@ -92,32 +95,33 @@ export default function LoginEmailOTP() {
                         {!otpSent ? (
                             <View style={{ gap: 20 }}>
                                 <View>
-                                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#999999', marginBottom: 8, marginLeft: 4 }}>
+                                    <Text style={{ fontSize: 14, fontWeight: '700', color: colors.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
                                         WORK EMAIL
                                     </Text>
                                     <View style={{
                                         flexDirection: 'row',
                                         alignItems: 'center',
-                                        backgroundColor: '#F8F9FA',
+                                        backgroundColor: isDark ? colors.card : '#F8F9FA',
                                         borderRadius: 16,
                                         borderWidth: 1.5,
-                                        borderColor: '#E9ECEF',
+                                        borderColor: isDark ? colors.border : '#E9ECEF',
                                         paddingHorizontal: 16
                                     }}>
-                                        <Mail size={20} color="#666666" />
+                                        <Mail size={20} color={colors.mutedForeground} />
                                         <TextInput
                                             value={email}
                                             onChangeText={setEmail}
                                             keyboardType="email-address"
                                             autoCapitalize="none"
                                             placeholder="name@company.com"
+                                            placeholderTextColor={colors.mutedForeground}
                                             style={{
                                                 flex: 1,
                                                 paddingVertical: 16,
                                                 paddingHorizontal: 12,
                                                 fontSize: 16,
                                                 fontWeight: '600',
-                                                color: '#111B21'
+                                                color: colors.foreground
                                             }}
                                         />
                                     </View>
@@ -128,7 +132,7 @@ export default function LoginEmailOTP() {
                                     disabled={loading}
                                     onPress={handleSendOTP}
                                     style={{
-                                        backgroundColor: THEME.light.primary,
+                                        backgroundColor: colors.primary,
                                         borderRadius: 16,
                                         paddingVertical: 18,
                                         alignItems: 'center',
@@ -150,23 +154,24 @@ export default function LoginEmailOTP() {
                         ) : (
                             <View style={{ gap: 24 }}>
                                 <View>
-                                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#999999', marginBottom: 8, marginLeft: 4 }}>
+                                    <Text style={{ fontSize: 14, fontWeight: '700', color: colors.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
                                         6-DIGIT OTP
                                     </Text>
                                     <View style={{
                                         flexDirection: 'row',
                                         alignItems: 'center',
-                                        backgroundColor: '#F8F9FA',
+                                        backgroundColor: isDark ? colors.card : '#F8F9FA',
                                         borderRadius: 16,
                                         borderWidth: 1.5,
-                                        borderColor: '#E9ECEF',
+                                        borderColor: isDark ? colors.border : '#E9ECEF',
                                         paddingHorizontal: 16
                                     }}>
-                                        <Lock size={20} color="#666666" />
+                                        <Lock size={20} color={colors.mutedForeground} />
                                         <TextInput
                                             value={otp}
                                             onChangeText={setOtp}
                                             placeholder="······"
+                                            placeholderTextColor={colors.mutedForeground}
                                             keyboardType="number-pad"
                                             maxLength={6}
                                             style={{
@@ -176,7 +181,7 @@ export default function LoginEmailOTP() {
                                                 fontSize: 28,
                                                 fontWeight: '700',
                                                 letterSpacing: 8,
-                                                color: '#111B21',
+                                                color: colors.foreground,
                                                 textAlign: 'center'
                                             }}
                                         />
@@ -188,16 +193,16 @@ export default function LoginEmailOTP() {
                                     disabled={loading}
                                     onPress={handleVerifyOTP}
                                     style={{
-                                        backgroundColor: '#111B21',
+                                        backgroundColor: colors.foreground,
                                         borderRadius: 16,
                                         paddingVertical: 18,
                                         alignItems: 'center'
                                     }}
                                 >
                                     {loading ? (
-                                        <ActivityIndicator color="white" />
+                                        <ActivityIndicator color={colors.background} />
                                     ) : (
-                                        <Text style={{ color: 'white', fontSize: 16, fontWeight: '700' }}>Login Now</Text>
+                                        <Text style={{ color: colors.background, fontSize: 16, fontWeight: '700' }}>Login Now</Text>
                                     )}
                                 </TouchableOpacity>
 
@@ -208,7 +213,7 @@ export default function LoginEmailOTP() {
                                     }}
                                     style={{ alignSelf: 'center' }}
                                 >
-                                    <Text style={{ color: THEME.light.primary, fontWeight: '700', fontSize: 14 }}>
+                                    <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 14 }}>
                                         Try with different email
                                     </Text>
                                 </TouchableOpacity>
@@ -219,16 +224,16 @@ export default function LoginEmailOTP() {
                             onPress={() => router.push("/auth/login-email")}
                             style={{ marginTop: 32, paddingVertical: 12, alignItems: 'center' }}
                         >
-                            <Text style={{ color: '#666666', fontSize: 14 }}>
-                                Login with <Text style={{ color: THEME.light.primary, fontWeight: '700' }}>Password</Text> instead
+                            <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>
+                                Login with <Text style={{ color: colors.primary, fontWeight: '700' }}>Password</Text> instead
                             </Text>
                         </TouchableOpacity>
                     </View>
 
                     <View style={{ padding: 40, alignItems: 'center' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <ShieldCheck size={14} color="#10B981" />
-                            <Text style={{ color: '#999999', fontSize: 11, fontWeight: '700' }}>ENCRYPTED SESSION</Text>
+                            <ShieldCheck size={14} color={colors.primary} />
+                            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>ENCRYPTED SESSION</Text>
                         </View>
                     </View>
                 </ScrollView>

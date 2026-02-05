@@ -5,6 +5,7 @@ import { Edit3, Plus, Share2, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   Alert,
+  RefreshControl,
   ScrollView,
   Share,
   StatusBar,
@@ -38,6 +39,18 @@ export default function DriversManager() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchDrivers();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchDrivers]);
 
   const [formData, setFormData] = useState({
     driver_name: "",
@@ -188,6 +201,9 @@ export default function DriversManager() {
       <ScrollView
         className="flex-1 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
       >
         {(drivers || []).length === 0 ? (
           <Text className="text-center text-muted-foreground mt-10">

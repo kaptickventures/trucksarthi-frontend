@@ -19,13 +19,14 @@ import {
   X,
   Zap
 } from "lucide-react-native";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   Modal,
   Platform,
+  RefreshControl,
   ScrollView,
   Share,
   StatusBar,
@@ -121,10 +122,12 @@ export default function TruckProfile() {
   const { truck_id } = useLocalSearchParams<{ truck_id?: string | string[] }>();
   const id = useMemo(() => Array.isArray(truck_id) ? truck_id[0] : truck_id, [truck_id]);
 
-  const { trucks, loading: trucksLoading, updateTruck, updateImportantDates } = useTrucks();
+  const { trucks, loading: trucksLoading, updateTruck, updateImportantDates, fetchTrucks } = useTrucks();
   const { documents, fetchDocuments, uploadDocument } = useTruckDocuments(id);
-  const { trips } = useTrips();
-  const { drivers } = useDrivers();
+  const { trips, fetchTrips } = useTrips();
+  const { drivers, fetchDrivers } = useDrivers();
+
+  const [refreshing, setRefreshing] = useState(false);
 
   const [showDates, setShowDates] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
@@ -201,6 +204,22 @@ export default function TruckProfile() {
     }
   }, [truck]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchTrucks(),
+        fetchDocuments(),
+        fetchTrips(),
+        fetchDrivers(),
+      ]);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchTrucks, fetchDocuments, fetchTrips, fetchDrivers]);
+
   const truckTrips = trips.filter(t => (typeof t.truck === 'object' ? t.truck?._id : t.truck) === id);
 
   const driverMap = useMemo(() => {
@@ -258,7 +277,7 @@ export default function TruckProfile() {
       if (selectedTags.fitness_upto) message += `✅ Fitness: ${formatDate(truck.fitness_upto as string)}\n`;
       if (selectedTags.insurance_upto) message += `🛡️ Insurance: ${formatDate(truck.insurance_upto as string)}\n`;
 
-      message += `\nShared via TruckSarthi`;
+      message += `\nShared via Trucksarthi`;
 
       await Share.share({ message });
       setShowShareModal(false);
@@ -303,7 +322,13 @@ export default function TruckProfile() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+      >
         {/* HERO CARD */}
         <View style={{ padding: 24, backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 24, marginBottom: 24, borderWidth: 1, borderColor: colors.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>

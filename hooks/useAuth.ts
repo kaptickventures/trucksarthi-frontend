@@ -10,7 +10,7 @@ export async function loginWithEmail(email: string, pass: string) {
     }
     return { token, user };
   } catch (err: any) {
-    console.error("❌ Login error:", err.response?.data || err.message);
+    console.error("❌ Login error:", { status: err.response?.status, data: err.response?.data, message: err.message });
     throw err.response?.data?.error || err.message || "Login failed";
   }
 }

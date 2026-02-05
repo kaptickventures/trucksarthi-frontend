@@ -27,6 +27,8 @@ export default function TabLayout() {
             <Label>Home</Label>
           </NativeTabs.Trigger>
 
+
+
           <NativeTabs.Trigger name="addTrip">
             <Icon sf="plus.circle.fill" selectedColor={activeTintColor} />
             <Label>Add Trip</Label>

@@ -17,12 +17,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { loginWithPhone, postLoginFlow, sendPhoneOtp } from "../../hooks/useAuth";
-import { THEME } from "../../theme";
+import { useThemeStore } from "../../hooks/useThemeStore";
 
 const { width } = Dimensions.get("window");
 
 export default function LoginPhone() {
   const router = useRouter();
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
+
   const [phoneNumber, setPhoneNumber] = useState("+91");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,7 +68,7 @@ export default function LoginPhone() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: THEME.light.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -81,21 +84,21 @@ export default function LoginPhone() {
               onPress={() => router.back()}
               style={{ padding: 8, marginLeft: -8 }}
             >
-              <ChevronLeft size={28} color={THEME.light.foreground} />
+              <ChevronLeft size={28} color={colors.foreground} />
             </TouchableOpacity>
           </View>
 
           <View style={{ paddingHorizontal: 32, flex: 1, justifyContent: 'center' }}>
             <View style={{ marginBottom: 40 }}>
               <Image
-                source={require("../../assets/images/TruckSarthi-Graphic.png")}
-                style={{ width: 180, height: 60, marginBottom: 24 }}
+                source={require("../../assets/images/Trucksarthi-Graphic.png")}
+                style={{ width: 180, height: 60, marginBottom: 24, tintColor: isDark ? colors.foreground : undefined }}
                 resizeMode="contain"
               />
-              <Text style={{ fontSize: 32, fontWeight: '800', color: THEME.light.foreground, letterSpacing: -0.5 }}>
+              <Text style={{ fontSize: 32, fontWeight: '800', color: colors.foreground, letterSpacing: -0.5 }}>
                 {otpSent ? "Verification" : "Mobile Number"}
               </Text>
-              <Text style={{ fontSize: 16, color: THEME.light.mutedForeground, marginTop: 8 }}>
+              <Text style={{ fontSize: 16, color: colors.mutedForeground, marginTop: 8 }}>
                 {otpSent
                   ? `We've sent a code to ${phoneNumber}`
                   : "Enter your phone number to continue"}
@@ -105,31 +108,32 @@ export default function LoginPhone() {
             {!otpSent ? (
               <View style={{ gap: 20 }}>
                 <View>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: THEME.light.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
                     Phone Number
                   </Text>
                   <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: '#F8F9FA',
+                    backgroundColor: isDark ? colors.card : '#F8F9FA',
                     borderRadius: 16,
                     borderWidth: 1.5,
-                    borderColor: '#E9ECEF',
+                    borderColor: isDark ? colors.border : '#E9ECEF',
                     paddingHorizontal: 16
                   }}>
-                    <Smartphone size={20} color={THEME.light.mutedForeground} />
+                    <Smartphone size={20} color={colors.mutedForeground} />
                     <TextInput
                       value={phoneNumber}
                       onChangeText={formatPhone}
                       keyboardType="phone-pad"
                       placeholder="+91 XXXXX XXXXX"
+                      placeholderTextColor={colors.mutedForeground}
                       style={{
                         flex: 1,
                         paddingVertical: 16,
                         paddingHorizontal: 12,
                         fontSize: 18,
                         fontWeight: '600',
-                        color: THEME.light.foreground
+                        color: colors.foreground
                       }}
                     />
                   </View>
@@ -140,11 +144,11 @@ export default function LoginPhone() {
                   disabled={loading}
                   onPress={handleSendOTP}
                   style={{
-                    backgroundColor: THEME.light.primary,
+                    backgroundColor: colors.primary,
                     borderRadius: 16,
                     paddingVertical: 18,
                     alignItems: 'center',
-                    shadowColor: THEME.light.primary,
+                    shadowColor: colors.primary,
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.2,
                     shadowRadius: 8,
@@ -161,23 +165,24 @@ export default function LoginPhone() {
             ) : (
               <View style={{ gap: 24 }}>
                 <View>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: THEME.light.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
                     OTP Code
                   </Text>
                   <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: '#F8F9FA',
+                    backgroundColor: isDark ? colors.card : '#F8F9FA',
                     borderRadius: 16,
                     borderWidth: 1.5,
-                    borderColor: '#E9ECEF',
+                    borderColor: isDark ? colors.border : '#E9ECEF',
                     paddingHorizontal: 16
                   }}>
-                    <Lock size={20} color={THEME.light.mutedForeground} />
+                    <Lock size={20} color={colors.mutedForeground} />
                     <TextInput
                       value={code}
                       onChangeText={setCode}
                       placeholder="Enter 6 digit code"
+                      placeholderTextColor={colors.mutedForeground}
                       keyboardType="number-pad"
                       maxLength={6}
                       style={{
@@ -187,7 +192,7 @@ export default function LoginPhone() {
                         fontSize: 24,
                         fontWeight: '700',
                         letterSpacing: 4,
-                        color: THEME.light.foreground
+                        color: colors.foreground
                       }}
                     />
                   </View>
@@ -198,16 +203,16 @@ export default function LoginPhone() {
                   disabled={loading}
                   onPress={handleVerifyOTP}
                   style={{
-                    backgroundColor: THEME.light.foreground,
+                    backgroundColor: colors.foreground,
                     borderRadius: 16,
                     paddingVertical: 18,
                     alignItems: 'center'
                   }}
                 >
                   {loading ? (
-                    <ActivityIndicator color="white" />
+                    <ActivityIndicator color={colors.background} />
                   ) : (
-                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '700' }}>Verify OTP</Text>
+                    <Text style={{ color: colors.background, fontSize: 16, fontWeight: '700' }}>Verify OTP</Text>
                   )}
                 </TouchableOpacity>
 
@@ -218,7 +223,7 @@ export default function LoginPhone() {
                   }}
                   style={{ alignSelf: 'center' }}
                 >
-                  <Text style={{ color: THEME.light.primary, fontWeight: '600', fontSize: 14 }}>
+                  <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 14 }}>
                     Change phone number?
                   </Text>
                 </TouchableOpacity>
@@ -226,23 +231,23 @@ export default function LoginPhone() {
             )}
 
             <View style={{ marginTop: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <View style={{ height: 1.5, flex: 1, backgroundColor: '#E9ECEF' }} />
-              <Text style={{ color: THEME.light.mutedForeground, fontSize: 12, fontWeight: '600' }}>SECURE LOGIN</Text>
-              <View style={{ height: 1.5, flex: 1, backgroundColor: '#E9ECEF' }} />
+              <View style={{ height: 1.5, flex: 1, backgroundColor: isDark ? colors.border : '#E9ECEF' }} />
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: '600' }}>SECURE LOGIN</Text>
+              <View style={{ height: 1.5, flex: 1, backgroundColor: isDark ? colors.border : '#E9ECEF' }} />
             </View>
 
             <TouchableOpacity
               onPress={() => router.push("/auth/login-email")}
               style={{ marginTop: 24, paddingVertical: 12, alignItems: 'center' }}
             >
-              <Text style={{ color: THEME.light.mutedForeground, fontSize: 14 }}>
-                Try <Text style={{ color: THEME.light.primary, fontWeight: '700' }}>Email Login</Text> instead
+              <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>
+                Try <Text style={{ color: colors.primary, fontWeight: '700' }}>Email Login</Text> instead
               </Text>
             </TouchableOpacity>
           </View>
 
           <View style={{ padding: 32, alignItems: 'center' }}>
-            <Text style={{ color: THEME.light.mutedForeground, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
               By continuing, you agree to our <Text style={{ fontWeight: 'bold' }}>Terms of Service</Text> and <Text style={{ fontWeight: 'bold' }}>Privacy Policy</Text>
             </Text>
           </View>

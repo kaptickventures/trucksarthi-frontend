@@ -29,7 +29,7 @@ export default function LoginEmail() {
     }
     try {
       setLoading(true);
-      await loginWithEmail(email.trim(), pw.trim());
+      await loginWithEmail(email.toLowerCase().trim(), pw.trim());
       await postLoginFlow(router);
     } catch (e: any) {
       Alert.alert("Login Failed", e || "Invalid credentials. Please try again.");

@@ -199,7 +199,7 @@ export default function Settings() {
         <View className="flex-row items-center gap-2">
           <MonitorSmartphone size={20} color={colors.primary} />
           <Text className="text-foreground text-base">
-            Use Truck Sarthi on Desktop
+            Use Trucksarthi on Desktop
           </Text>
         </View>
       </TouchableOpacity>

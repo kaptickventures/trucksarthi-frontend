@@ -131,7 +131,7 @@ export default function BasicDetailsScreen() {
                 date_of_birth: dob?.toISOString()
             });
 
-            Alert.alert("Success", "Profile completed! Welcome to TruckSarthi.", [
+            Alert.alert("Success", "Profile completed! Welcome to Trucksarthi.", [
                 { text: "Get Started", onPress: () => router.replace("/(tabs)/home") }
             ]);
         } catch (e: any) {

@@ -34,7 +34,7 @@ export default function SignupEmail() {
 
     try {
       setLoading(true);
-      await registerUser(name.trim(), email.trim(), pw.trim());
+      await registerUser(name.trim(), email.toLowerCase().trim(), pw.trim());
       await postLoginFlow(router);
     } catch (e: any) {
       Alert.alert("Signup Failed", e || "Could not create account. Please try again.");
@@ -93,6 +93,7 @@ export default function SignupEmail() {
                 onChange={setEmail}
                 placeholder="name@company.com"
                 autoCapitalize="none"
+                keyboardType="email-address"
                 icon={<Mail size={18} color="#999999" />}
               />
 
@@ -153,7 +154,7 @@ export default function SignupEmail() {
   );
 }
 
-const CustomInput = ({ label, value, onChange, placeholder, icon, autoCapitalize, secureTextEntry }: any) => (
+const CustomInput = ({ label, value, onChange, placeholder, icon, autoCapitalize, secureTextEntry, keyboardType }: any) => (
   <View>
     <Text style={{ fontSize: 11, fontWeight: '800', color: '#999999', marginBottom: 8, marginLeft: 4 }}>{label}</Text>
     <View style={{
@@ -173,6 +174,7 @@ const CustomInput = ({ label, value, onChange, placeholder, icon, autoCapitalize
         placeholderTextColor="#999999"
         autoCapitalize={autoCapitalize}
         secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
         style={{
           flex: 1,
           paddingVertical: 16,

@@ -1,12 +1,13 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState, useCallback } from "react";
 import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
+  RefreshControl
 } from "react-native";
 import SideMenu from "../../../components/SideMenu";
 import { Skeleton } from "../../../components/Skeleton";
@@ -24,9 +25,16 @@ export default function HomeScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
 
+  const [refreshing, setRefreshing] = useState(false);
   const { user, loading: userLoading, refreshUser } = useUser();
   const { loading: tripsLoading, totalRevenue, totalTrips, recentTrips, fetchTrips } = useTrips();
-  const { documents, loading: docsLoading } = useTruckDocuments();
+  const { documents, loading: docsLoading, fetchDocuments } = useTruckDocuments();
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([refreshUser(), fetchTrips(), fetchDocuments()]);
+    setRefreshing(false);
+  }, [refreshUser, fetchTrips, fetchDocuments]);
 
   // Filter expiring documents (next 30 days)
   const expiringDocs = documents.filter(doc => {
@@ -47,7 +55,8 @@ export default function HomeScreen() {
       headerStyle: { backgroundColor: colors.background },
       headerTitleStyle: {
         color: colors.foreground,
-        fontWeight: "600",
+        fontWeight: "800",
+        fontSize: 22,
       },
       headerTintColor: colors.foreground,
       headerLeft: () => (
@@ -69,7 +78,7 @@ export default function HomeScreen() {
       ),
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/notifications")}
+          onPress={() => router.push("/reminders" as any)}
           style={{
             paddingHorizontal: 6,
             paddingVertical: 4,
@@ -107,6 +116,17 @@ export default function HomeScreen() {
           <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
         </View>
 
+        {/* Reminders Skeleton */}
+        <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+            <Skeleton width={100} height={20} borderRadius={4} />
+            <Skeleton width={60} height={16} borderRadius={4} />
+          </View>
+          {[1, 2].map(i => (
+            <Skeleton key={i} width="100%" height={60} borderRadius={12} style={{ marginBottom: 8 }} />
+          ))}
+        </View>
+
         {/* Recent Trips Skeleton */}
         <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -126,6 +146,9 @@ export default function HomeScreen() {
       <ScrollView
         style={{ backgroundColor: colors.background }}
         className="flex-1 p-4"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {/* ====== Stats Section ====== */}
         <View className="flex-row justify-between mb-4">
@@ -176,25 +199,49 @@ export default function HomeScreen() {
         </View>
 
         {/* ====== Reminders Card ====== */}
-        {expiringDocs.length > 0 && (
-          <TouchableOpacity
-            onPress={() => router.push("/documents-manager" as any)}
-            style={{ backgroundColor: '#FEF2F2' }} // light red bg
-            className="rounded-2xl p-4 mb-6 border border-red-100"
-          >
-            <View className="flex-row items-center mb-2">
-              <View className="bg-red-100 p-2 rounded-full mr-3">
-                <Ionicons name="alert-circle" size={20} color="#EF4444" />
-              </View>
-              <View>
-                <Text className="text-red-800 font-bold text-base">Action Required</Text>
-                <Text className="text-red-600 text-xs">
-                  {expiringDocs.length} documents expiring soon
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
+        <View style={{ backgroundColor: colors.card }} className="rounded-2xl p-4 mb-6">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text style={{ color: colors.foreground }} className="font-semibold text-lg">Reminders</Text>
+            <TouchableOpacity onPress={() => router.push("/reminders" as any)}>
+              <Text className="text-muted-foreground text-sm">View All →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {expiringDocs.length > 0 ? (
+            expiringDocs.slice(0, 3).map((doc) => {
+              const getId = (obj: any): string =>
+                typeof obj === "object" ? obj?._id : obj;
+              const truckId = getId(doc.truck);
+              const dateStr = doc.expiry_date ? formatDate(doc.expiry_date) : "No Date";
+
+              return (
+                <View
+                  key={doc._id}
+                  style={{ backgroundColor: colors.secondary }}
+                  className="flex-row justify-between items-center p-3 rounded-xl mb-2"
+                >
+                  <View className="flex-1">
+                    <Text style={{ color: colors.secondaryForeground }} className="font-medium text-sm">
+                      {doc.document_type} Expiring
+                    </Text>
+                    <Text className="text-muted-foreground text-[10px] mt-1">
+                      Truck: {truckId ? truckId.toString().slice(-6) : 'N/A'}
+                    </Text>
+                  </View>
+                  <View className="items-end">
+                    <Text style={{ color: colors.destructive }} className="font-semibold text-xs">
+                      {dateStr}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })
+          ) : (
+            <Text className="text-muted-foreground text-center py-4">
+              All documents are up to date!
+            </Text>
+          )}
+        </View>
 
         {/* ====== Recent Trips ====== */}
         <View style={{ backgroundColor: colors.card }} className="rounded-2xl p-4 mb-6">

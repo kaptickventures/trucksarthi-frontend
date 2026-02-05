@@ -49,7 +49,6 @@ export default function Profile() {
     address: "",
     gstin: "",
     pan_number: "",
-    name_as_on_pan: "",
     bank_name: "",
     account_holder_name: "",
     account_number: "",
@@ -76,7 +75,6 @@ export default function Profile() {
         address: user.address ?? "",
         gstin: user.gstin ?? "",
         pan_number: user.pan_number ?? "",
-        name_as_on_pan: user.name_as_on_pan ?? "",
         bank_name: user.bank_name ?? "",
         account_holder_name: user.account_holder_name ?? "",
         account_number: user.account_number ?? "",
@@ -314,7 +312,7 @@ export default function Profile() {
                   <DateTimePicker value={dobDate || new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} />
                 )}
 
-                {/* PAN Details */}
+                {/* KYC Verification Link */}
                 <SectionHeader title="Identity Verification" icon={<ShieldCheck size={18} color={colors.primary} />} />
 
                 <TouchableOpacity
@@ -342,9 +340,6 @@ export default function Profile() {
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
                 </TouchableOpacity>
-
-                <ProfileInput label="PAN Number" value={formData.pan_number} editable={isEditing && !user?.is_pan_verified} onChange={(v: string) => markChanged("pan_number", v)} icon={<Hash size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
-                <ProfileInput label="Name as on PAN" value={formData.name_as_on_pan} editable={isEditing} onChange={(v: string) => markChanged("name_as_on_pan", v)} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
               </View>
             )}
 
@@ -353,6 +348,7 @@ export default function Profile() {
                 <SectionHeader title="Business Information" icon={<Briefcase size={18} color={colors.primary} />} />
                 <ProfileInput label="Company Name (As per GSTIN)" value={formData.company_name} editable={isEditing} onChange={(v: string) => markChanged("company_name", v)} icon={<Building2 size={18} color={colors.mutedForeground} />} />
                 <ProfileInput label="GST Number" value={formData.gstin} editable={isEditing && !user?.is_gstin_verified} onChange={(v: string) => markChanged("gstin", v)} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Optional" />
+                <ProfileInput label="PAN Number" value={formData.pan_number} editable={isEditing && !user?.is_pan_verified} onChange={(v: string) => markChanged("pan_number", v)} icon={<Hash size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
                 <ProfileInput label="Office Address" value={formData.address} editable={isEditing} onChange={(v: string) => markChanged("address", v)} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Full street address" />
               </View>
             )}

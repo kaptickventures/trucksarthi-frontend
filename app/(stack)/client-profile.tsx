@@ -5,7 +5,7 @@ import * as Print from "expo-print";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { ArrowDownLeft, Banknote, Building2, Edit, FileText, MapPin, Plus, Share2, X } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Animated,
@@ -15,6 +15,7 @@ import {
   PanResponder,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
@@ -59,6 +60,7 @@ export default function ClientProfile() {
   } = useClientLedger();
 
   /* ---------------- STATE ---------------- */
+  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"unbilled" | "billed" | "settled">("unbilled");
 
   // Payment Form
@@ -131,7 +133,24 @@ export default function ClientProfile() {
     fetchInvoices();
     fetchTrips();
     fetchLedger(id);
+    fetchLedger(id);
   }, [id]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchClients(),
+        fetchInvoices(),
+        fetchTrips(),
+        id ? fetchLedger(id) : Promise.resolve(),
+      ]);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [id, fetchClients, fetchInvoices, fetchTrips, fetchLedger]);
 
   /* ---------------- HELPERS ---------------- */
   const normalizeInvoiceStatus = (status: any) => {
@@ -279,7 +298,7 @@ export default function ClientProfile() {
 <body>
 
   <div class="header">
-    <h1>TruckSarthi</h1>
+    <h1>Trucksarthi</h1>
     <p>Professional Logistics & Transportation</p>
   </div>
 
@@ -372,7 +391,7 @@ export default function ClientProfile() {
 
   <div class="footer">
     <p>Thank you for your business!</p>
-    <p>TruckSarthi – Your Trusted Logistics Partner</p>
+    <p>Trucksarthi – Your Trusted Logistics Partner</p>
     <p>Generated on ${formatDate(new Date())}</p>
   </div>
 
@@ -665,6 +684,9 @@ export default function ClientProfile() {
         style={{ flex: 1, paddingHorizontal: 24 }}
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
       >
         {/* Client Card */}
         <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 24 }}>

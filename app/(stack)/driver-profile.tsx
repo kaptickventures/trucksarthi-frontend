@@ -9,11 +9,12 @@ import {
   Trash2,
   User as UserIcon
 } from "lucide-react-native";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
   Modal,
+  RefreshControl,
   ScrollView,
   Share,
   StatusBar,
@@ -35,7 +36,7 @@ export default function DriverProfile() {
   const { colors, theme } = useThemeStore();
   const { driver_id } = useLocalSearchParams<{ driver_id: string }>();
 
-  const { drivers, loading: driverLoading, uploadLicense, uploadAadhaar } = useDrivers();
+  const { drivers, loading: driverLoading, uploadLicense, uploadAadhaar, fetchDrivers } = useDrivers();
   const driver = useMemo(() => drivers.find(d => d._id === driver_id), [drivers, driver_id]);
 
   const { entries, fetchDriverLedger, fetchDriverSummary, addLedgerEntry } = useDriverFinance();
@@ -46,6 +47,22 @@ export default function DriverProfile() {
   const [remarks, setRemarks] = useState("");
   const [transactionNature, setTransactionNature] = useState<TransactionNature>("paid_by_driver");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchDrivers(),
+        driver_id ? fetchDriverLedger(driver_id) : Promise.resolve(),
+        driver_id ? fetchDriverSummary(driver_id).then(res => setNetBalance(res.net_balance)) : Promise.resolve(),
+      ]);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [driver_id, fetchDrivers, fetchDriverLedger, fetchDriverSummary]);
 
   useEffect(() => {
     if (driver_id) {
@@ -189,7 +206,13 @@ export default function DriverProfile() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+      >
         <View style={{ padding: 24, backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 24, marginBottom: 24, borderWidth: 1, borderColor: colors.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.muted, alignItems: 'center', justifyContent: 'center' }}>

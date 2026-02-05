@@ -26,6 +26,7 @@ import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
 import { useUser } from "../../../hooks/useUser";
+import { useThemeStore } from "../../../hooks/useThemeStore";
 
 import TripFilters from "../../../components/FilterSection";
 
@@ -47,7 +48,8 @@ export default function TripLog() {
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
 
   const { user } = useUser();
 
@@ -235,7 +237,7 @@ export default function TripLog() {
     </style>
   </head>
   <body>
-    <div class="title">Truck Sarthi</div>
+    <div class="title">Trucksarthi</div>
     <div class="subtitle">By Kaptick Labs</div>
     <div class="divider"></div>
     <div class="section-title">Trip Report</div>
@@ -291,9 +293,9 @@ export default function TripLog() {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
-      headerStyle: { backgroundColor },
-      headerTitleStyle: { color: foregroundColor },
-      headerTintColor: foregroundColor,
+      headerStyle: { backgroundColor: colors.background, elevation: 0, shadowOpacity: 0 },
+      headerTitleStyle: { color: colors.foreground, fontWeight: "800", fontSize: 22 },
+      headerTintColor: colors.foreground,
       headerLeft: () => (
         <TouchableOpacity
           onPress={() => setMenuVisible((prev) => !prev)}
@@ -316,8 +318,13 @@ export default function TripLog() {
   const formatDateLocal = (d: Date | null) => d ? formatDate(d) : "Select Date";
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <View className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+        <View className="mb-6 px-5 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>Trip Log</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Track and manage your history</Text>
+        </View>
+
         <TripFilters
           filters={filters}
           setFilters={setFilters}
@@ -416,6 +423,6 @@ export default function TripLog() {
         onSave={async (id, data) => { await updateTrip(id, data); fetchTrips(); }}
         onDelete={async (id) => { await deleteTrip(id); fetchTrips(); }}
       />
-    </SafeAreaView>
+    </View>
   );
 }

@@ -58,7 +58,7 @@ export default function AddTrip() {
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
       headerStyle: { backgroundColor: colors.background, elevation: 0, shadowOpacity: 0 },
-      headerTitleStyle: { color: colors.foreground, fontWeight: "600", fontSize: 18 },
+      headerTitleStyle: { color: colors.foreground, fontWeight: "800", fontSize: 22 },
       headerTintColor: colors.foreground,
       headerLeft: () => (
         <TouchableOpacity
@@ -191,7 +191,11 @@ export default function AddTrip() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={100}
+      >
         <ScrollView
           contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
@@ -208,7 +212,7 @@ export default function AddTrip() {
             style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
             onPress={() => setShowDatePicker(true)}
           >
-            <View className="flex-row items-center">
+            <View className="flex-row items-center flex-1">
               <Calendar size={20} color={colors.primary} />
               <Text className="ml-3 text-base" style={{ color: colors.foreground }}>{formatDate(formData.date.toISOString().split('T')[0])}</Text>
             </View>
@@ -231,9 +235,7 @@ export default function AddTrip() {
                 {getSelectedLabel('client') || "Select Client"}
               </Text>
             </View>
-            <TouchableOpacity onPress={() => setIsClientModalVisible(true)} className="p-1">
-              <Plus size={20} color={colors.primary} />
-            </TouchableOpacity>
+            <ChevronDown size={20} color={colors.mutedForeground} />
           </TouchableOpacity>
 
           <View className="flex-row gap-4">
@@ -254,6 +256,7 @@ export default function AddTrip() {
                     {getSelectedLabel('start') || "From"}
                   </Text>
                 </View>
+                <ChevronDown size={20} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
 
@@ -274,15 +277,9 @@ export default function AddTrip() {
                     {getSelectedLabel('end') || "To"}
                   </Text>
                 </View>
+                <ChevronDown size={20} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              className="mt-11 h-12 w-12 items-center justify-center rounded-2xl border"
-              style={{ backgroundColor: isDark ? colors.card : '#FFFFFF', borderColor: colors.border }}
-              onPress={() => setIsLocationModalVisible(true)}
-            >
-              <Plus size={20} color={colors.primary} />
-            </TouchableOpacity>
           </View>
 
           <View className="flex-row gap-4">
@@ -303,6 +300,7 @@ export default function AddTrip() {
                     {getSelectedLabel('truck') || "Truck"}
                   </Text>
                 </View>
+                <ChevronDown size={20} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
 
@@ -323,15 +321,9 @@ export default function AddTrip() {
                     {getSelectedLabel('driver') || "Driver"}
                   </Text>
                 </View>
+                <ChevronDown size={20} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              className="mt-11 h-12 w-12 items-center justify-center rounded-2xl border"
-              style={{ backgroundColor: isDark ? colors.card : '#FFFFFF', borderColor: colors.border }}
-              onPress={() => setIsDriverModalVisible(true)}
-            >
-              <Plus size={20} color={colors.primary} />
-            </TouchableOpacity>
           </View>
 
           {/* Pricing Row */}
@@ -370,14 +362,16 @@ export default function AddTrip() {
 
           {/* Notes */}
           <InputLabel label="Trip Notes" />
-          <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF', height: 100, alignItems: 'flex-start', paddingTop: 12 }]}>
-            <FileText size={18} color={colors.primary} />
+          <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF', height: 100, alignItems: 'flex-start', paddingTop: 16 }]}>
+            <View style={{ marginTop: 2 }}>
+              <FileText size={18} color={colors.primary} />
+            </View>
             <TextInput
               placeholder="Any additional details..."
               multiline
               numberOfLines={4}
               className="flex-1 ml-2 text-base"
-              style={{ color: colors.foreground, textAlignVertical: 'top' }}
+              style={{ color: colors.foreground, textAlignVertical: 'top', marginTop: -4 }}
               value={formData.notes}
               onChangeText={(t) => setFormData({ ...formData, notes: t })}
               placeholderTextColor={colors.mutedForeground}

@@ -25,8 +25,8 @@ export default function KYCVerification() {
 
     const [pan, setPan] = useState(user?.pan_number || "");
     const [gstin, setGstin] = useState(user?.gstin || "");
-    const [panName, setPanName] = useState(user?.name_as_on_pan || "");
     const [activeTab, setActiveTab] = useState<"pan" | "gstin">("pan");
+    const [isVerifying, setIsVerifying] = useState(false);
 
     const handleVerifyPAN = async () => {
         if (!pan || pan.length !== 10) {
@@ -34,9 +34,10 @@ export default function KYCVerification() {
             return;
         }
         try {
-            const result = await verifyPAN(pan, panName || undefined);
+            setIsVerifying(true);
+            const result = await verifyPAN(pan);
             if (result.verified) {
-                const verifiedName = result.data?.registered_name || panName;
+                const verifiedName = result.data?.registered_name;
 
                 Alert.alert(
                     "Verification Successful",
@@ -69,6 +70,8 @@ export default function KYCVerification() {
             }
         } catch (error: any) {
             Alert.alert("Error", error.response?.data?.message || "Something went wrong during PAN verification");
+        } finally {
+            setIsVerifying(false);
         }
     };
 
@@ -159,6 +162,11 @@ export default function KYCVerification() {
                                             <CheckCircle size={14} color="#16a34a" />
                                             <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
                                         </View>
+                                    ) : isVerifying ? (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                            <Loader2 size={14} color="#f59e0b" />
+                                            <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verifying...</Text>
+                                        </View>
                                     ) : (
                                         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
                                             <XCircle size={14} color="#dc2626" />
@@ -180,27 +188,22 @@ export default function KYCVerification() {
                                             editable={!user?.is_pan_verified}
                                             style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                         />
-                                    </View>
-                                    <View>
-                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: 8, textTransform: 'uppercase' }}>Name as per PAN</Text>
-                                        <TextInput
-                                            value={panName}
-                                            onChangeText={setPanName}
-                                            placeholder="John Doe"
-                                            placeholderTextColor={colors.mutedForeground}
-                                            editable={!user?.is_pan_verified}
-                                            style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
-                                        />
+                                        <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 6, fontStyle: 'italic' }}>Name will be auto-fetched from PAN verification</Text>
                                     </View>
                                 </View>
 
                                 {!user?.is_pan_verified && (
                                     <TouchableOpacity
                                         onPress={handleVerifyPAN}
-                                        disabled={kycLoading}
-                                        style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10 }}
+                                        disabled={isVerifying}
+                                        style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10, opacity: isVerifying ? 0.7 : 1 }}
                                     >
-                                        {kycLoading ? <ActivityIndicator color={colors.primaryForeground} /> : (
+                                        {isVerifying ? (
+                                            <>
+                                                <ActivityIndicator color={colors.primaryForeground} />
+                                                <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16, marginLeft: 8 }}>Verifying...</Text>
+                                            </>
+                                        ) : (
                                             <>
                                                 <ShieldCheck size={20} color={colors.primaryForeground} />
                                                 <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Verify PAN Card</Text>

@@ -6,6 +6,7 @@ import {
   Alert,
   Animated,
   PanResponder,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
@@ -39,6 +40,18 @@ export default function ClientsManager() {
   const isDark = theme === "dark";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchClients();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchClients]);
 
   const requiredFields = ["client_name", "contact_number"];
   const optionalFields = [
@@ -188,6 +201,9 @@ export default function ClientsManager() {
       <ScrollView
         className="flex-1 px-5 pt-2 bg-background"
         contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#FFF" : "#000"} />
+        }
       >
         {clients.length === 0 ? (
           <Text className="text-center text-muted-foreground mt-10">
@@ -243,6 +259,7 @@ export default function ClientsManager() {
       </ScrollView>
 
       {/* Floating Add Button */}
+      {/* Floating Add Button - Removed as per request (Client creation via dedicated flow) 
       <TouchableOpacity
         onPress={() => openModal(false)}
         className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full justify-center items-center"
@@ -256,6 +273,7 @@ export default function ClientsManager() {
       >
         <Plus color="white" size={28} />
       </TouchableOpacity>
+      */}
 
       {/* Full Screen Modal */}
       <ClientFormModal

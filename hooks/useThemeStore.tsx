@@ -45,6 +45,10 @@ export function ThemeStoreProvider({ children }: { children: React.ReactNode }) 
         const validatedMode = savedMode as ThemeMode;
         setMode(validatedMode);
         applyTheme(validatedMode, Appearance.getColorScheme());
+      } else {
+        // No saved preference, default to system
+        setMode("system");
+        applyTheme("system", Appearance.getColorScheme());
       }
     })();
   }, []);

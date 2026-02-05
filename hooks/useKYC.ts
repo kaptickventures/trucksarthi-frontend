@@ -5,11 +5,11 @@ export function useKYC() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const verifyPAN = async (pan: string, name?: string) => {
+  const verifyPAN = async (pan: string) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await API.post('/api/kyc/pan', { pan, name });
+      const res = await API.post('/api/kyc/pan', { pan });
       return res.data;
     } catch (err: any) {
       const msg = err.response?.data?.message || 'PAN Verification Failed';

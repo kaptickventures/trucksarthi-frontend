@@ -3,6 +3,7 @@ import { Edit3, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   Alert,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
@@ -39,6 +40,18 @@ export default function LocationsManager() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchLocations();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchLocations]);
 
   useFocusEffect(
     useCallback(() => {
@@ -131,6 +144,9 @@ export default function LocationsManager() {
       <ScrollView
         className="flex-1 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#FFF" : "#000"} />
+        }
       >
         {locations.length === 0 ? (
           <Text className="text-center text-muted-foreground mt-10">
