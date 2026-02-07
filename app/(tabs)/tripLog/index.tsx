@@ -325,23 +325,7 @@ export default function TripLog() {
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Track and manage your history</Text>
         </View>
 
-        <TripFilters
-          filters={filters}
-          setFilters={setFilters}
-          dropdowns={dropdowns}
-          setDropdowns={setDropdowns}
-          driverItems={driverItems}
-          clientItems={clientItems}
-          truckItems={truckItems}
-          locationItems={locationItems}
-          showFilters={showFilters}
-          toggleFilters={toggleFilters}
-          showDatePicker={showDatePicker}
-          setShowDatePicker={setShowDatePicker}
-          formatDate={formatDateLocal}
-        />
-
-        <View style={{ marginHorizontal: 12, marginTop: 8, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <View style={{ marginHorizontal: 12, marginTop: 12, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <TouchableOpacity
             onPress={toggleFilters}
             style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: isDark ? "#0A3325" : "#E7FCEB", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}
@@ -358,6 +342,22 @@ export default function TripLog() {
             <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#BFDBFE" : "#1D4ED8" }}>PDF</Text>
           </TouchableOpacity>
         </View>
+
+        <TripFilters
+          filters={filters}
+          setFilters={setFilters}
+          dropdowns={dropdowns}
+          setDropdowns={setDropdowns}
+          driverItems={driverItems}
+          clientItems={clientItems}
+          truckItems={truckItems}
+          locationItems={locationItems}
+          showFilters={showFilters}
+          toggleFilters={toggleFilters}
+          showDatePicker={showDatePicker}
+          setShowDatePicker={setShowDatePicker}
+          formatDate={formatDateLocal}
+        />
 
         <View className="mx-3 mt-1 mb-6 bg-card border border-border p-4 rounded-2xl shadow-sm">
           <Text className="text-lg font-semibold text-foreground">{sortedTrips.length} trips found</Text>

@@ -176,18 +176,31 @@ export default function Settings() {
         </View>
       </TouchableOpacity>
 
-      {/* Notification Settings */}
-      <TouchableOpacity
-        onPress={() =>
-          Alert.alert("Coming Soon", "Notification Settings placeholder")
-        }
-        className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-6"
-      >
-        <View className="flex-row items-center gap-2">
+      {/* Notification Settings Toggle */}
+      <View className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-6">
+        <TouchableOpacity
+          onPress={() => router.push("/notifications")}
+          className="flex-row items-center gap-2 flex-1"
+        >
           <Bell size={20} color={colors.primary} />
-          <Text className="text-foreground text-base">Notification Settings</Text>
-        </View>
-      </TouchableOpacity>
+          <View>
+            <Text className="text-foreground text-base">Push Notifications</Text>
+            <Text className="text-muted-foreground text-[10px]">Manage alerts & history</Text>
+          </View>
+        </TouchableOpacity>
+        <Switch
+          value={true} // In a real app, this should track actual permission status or a user preference
+          onValueChange={() => {
+            Alert.alert(
+              "Notification Permissions",
+              "To change notification settings, please go to your device system settings.",
+              [{ text: "OK" }]
+            );
+          }}
+          trackColor={{ false: colors.muted, true: colors.primary }}
+          thumbColor="#f4f3f4"
+        />
+      </View>
 
       {/* ===================== DESKTOP ===================== */}
       <Text className="text-lg font-semibold text-foreground mb-3">Desktop</Text>
