@@ -1,5 +1,5 @@
-import { X } from "lucide-react-native";
-import { useRef } from "react";
+import { X, Search, CheckCircle2 } from "lucide-react-native";
+import { useRef, useState } from "react";
 import {
     Animated,
     KeyboardAvoidingView,
@@ -12,9 +12,12 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    ActivityIndicator,
+    Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../hooks/useThemeStore";
+import { useKYC } from "../hooks/useKYC";
 
 type TruckFormData = {
     registration_number: string;
@@ -29,7 +32,7 @@ type Props = {
     visible: boolean;
     editing: boolean;
     formData: TruckFormData;
-    setFormData: (data: TruckFormData) => void;
+    setFormData: (data: TruckFormData | ((prev: TruckFormData) => TruckFormData)) => void;
     onSubmit: () => void;
     onClose: () => void;
 };
@@ -48,6 +51,36 @@ export default function TruckFormModal({
     const insets = useSafeAreaInsets();
     const SCROLL_THRESHOLD = 40;
 
+    const { verifyRC, loading: isFetching } = useKYC();
+    const [isVerified, setIsVerified] = useState(false);
+
+    const handleFetchRC = async () => {
+        if (!formData.registration_number) {
+            Alert.alert("Error", "Please enter a registration number first.");
+            return;
+        }
+
+        try {
+            const result = await verifyRC(formData.registration_number);
+            if (result.verified && result.data) {
+                const rc = result.data;
+                setFormData((prev: TruckFormData) => ({
+                    ...prev,
+                    registered_owner_name: rc.owner || prev.registered_owner_name,
+                    chassis_number: rc.chassis || prev.chassis_number,
+                    engine_number: rc.engine || prev.engine_number,
+                }));
+                setIsVerified(true);
+                Alert.alert("Success", "Vehicle details fetched successfully!");
+            } else {
+                Alert.alert("Not Found", "Details not found for this vehicle. Please enter manually.");
+            }
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert("Error", error.response?.data?.message || "Failed to fetch vehicle details.");
+        }
+    };
+
     const closeModal = () => {
         Animated.timing(translateY, {
             toValue: 800,
@@ -55,6 +88,7 @@ export default function TruckFormModal({
             useNativeDriver: true,
         }).start(() => {
             translateY.setValue(0);
+            setIsVerified(false);
             onClose();
         });
     };
@@ -131,21 +165,50 @@ export default function TruckFormModal({
                                         <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
                                             {field.label} {field.required && <Text style={{ color: colors.destructive }}>*</Text>}
                                         </Text>
-                                        <TextInput
-                                            className="rounded-2xl p-4 text-base font-bold"
-                                            style={{
-                                                backgroundColor: isDark ? colors.card : colors.secondary + '40',
-                                                color: colors.foreground,
-                                                borderWidth: 1,
-                                                borderColor: isDark ? colors.border : colors.border + '30'
-                                            }}
-                                            value={formData[field.key]}
-                                            onChangeText={(val) => setFormData({ ...formData, [field.key]: val })}
-                                            placeholder={field.placeholder}
-                                            placeholderTextColor={colors.mutedForeground + '80'}
-                                            keyboardType={field.numeric ? "numeric" : "default"}
-                                            autoCapitalize={field.key === "registration_number" ? "characters" : "words"}
-                                        />
+                                        <View className="flex-row items-center gap-2">
+                                            <View className="flex-1">
+                                                <TextInput
+                                                    className="rounded-2xl p-4 text-base font-bold"
+                                                    style={{
+                                                        backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                                                        color: colors.foreground,
+                                                        borderWidth: 1,
+                                                        borderColor: (field.key === "registration_number" && isVerified) ? '#22C55E' : (isDark ? colors.border : colors.border + '30')
+                                                    }}
+                                                    value={formData[field.key]}
+                                                    onChangeText={(val) => {
+                                                        if (field.key === "registration_number") setIsVerified(false);
+                                                        setFormData({ ...formData, [field.key]: val });
+                                                    }}
+                                                    placeholder={field.placeholder}
+                                                    placeholderTextColor={colors.mutedForeground + '80'}
+                                                    keyboardType={field.numeric ? "numeric" : "default"}
+                                                    autoCapitalize={field.key === "registration_number" ? "characters" : "words"}
+                                                />
+                                            </View>
+                                            {field.key === "registration_number" && !editing && (
+                                                <TouchableOpacity
+                                                    onPress={handleFetchRC}
+                                                    disabled={isFetching}
+                                                    style={{
+                                                        backgroundColor: isVerified ? '#22C55E20' : colors.primary,
+                                                        width: 54,
+                                                        height: 54,
+                                                        borderRadius: 16,
+                                                        justifyContent: 'center',
+                                                        alignItems: 'center'
+                                                    }}
+                                                >
+                                                    {isFetching ? (
+                                                        <ActivityIndicator color="white" size="small" />
+                                                    ) : isVerified ? (
+                                                        <CheckCircle2 color="#22C55E" size={24} />
+                                                    ) : (
+                                                        <Search color="white" size={24} />
+                                                    )}
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
                                     </View>
                                 ))}
 

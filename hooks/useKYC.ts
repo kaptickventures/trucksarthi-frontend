@@ -35,10 +35,43 @@ export function useKYC() {
     }
   };
 
+  const verifyRC = async (registrationNumber: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await API.post('/api/kyc/rc', { registration_number: registrationNumber });
+      return res.data;
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Vehicle RC Verification Failed';
+      setError(msg);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyBank = async (bankAccount: string, ifsc: string, name?: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await API.post('/api/kyc/bank', { bank_account: bankAccount, ifsc, name });
+      return res.data;
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Bank Verification Failed';
+      setError(msg);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
     verifyPAN,
     verifyGSTIN,
+    verifyRC,
+    verifyBank,
   };
 }
+

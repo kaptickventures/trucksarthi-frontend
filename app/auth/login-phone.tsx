@@ -28,6 +28,7 @@ export default function LoginPhone() {
 
   const [phoneNumber, setPhoneNumber] = useState("+91");
   const [code, setCode] = useState("");
+  const [userType, setUserType] = useState<"fleet_owner" | "driver">("fleet_owner");
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
@@ -45,7 +46,7 @@ export default function LoginPhone() {
     }
     try {
       setLoading(true);
-      await sendPhoneOtp(phoneNumber);
+      await sendPhoneOtp(phoneNumber, userType);
       setOtpSent(true);
     } catch (error: any) {
       Alert.alert("Error", error || "Failed to send OTP. Please try again.");
@@ -58,7 +59,7 @@ export default function LoginPhone() {
     if (code.length < 4) return Alert.alert("Error", "Please enter the complete OTP.");
     try {
       setLoading(true);
-      await loginWithPhone(phoneNumber, code);
+      await loginWithPhone(phoneNumber, code, userType);
       await postLoginFlow(router);
     } catch (err: any) {
       Alert.alert("Verification Failed", err || "Invalid OTP. Please check and try again.");
@@ -107,6 +108,58 @@ export default function LoginPhone() {
 
             {!otpSent ? (
               <View style={{ gap: 20 }}>
+                {/* Role Switcher */}
+                <View style={{
+                  flexDirection: 'row',
+                  backgroundColor: isDark ? colors.card : '#F0F2F5',
+                  borderRadius: 16,
+                  padding: 4,
+                  marginBottom: 8
+                }}>
+                  <TouchableOpacity
+                    onPress={() => setUserType('fleet_owner')}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      alignItems: 'center',
+                      borderRadius: 12,
+                      backgroundColor: userType === 'fleet_owner' ? (isDark ? colors.foreground : 'white') : 'transparent',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: userType === 'fleet_owner' ? 0.1 : 0,
+                      shadowRadius: 4,
+                      elevation: userType === 'fleet_owner' ? 2 : 0
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 14,
+                      fontWeight: '700',
+                      color: userType === 'fleet_owner' ? (isDark ? colors.background : colors.foreground) : colors.mutedForeground
+                    }}>Fleet Owner</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setUserType('driver')}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      alignItems: 'center',
+                      borderRadius: 12,
+                      backgroundColor: userType === 'driver' ? (isDark ? colors.foreground : 'white') : 'transparent',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: userType === 'driver' ? 0.1 : 0,
+                      shadowRadius: 4,
+                      elevation: userType === 'driver' ? 2 : 0
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 14,
+                      fontWeight: '700',
+                      color: userType === 'driver' ? (isDark ? colors.background : colors.foreground) : colors.mutedForeground
+                    }}>Driver</Text>
+                  </TouchableOpacity>
+                </View>
+
                 <View>
                   <Text style={{ fontSize: 14, fontWeight: '600', color: colors.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
                     Phone Number

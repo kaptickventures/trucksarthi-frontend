@@ -1,22 +1,16 @@
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import API from "../app/api/axiosInstance";
 
-// Set how notifications should be handled when the app is open
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+const isExpoGo = Constants.appOwnership === "expo";
 
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState("");
-  const notificationListener = useRef<any>();
-  const responseListener = useRef<any>();
+  const notificationListener = useRef<any>(null);
+  const responseListener = useRef<any>(null);
 
   async function registerForPushNotificationsAsync() {
     let token;
@@ -68,6 +62,22 @@ export function usePushNotifications() {
   };
 
   useEffect(() => {
+    if (isExpoGo) {
+      console.log("Skipping push notification registration in Expo Go.");
+      return;
+    }
+
+    // Set how notifications should be handled when the app is open.
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+
     registerForPushNotificationsAsync().then((token) => {
       if (token) {
         setExpoPushToken(token);
@@ -90,8 +100,12 @@ export function usePushNotifications() {
     );
 
     return () => {
-      Notifications.removeNotificationSubscription(notificationListener.current);
-      Notifications.removeNotificationSubscription(responseListener.current);
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
     };
   }, []);
 

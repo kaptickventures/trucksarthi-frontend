@@ -7,9 +7,9 @@ import {
     FlatList,
     TextInput,
     StyleSheet,
-    SafeAreaView,
     useColorScheme,
 } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Search, Plus, X, Check } from 'lucide-react-native';
 import { THEME } from '../theme';
 

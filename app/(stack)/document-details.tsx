@@ -11,7 +11,6 @@ import {
     Image,
     Modal,
     Platform,
-    SafeAreaView,
     ScrollView,
     Share,
     StatusBar,
@@ -20,6 +19,7 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTruckDocuments from "../../hooks/useTruckDocuments";

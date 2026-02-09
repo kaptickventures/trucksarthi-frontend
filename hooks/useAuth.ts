@@ -41,9 +41,9 @@ export async function verifyEmailOtp(email: string, otp: string) {
 }
 
 // Deprecated or unused phone OTP function (renaming/keeping for safety but not using)
-export async function sendPhoneOtp(phone: string) {
+export async function sendPhoneOtp(phone: string, userType?: string) {
   try {
-    await API.post("/api/auth/request-phone-otp", { phone });
+    await API.post("/api/auth/request-phone-otp", { phone, userType });
     return true;
   } catch (err: any) {
     console.error("❌ Send OTP error:", err.response?.data || err.message);
@@ -51,9 +51,9 @@ export async function sendPhoneOtp(phone: string) {
   }
 }
 
-export async function loginWithPhone(phone: string, otp: string) {
+export async function loginWithPhone(phone: string, otp: string, userType?: string) {
   try {
-    const res = await API.post("/api/auth/verify-phone-otp", { phone, otp });
+    const res = await API.post("/api/auth/verify-phone-otp", { phone, otp, userType });
     const { token, user } = res.data;
     if (token) {
       await AsyncStorage.setItem("userToken", token);
@@ -67,7 +67,7 @@ export async function loginWithPhone(phone: string, otp: string) {
 
 export async function registerUser(name: string, email: string, pass: string) {
   try {
-    const res = await API.post("/api/auth/", { name, email, password: pass });
+    const res = await API.post("/api/auth/", { name, email, password: pass, userType: 'fleet_owner' });
     const { token, user } = res.data;
     if (token) {
       await AsyncStorage.setItem("userToken", token);
@@ -100,11 +100,17 @@ export async function postLoginFlow(router: any) {
       return;
     }
 
+    // Role-based routing
+    if (user.userType === 'driver') {
+      router.replace("/(driver)/(tabs)");
+      return;
+    }
+
     const res = await API.get(`/api/users/check-profile/${user._id}`);
     const completed = res.data?.profileCompleted;
 
     if (completed) {
-      router.replace("/home");
+      router.replace("/(tabs)/home");
     } else {
       router.replace("/basic-details");
     }

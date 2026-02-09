@@ -11,12 +11,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sahilgumber7.trucksarthi",
+      "bundleIdentifier": "com.trucksarthi.app",
       "buildNumber": "1.0.0"
     },
     "android": {
-      "package": "com.sahilgumber7.trucksarthi",
-      "versionCode": 29,
+      "package": "com.trucksarthi.app",
+      "versionCode": 1,
       "permissions": [
         "android.permission.INTERNET"
       ],
@@ -76,15 +76,15 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "1196740f-77b4-45d2-a85e-ec3b44fd5d74"
+        "projectId": "092c3436-79f6-481d-968d-549b9116286e"
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
+    "owner": "trucksarthi01",
     "updates": {
-      "enabled": false,
-      "url": "https://u.expo.dev/1196740f-77b4-45d2-a85e-ec3b44fd5d74"
+      "url": "https://u.expo.dev/092c3436-79f6-481d-968d-549b9116286e"
     }
   }
 }

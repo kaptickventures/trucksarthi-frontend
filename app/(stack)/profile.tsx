@@ -33,6 +33,7 @@ import "../../global.css";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
 import { formatDate, getFileUrl } from "../../lib/utils";
+import API from "../api/axiosInstance";
 
 export default function Profile() {
   const router = useRouter();
@@ -63,6 +64,10 @@ export default function Profile() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dobDate, setDobDate] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<"personal" | "company" | "financial">("personal");
+
+  // Bank verification states
+  const [verifyingBank, setVerifyingBank] = useState(false);
+  const [bankVerificationResult, setBankVerificationResult] = useState<any>(null);
 
   useEffect(() => {
     if (user) {
@@ -161,6 +166,46 @@ export default function Profile() {
       Alert.alert("Error", "Could not update profile");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBankVerification = async () => {
+    if (!formData.account_number || !formData.ifsc_code) {
+      Alert.alert("Missing Information", "Please enter both Account Number and IFSC Code");
+      return;
+    }
+
+    try {
+      setVerifyingBank(true);
+      const response = await API.post("/api/kyc/bank", {
+        bank_account: formData.account_number,
+        ifsc: formData.ifsc_code,
+        name: formData.account_holder_name || formData.name,
+        phone: formData.phone,
+      });
+
+      setBankVerificationResult(response.data);
+
+      if (response.data.verified) {
+        Alert.alert(
+          "✅ Bank Account Verified!",
+          `Account Holder: ${response.data.data.nameAtBank}\n` +
+          `Bank: ${response.data.data.bankName}\n` +
+          `Branch: ${response.data.data.branch}` +
+          (response.data.data.nameMatchResult ? `\n\nName Match: ${response.data.data.nameMatchResult.replace(/_/g, ' ')}` : ""),
+          [{ text: "OK", onPress: () => refreshUser() }]
+        );
+      } else {
+        Alert.alert("Verification Failed", response.data.message || "Unable to verify bank account");
+      }
+    } catch (error: any) {
+      console.error("Bank verification error:", error);
+      Alert.alert(
+        "Verification Error",
+        error.response?.data?.message || "Failed to verify bank account. Please check your details."
+      );
+    } finally {
+      setVerifyingBank(false);
     }
   };
 
@@ -356,10 +401,81 @@ export default function Profile() {
             {activeTab === 'financial' && (
               <View style={{ gap: 20 }}>
                 <SectionHeader title="Settlement Details" icon={<Landmark size={18} color={colors.primary} />} />
+
+                {/* Bank Verification Status */}
+                {(user?.is_bank_verified || bankVerificationResult?.verified) && (
+                  <View style={{
+                    backgroundColor: '#f0fdf4',
+                    padding: 12,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: '#bbf7d0',
+                    marginBottom: 8
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <ShieldCheck size={20} color="#16a34a" />
+                      <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#16a34a' }}>
+                        Bank Account Verified ✓
+                      </Text>
+                    </View>
+                    {bankVerificationResult?.data && (
+                      <View style={{ marginTop: 8, gap: 4 }}>
+                        <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                          Account Holder: {bankVerificationResult.data.nameAtBank}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                          Bank: {bankVerificationResult.data.bankName} - {bankVerificationResult.data.branch}
+                        </Text>
+                        {bankVerificationResult.data.nameMatchResult && (
+                          <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                            Name Match: {bankVerificationResult.data.nameMatchResult.replace(/_/g, ' ')}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
+
                 <ProfileInput label="Bank Name" value={formData.bank_name} editable={isEditing} onChange={(v: string) => markChanged("bank_name", v)} icon={<Landmark size={18} color={colors.mutedForeground} />} />
                 <ProfileInput label="Account Holder" value={formData.account_holder_name} editable={isEditing} onChange={(v: string) => markChanged("account_holder_name", v)} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
                 <ProfileInput label="Account Number" value={formData.account_number} editable={isEditing} onChange={(v: string) => markChanged("account_number", v)} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Enter account number" />
                 <ProfileInput label="IFSC Code" value={formData.ifsc_code} editable={isEditing} onChange={(v: string) => markChanged("ifsc_code", v)} icon={<ShieldCheck size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
+
+                {/* Verify Bank Button */}
+                {formData.account_number && formData.ifsc_code && (
+                  <TouchableOpacity
+                    onPress={handleBankVerification}
+                    disabled={verifyingBank}
+                    style={{
+                      backgroundColor: user?.is_bank_verified ? colors.muted : colors.primary,
+                      borderRadius: 12,
+                      paddingVertical: 14,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginTop: 8,
+                      opacity: verifyingBank ? 0.7 : 1
+                    }}
+                  >
+                    {verifyingBank ? (
+                      <ActivityIndicator color={colors.primaryForeground} />
+                    ) : (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <ShieldCheck size={18} color={user?.is_bank_verified ? colors.mutedForeground : colors.primaryForeground} />
+                        <Text style={{
+                          color: user?.is_bank_verified ? colors.mutedForeground : colors.primaryForeground,
+                          fontWeight: 'bold',
+                          fontSize: 14
+                        }}>
+                          {user?.is_bank_verified ? 'Re-verify Bank Account' : 'Verify Bank Account'}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )}
+
+                <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: -8, textAlign: 'center' }}>
+                  Verification powered by Cashfree • Secure & Instant
+                </Text>
               </View>
             )}
 

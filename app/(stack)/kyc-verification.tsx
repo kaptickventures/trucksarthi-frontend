@@ -21,11 +21,14 @@ export default function KYCVerification() {
     const router = useRouter();
     const { colors } = useThemeStore();
     const { user, refreshUser, updateUser } = useUser();
-    const { verifyPAN, verifyGSTIN, loading: kycLoading } = useKYC();
+    const { verifyPAN, verifyGSTIN, verifyBank, loading: kycLoading } = useKYC();
 
     const [pan, setPan] = useState(user?.pan_number || "");
     const [gstin, setGstin] = useState(user?.gstin || "");
-    const [activeTab, setActiveTab] = useState<"pan" | "gstin">("pan");
+    const [bankAccount, setBankAccount] = useState(user?.account_number || "");
+    const [ifsc, setIfsc] = useState(user?.ifsc_code || "");
+    const [activeTab, setActiveTab] = useState<"pan" | "gstin" | "bank">("pan");
+
     const [isVerifying, setIsVerifying] = useState(false);
 
     const handleVerifyPAN = async () => {
@@ -115,6 +118,50 @@ export default function KYCVerification() {
         }
     };
 
+    const handleVerifyBank = async () => {
+        if (!bankAccount || !ifsc) {
+            Alert.alert("Error", "Please enter bank account number and IFSC code");
+            return;
+        }
+        try {
+            setIsVerifying(true);
+            const result = await verifyBank(bankAccount, ifsc);
+            if (result.verified) {
+                const nameAtBank = result.data?.name_at_bank;
+
+                Alert.alert(
+                    "Verification Successful",
+                    `Account verified for ${nameAtBank}. Save to your profile?`,
+                    [
+                        { text: "No", style: "cancel", onPress: () => refreshUser() },
+                        {
+                            text: "Yes, Save",
+                            onPress: async () => {
+                                try {
+                                    await updateUser({
+                                        account_number: bankAccount,
+                                        ifsc_code: ifsc
+                                    });
+                                    Alert.alert("Success", "Bank details updated!");
+                                    refreshUser();
+                                } catch (err) {
+                                    Alert.alert("Error", "Verified but failed to update profile.");
+                                }
+                            }
+
+                        }
+                    ]
+                );
+            } else {
+                Alert.alert("Verification Failed", result.message || "Invalid Bank details");
+            }
+        } catch (error: any) {
+            Alert.alert("Error", error.response?.data?.message || "Something went wrong during Bank verification");
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
             <View style={{ flex: 1 }}>
@@ -141,13 +188,19 @@ export default function KYCVerification() {
                             onPress={() => setActiveTab('pan')}
                             style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'pan' ? colors.background : 'transparent' }}
                         >
-                            <Text style={{ fontWeight: 'bold', color: activeTab === 'pan' ? colors.primary : colors.mutedForeground }}>PAN Card</Text>
+                            <Text style={{ fontWeight: 'bold', color: activeTab === 'pan' ? colors.primary : colors.mutedForeground }}>PAN</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             onPress={() => setActiveTab('gstin')}
                             style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'gstin' ? colors.background : 'transparent' }}
                         >
                             <Text style={{ fontWeight: 'bold', color: activeTab === 'gstin' ? colors.primary : colors.mutedForeground }}>GSTIN</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setActiveTab('bank')}
+                            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'bank' ? colors.background : 'transparent' }}
+                        >
+                            <Text style={{ fontWeight: 'bold', color: activeTab === 'bank' ? colors.primary : colors.mutedForeground }}>Bank</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -279,6 +332,79 @@ export default function KYCVerification() {
                                     <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 4 }}>Trade Name: {user.kyc_data.gstin_details.trade_name_of_business}</Text>
                                     <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Taxpayer Type: {user.kyc_data.gstin_details.taxpayer_type}</Text>
                                     <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Status: {user.kyc_data.gstin_details.gst_in_status}</Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
+
+                    {/* Bank Section */}
+                    {activeTab === 'bank' && (
+                        <View>
+                            <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                    <Building2 size={24} color={colors.primary} />
+                                    {user?.is_bank_verified ? (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                            <CheckCircle size={14} color="#16a34a" />
+                                            <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
+                                        </View>
+                                    ) : (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                            <XCircle size={14} color="#dc2626" />
+                                            <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
+                                        </View>
+                                    )}
+                                </View>
+
+                                <View style={{ gap: 16 }}>
+                                    <View>
+                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: 8, textTransform: 'uppercase' }}>Account Number</Text>
+                                        <TextInput
+                                            value={bankAccount}
+                                            onChangeText={setBankAccount}
+                                            placeholder="Enter Account Number"
+                                            placeholderTextColor={colors.mutedForeground}
+                                            keyboardType="numeric"
+                                            editable={!user?.is_bank_verified}
+                                            style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                                        />
+                                    </View>
+                                    <View>
+                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: 8, textTransform: 'uppercase' }}>IFSC Code</Text>
+                                        <TextInput
+                                            value={ifsc}
+                                            onChangeText={setIfsc}
+                                            placeholder="HDFC0001234"
+                                            placeholderTextColor={colors.mutedForeground}
+                                            autoCapitalize="characters"
+                                            editable={!user?.is_bank_verified}
+                                            style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                                        />
+                                    </View>
+                                </View>
+
+                                {!user?.is_bank_verified && (
+                                    <TouchableOpacity
+                                        onPress={handleVerifyBank}
+                                        disabled={isVerifying}
+                                        style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10, opacity: isVerifying ? 0.7 : 1 }}
+                                    >
+                                        {isVerifying ? <ActivityIndicator color={colors.primaryForeground} /> : (
+                                            <>
+                                                <ShieldCheck size={20} color={colors.primaryForeground} />
+                                                <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Verify Bank Account</Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {user?.is_bank_verified && user.kyc_data?.bank_details && (
+                                <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
+                                    <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Bank Details:</Text>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 4 }}>Beneficiary: {user.kyc_data.bank_details.name_at_bank}</Text>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Bank: {user.kyc_data.bank_details.bank_name}</Text>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Status: {user.kyc_data.bank_details.account_status}</Text>
                                 </View>
                             )}
                         </View>

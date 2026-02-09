@@ -33,9 +33,11 @@ export interface User {
   ifsc_code?: string;
   is_gstin_verified?: boolean;
   is_pan_verified?: boolean;
+  is_bank_verified?: boolean;
   kyc_data?: {
     pan_details?: any;
     gstin_details?: any;
+    bank_details?: any;
   };
 
   createdAt?: ISODate;
