@@ -12,6 +12,7 @@ import { useEffect } from "react";
 
 import { THEME } from "../../theme";
 import { useAuth } from "../../context/AuthContext";
+import { getUserRole } from "../../hooks/useAuth";
 
 export default function StackLayout() {
   const isDark = useColorScheme() === "dark";
@@ -20,14 +21,14 @@ export default function StackLayout() {
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    const userRole = user?.user_type || user?.userType;
-    if (!loading && user && userRole === 'driver') {
+    const userRole = getUserRole(user);
+    if (!loading && user && userRole === "driver") {
       router.replace("/(driver)/(tabs)");
     }
-  }, [user, loading]);
+  }, [user, loading, router]);
 
-  const userRole = user?.user_type || user?.userType;
-  if (loading || !user || userRole === 'driver') {
+  const userRole = getUserRole(user);
+  if (loading || !user || userRole === "driver") {
     return null;
   }
 

@@ -4,6 +4,7 @@ import Constants from "expo-constants";
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import API from "../app/api/axiosInstance";
+import { useAuth } from "../context/AuthContext";
 
 const isExpoGo = Constants.appOwnership === "expo";
 
@@ -11,6 +12,7 @@ export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState("");
   const notificationListener = useRef<any>(null);
   const responseListener = useRef<any>(null);
+  const { user } = useAuth();
 
   async function registerForPushNotificationsAsync() {
     let token;
@@ -81,7 +83,6 @@ export function usePushNotifications() {
     registerForPushNotificationsAsync().then((token) => {
       if (token) {
         setExpoPushToken(token);
-        registerTokenWithBackend(token);
       }
     });
 
@@ -108,6 +109,11 @@ export function usePushNotifications() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!expoPushToken || !user?._id) return;
+    registerTokenWithBackend(expoPushToken);
+  }, [expoPushToken, user?._id]);
 
   return { expoPushToken };
 }

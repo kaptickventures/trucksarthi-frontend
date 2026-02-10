@@ -7,6 +7,7 @@ import { useEffect } from "react";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useAuth } from "../../context/AuthContext";
+import { getUserRole } from "../../hooks/useAuth";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -16,14 +17,14 @@ export default function TabLayout() {
   const isDark = theme === "dark";
 
   useEffect(() => {
-    const userRole = user?.user_type || user?.userType;
-    if (!loading && user && userRole === 'driver') {
-      router.replace("/(driver)/(tabs)");
+    const userRole = getUserRole(user);
+    if (!loading && user && userRole === "driver") {
+      router.replace("/(driver)/(tabs)/home" as any);
     }
-  }, [user, loading]);
+  }, [user, loading, router]);
 
-  const userRole = user?.user_type || user?.userType;
-  if (loading || !user || userRole === 'driver') {
+  const userRole = getUserRole(user);
+  if (loading || !user || userRole === "driver") {
     return null; // or a loading spinner
   }
 

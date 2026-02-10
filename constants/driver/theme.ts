@@ -1,15 +1,16 @@
 export const Colors = {
-  primary: '#4CAF50', // Light Green
-  primaryDark: '#388E3C',
-  primaryLight: '#C8E6C9',
+  // Aligned with app-wide light theme tokens in `theme.ts`
+  primary: '#25D366',
+  primaryDark: '#1DAA61',
+  primaryLight: '#E6FFEE',
   background: '#FFFFFF',
-  surface: '#F5F5F5',
-  text: '#1A1A1A',
-  textSecondary: '#757575',
-  border: '#E0E0E0',
-  error: '#D32F2F',
-  success: '#388E3C',
-  warning: '#FBC02D',
+  surface: '#F7F7F7',
+  text: '#111B21',
+  textSecondary: '#666666',
+  border: '#D1D1D1',
+  error: '#FF4B4B',
+  success: '#25D366',
+  warning: '#F4B400',
   white: '#FFFFFF',
 };
 
@@ -22,9 +23,9 @@ export const Spacing = {
 };
 
 export const BorderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 18,
   round: 9999,
 };

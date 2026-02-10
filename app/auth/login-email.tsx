@@ -16,10 +16,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { loginWithEmail, postLoginFlow } from "../../hooks/useAuth";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useAuth as useAuthContext } from "../../context/AuthContext";
 
 export default function LoginEmail() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { refreshUser } = useAuthContext();
   const isDark = theme === "dark";
 
   const [email, setEmail] = useState("");
@@ -33,6 +35,7 @@ export default function LoginEmail() {
     try {
       setLoading(true);
       await loginWithEmail(email.toLowerCase().trim(), pw.trim());
+      await refreshUser();
       await postLoginFlow(router);
     } catch (e: any) {
       Alert.alert("Login Failed", e || "Invalid credentials. Please try again.");
@@ -176,7 +179,7 @@ export default function LoginEmail() {
                 style={{ paddingVertical: 12 }}
               >
                 <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>
-                  Don't have an account? <Text style={{ color: colors.primary, fontWeight: '700' }}>Sign Up</Text>
+                  Don&apos;t have an account? <Text style={{ color: colors.primary, fontWeight: '700' }}>Sign Up</Text>
                 </Text>
               </TouchableOpacity>
             </View>

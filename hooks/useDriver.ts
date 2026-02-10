@@ -23,7 +23,11 @@ export default function useDrivers() {
 
   const addDriver = async (data: Partial<Driver>) => {
     try {
-      const res = await API.post(`/api/drivers`, data);
+      const payload = {
+        name: data.name || data.driver_name,
+        phoneNumber: data.phone || data.contact_number,
+      };
+      const res = await API.post(`/api/drivers`, payload);
       setDrivers((prev) => [...prev, res.data]);
       return res.data;
     } catch (error: any) {
@@ -68,7 +72,7 @@ export default function useDrivers() {
       setDrivers((prev) =>
         prev.map((d) =>
           d._id === driverId
-            ? { ...d, license_card_url: res.data.file_url || res.data.license_card_url }
+            ? { ...d, license_card_url: res.data.file_url || res.data.driver?.license_card_url }
             : d
         )
       );
@@ -101,7 +105,7 @@ export default function useDrivers() {
       setDrivers((prev) =>
         prev.map((d) =>
           d._id === driverId
-            ? { ...d, identity_card_url: res.data.file_url || res.data.identity_card_url }
+            ? { ...d, identity_card_url: res.data.file_url || res.data.driver?.identity_card_url }
             : d
         )
       );

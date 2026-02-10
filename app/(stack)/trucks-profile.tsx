@@ -224,7 +224,7 @@ export default function TruckProfile() {
 
   const driverMap = useMemo(() => {
     const map: Record<string, string> = {};
-    (drivers || []).forEach((d) => { if (d && d._id) map[d._id] = d.driver_name; });
+    (drivers || []).forEach((d) => { if (d && d._id) map[d._id] = d.name || d.driver_name || "Driver"; });
     return map;
   }, [drivers]);
 

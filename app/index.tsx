@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
-import { postLoginFlow } from "../hooks/useAuth";
+import { getUserRole, postLoginFlow } from "../hooks/useAuth";
 import { useAuth } from "../context/AuthContext";
 
 export default function Index() {
@@ -12,7 +12,12 @@ export default function Index() {
   useEffect(() => {
     if (!loading) {
       if (user) {
-        postLoginFlow(router);
+        const role = getUserRole(user);
+        if (role === "driver") {
+          router.replace("/(driver)/(tabs)/home" as any);
+        } else {
+          postLoginFlow(router);
+        }
       } else {
         router.replace("/auth/login");
       }

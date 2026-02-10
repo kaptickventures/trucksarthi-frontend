@@ -23,6 +23,8 @@ export interface User {
   address?: string;
   date_of_birth?: ISODate;
   profile_picture_url?: string;
+  license_card_url?: string;
+  identity_card_url?: string;
 
   gstin?: string;
   pan_number?: string;
@@ -104,8 +106,10 @@ export interface Driver {
   _id: ObjectId;
   user: ObjectId | User;
 
-  driver_name: string;
-  contact_number: string;
+  name?: string;
+  phone?: string;
+  driver_name?: string;
+  contact_number?: string;
 
   identity_card_url?: string;
   license_card_url?: string;

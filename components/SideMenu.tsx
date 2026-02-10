@@ -13,18 +13,16 @@ import {
   View,
 } from "react-native";
 import "../global.css";
-import { logout } from "../hooks/useAuth";
+import { logout, getUserRole } from "../hooks/useAuth";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { useUser } from "../hooks/useUser";
 import { getFileUrl } from "../lib/utils";
-
-// 👉 Added Lucide Icon
-import { Clock } from "lucide-react-native";
+import { Clock, Globe, Bell } from "lucide-react-native";
+import { useDriverAppContext } from "../context/DriverAppContext";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-
-const LINKS = [
+const FLEET_LINKS = [
   { title: "Trip Log", icon: "clock", route: "/tripLog" as const },
   { title: "Documents", icon: "folder", route: "/documents-manager" as const },
   { title: "Settings", icon: "settings-outline", route: "/settings" as const },
@@ -37,10 +35,12 @@ const MANAGER_LINKS = [
   { title: "Locations", icon: "location-outline", route: "/locations-manager" as const },
 ] as const;
 
-type RoutePath =
-  | "/profile"
-  | (typeof LINKS)[number]["route"]
-  | (typeof MANAGER_LINKS)[number]["route"];
+const DRIVER_LINKS = [
+  { title: "Home", icon: "home", route: "/(driver)/(tabs)/home" as const },
+  { title: "History", icon: "history", route: "/(driver)/(tabs)/history" as const },
+  { title: "Khata", icon: "list", route: "/(driver)/(tabs)/ledger" as const },
+  { title: "Notifications", icon: "notifications", route: "/(driver)/notifications" as const },
+] as const;
 
 export default function SideMenu({
   isVisible,
@@ -52,6 +52,15 @@ export default function SideMenu({
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const { user, loading } = useUser();
+  const userRole = getUserRole(user);
+
+  // Driver specific hooks
+  let driverContext: any = null;
+  try {
+    driverContext = useDriverAppContext();
+  } catch (e) {
+    // Not in driver context
+  }
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
 
@@ -72,7 +81,7 @@ export default function SideMenu({
     }).start();
   }, [isVisible]);
 
-  const navigate = (path: RoutePath) => {
+  const navigate = (path: string) => {
     onClose();
     router.push(path as any);
   };
@@ -88,6 +97,15 @@ export default function SideMenu({
     } catch (err) {
       console.log("Logout failed:", err);
     }
+  };
+
+  const renderIcon = (iconName: string, size = 24) => {
+    if (iconName === "clock" || iconName === "history") return <Clock size={size} color={colors.foreground} />;
+    if (iconName === "folder") return <Ionicons name="folder-outline" size={size} color={colors.foreground} />;
+    if (iconName === "list") return <Ionicons name="list-outline" size={size} color={colors.foreground} />;
+    if (iconName === "home") return <Ionicons name="home-outline" size={size} color={colors.foreground} />;
+    if (iconName === "notifications") return <Bell size={size} color={colors.foreground} />;
+    return <Ionicons name={iconName as any} size={size} color={colors.foreground} />;
   };
 
   return (
@@ -149,7 +167,7 @@ export default function SideMenu({
                     {loading ? "Loading..." : user?.name || "Guest"}
                   </Text>
                   <Text className="text-sm" style={{ color: colors.mutedForeground }}>
-                    {user?.email || ""}
+                    {user?.email || user?.phone || ""}
                   </Text>
                 </View>
               </View>
@@ -158,53 +176,87 @@ export default function SideMenu({
 
           {/* SCROLLABLE MENU ITEMS */}
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-            {/* MAIN MENU */}
-            <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-              MAIN MENU
-            </Text>
-
-            {LINKS.map((item, idx) => (
-              <TouchableOpacity
-                key={idx}
-                onPress={() => navigate(item.route)}
-                className="flex-row items-center py-4"
-              >
-                {item.title === "Trip Log" ? (
-                  <Clock size={24} color={colors.foreground} />
-                ) : item.title === "Documents" ? (
-                  <Ionicons name="folder-outline" size={24} color={colors.foreground} />
-                ) : (
-                  <Ionicons name={item.icon as any} size={24} color={colors.foreground} />
-                )}
-
-                <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                  {item.title}
+            {userRole === "driver" ? (
+              <>
+                <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
+                  MAIN MENU
                 </Text>
-              </TouchableOpacity>
-            ))}
+                {DRIVER_LINKS.map((item, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => navigate(item.route)}
+                    className="flex-row items-center py-4"
+                  >
+                    {renderIcon(item.icon)}
+                    <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                      {item.title}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
 
-            {/* MANAGER SECTION */}
-            <View className="mt-8 mb-6">
-              <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                MANAGER
-              </Text>
-
-              {MANAGER_LINKS.map((item, idx) => (
                 <TouchableOpacity
-                  key={idx}
-                  onPress={() => navigate(item.route)}
+                  onPress={() => navigate("/settings")}
                   className="flex-row items-center py-4"
                 >
-                  <Ionicons name={item.icon as any} size={24} color={colors.foreground} />
+                  <Ionicons name="settings-outline" size={24} color={colors.foreground} />
                   <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                    {item.title}
+                    Settings
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+
+                {driverContext && (
+                  <TouchableOpacity
+                    onPress={() => driverContext.setLanguage(driverContext.language === 'en' ? 'hi' : 'en')}
+                    className="flex-row items-center py-4"
+                  >
+                    <Globe size={24} color={colors.foreground} />
+                    <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                      {driverContext.language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+              <>
+                <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
+                  MAIN MENU
+                </Text>
+                {FLEET_LINKS.map((item, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => navigate(item.route)}
+                    className="flex-row items-center py-4"
+                  >
+                    {renderIcon(item.icon)}
+                    <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                      {item.title}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+
+                {/* MANAGER SECTION */}
+                <View className="mt-8 mb-6">
+                  <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
+                    MANAGER
+                  </Text>
+                  {MANAGER_LINKS.map((item, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      onPress={() => navigate(item.route)}
+                      className="flex-row items-center py-4"
+                    >
+                      {renderIcon(item.icon)}
+                      <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                        {item.title}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
 
             {/* Logout */}
-            <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4">
+            <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4 mt-4">
               <Ionicons name="log-out-outline" size={26} color="#ef4444" />
               <Text
                 className="ml-4 text-lg font-medium"
@@ -219,3 +271,4 @@ export default function SideMenu({
     </>
   );
 }
+

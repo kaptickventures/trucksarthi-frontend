@@ -53,7 +53,7 @@ export default function LoginOptions() {
               <Text style={{ color: colors.primary }}>Simplified.</Text>
             </Text>
             <Text style={{ fontSize: 16, color: colors.mutedForeground, marginTop: 16, lineHeight: 24, maxWidth: '80%' }}>
-              Welcome back to India's most trusted fleet management companion.
+              Welcome back to India&apos;s most trusted fleet management companion.
             </Text>
           </View>
 
@@ -129,17 +129,26 @@ export default function LoginOptions() {
                 paddingBottom: 20
               }}
             >
-              <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>Don't have an account? </Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>Don&apos;t have an account? </Text>
               <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '700' }}>Create One</Text>
             </TouchableOpacity>
           </View>
 
           {/* Footer Security Note */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            <ShieldCheck size={14} color={colors.primary} />
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>
-              SECURED BY TRUCKSARTHI SHIELD
-            </Text>
+          <View style={{ alignItems: "center", gap: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <ShieldCheck size={14} color={colors.primary} />
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>
+                SECURED BY TRUCKSARTHI SHIELD
+              </Text>
+            </View>
+            {__DEV__ && (
+              <TouchableOpacity onPress={() => router.push("/auth-debug")}>
+                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                  Open Auth Debug
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
         </View>

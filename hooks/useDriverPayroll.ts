@@ -3,13 +3,13 @@ import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
 export interface DriverPayroll {
-  payroll_id: number;
-  driver_id: number;
+  _id: string;
+  driver: string;
   period_start: string;
   period_end: string;
   total_amount: number;
   status: "pending" | "paid";
-  created_at: string;
+  createdAt: string;
 }
 
 export function useDriverPayroll() {
@@ -18,7 +18,7 @@ export function useDriverPayroll() {
 
   // Create payroll
   const createPayroll = async (data: {
-    driver_id: number;
+    driver_id: string;
     period_start: string;
     period_end: string;
   }) => {
@@ -37,7 +37,7 @@ export function useDriverPayroll() {
   };
 
   // Fetch payroll history for driver
-  const fetchPayrollByDriver = useCallback(async (driver_id: number) => {
+  const fetchPayrollByDriver = useCallback(async (driver_id: string) => {
     try {
       setLoading(true);
       const res = await API.get(`/api/driver-payroll/driver/${driver_id}`);
@@ -51,12 +51,12 @@ export function useDriverPayroll() {
   }, []);
 
   // Mark payroll paid
-  const markPaid = async (payroll_id: number) => {
+  const markPaid = async (payroll_id: string) => {
     try {
       const res = await API.put(`/api/driver-payroll/${payroll_id}/pay`);
       setPayrolls((prev) =>
         prev.map((p) =>
-          p.payroll_id === payroll_id ? res.data : p
+          p._id === payroll_id ? res.data : p
         )
       );
       return res.data;

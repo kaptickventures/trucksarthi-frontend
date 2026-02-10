@@ -16,10 +16,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { requestEmailOtp, verifyEmailOtp, postLoginFlow } from "../../hooks/useAuth";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useAuth as useAuthContext } from "../../context/AuthContext";
 
 export default function LoginEmailOTP() {
     const router = useRouter();
     const { colors, theme } = useThemeStore();
+    const { refreshUser } = useAuthContext();
     const isDark = theme === "dark";
 
     const [email, setEmail] = useState("");
@@ -47,6 +49,7 @@ export default function LoginEmailOTP() {
         try {
             setLoading(true);
             await verifyEmailOtp(email.toLowerCase().trim(), otp);
+            await refreshUser();
             await postLoginFlow(router);
         } catch (err: any) {
             Alert.alert("Login Failed", err || "Invalid OTP.");

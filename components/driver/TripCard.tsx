@@ -2,7 +2,7 @@ import { Calendar, MapPin, Truck } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { DriverTripView } from '../../context/DriverAppContext';
-import { BorderRadius, Colors, Spacing } from '../../constants/driver/theme';
+import { useThemeStore } from '../../hooks/useThemeStore';
 
 interface TripCardProps {
   trip: DriverTripView;
@@ -13,42 +13,51 @@ interface TripCardProps {
 }
 
 export function TripCard({ trip, onPress, isActive = false, totalExpenses, expensesLabel }: TripCardProps) {
+  const { colors } = useThemeStore();
+
   return (
     <TouchableOpacity
-      style={[styles.card, isActive && styles.activeCard]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: isActive ? colors.primary : colors.border,
+          borderWidth: isActive ? 2 : 1
+        }
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.header}>
-        <View style={styles.idContainer}>
-          <Text style={styles.tripId}>#{trip.id.slice(-6)}</Text>
+        <View style={[styles.idContainer, { backgroundColor: colors.background }]}>
+          <Text style={[styles.tripId, { color: colors.foreground }]}>#{trip.id.slice(-6)}</Text>
         </View>
-        <Text style={[styles.status, { color: isActive ? Colors.primary : Colors.textSecondary }]}>
+        <Text style={[styles.status, { color: isActive ? colors.primary : colors.mutedForeground }]}>
           {trip.status}
         </Text>
       </View>
 
       <View style={styles.row}>
-        <MapPin size={16} color={Colors.textSecondary} />
-        <Text style={styles.locationText}>{trip.source}  {'->'}  {trip.destination}</Text>
+        <MapPin size={16} color={colors.mutedForeground} />
+        <Text style={[styles.locationText, { color: colors.foreground }]}>{trip.source}  {'->'}  {trip.destination}</Text>
       </View>
 
       <View style={styles.row}>
-        <Truck size={16} color={Colors.textSecondary} />
-        <Text style={styles.detailText}>{trip.truckNumber}</Text>
+        <Truck size={16} color={colors.mutedForeground} />
+        <Text style={[styles.detailText, { color: colors.mutedForeground }]}>{trip.truckNumber}</Text>
       </View>
 
       {trip.startTime && (
         <View style={styles.row}>
-          <Calendar size={16} color={Colors.textSecondary} />
-          <Text style={styles.detailText}>{new Date(trip.startTime).toLocaleDateString()}</Text>
+          <Calendar size={16} color={colors.mutedForeground} />
+          <Text style={[styles.detailText, { color: colors.mutedForeground }]}>{new Date(trip.startTime).toLocaleDateString()}</Text>
         </View>
       )}
 
       {totalExpenses !== undefined && totalExpenses > 0 && (
-        <View style={styles.expenseRow}>
-          <Text style={styles.detailText}>{expensesLabel || 'Expenses'}:</Text>
-          <Text style={styles.expenseText}>Rs {totalExpenses}</Text>
+        <View style={[styles.expenseRow, { borderTopColor: colors.border }]}>
+          <Text style={[styles.detailText, { color: colors.mutedForeground, marginLeft: 0 }]}>{expensesLabel || 'Expenses'}:</Text>
+          <Text style={[styles.expenseText, { color: colors.destructive }]}>Rs {totalExpenses}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -57,37 +66,28 @@ export function TripCard({ trip, onPress, isActive = false, totalExpenses, expen
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  activeCard: {
-    borderColor: Colors.primary,
-    borderWidth: 2,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
     alignItems: 'center',
   },
   idContainer: {
-    backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
+    borderRadius: 6,
   },
   tripId: {
     fontWeight: 'bold',
-    color: Colors.text,
   },
   status: {
     fontSize: 12,
@@ -97,31 +97,28 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: 4,
   },
   locationText: {
-    marginLeft: Spacing.sm,
+    marginLeft: 8,
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.text,
   },
   detailText: {
-    marginLeft: Spacing.sm,
-    color: Colors.textSecondary,
+    marginLeft: 8,
     fontSize: 14,
   },
   expenseRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
   },
   expenseText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.error,
-    marginLeft: Spacing.sm,
+    marginLeft: 8,
   },
 });
+

@@ -1,6 +1,19 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API from "../app/api/axiosInstance";
 
+export type AppUserRole = "driver" | "fleet_owner";
+
+export function getUserRole(user: any): AppUserRole {
+  const raw = user?.user_type ?? user?.userType ?? user?.role;
+  if (typeof raw === "string") {
+    const normalized = raw.toLowerCase().trim().replace(/\s+/g, "_");
+    if (normalized === "driver") return "driver";
+    if (normalized === "fleet_owner") return "fleet_owner";
+  }
+  if (user?.fleetOwnerId) return "driver";
+  return "fleet_owner";
+}
+
 export async function loginWithEmail(email: string, pass: string) {
   try {
     const res = await API.post("/api/auth/login", { email, password: pass });
@@ -101,9 +114,9 @@ export async function postLoginFlow(router: any) {
     }
 
     // Role-based routing
-    const userRole = user.user_type || user.userType;
-    if (userRole === 'driver') {
-      router.replace("/(driver)/(tabs)");
+    const userRole = getUserRole(user);
+    if (userRole === "driver") {
+      router.replace("/(driver)/(tabs)/home" as any);
       return;
     }
 

@@ -1,0 +1,317 @@
+import { ArrowDownLeft, ArrowUpRight, Clock, Plus, X } from 'lucide-react-native';
+import { useMemo, useState, useLayoutEffect } from 'react';
+import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useDriverAppContext } from '../../../../context/DriverAppContext';
+import { translations } from '../../../../constants/driver/translations';
+import { useThemeStore } from '../../../../hooks/useThemeStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SideMenu from '../../../../components/SideMenu';
+
+export default function LedgerScreen() {
+    const { colors, theme } = useThemeStore();
+    const navigation = useNavigation();
+    const insets = useSafeAreaInsets();
+    const isDark = theme === 'dark';
+    const { ledgerEntries, addLedgerExpense, netKhata, language } = useDriverAppContext();
+    const t = translations[language];
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [menuVisible, setMenuVisible] = useState(false);
+    const [amount, setAmount] = useState('');
+    const [description, setDescription] = useState('');
+
+    const sortedEntries = useMemo(() => {
+        return [...ledgerEntries].sort((a, b) => {
+            const at = new Date(String(a.createdAt || a.entry_date || 0)).getTime();
+            const bt = new Date(String(b.createdAt || b.entry_date || 0)).getTime();
+            return bt - at;
+        });
+    }, [ledgerEntries]);
+
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            headerLeft: () => (
+                <TouchableOpacity
+                    onPress={() => setMenuVisible((prev) => !prev)}
+                    style={{ paddingLeft: 16 }}
+                >
+                    <Ionicons
+                        name={menuVisible ? "close" : "menu"}
+                        size={24}
+                        color={colors.foreground}
+                    />
+                </TouchableOpacity>
+            ),
+        });
+    }, [navigation, colors, menuVisible]);
+
+    const handleSave = async () => {
+        if (!amount || !description) {
+            Alert.alert(t.error, 'Please fill all fields');
+            return;
+        }
+
+        try {
+            await addLedgerExpense(Number(amount), description);
+            setModalVisible(false);
+            setAmount('');
+            setDescription('');
+        } catch {
+            // alerts handled in hooks
+        }
+    };
+
+    const renderItem = ({ item }: { item: any }) => {
+        const paidByDriver = item.transaction_nature === 'paid_by_driver';
+        const Icon = paidByDriver ? ArrowUpRight : ArrowDownLeft;
+        const color = paidByDriver ? colors.destructive : colors.primary;
+        const sign = paidByDriver ? '-' : '+';
+
+        const dateValue = String(item.createdAt || item.entry_date || new Date().toISOString());
+        const time = new Date(dateValue).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        return (
+            <View style={[styles.card, { backgroundColor: colors.card }]}>
+                <View style={[styles.iconBox, { backgroundColor: `${color}20` }]}>
+                    <Icon color={color} size={24} />
+                </View>
+
+                <View style={styles.details}>
+                    <Text style={[styles.desc, { color: colors.foreground }]}>{item.remarks || item.title || 'Ledger Entry'}</Text>
+                    <View style={styles.metaRow}>
+                        <Clock size={12} color={colors.mutedForeground} />
+                        <Text style={[styles.date, { color: colors.mutedForeground }]}>{new Date(dateValue).toLocaleDateString()} | {time}</Text>
+                    </View>
+                </View>
+
+                <View style={styles.rightSide}>
+                    <Text style={[styles.amount, { color }]}>{sign}Rs {item.amount}</Text>
+                </View>
+            </View>
+        );
+    };
+
+    return (
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={[styles.balanceCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={[styles.balanceLabel, { color: colors.mutedForeground }]}>{t.totalBalance}</Text>
+                <Text style={[styles.balanceValue, { color: netKhata >= 0 ? colors.primary : colors.destructive }]}>
+                    {netKhata >= 0 ? '+' : '-'}Rs {Math.abs(netKhata)}
+                </Text>
+            </View>
+
+            <FlatList
+                data={sortedEntries}
+                keyExtractor={(item) => String(item._id)}
+                renderItem={renderItem}
+                contentContainerStyle={[styles.list, { paddingBottom: 100 + insets.bottom }]}
+            />
+
+            <TouchableOpacity
+                style={[
+                    styles.fab,
+                    {
+                        backgroundColor: colors.primary,
+                        bottom: 80 + insets.bottom,
+                    }
+                ]}
+                onPress={() => setModalVisible(true)}
+            >
+                <Plus color="white" size={24} />
+                <Text style={styles.fabText}>{t.addEntry}</Text>
+            </TouchableOpacity>
+
+
+            <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Add Expense</Text>
+                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                <X color={colors.mutedForeground} size={24} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={{ maxHeight: 400 }}>
+                            <Text style={[styles.label, { color: colors.mutedForeground }]}>{t.amount}</Text>
+                            <TextInput
+                                style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background }]}
+                                keyboardType="numeric"
+                                value={amount}
+                                onChangeText={setAmount}
+                                placeholder={t.enterAmount}
+                                placeholderTextColor={colors.mutedForeground}
+                            />
+
+                            <Text style={[styles.label, { color: colors.mutedForeground }]}>{t.description}</Text>
+                            <TextInput
+                                style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background }]}
+                                value={description}
+                                onChangeText={setDescription}
+                                placeholder={t.enterDesc}
+                                placeholderTextColor={colors.mutedForeground}
+                            />
+
+                            <View style={styles.buttonRow}>
+                                <TouchableOpacity style={[styles.actionButton, styles.givenButton, { width: '100%', backgroundColor: colors.destructive }]} onPress={handleSave}>
+                                    <ArrowUpRight color="white" size={20} />
+                                    <Text style={styles.actionButtonText}>Save Expense</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    balanceCard: {
+        padding: 16,
+        margin: 16,
+        marginBottom: 0,
+        borderRadius: 16,
+        borderWidth: 1,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    balanceLabel: {
+        fontSize: 14,
+        textTransform: 'uppercase',
+        fontWeight: '600',
+    },
+    balanceValue: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        marginTop: 4,
+    },
+    list: {
+        padding: 16,
+        paddingBottom: 100,
+    },
+    card: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    iconBox: {
+        padding: 8,
+        borderRadius: 999,
+        marginRight: 16,
+    },
+    details: {
+        flex: 1,
+    },
+    desc: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    metaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    date: {
+        fontSize: 12,
+        marginLeft: 4,
+    },
+    rightSide: {
+        alignItems: 'flex-end',
+    },
+    amount: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 32,
+        right: 32,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 999,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+    },
+    fabText: {
+        color: 'white',
+        fontWeight: 'bold',
+        marginLeft: 8,
+        fontSize: 16,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        padding: 16,
+    },
+    modalContent: {
+        borderRadius: 16,
+        padding: 16,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    label: {
+        fontSize: 14,
+        marginBottom: 8,
+        marginTop: 16,
+    },
+    input: {
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 12,
+        fontSize: 16,
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 24,
+        marginBottom: 16,
+    },
+    actionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        borderRadius: 12,
+        gap: 8,
+    },
+    givenButton: {
+    },
+    actionButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+});

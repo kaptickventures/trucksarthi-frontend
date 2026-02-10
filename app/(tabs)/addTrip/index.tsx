@@ -132,7 +132,10 @@ export default function AddTrip() {
   const getSelectedLabel = (type: 'truck' | 'driver' | 'client' | 'start' | 'end') => {
     switch (type) {
       case 'truck': return trucks.find(t => t._id === formData.truck_id)?.registration_number;
-      case 'driver': return drivers.find(d => d._id === formData.driver_id)?.driver_name;
+      case 'driver': {
+        const driver = drivers.find(d => d._id === formData.driver_id);
+        return driver?.name || driver?.driver_name;
+      }
       case 'client': return clients.find(c => c._id === formData.client_id)?.client_name;
       case 'start': return locations.find(l => l._id === formData.start_location_id)?.location_name;
       case 'end': return locations.find(l => l._id === formData.end_location_id)?.location_name;
@@ -203,7 +206,7 @@ export default function AddTrip() {
           {/* Header Title Section */}
           <View className="mb-6">
             <Text className="text-3xl font-black" style={{ color: colors.foreground }}>Add New Trip</Text>
-            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Record your fleet's journey</Text>
+            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Record your fleet&apos;s journey</Text>
           </View>
 
           {/* Date Selector */}
@@ -408,7 +411,7 @@ export default function AddTrip() {
         visible={activeModal === 'driver'}
         onClose={() => setActiveModal(null)}
         title="Select Driver"
-        items={drivers.map(d => ({ label: d.driver_name, value: d._id }))}
+        items={drivers.map(d => ({ label: d.name || d.driver_name || "Driver", value: d._id }))}
         onSelect={(val) => setFormData({ ...formData, driver_id: val })}
         selectedValue={formData.driver_id}
         onAddItem={() => setIsDriverModalVisible(true)}

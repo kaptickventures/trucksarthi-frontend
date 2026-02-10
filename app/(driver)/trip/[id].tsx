@@ -3,9 +3,11 @@ import { Briefcase, ChevronLeft, Clock, MapPin, Plus, User, X } from 'lucide-rea
 import { useMemo, useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useDriverAppContext } from '../../../context/DriverAppContext';
-import { BorderRadius, Colors, Spacing } from '../../../constants/driver/theme';
+import { useThemeStore } from '../../../hooks/useThemeStore';
 
 export default function TripDetailsScreen() {
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === 'dark';
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const {
@@ -37,8 +39,8 @@ export default function TripDetailsScreen() {
 
   if (!trip) {
     return (
-      <View style={styles.centered}>
-        <Text>Trip not found</Text>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.foreground }}>Trip not found</Text>
       </View>
     );
   }
@@ -81,90 +83,95 @@ export default function TripDetailsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           headerShown: true,
           title: 'Trip Details',
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.foreground,
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 8 }}>
-              <ChevronLeft size={24} color={Colors.text} />
+              <ChevronLeft size={24} color={colors.foreground} />
             </TouchableOpacity>
           ),
         }}
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.headerRow}>
             <View>
-              <Text style={styles.label}>TRIP ID</Text>
-              <Text style={styles.value}>#{trip.id.slice(-6)}</Text>
+              <Text style={[styles.label, { color: colors.mutedForeground }]}>TRIP ID</Text>
+              <Text style={[styles.value, { color: colors.foreground }]}>#{trip.id.slice(-6)}</Text>
             </View>
-            <Text style={styles.status}>{trip.status}</Text>
+            <Text style={[styles.status, { color: colors.primary }]}>{trip.status}</Text>
           </View>
 
-          {trip.startTime && <Text style={styles.dateLabel}>{new Date(trip.startTime).toDateString()}</Text>}
+          {trip.startTime && <Text style={[styles.dateLabel, { color: colors.mutedForeground }]}>{new Date(trip.startTime).toDateString()}</Text>}
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.infoRow}>
-            <User size={16} color={Colors.textSecondary} />
-            <Text style={styles.infoText}>Driver: <Text style={styles.bold}>{trip.driverName}</Text></Text>
+            <User size={16} color={colors.mutedForeground} />
+            <Text style={[styles.infoText, { color: colors.foreground }]}>Driver: <Text style={styles.bold}>{trip.driverName}</Text></Text>
           </View>
           <View style={styles.infoRow}>
-            <Briefcase size={16} color={Colors.textSecondary} />
-            <Text style={styles.infoText}>Client: <Text style={styles.bold}>{trip.clientName}</Text></Text>
+            <Briefcase size={16} color={colors.mutedForeground} />
+            <Text style={[styles.infoText, { color: colors.foreground }]}>Client: <Text style={styles.bold}>{trip.clientName}</Text></Text>
           </View>
         </View>
 
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.row}>
-            <MapPin color={Colors.primary} size={20} />
-            <Text style={styles.sectionTitle}>Route</Text>
+            <MapPin color={colors.primary} size={20} />
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Route</Text>
           </View>
-          <View style={styles.timeline}>
-            <Text style={styles.timelinePoint}>From: {trip.source}</Text>
-            <Text style={styles.timelinePoint}>To: {trip.destination}</Text>
+          <View style={[styles.timeline, { borderLeftColor: colors.border }]}>
+            <Text style={[styles.timelinePoint, { color: colors.foreground }]}>From: {trip.source}</Text>
+            <Text style={[styles.timelinePoint, { color: colors.foreground }]}>To: {trip.destination}</Text>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>VEHICLE</Text>
-          <Text style={styles.value}>{trip.truckNumber}</Text>
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.label, { color: colors.mutedForeground }]}>VEHICLE</Text>
+          <Text style={[styles.value, { color: colors.foreground }]}>{trip.truckNumber}</Text>
         </View>
 
         {tripExpenses.length > 0 && (
-          <View style={styles.section}>
+          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.headerRow}>
-              <Text style={styles.sectionTitle}>Trip Expenses</Text>
-              <Text style={[styles.sectionTitle, { color: Colors.error }]}>Rs {totalTripExpenses}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Trip Expenses</Text>
+              <Text style={[styles.sectionTitle, { color: colors.destructive }]}>Rs {totalTripExpenses}</Text>
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
             {tripExpenses.map((expense) => (
               <View key={String(expense._id)} style={styles.expenseItem}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.expenseDesc}>{expense.remarks}</Text>
-                  <Text style={styles.expenseDate}>{new Date(String(expense.createdAt || expense.entry_date)).toLocaleDateString()}</Text>
+                  <Text style={[styles.expenseDesc, { color: colors.foreground }]}>{expense.remarks}</Text>
+                  <Text style={[styles.expenseDate, { color: colors.mutedForeground }]}>{new Date(String(expense.createdAt || expense.entry_date)).toLocaleDateString()}</Text>
                 </View>
-                <Text style={styles.expenseAmount}>Rs {expense.amount}</Text>
+                <Text style={[styles.expenseAmount, { color: colors.destructive }]}>Rs {expense.amount}</Text>
               </View>
             ))}
           </View>
         )}
 
         {isActive && (
-          <TouchableOpacity style={styles.expenseButton} onPress={() => setExpenseModalVisible(true)}>
-            <Plus color={Colors.primary} size={20} />
-            <Text style={styles.expenseButtonText}>Add Trip Expense</Text>
+          <TouchableOpacity
+            style={[styles.expenseButton, { borderColor: colors.primary, backgroundColor: colors.card }]}
+            onPress={() => setExpenseModalVisible(true)}
+          >
+            <Plus color={colors.primary} size={20} />
+            <Text style={[styles.expenseButtonText, { color: colors.primary }]}>Add Trip Expense</Text>
           </TouchableOpacity>
         )}
 
         {isActive && (
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.button} onPress={handleCompleteTrip}>
+            <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={handleCompleteTrip}>
               <Text style={styles.buttonText}>Complete Trip</Text>
             </TouchableOpacity>
           </View>
@@ -177,34 +184,36 @@ export default function TripDetailsScreen() {
           onRequestClose={() => setExpenseModalVisible(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Add Trip Expense</Text>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>Add Trip Expense</Text>
                 <TouchableOpacity onPress={() => setExpenseModalVisible(false)}>
-                  <X color={Colors.textSecondary} size={24} />
+                  <X color={colors.mutedForeground} size={24} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.modalSubtitle}>For Trip #{trip.id.slice(-6)}</Text>
+              <Text style={[styles.modalSubtitle, { color: colors.mutedForeground }]}>For Trip #{trip.id.slice(-6)}</Text>
 
-              <Text style={styles.label}>Amount (Rs)</Text>
+              <Text style={[styles.label, { color: colors.mutedForeground }]}>Amount (Rs)</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background }]}
                 keyboardType="numeric"
                 value={expenseAmount}
                 onChangeText={setExpenseAmount}
                 placeholder="0.00"
+                placeholderTextColor={colors.mutedForeground}
               />
 
-              <Text style={styles.label}>Vendor Name and Description</Text>
+              <Text style={[styles.label, { color: colors.mutedForeground }]}>Vendor Name and Description</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background }]}
                 value={expenseDesc}
                 onChangeText={setExpenseDesc}
                 placeholder="e.g. Fuel - Diesel"
+                placeholderTextColor={colors.mutedForeground}
               />
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleAddExpense}>
+              <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary }]} onPress={handleAddExpense}>
                 <Text style={styles.saveButtonText}>Add Expense</Text>
               </TouchableOpacity>
             </View>
@@ -218,10 +227,9 @@ export default function TripDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
   },
   content: {
-    padding: Spacing.md,
+    padding: 16,
     paddingBottom: 40,
   },
   centered: {
@@ -230,10 +238,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   section: {
-    backgroundColor: Colors.white,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
   },
   headerRow: {
     flexDirection: 'row',
@@ -242,51 +250,44 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginBottom: 4,
+    fontWeight: '600',
   },
   value: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text,
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
   },
   status: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: Colors.primary,
     textTransform: 'uppercase',
   },
   dateLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
     marginTop: -4,
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.sm,
+    marginVertical: 8,
   },
   expenseItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
     paddingVertical: 4,
   },
   expenseDesc: {
     fontSize: 14,
-    color: Colors.text,
     fontWeight: '500',
   },
   expenseDate: {
     fontSize: 12,
-    color: Colors.textSecondary,
   },
   expenseAmount: {
     fontSize: 14,
-    color: Colors.error,
     fontWeight: '600',
   },
   infoRow: {
@@ -297,7 +298,6 @@ const styles = StyleSheet.create({
   infoText: {
     marginLeft: 8,
     fontSize: 14,
-    color: Colors.text,
   },
   bold: {
     fontWeight: '600',
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 18,
@@ -315,7 +315,6 @@ const styles = StyleSheet.create({
   timeline: {
     marginLeft: 8,
     borderLeftWidth: 2,
-    borderLeftColor: Colors.border,
     paddingLeft: 16,
     paddingVertical: 8,
   },
@@ -327,31 +326,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.md,
+    padding: 16,
     borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-    backgroundColor: Colors.white,
+    borderRadius: 12,
+    marginBottom: 24,
   },
   expenseButtonText: {
-    color: Colors.primary,
     fontWeight: 'bold',
     marginLeft: 8,
   },
   footer: {
-    marginTop: Spacing.sm,
+    marginTop: 8,
   },
   button: {
-    backgroundColor: Colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    padding: 16,
+    borderRadius: 12,
   },
   buttonText: {
-    color: Colors.white,
+    color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -359,47 +354,43 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    padding: Spacing.md,
+    padding: 16,
   },
   modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    borderRadius: 16,
+    padding: 16,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.text,
   },
   modalSubtitle: {
     fontSize: 12,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: 16,
   },
   input: {
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    borderRadius: 8,
+    padding: 12,
     fontSize: 16,
-    marginBottom: Spacing.md,
+    marginBottom: 16,
   },
   saveButton: {
-    backgroundColor: Colors.primary,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: Spacing.sm,
+    marginTop: 8,
   },
   saveButtonText: {
-    color: Colors.white,
+    color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
   },
 });
+

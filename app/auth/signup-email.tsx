@@ -16,10 +16,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { postLoginFlow, registerUser } from "../../hooks/useAuth";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useAuth as useAuthContext } from "../../context/AuthContext";
 
 export default function SignupEmail() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { refreshUser } = useAuthContext();
   const isDark = theme === "dark";
 
   const [name, setName] = useState("");
@@ -38,6 +40,7 @@ export default function SignupEmail() {
     try {
       setLoading(true);
       await registerUser(name.trim(), email.toLowerCase().trim(), pw.trim());
+      await refreshUser();
       await postLoginFlow(router);
     } catch (e: any) {
       Alert.alert("Signup Failed", e || "Could not create account. Please try again.");

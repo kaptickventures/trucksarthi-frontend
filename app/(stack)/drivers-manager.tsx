@@ -33,6 +33,8 @@ export default function DriversManager() {
     addDriver,
     updateDriver,
     deleteDriver,
+    uploadLicense,
+    uploadAadhaar,
   } = useDrivers();
 
   const loading = userLoading || driversLoading;
@@ -88,7 +90,7 @@ export default function DriversManager() {
     if (!result.canceled) {
       setFormData({
         ...formData,
-        [field]: result.assets[0].uri,
+        [field]: result.assets[0] as any, // Store the whole asset
       });
     }
   };
@@ -129,17 +131,33 @@ export default function DriversManager() {
     }
 
     try {
+      let driverId = editingId;
       if (editingId) {
         await updateDriver(editingId, formData);
-        Alert.alert("Success", "Driver updated successfully.");
       } else {
-        await addDriver(formData);
-        Alert.alert("Success", "Driver added successfully.");
+        const newDriver = await addDriver(formData);
+        driverId = newDriver._id;
       }
+
+      // Handle image uploads if they are new (objects with uri)
+      const uploadPromises = [];
+      if (formData.license_card_url && typeof formData.license_card_url === 'object' && (formData.license_card_url as any).uri) {
+        uploadPromises.push(uploadLicense(driverId!, formData.license_card_url));
+      }
+      if (formData.identity_card_url && typeof formData.identity_card_url === 'object' && (formData.identity_card_url as any).uri) {
+        uploadPromises.push(uploadAadhaar(driverId!, formData.identity_card_url));
+      }
+
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises);
+      }
+
+      Alert.alert("Success", `Driver ${editingId ? "updated" : "added"} successfully.`);
       closeModal();
       fetchDrivers();
-    } catch {
-      Alert.alert("Error", "Failed to save driver.");
+    } catch (err) {
+      console.error("Submit error:", err);
+      Alert.alert("Error", "Failed to save driver details or upload documents.");
     }
   };
 

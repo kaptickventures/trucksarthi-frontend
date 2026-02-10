@@ -18,12 +18,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { loginWithPhone, postLoginFlow, sendPhoneOtp } from "../../hooks/useAuth";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useAuth as useAuthContext } from "../../context/AuthContext";
 
 const { width } = Dimensions.get("window");
 
 export default function LoginPhone() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { refreshUser } = useAuthContext();
   const isDark = theme === "dark";
 
   const [phoneNumber, setPhoneNumber] = useState("+91");
@@ -60,6 +62,7 @@ export default function LoginPhone() {
     try {
       setLoading(true);
       await loginWithPhone(phoneNumber, code, userType);
+      await refreshUser();
       await postLoginFlow(router);
     } catch (err: any) {
       Alert.alert("Verification Failed", err || "Invalid OTP. Please check and try again.");
