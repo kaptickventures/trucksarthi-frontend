@@ -2,11 +2,11 @@ import { useRouter, useNavigation } from 'expo-router';
 import { FlatList, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useLayoutEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { TripCard } from '../../../../components/driver/TripCard';
-import { useDriverAppContext } from '../../../../context/DriverAppContext';
-import { translations } from '../../../../constants/driver/translations';
-import { useThemeStore } from '../../../../hooks/useThemeStore';
-import SideMenu from '../../../../components/SideMenu';
+import { TripCard } from '../../components/driver/TripCard';
+import { useDriverAppContext } from '../../context/DriverAppContext';
+import { translations } from '../../constants/driver/translations';
+import { useThemeStore } from '../../hooks/useThemeStore';
+import SideMenu from '../../components/SideMenu';
 
 export default function HistoryScreen() {
     const router = useRouter();
@@ -16,25 +16,26 @@ export default function HistoryScreen() {
     const { tripHistory, language, getTripExpenses } = useDriverAppContext();
     const t = translations[language];
 
-    useLayoutEffect(() => {
-        navigation.setOptions({
-            headerLeft: () => (
-                <TouchableOpacity
-                    onPress={() => setMenuVisible((prev) => !prev)}
-                    style={{ paddingLeft: 16 }}
-                >
-                    <Ionicons
-                        name={menuVisible ? "close" : "menu"}
-                        size={24}
-                        color={colors.foreground}
-                    />
-                </TouchableOpacity>
-            ),
-        });
-    }, [navigation, colors, menuVisible]);
-
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+            {/* Custom Header */}
+            <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                backgroundColor: colors.background,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border
+            }}>
+                <TouchableOpacity onPress={() => setMenuVisible(true)}>
+                    <Ionicons name="menu" size={28} color={colors.foreground} />
+                </TouchableOpacity>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>{t.history}</Text>
+                <View style={{ width: 28 }} />
+            </View>
+
             <FlatList
                 data={tripHistory}
                 keyExtractor={(item) => item.id}
@@ -59,9 +60,6 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
     content: {
         padding: 16,
     },

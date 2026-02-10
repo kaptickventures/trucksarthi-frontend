@@ -2,11 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useNavigation } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useLayoutEffect, useState } from 'react';
-import { TripCard } from '../../../../components/driver/TripCard';
-import { useDriverAppContext } from '../../../../context/DriverAppContext';
-import { translations } from '../../../../constants/driver/translations';
-import { useThemeStore } from '../../../../hooks/useThemeStore';
-import SideMenu from '../../../../components/SideMenu';
+import { TripCard } from '../../components/driver/TripCard';
+import { useDriverAppContext } from '../../context/DriverAppContext';
+import { translations } from '../../constants/driver/translations';
+import { useThemeStore } from '../../hooks/useThemeStore';
+import SideMenu from '../../components/SideMenu';
 
 export default function DashboardScreen() {
     const router = useRouter();
@@ -26,39 +26,42 @@ export default function DashboardScreen() {
 
     useLayoutEffect(() => {
         navigation.setOptions({
-            headerLeft: () => (
-                <TouchableOpacity
-                    onPress={() => setMenuVisible((prev) => !prev)}
-                    style={{ paddingLeft: 16 }}
-                >
-                    <Ionicons
-                        name={menuVisible ? "close" : "menu"}
-                        size={24}
-                        color={colors.foreground}
-                    />
-                </TouchableOpacity>
-            ),
-            headerRight: () => (
-                <TouchableOpacity
-                    onPress={() => router.push("/(driver)/notifications" as any)}
-                    style={{ paddingRight: 16 }}
-                >
-                    <Ionicons
-                        name="notifications-outline"
-                        size={24}
-                        color={colors.foreground}
-                    />
-                </TouchableOpacity>
-            ),
+            headerShown: false, // We'll handle header manually or let Tabs handle it, but wait, Tabs does weird heavy lifting
+            // Let's rely on Tabs header or custom one.
+            // Actually, we want a custom header with Menu button.
+            // Since we are now DIRECT children of Tabs, navigation.setOptions applies to Tab Stack.
+            // But Tabs headers are static.
+            // Better to hide header in _layout and implement custom header here?
+            // Or use navigation.setOptions to inject buttons into Tab Header.
+            /* 
+            Update: The user asked to remove (tabs) folder structure.
+            So now (driver)/_layout.tsx is the TABS navigator.
+            (driver)/home.tsx is the Home Tab.
+             */
         });
     }, [navigation, colors, menuVisible]);
 
     return (
-        <>
-            <ScrollView
-                style={[styles.container, { backgroundColor: colors.background }]}
-                contentContainerStyle={styles.content}
-            >
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+            {/* Custom Header for Home Tab */}
+            <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                backgroundColor: colors.background
+            }}>
+                <TouchableOpacity onPress={() => setMenuVisible(true)}>
+                    <Ionicons name="menu" size={28} color={colors.foreground} />
+                </TouchableOpacity>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>{t.home}</Text>
+                <TouchableOpacity onPress={() => router.push("/(driver)/notifications" as any)}>
+                    <Ionicons name="notifications-outline" size={26} color={colors.foreground} />
+                </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.content}>
                 <View style={[styles.metricCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={styles.metricRow}>
                         <View style={styles.metricItem}>
@@ -112,14 +115,11 @@ export default function DashboardScreen() {
                 )}
             </ScrollView>
             <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
-        </>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
     content: {
         padding: 16,
         paddingBottom: 40,
@@ -129,11 +129,6 @@ const styles = StyleSheet.create({
         padding: 16,
         marginBottom: 24,
         borderWidth: 1,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
     },
     metricRow: {
         flexDirection: 'row',

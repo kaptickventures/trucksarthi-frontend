@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { Stack, useRouter } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import {
   Platform,
   StatusBar,
@@ -17,15 +17,20 @@ import { getUserRole } from "../../hooks/useAuth";
 export default function StackLayout() {
   const isDark = useColorScheme() === "dark";
   const router = useRouter();
-  const isAndroid = Platform.OS === "android";
+  const pathname = usePathname();
   const { user, loading } = useAuth();
 
   useEffect(() => {
     const userRole = getUserRole(user);
-    if (!loading && user && userRole === "driver") {
-      router.replace("/(driver)/(tabs)");
+    if (
+      !loading &&
+      user &&
+      userRole === "driver" &&
+      !pathname.startsWith("/(driver)/(tabs)")
+    ) {
+      router.replace("/(driver)/(tabs)/home" as any);
     }
-  }, [user, loading, router]);
+  }, [user, loading, pathname, router]);
 
   const userRole = getUserRole(user);
   if (loading || !user || userRole === "driver") {

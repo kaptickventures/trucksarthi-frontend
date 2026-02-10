@@ -157,7 +157,12 @@ export default function DriversManager() {
       fetchDrivers();
     } catch (err) {
       console.error("Submit error:", err);
-      Alert.alert("Error", "Failed to save driver details or upload documents.");
+      const msg =
+        (err as any)?.response?.data?.error ||
+        (err as any)?.response?.data?.message ||
+        (err as Error)?.message ||
+        "Failed to save driver details or upload documents.";
+      Alert.alert("Error", msg);
     }
   };
 

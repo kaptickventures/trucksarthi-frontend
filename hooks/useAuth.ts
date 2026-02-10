@@ -100,7 +100,7 @@ export async function getCurrentUser() {
   try {
     const res = await API.get("/api/auth/me");
     return res.data;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -116,7 +116,7 @@ export async function postLoginFlow(router: any) {
     // Role-based routing
     const userRole = getUserRole(user);
     if (userRole === "driver") {
-      router.replace("/(driver)/(tabs)/home" as any);
+      router.replace("/(driver)/home" as any);
       return;
     }
 

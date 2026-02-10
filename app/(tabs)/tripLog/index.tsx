@@ -10,9 +10,7 @@ import {
   TouchableOpacity,
   UIManager,
   View,
-  useColorScheme,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
@@ -25,7 +23,6 @@ import useDrivers from "../../../hooks/useDriver";
 import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
-import { useUser } from "../../../hooks/useUser";
 import { useThemeStore } from "../../../hooks/useThemeStore";
 
 import TripFilters from "../../../components/FilterSection";
@@ -47,11 +44,8 @@ export default function TripLog() {
   const router = useRouter();
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
-  const colorScheme = useColorScheme();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
-
-  const { user } = useUser();
 
   const {
     trips,
@@ -87,7 +81,7 @@ export default function TripLog() {
     fetchClients();
     fetchTrucks();
     fetchLocations();
-  }, []);
+  }, [fetchTrips, fetchDrivers, fetchClients, fetchTrucks, fetchLocations]);
 
   // FILTER STATE
   const [filters, setFilters] = useState({
@@ -286,7 +280,6 @@ export default function TripLog() {
     }
   };
 
-  const backgroundColor = isDark ? THEME.dark.background : THEME.light.background;
   const foregroundColor = isDark ? THEME.dark.foreground : THEME.light.foreground;
 
   useLayoutEffect(() => {
@@ -313,7 +306,7 @@ export default function TripLog() {
         </TouchableOpacity>
       ),
     });
-  }, [navigation, isDark, menuVisible]);
+  }, [navigation, menuVisible, foregroundColor, colors.background, colors.foreground, router]);
 
   const formatDateLocal = (d: Date | null) => d ? formatDate(d) : "Select Date";
 

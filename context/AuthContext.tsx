@@ -23,7 +23,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
             const userData = await getCurrentUser();
-            setUser(userData);
+            setUser((prev: any | null) => {
+                if (JSON.stringify(prev) === JSON.stringify(userData)) return prev; // 🔒 strict deep check to prevent loops
+                return userData;
+            });
         } catch (error) {
             console.error("Auth check failed:", error);
             setUser(null);

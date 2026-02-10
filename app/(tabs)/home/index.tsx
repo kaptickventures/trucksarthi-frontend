@@ -22,8 +22,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
-  const { colors, theme } = useThemeStore();
-  const isDark = theme === "dark";
+  const { colors } = useThemeStore();
 
   const [refreshing, setRefreshing] = useState(false);
   const { user, loading: userLoading, refreshUser } = useUser();
@@ -94,7 +93,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       ),
     });
-  }, [navigation, colors, menuVisible]);
+  }, [colors, menuVisible, navigation, router]);
 
   if (loading && !user) {
     return (

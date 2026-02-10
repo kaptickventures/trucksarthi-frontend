@@ -1,30 +1,102 @@
-import { Stack, useRouter } from 'expo-router';
-import { DriverAppProvider } from '../../context/DriverAppContext';
-import { useAuth } from '../../context/AuthContext';
-import { useEffect } from 'react';
-import { getUserRole } from '../../hooks/useAuth';
+import { useRouter, Tabs } from "expo-router";
+import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
+import { Home, Clock, List } from "lucide-react-native";
+import { Platform, StatusBar } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function DriverLayout() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+import { useThemeStore } from "../../hooks/useThemeStore";
+import { useDriverAppContext } from "../../context/DriverAppContext";
+import { translations } from "../../constants/driver/translations";
 
-  useEffect(() => {
-    const userRole = getUserRole(user);
-    if (!loading && user && userRole !== "driver") {
-      router.replace("/(tabs)/home");
-    }
-  }, [user, loading, router]);
+export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const { theme, colors } = useThemeStore();
+  const { language } = useDriverAppContext();
+  const isDark = theme === "dark";
+  const t = translations[language];
 
-  const userRole = getUserRole(user);
-  if (loading || !user || userRole !== "driver") {
-    return null;
+  // Theme-based colors
+  const backgroundColor = colors.card;
+  const tabBarBorderColor = colors.border;
+  const activeTintColor = colors.primary;
+  const inactiveTintColor = colors.mutedForeground;
+
+  if (Platform.OS === "ios") {
+    return (
+      <>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} translucent={false} />
+        <NativeTabs>
+          <NativeTabs.Trigger name="home">
+            <Icon sf="house.fill" selectedColor={activeTintColor} />
+            <Label>{t.home}</Label>
+          </NativeTabs.Trigger>
+
+          <NativeTabs.Trigger name="history">
+            <Icon sf="clock.fill" selectedColor={activeTintColor} />
+            <Label>{t.history}</Label>
+          </NativeTabs.Trigger>
+
+          <NativeTabs.Trigger name="ledger">
+            <Icon sf="list.bullet.rectangle.fill" selectedColor={activeTintColor} />
+            <Label>{t.khata}</Label>
+          </NativeTabs.Trigger>
+        </NativeTabs>
+      </>
+    );
   }
 
   return (
-    <DriverAppProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-      </Stack>
-    </DriverAppProvider>
+    <>
+      <StatusBar
+        backgroundColor={backgroundColor}
+        barStyle={isDark ? "light-content" : "dark-content"}
+      />
+
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: activeTintColor,
+          tabBarInactiveTintColor: inactiveTintColor,
+
+          tabBarStyle: {
+            backgroundColor,
+            borderTopWidth: 1,
+            borderTopColor: tabBarBorderColor,
+            height: 60 + insets.bottom,
+            paddingBottom: insets.bottom,
+            elevation: 4,
+          },
+
+          sceneStyle: {
+            backgroundColor: colors.background,
+          },
+          lazy: true,
+        }}
+      >
+        <Tabs.Screen
+          name="home"
+          options={{
+            title: t.home,
+            tabBarIcon: ({ color }) => <Home size={22} color={color} />,
+          }}
+        />
+
+        <Tabs.Screen
+          name="history"
+          options={{
+            title: t.history,
+            tabBarIcon: ({ color }) => <Clock size={22} color={color} />,
+          }}
+        />
+
+        <Tabs.Screen
+          name="ledger"
+          options={{
+            title: t.khata,
+            tabBarIcon: ({ color }) => <List size={22} color={color} />,
+          }}
+        />
+      </Tabs>
+    </>
   );
 }

@@ -4,6 +4,22 @@ import API from "../app/api/axiosInstance";
 
 import { Driver } from "../types/entity";
 
+const normalizePhone = (value?: string) => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return "";
+  return hasPlus ? `+${digits}` : digits;
+};
+
+const mapDriverFromApi = (driver: any): Driver => ({
+  ...driver,
+  driver_name: driver?.driver_name || driver?.name || "",
+  contact_number: driver?.contact_number || driver?.phone || "",
+});
+
 export default function useDrivers() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(false);
@@ -12,7 +28,10 @@ export default function useDrivers() {
     try {
       setLoading(true);
       const res = await API.get("/api/drivers");
-      setDrivers(res.data);
+      const normalized = Array.isArray(res.data)
+        ? res.data.map(mapDriverFromApi)
+        : [];
+      setDrivers(normalized);
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to load drivers");
@@ -23,27 +42,53 @@ export default function useDrivers() {
 
   const addDriver = async (data: Partial<Driver>) => {
     try {
+      const name = (data.name || data.driver_name || "").trim();
+      const phoneNumber = normalizePhone(data.phone || data.contact_number);
+
+      if (!name || !phoneNumber) {
+        Alert.alert("Missing Fields", "Name and contact number are required.");
+        throw new Error("Driver name/contact missing");
+      }
+
       const payload = {
-        name: data.name || data.driver_name,
-        phoneNumber: data.phone || data.contact_number,
+        name,
+        phoneNumber,
+        // Keep legacy keys too for cross-backend compatibility.
+        driver_name: name,
+        contact_number: phoneNumber,
       };
       const res = await API.post(`/api/drivers`, payload);
-      setDrivers((prev) => [...prev, res.data]);
-      return res.data;
+      const created = mapDriverFromApi(res.data);
+      setDrivers((prev) => [...prev, created]);
+      return created;
     } catch (error: any) {
-      console.error(error);
-      Alert.alert("Error", error.response?.data?.error || "Failed to add driver");
+      const message =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to add driver";
+      console.error("addDriver failed:", error?.response?.data || error);
       throw error;
     }
   };
 
   const updateDriver = async (id: string, updatedData: Partial<Driver>) => {
     try {
-      const res = await API.put(`/api/drivers/${id}`, updatedData);
+      const name = (updatedData.name || updatedData.driver_name || "").trim();
+      const phoneNumber = normalizePhone(updatedData.phone || updatedData.contact_number);
+
+      const payload = {
+        ...updatedData,
+        ...(name ? { name, driver_name: name } : {}),
+        ...(phoneNumber ? { phone: phoneNumber, phoneNumber, contact_number: phoneNumber } : {}),
+      };
+
+      const res = await API.put(`/api/drivers/${id}`, payload);
+      const normalized = mapDriverFromApi(res.data);
       setDrivers((prev) =>
-        prev.map((d) => (d._id === id ? res.data : d))
+        prev.map((d) => (d._id === id ? normalized : d))
       );
-      return res.data;
+      return normalized;
     } catch (error: any) {
       console.error(error);
       Alert.alert("Error", error.response?.data?.error || "Failed to update driver");

@@ -36,9 +36,9 @@ const MANAGER_LINKS = [
 ] as const;
 
 const DRIVER_LINKS = [
-  { title: "Home", icon: "home", route: "/(driver)/(tabs)/home" as const },
-  { title: "History", icon: "history", route: "/(driver)/(tabs)/history" as const },
-  { title: "Khata", icon: "list", route: "/(driver)/(tabs)/ledger" as const },
+  { title: "Home", icon: "home", route: "/(driver)/home" as const },
+  { title: "History", icon: "history", route: "/(driver)/history" as const },
+  { title: "Khata", icon: "list", route: "/(driver)/ledger" as const },
   { title: "Notifications", icon: "notifications", route: "/(driver)/notifications" as const },
 ] as const;
 
@@ -50,17 +50,11 @@ export default function SideMenu({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const { colors, theme } = useThemeStore();
+  const { colors } = useThemeStore();
   const { user, loading } = useUser();
   const userRole = getUserRole(user);
-
   // Driver specific hooks
-  let driverContext: any = null;
-  try {
-    driverContext = useDriverAppContext();
-  } catch (e) {
-    // Not in driver context
-  }
+  const driverContext = useDriverAppContext(true);
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
 
@@ -79,7 +73,7 @@ export default function SideMenu({
       duration: 240,
       useNativeDriver: false,
     }).start();
-  }, [isVisible]);
+  }, [isVisible, slideAnim]);
 
   const navigate = (path: string) => {
     onClose();

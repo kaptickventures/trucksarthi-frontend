@@ -3,11 +3,11 @@ import { useMemo, useState, useLayoutEffect } from 'react';
 import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useDriverAppContext } from '../../../../context/DriverAppContext';
-import { translations } from '../../../../constants/driver/translations';
-import { useThemeStore } from '../../../../hooks/useThemeStore';
+import { useDriverAppContext } from '../../context/DriverAppContext';
+import { translations } from '../../constants/driver/translations';
+import { useThemeStore } from '../../hooks/useThemeStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import SideMenu from '../../../../components/SideMenu';
+import SideMenu from '../../components/SideMenu';
 
 export default function LedgerScreen() {
     const { colors, theme } = useThemeStore();
@@ -29,23 +29,6 @@ export default function LedgerScreen() {
             return bt - at;
         });
     }, [ledgerEntries]);
-
-    useLayoutEffect(() => {
-        navigation.setOptions({
-            headerLeft: () => (
-                <TouchableOpacity
-                    onPress={() => setMenuVisible((prev) => !prev)}
-                    style={{ paddingLeft: 16 }}
-                >
-                    <Ionicons
-                        name={menuVisible ? "close" : "menu"}
-                        size={24}
-                        color={colors.foreground}
-                    />
-                </TouchableOpacity>
-            ),
-        });
-    }, [navigation, colors, menuVisible]);
 
     const handleSave = async () => {
         if (!amount || !description) {
@@ -95,6 +78,24 @@ export default function LedgerScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
+            {/* Custom Header */}
+            <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                backgroundColor: colors.background,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border
+            }}>
+                <TouchableOpacity onPress={() => setMenuVisible(true)}>
+                    <Ionicons name="menu" size={28} color={colors.foreground} />
+                </TouchableOpacity>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>{t.khata}</Text>
+                <View style={{ width: 28 }} />
+            </View>
+
             <View style={[styles.balanceCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Text style={[styles.balanceLabel, { color: colors.mutedForeground }]}>{t.totalBalance}</Text>
                 <Text style={[styles.balanceValue, { color: netKhata >= 0 ? colors.primary : colors.destructive }]}>
@@ -122,7 +123,6 @@ export default function LedgerScreen() {
                 <Plus color="white" size={24} />
                 <Text style={styles.fabText}>{t.addEntry}</Text>
             </TouchableOpacity>
-
 
             <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
                 <View style={styles.modalOverlay}>
@@ -155,7 +155,7 @@ export default function LedgerScreen() {
                             />
 
                             <View style={styles.buttonRow}>
-                                <TouchableOpacity style={[styles.actionButton, styles.givenButton, { width: '100%', backgroundColor: colors.destructive }]} onPress={handleSave}>
+                                <TouchableOpacity style={[styles.actionButton, { width: '100%', backgroundColor: colors.destructive }]} onPress={handleSave}>
                                     <ArrowUpRight color="white" size={20} />
                                     <Text style={styles.actionButtonText}>Save Expense</Text>
                                 </TouchableOpacity>
@@ -180,11 +180,6 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         borderWidth: 1,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
     balanceLabel: {
         fontSize: 14,
@@ -206,10 +201,6 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 12,
         marginBottom: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
         elevation: 2,
     },
     iconBox: {
@@ -250,10 +241,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         borderRadius: 999,
         elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
     },
     fabText: {
         color: 'white',
@@ -306,8 +293,6 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 12,
         gap: 8,
-    },
-    givenButton: {
     },
     actionButtonText: {
         color: 'white',

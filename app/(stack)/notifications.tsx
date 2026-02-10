@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, router } from "expo-router";
+import { useNavigation } from "expo-router";
 import React, { useLayoutEffect, useState, useEffect } from "react";
 import {
   ScrollView,
@@ -34,7 +34,7 @@ export default function NotificationsScreen() {
       headerTitleStyle: { color: foregroundColor, fontWeight: "600" },
       headerTintColor: foregroundColor,
     });
-  }, [navigation, isDark]);
+  }, [backgroundColor, foregroundColor, navigation]);
 
   const fetchNotifications = async () => {
     try {

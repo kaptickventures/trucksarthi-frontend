@@ -3,7 +3,6 @@ import { useNavigation, useRouter } from "expo-router";
 import {
   useEffect,
   useLayoutEffect,
-  useRef,
   useState
 } from "react";
 import {
@@ -19,7 +18,6 @@ import {
   StyleSheet
 } from "react-native";
 import { useThemeStore } from "../../../hooks/useThemeStore";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Plus, Navigation } from 'lucide-react-native';
 
 import ClientFormModal from "../../../components/ClientModal";
@@ -32,7 +30,6 @@ import { DatePickerModal } from "../../../components/DatePickerModal";
 
 import "../../../global.css";
 import { formatDate } from "../../../lib/utils";
-import { THEME } from "../../../theme";
 
 /* ---------------- Hooks ---------------- */
 import useClients from "../../../hooks/useClient";
@@ -42,15 +39,12 @@ import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
 import { useUser } from "../../../hooks/useUser";
 
-type EntityType = "Client" | "Driver" | "Truck" | "Location";
-
 export default function AddTrip() {
   const navigation = useNavigation();
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const [menuVisible, setMenuVisible] = useState(false);
   const isDark = theme === "dark";
-  const insets = useSafeAreaInsets();
 
   /* ---------------- Header ---------------- */
   useLayoutEffect(() => {
@@ -95,7 +89,7 @@ export default function AddTrip() {
         </TouchableOpacity>
       ),
     });
-  }, [navigation, colors, menuVisible]);
+  }, [colors, menuVisible, navigation, router]);
 
   /* ---------------- Data Hooks ---------------- */
   const { user, loading: userLoading } = useUser();
@@ -110,7 +104,7 @@ export default function AddTrip() {
     fetchDrivers();
     fetchTrucks();
     fetchLocations();
-  }, []);
+  }, [fetchClients, fetchDrivers, fetchTrucks, fetchLocations]);
 
   /* ---------------- Form State ---------------- */
   const [formData, setFormData] = useState({
@@ -185,7 +179,7 @@ export default function AddTrip() {
         miscellaneous_expense: "",
         notes: "",
       });
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to save trip. Please try again.");
     }
   };
@@ -464,10 +458,15 @@ export default function AddTrip() {
 
       <DriverFormModal visible={isDriverModalVisible} editing={false} formData={driverFormData} setFormData={setDriverFormData} onSubmit={async () => {
         if (!driverFormData.driver_name || !driverFormData.contact_number) return Alert.alert("Missing Fields", "Name and contact required.");
-        const res = await addDriver(driverFormData);
-        setFormData(p => ({ ...p, driver_id: res._id }));
-        setIsDriverModalVisible(false);
-        fetchDrivers();
+        try {
+          const res = await addDriver(driverFormData);
+          setFormData(p => ({ ...p, driver_id: res._id }));
+          setIsDriverModalVisible(false);
+          fetchDrivers();
+        } catch (err: any) {
+          const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || "Failed to add driver";
+          Alert.alert("Error", msg);
+        }
       }} onClose={() => setIsDriverModalVisible(false)} />
 
       <TruckFormModal visible={isTruckModalVisible} editing={false} formData={truckFormData} setFormData={setTruckFormData} onSubmit={async () => {

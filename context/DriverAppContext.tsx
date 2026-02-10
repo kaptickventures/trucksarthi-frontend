@@ -272,7 +272,7 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
 
   const loading = bootLoading || tripsLoading || ledgerLoading;
 
-  const value: DriverAppContextValue = {
+  const value = useMemo<DriverAppContextValue>(() => ({
     language,
     setLanguage,
     user,
@@ -291,15 +291,41 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
     completeTrip,
     getTripExpenses,
     getTripExpenseEntries,
-  };
+  }), [
+    language,
+    setLanguage,
+    user,
+    loading,
+    refreshing,
+    activeTrip,
+    tripHistory,
+    completedToday,
+    entries,
+    notifications,
+    netKhata,
+    tripsThisMonth,
+    refreshAll,
+    logoutUser,
+    addLedgerExpense,
+    completeTrip,
+    getTripExpenses,
+    getTripExpenseEntries,
+  ]);
 
   return <DriverAppContext.Provider value={value}>{children}</DriverAppContext.Provider>;
 }
 
-export function useDriverAppContext() {
+export function useDriverAppContext(): DriverAppContextValue;
+export function useDriverAppContext(optional: true): DriverAppContextValue | null;
+export function useDriverAppContext(optional?: boolean) {
   const ctx = useContext(DriverAppContext);
   if (!ctx) {
+    if (optional) return null;
     throw new Error("useDriverAppContext must be used inside DriverAppProvider");
   }
   return ctx;
+}
+
+export function useOptionalDriverAppContext() {
+  return useContext(DriverAppContext) ?? null;
 }
