@@ -12,6 +12,8 @@ import { NAV_THEME } from "../theme";
 
 import { View } from "react-native";
 
+import { AuthProvider } from "../context/AuthContext";
+
 function MainLayout() {
   const { theme } = useThemeStore();
   usePushNotifications();
@@ -31,11 +33,13 @@ function MainLayout() {
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeStoreProvider>
-        <BottomSheetModalProvider>
-          <MainLayout />
-        </BottomSheetModalProvider>
-      </ThemeStoreProvider>
+      <AuthProvider>
+        <ThemeStoreProvider>
+          <BottomSheetModalProvider>
+            <MainLayout />
+          </BottomSheetModalProvider>
+        </ThemeStoreProvider>
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 }

@@ -8,13 +8,28 @@ import {
   useColorScheme,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useEffect } from "react";
 
 import { THEME } from "../../theme";
+import { useAuth } from "../../context/AuthContext";
 
 export default function StackLayout() {
   const isDark = useColorScheme() === "dark";
   const router = useRouter();
   const isAndroid = Platform.OS === "android";
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    const userRole = user?.user_type || user?.userType;
+    if (!loading && user && userRole === 'driver') {
+      router.replace("/(driver)/(tabs)");
+    }
+  }, [user, loading]);
+
+  const userRole = user?.user_type || user?.userType;
+  if (loading || !user || userRole === 'driver') {
+    return null;
+  }
 
   // Use proper theme colors
   const backgroundColor = isDark

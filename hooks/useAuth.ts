@@ -101,7 +101,8 @@ export async function postLoginFlow(router: any) {
     }
 
     // Role-based routing
-    if (user.userType === 'driver') {
+    const userRole = user.user_type || user.userType;
+    if (userRole === 'driver') {
       router.replace("/(driver)/(tabs)");
       return;
     }

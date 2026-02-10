@@ -1,15 +1,31 @@
-import { Tabs } from "expo-router";
+import { useRouter, Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { Clock, Home, PlusCircle } from "lucide-react-native";
 import { Platform, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useEffect } from "react";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useAuth } from "../../context/AuthContext";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { theme, colors } = useThemeStore();
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const isDark = theme === "dark";
+
+  useEffect(() => {
+    const userRole = user?.user_type || user?.userType;
+    if (!loading && user && userRole === 'driver') {
+      router.replace("/(driver)/(tabs)");
+    }
+  }, [user, loading]);
+
+  const userRole = user?.user_type || user?.userType;
+  if (loading || !user || userRole === 'driver') {
+    return null; // or a loading spinner
+  }
 
   // Theme-based colors
   const backgroundColor = colors.card;
