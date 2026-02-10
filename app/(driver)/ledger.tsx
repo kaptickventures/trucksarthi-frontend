@@ -85,6 +85,7 @@ export default function LedgerScreen() {
                 justifyContent: 'space-between',
                 paddingHorizontal: 16,
                 paddingVertical: 12,
+                paddingTop: insets.top + 12,
                 backgroundColor: colors.background,
                 borderBottomWidth: 1,
                 borderBottomColor: colors.border
@@ -92,7 +93,7 @@ export default function LedgerScreen() {
                 <TouchableOpacity onPress={() => setMenuVisible(true)}>
                     <Ionicons name="menu" size={28} color={colors.foreground} />
                 </TouchableOpacity>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>{t.khata}</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>Trucksarthi</Text>
                 <View style={{ width: 28 }} />
             </View>
 
@@ -164,7 +165,7 @@ export default function LedgerScreen() {
                     </View>
                 </View>
             </Modal>
-            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
+            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={insets.top + 52} />
         </View>
     );
 }

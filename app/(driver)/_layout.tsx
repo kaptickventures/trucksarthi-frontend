@@ -5,10 +5,10 @@ import { Platform, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
-import { useDriverAppContext } from "../../context/DriverAppContext";
+import { DriverAppProvider, useDriverAppContext } from "../../context/DriverAppContext";
 import { translations } from "../../constants/driver/translations";
 
-export default function TabLayout() {
+function DriverTabs() {
   const insets = useSafeAreaInsets();
   const { theme, colors } = useThemeStore();
   const { language } = useDriverAppContext();
@@ -98,5 +98,13 @@ export default function TabLayout() {
         />
       </Tabs>
     </>
+  );
+}
+
+export default function DriverLayout() {
+  return (
+    <DriverAppProvider>
+      <DriverTabs />
+    </DriverAppProvider>
   );
 }

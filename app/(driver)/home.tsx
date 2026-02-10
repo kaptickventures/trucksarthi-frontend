@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useNavigation } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useLayoutEffect, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TripCard } from '../../components/driver/TripCard';
 import { useDriverAppContext } from '../../context/DriverAppContext';
 import { translations } from '../../constants/driver/translations';
@@ -12,6 +13,7 @@ export default function DashboardScreen() {
     const router = useRouter();
     const navigation = useNavigation();
     const { colors } = useThemeStore();
+    const insets = useSafeAreaInsets();
     const [menuVisible, setMenuVisible] = useState(false);
     const {
         activeTrip,
@@ -50,12 +52,13 @@ export default function DashboardScreen() {
                 justifyContent: 'space-between',
                 paddingHorizontal: 16,
                 paddingVertical: 12,
+                paddingTop: insets.top + 12,
                 backgroundColor: colors.background
             }}>
                 <TouchableOpacity onPress={() => setMenuVisible(true)}>
                     <Ionicons name="menu" size={28} color={colors.foreground} />
                 </TouchableOpacity>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>{t.home}</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>Trucksarthi</Text>
                 <TouchableOpacity onPress={() => router.push("/(driver)/notifications" as any)}>
                     <Ionicons name="notifications-outline" size={26} color={colors.foreground} />
                 </TouchableOpacity>
@@ -114,7 +117,7 @@ export default function DashboardScreen() {
                     </>
                 )}
             </ScrollView>
-            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
+            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={insets.top + 52} />
         </View>
     );
 }

@@ -45,9 +45,11 @@ const DRIVER_LINKS = [
 export default function SideMenu({
   isVisible,
   onClose,
+  topOffset = 0,
 }: {
   isVisible: boolean;
   onClose: () => void;
+  topOffset?: number;
 }) {
   const router = useRouter();
   const { colors } = useThemeStore();
@@ -109,7 +111,10 @@ export default function SideMenu({
           <View
             style={{
               position: "absolute",
-              inset: 0,
+              top: topOffset,
+              bottom: 0,
+              left: 0,
+              right: 0,
               backgroundColor: "rgba(0,0,0,0.45)",
               zIndex: 9998,
             }}
@@ -122,9 +127,10 @@ export default function SideMenu({
         style={{
           transform: [{ translateX: slideAnim }],
           width: SCREEN_WIDTH * 0.82,
-          height: "100%",
+          // height: "100%", // removed to let top/bottom control height
           position: "absolute",
-          top: 0,
+          top: topOffset,
+          bottom: 0,
           left: 0,
           backgroundColor: colors.background,
           zIndex: 9999,

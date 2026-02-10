@@ -1,6 +1,7 @@
 import { useRouter, useNavigation } from 'expo-router';
 import { FlatList, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useLayoutEffect, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { TripCard } from '../../components/driver/TripCard';
 import { useDriverAppContext } from '../../context/DriverAppContext';
@@ -12,6 +13,7 @@ export default function HistoryScreen() {
     const router = useRouter();
     const navigation = useNavigation();
     const { colors } = useThemeStore();
+    const insets = useSafeAreaInsets();
     const [menuVisible, setMenuVisible] = useState(false);
     const { tripHistory, language, getTripExpenses } = useDriverAppContext();
     const t = translations[language];
@@ -25,6 +27,7 @@ export default function HistoryScreen() {
                 justifyContent: 'space-between',
                 paddingHorizontal: 16,
                 paddingVertical: 12,
+                paddingTop: insets.top + 12,
                 backgroundColor: colors.background,
                 borderBottomWidth: 1,
                 borderBottomColor: colors.border
@@ -32,7 +35,7 @@ export default function HistoryScreen() {
                 <TouchableOpacity onPress={() => setMenuVisible(true)}>
                     <Ionicons name="menu" size={28} color={colors.foreground} />
                 </TouchableOpacity>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>{t.history}</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>Trucksarthi</Text>
                 <View style={{ width: 28 }} />
             </View>
 
@@ -54,7 +57,7 @@ export default function HistoryScreen() {
                     </View>
                 }
             />
-            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
+            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={insets.top + 52} />
         </View>
     );
 }
