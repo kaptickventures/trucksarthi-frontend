@@ -1,4 +1,4 @@
-import { X, UserPlus, Mic } from "lucide-react-native";
+import { X, UserPlus } from "lucide-react-native";
 import { useRef } from "react";
 import {
   Animated,
@@ -80,58 +80,52 @@ export default function ClientFormModal({
     })
   ).current;
 
-  const handlePickContact = async () => {
-    try {
-      const { status } = await Contacts.requestPermissionsAsync();
-      if (status === 'granted') {
-        const { data } = await Contacts.getContactsAsync({
-          fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
-        });
-
-        if (data.length > 0) {
-          // In a real app we would show a picker UI or use a system picker if available
-          // Since expo-contacts doesn't have a native picker UI method like ImagePicker,
-          // we'll instruct the user we can't open a system picker directly easily without a custom UI list.
-          // However, most users expect a system picker. 
-          // NOTE: expo-contacts creates a list. Integrating a full contact picker UI inside a modal is complex.
-          // For now, let's assume we want to just Access contacts.
-          // ACTUALLY: There is presentContactPickerAsync (iOS only in older versions check documentation or use intent).
-          // Expo wrapper usually provides getContactsAsync.
-          // Let's check typical usage. Often we need to build a custom list or use a library that invokes native picker.
-          // But wait, user said "Select from contacts".
-          // Let's try to use a simple approach: Just fetch contacts and if we could show them.
-          // Given the complexity of building a contact list UI from scratch in this turn,
-          // I'll add a placeholder or simple logic if possible.
-          // Wait, for Android/iOS native picking `expo-contacts` doesn't provide a UI. 
-          // I will implement a basic "Contact Picker" if I had time, but for now I will try to use `presentContactPickerAsync` if available or just fallback to manual.
-          // Actually, `expo-contacts` does NOT provide a UI picker. 
-          // I should double check if I can use `expo-contacts` to just get data. 
-          // To properly do "Select from contacts" I'd need to fetch them and show them in a list.
-          // I'll avoid over-engineering and assume checks are done. I'll just check if I can use a simpler approach.
-          // Given constraints, I will build a lightweight logic: When clicked, request permission, then if mostly used on device, maybe open a separate modal?
-          // Let's simplfy: The user wants to select from contacts. 
-          // I will implement the button, but since I can't easily pop a native picker cross-platform without 3rd party native modules (expo-contacts is data access), 
-          // I will skip the full picker implementation in this single file write and just leave the button with a "Coming Soon" or basic permission check if I can't build the UI.
-          // BETTER IDEA: Just use `presentContactPickerAsync`? No, that's not in standard expo-contacts.
-          // Pivot: I will just add the button callback.
-          Alert.alert("Contact Picker", "To use the contact picker, we would need to display a list of contacts here. For this MVP step, please enter manually.");
-        }
-      } else {
-        Alert.alert("Permission Denied", "Permission to access contacts was denied");
-      }
-    } catch (e) {
-      console.log(e);
-    }
+  const normalizePhone = (value?: string) => {
+    if (!value) return "";
+    const trimmed = value.trim();
+    const hasPlus = trimmed.startsWith("+");
+    const digits = trimmed.replace(/\D/g, "");
+    if (!digits) return "";
+    return hasPlus ? `+${digits}` : digits;
   };
 
-  // Re-evaluating: I can't leave a broken feature. 
-  // Maybe I can ignore the "Select from contacts" deeper implementation if it requires a full UI build and just implement the fields correctly first.
-  // The user asked for "Select from contacts".
-  // I'll try to implement a VERY basic random pick or just a stub if I can't verify functionality.
-  // Wait, I can use `Contacts.presentContactPickerAsync()`! It exists on iOS. Android? 
-  // documentation says: "presents a system UI for picking a contact." for iOS 9+. Android? "Not supported on Android."
-  // Okay, for Android I'd need to build a UI.
-  // I will just simplify the form fields as requested and place the button.
+  const handlePickContact = async () => {
+    if (Platform.OS === "web") {
+      Alert.alert("Not supported", "Contact picker is not supported on web.");
+      return;
+    }
+
+    try {
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Allow contacts access to import client details.");
+        return;
+      }
+
+      const selected = await Contacts.presentContactPickerAsync();
+      if (!selected) return;
+
+      const contact = await Contacts.getContactByIdAsync(selected.id, [
+        Contacts.Fields.PhoneNumbers,
+        Contacts.Fields.Name,
+      ]);
+
+      const number = normalizePhone(contact?.phoneNumbers?.[0]?.number);
+      if (!number) {
+        Alert.alert("No number found", "Selected contact has no phone number.");
+        return;
+      }
+
+      setFormData({
+        ...formData,
+        contact_person_name: (contact?.name || selected.name || "").trim(),
+        contact_number: number,
+      });
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "Unable to load contact.");
+    }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -244,12 +238,32 @@ export default function ClientFormModal({
                 </View>
               </View>
 
-              {/* Editing Mode Extras (Hidden during creation as per request) */}
+              <View className="mb-5">
+                <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+                  Email Address <Text style={{ color: colors.destructive }}>*</Text>
+                </Text>
+                <TextInput
+                  className="rounded-2xl p-4 text-base font-bold"
+                  style={{
+                    backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                    color: colors.foreground,
+                    borderWidth: 1,
+                    borderColor: colors.border
+                  }}
+                  value={formData.email_address}
+                  onChangeText={(val) => setFormData({ ...formData, email_address: val })}
+                  placeholder="e.g. accounts@acmelogistics.com"
+                  placeholderTextColor={colors.mutedForeground + '80'}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              {/* Editing Mode Extras */}
               {editing && (
                 <>
                   <View className="w-full h-[1px] bg-border/50 my-4" />
                   <Text className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-4">Additional Details</Text>
-
                   <View className="mb-5">
                     <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
                       Alternate Mobile
@@ -267,27 +281,6 @@ export default function ClientFormModal({
                       placeholder="Optional"
                       placeholderTextColor={colors.mutedForeground + '80'}
                       keyboardType="phone-pad"
-                    />
-                  </View>
-
-                  <View className="mb-5">
-                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
-                      Email Address
-                    </Text>
-                    <TextInput
-                      className="rounded-2xl p-4 text-base font-bold"
-                      style={{
-                        backgroundColor: isDark ? colors.card : colors.secondary + '40',
-                        color: colors.foreground,
-                        borderWidth: 1,
-                        borderColor: colors.border
-                      }}
-                      value={formData.email_address}
-                      onChangeText={(val) => setFormData({ ...formData, email_address: val })}
-                      placeholder="Optional"
-                      placeholderTextColor={colors.mutedForeground + '80'}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
                     />
                   </View>
 

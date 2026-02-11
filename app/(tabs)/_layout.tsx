@@ -17,6 +17,11 @@ export default function TabLayout() {
   const isDark = theme === "dark";
 
   useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/auth/login" as any);
+      return;
+    }
+
     const userRole = getUserRole(user);
     if (!loading && user && userRole === "driver") {
       router.replace("/(driver)/(tabs)/home" as any);

@@ -57,6 +57,7 @@ export default function ClientsManager() {
     "client_name",
     "contact_number",
     "contact_person_name",
+    "email_address",
   ];
   const OPTIONAL_FIELDS: string[] = [];
 
@@ -133,19 +134,26 @@ export default function ClientsManager() {
   };
 
   const handleSubmit = async () => {
-    const missingFields = REQUIRED_FIELDS.filter(f => !formData[f as keyof typeof formData]);
+    const missingFields = REQUIRED_FIELDS.filter(f => !String(formData[f as keyof typeof formData] || "").trim());
     if (missingFields.length > 0) {
       const labels = missingFields.map(f => f.replaceAll("_", " ").toUpperCase());
       Alert.alert("⚠️ Missing Fields", `Please fill the following required fields:\n\n• ${labels.join("\n• ")}`);
       return;
     }
 
+    const email = formData.email_address.trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+      Alert.alert("Invalid Email", "Please enter a valid client email address.");
+      return;
+    }
+
     try {
       if (editingId) {
-        await updateClient(editingId, formData);
+        await updateClient(editingId, { ...formData, email_address: email });
         Alert.alert("Success", "Client updated successfully.");
       } else {
-        await addClient(formData);
+        await addClient({ ...formData, email_address: email });
         Alert.alert("Success", "Client added successfully.");
       }
       closeModal();

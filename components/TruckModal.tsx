@@ -143,7 +143,8 @@ export default function TruckFormModal({
                     }}
                 >
                     <KeyboardAvoidingView
-                        behavior={Platform.OS === "ios" ? "padding" : "height"}
+                        behavior={Platform.OS === "ios" ? "padding" : "position"}
+                        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 24}
                         className="flex-1"
                     >
                         {/* Grab Handle */}
@@ -165,7 +166,12 @@ export default function TruckFormModal({
                         </View>
 
                         {/* Form */}
-                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                            keyboardDismissMode="on-drag"
+                            contentContainerStyle={{ paddingBottom: 220 + insets.bottom }}
+                        >
                             <View className="gap-5 pb-10">
                                 {fieldsToShow.map((field) => (
                                     <View key={field.key}>

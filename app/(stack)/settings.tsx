@@ -179,7 +179,7 @@ export default function Settings() {
       {/* Notification Settings Toggle */}
       <View className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-6">
         <TouchableOpacity
-          onPress={() => router.push("/notifications" as any)}
+          onPress={() => router.push("/(stack)/notifications" as any)}
           className="flex-row items-center gap-2 flex-1"
         >
           <Bell size={20} color={colors.primary} />
@@ -221,7 +221,7 @@ export default function Settings() {
       <Text className="text-lg font-semibold text-foreground mb-3">Support</Text>
 
       <TouchableOpacity
-        onPress={() => router.push("/helpCenter")}
+        onPress={() => router.push("/(stack)/helpCenter")}
         className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-10"
       >
         <View className="flex-row items-center gap-2">

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { Stack, usePathname, useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import {
   Platform,
   StatusBar,
@@ -17,23 +17,26 @@ import { getUserRole } from "../../hooks/useAuth";
 export default function StackLayout() {
   const isDark = useColorScheme() === "dark";
   const router = useRouter();
-  const pathname = usePathname();
   const { user, loading } = useAuth();
 
   useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/auth/login" as any);
+      return;
+    }
+
     const userRole = getUserRole(user);
     if (
       !loading &&
       user &&
-      userRole === "driver" &&
-      !pathname.includes("driver-own-profile")
+      userRole === "driver"
     ) {
       router.replace("/(driver)/(tabs)/home" as any);
     }
-  }, [user, loading, pathname, router]);
+  }, [user, loading, router]);
 
   const userRole = getUserRole(user);
-  if (loading || !user || (userRole === "driver" && !pathname.includes("driver-own-profile"))) {
+  if (loading || !user || userRole === "driver") {
     return null;
   }
 
@@ -82,7 +85,7 @@ export default function StackLayout() {
 
             headerRight: () => (
               <TouchableOpacity
-                onPress={() => router.push("/notifications" as any)}
+                onPress={() => router.push("/(stack)/notifications" as any)}
                 style={{ padding: 6 }}
               >
                 <Ionicons
@@ -102,7 +105,6 @@ export default function StackLayout() {
               contentStyle: { backgroundColor },
             }}
           />
-          <Stack.Screen name="driver-own-profile" options={{ title: "My Profile", headerShown: false }} />
           <Stack.Screen
             name="settings"
             options={{ title: "Trucksarthi" }}

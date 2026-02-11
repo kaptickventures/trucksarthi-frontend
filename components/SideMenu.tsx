@@ -23,16 +23,16 @@ import { useDriverAppContext } from "../context/DriverAppContext";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const FLEET_LINKS = [
-  { title: "Trip Log", icon: "clock", route: "/tripLog" as const },
-  { title: "Documents", icon: "folder", route: "/documents-manager" as const },
-  { title: "Settings", icon: "settings-outline", route: "/settings" as const },
+  { title: "Trip Log", icon: "clock", route: "/(tabs)/tripLog" as const },
+  { title: "Documents", icon: "folder", route: "/(stack)/documents-manager" as const },
+  { title: "Settings", icon: "settings-outline", route: "/(stack)/settings" as const },
 ] as const;
 
 const MANAGER_LINKS = [
-  { title: "Trucks", icon: "bus-outline", route: "/trucks-manager" as const },
-  { title: "Drivers", icon: "person-add-outline", route: "/drivers-manager" as const },
-  { title: "Clients", icon: "people-outline", route: "/clients-manager" as const },
-  { title: "Locations", icon: "location-outline", route: "/locations-manager" as const },
+  { title: "Trucks", icon: "bus-outline", route: "/(stack)/trucks-manager" as const },
+  { title: "Drivers", icon: "person-add-outline", route: "/(stack)/drivers-manager" as const },
+  { title: "Clients", icon: "people-outline", route: "/(stack)/clients-manager" as const },
+  { title: "Locations", icon: "location-outline", route: "/(stack)/locations-manager" as const },
 ] as const;
 
 export default function SideMenu({
@@ -134,7 +134,7 @@ export default function SideMenu({
         <View style={{ flex: 1 }}>
           {/* STATIC PROFILE HEADER (Sticky) */}
           <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 24, marginBottom: 16 }}>
-            <TouchableOpacity onPress={() => navigate("/(driver)/profile")}>
+            <TouchableOpacity onPress={() => navigate(userRole === "driver" ? "/(driver)/profile" : "/(stack)/profile")}>
               <View className="flex-row items-center">
                 <View
                   className="w-16 h-16 rounded-full overflow-hidden items-center justify-center"
@@ -178,6 +178,16 @@ export default function SideMenu({
                   <Ionicons name="settings-outline" size={24} color={colors.foreground} />
                   <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
                     Settings
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => navigate("/(driver)/notifications")}
+                  className="flex-row items-center py-4"
+                >
+                  <Bell size={24} color={colors.foreground} />
+                  <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                    Notifications
                   </Text>
                 </TouchableOpacity>
 

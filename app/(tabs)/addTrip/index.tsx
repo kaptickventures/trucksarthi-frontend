@@ -73,7 +73,7 @@ export default function AddTrip() {
       ),
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/notifications" as any)}
+          onPress={() => router.push("/(stack)/notifications" as any)}
           style={{
             paddingHorizontal: 6,
             paddingVertical: 4,

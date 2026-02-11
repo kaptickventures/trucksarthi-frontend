@@ -77,7 +77,7 @@ export default function HomeScreen() {
       ),
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/notifications" as any)}
+          onPress={() => router.push("/(stack)/notifications" as any)}
           style={{
             paddingHorizontal: 6,
             paddingVertical: 4,
@@ -201,7 +201,7 @@ export default function HomeScreen() {
         <View style={{ backgroundColor: colors.card }} className="rounded-2xl p-4 mb-6">
           <View className="flex-row justify-between items-center mb-3">
             <Text style={{ color: colors.foreground }} className="font-semibold text-lg">Reminders</Text>
-            <TouchableOpacity onPress={() => router.push("/notifications" as any)}>
+            <TouchableOpacity onPress={() => router.push("/(stack)/notifications" as any)}>
               <Text className="text-muted-foreground text-sm">View All →</Text>
             </TouchableOpacity>
           </View>
