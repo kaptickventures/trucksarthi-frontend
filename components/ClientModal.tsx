@@ -240,7 +240,7 @@ export default function ClientFormModal({
 
               <View className="mb-5">
                 <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
-                  Email Address <Text style={{ color: colors.destructive }}>*</Text>
+                  Email Address
                 </Text>
                 <TextInput
                   className="rounded-2xl p-4 text-base font-bold"
@@ -331,6 +331,6 @@ export default function ClientFormModal({
           </KeyboardAvoidingView>
         </Animated.View>
       </Pressable>
-    </Modal>
+    </Modal >
   );
 }

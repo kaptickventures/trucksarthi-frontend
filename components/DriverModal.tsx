@@ -1,11 +1,9 @@
 import * as Contacts from "expo-contacts";
-import * as ImagePicker from "expo-image-picker";
 import { BookUser, X } from "lucide-react-native";
 import { useRef } from "react";
 import {
     Alert,
     Animated,
-    Image,
     KeyboardAvoidingView,
     Modal,
     PanResponder,
@@ -17,9 +15,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../hooks/useThemeStore";
-import { getFileUrl } from "../lib/utils";
 
 type DriverFormData = {
     driver_name: string;
@@ -48,7 +44,6 @@ export default function DriverFormModal({
     const { colors, theme } = useThemeStore();
     const isDark = theme === "dark";
     const translateY = useRef(new Animated.Value(0)).current;
-    const insets = useSafeAreaInsets();
     const SCROLL_THRESHOLD = 40;
 
     const closeModal = () => {
@@ -80,27 +75,6 @@ export default function DriverFormModal({
             },
         })
     ).current;
-
-    const pickImage = async (field: keyof DriverFormData) => {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permission.granted) {
-            Alert.alert("Permission needed", "Allow gallery access to upload images.");
-            return;
-        }
-
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.8,
-            allowsEditing: true,
-        });
-
-        if (!result.canceled) {
-            setFormData({
-                ...formData,
-                [field]: result.assets[0].uri,
-            });
-        }
-    };
 
     const normalizePhone = (value?: string) => {
         if (!value) return "";
@@ -248,56 +222,6 @@ export default function DriverFormModal({
                                         placeholderTextColor={colors.mutedForeground + '60'}
                                         keyboardType="phone-pad"
                                     />
-                                </View>
-
-                                {/* Identity Card */}
-                                <View>
-                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-3 ml-1">
-                                        Aadhaar / ID Proof
-                                    </Text>
-                                    {formData.identity_card_url !== "" ? (
-                                        <TouchableOpacity onPress={() => pickImage("identity_card_url")} activeOpacity={0.9}>
-                                            <Image
-                                                source={{ uri: getFileUrl(formData.identity_card_url) || formData.identity_card_url }}
-                                                className="w-full h-44 rounded-3xl mb-2"
-                                                style={{ backgroundColor: colors.muted }}
-                                            />
-                                            <Text className="text-center text-primary font-bold text-xs">Tap to change photo</Text>
-                                        </TouchableOpacity>
-                                    ) : (
-                                        <TouchableOpacity
-                                            onPress={() => pickImage("identity_card_url")}
-                                            style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', borderStyle: 'dotted', borderColor: colors.border }}
-                                            className="w-full h-32 rounded-3xl border-2 items-center justify-center"
-                                        >
-                                            <Text style={{ color: colors.mutedForeground }} className="font-bold">Upload Aadhaar Photo</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-
-                                {/* License Card */}
-                                <View>
-                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-3 ml-1">
-                                        Driving License
-                                    </Text>
-                                    {formData.license_card_url !== "" ? (
-                                        <TouchableOpacity onPress={() => pickImage("license_card_url")} activeOpacity={0.9}>
-                                            <Image
-                                                source={{ uri: getFileUrl(formData.license_card_url) || formData.license_card_url }}
-                                                className="w-full h-44 rounded-3xl mb-2"
-                                                style={{ backgroundColor: colors.muted }}
-                                            />
-                                            <Text className="text-center text-primary font-bold text-xs">Tap to change photo</Text>
-                                        </TouchableOpacity>
-                                    ) : (
-                                        <TouchableOpacity
-                                            onPress={() => pickImage("license_card_url")}
-                                            style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', borderStyle: 'dotted', borderColor: colors.border }}
-                                            className="w-full h-32 rounded-3xl border-2 items-center justify-center"
-                                        >
-                                            <Text style={{ color: colors.mutedForeground }} className="font-bold">Upload License Photo</Text>
-                                        </TouchableOpacity>
-                                    )}
                                 </View>
 
                                 {/* Actions */}

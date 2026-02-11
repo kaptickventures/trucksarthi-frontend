@@ -57,7 +57,6 @@ export default function ClientsManager() {
     "client_name",
     "contact_number",
     "contact_person_name",
-    "email_address",
   ];
   const OPTIONAL_FIELDS: string[] = [];
 
@@ -143,7 +142,7 @@ export default function ClientsManager() {
 
     const email = formData.email_address.trim();
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(email)) {
+    if (email && !emailPattern.test(email)) {
       Alert.alert("Invalid Email", "Please enter a valid client email address.");
       return;
     }
@@ -229,16 +228,17 @@ export default function ClientsManager() {
                   params: { clientId: client._id }
                 })
               }
-              className="bg-card border border-border rounded-2xl p-5 mb-4 shadow-sm"
+              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
             >
-              <View className="flex-row justify-between items-start mb-3">
+              <View className="flex-row justify-between items-start mb-2">
                 <View className="flex-1 mr-3">
                   <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="font-bold text-lg tracking-tight">
                     {client.client_name}
                   </Text>
-                  <Text className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mt-1">
-                    Verified Partner
-                  </Text>
+                  <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-light">
+                    {client.contact_person_name || "N/A"}
+                    </Text>
+
                 </View>
                 <View className="flex-row gap-2">
                   <TouchableOpacity
@@ -257,8 +257,7 @@ export default function ClientsManager() {
                 </View>
               </View>
 
-              <View className="gap-y-1.5 pt-1">
-                <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-medium">👤 POC: {client.contact_person_name || "N/A"}</Text>
+              <View className="gap-y-1">
                 <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-medium">📞 {client.contact_number}</Text>
                 <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-medium" numberOfLines={1}>📍 {client.office_address || "Address N/A"}</Text>
               </View>

@@ -716,10 +716,23 @@ export default function ClientProfile() {
               </Text>
             </View>
 
-            {/* EDIT CLIENT BUTTON */}
-            <TouchableOpacity onPress={openEditModal} style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}>
-              <Edit size={16} color={colors.foreground} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => client.contact_number && Linking.openURL(`tel:${client.contact_number}`)}
+                style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}
+              >
+                <Ionicons name="call-outline" size={15} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => client.email_address && Linking.openURL(`mailto:${client.email_address}`)}
+                style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}
+              >
+                <Ionicons name="mail-outline" size={15} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={openEditModal} style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}>
+                <Edit size={16} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* ACTION ROW */}

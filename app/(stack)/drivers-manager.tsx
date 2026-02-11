@@ -247,15 +247,12 @@ export default function DriversManager() {
                     },
                   })
                 }
-                className="bg-card border border-border rounded-2xl p-5 mb-4 shadow-sm"
+                className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
               >
-                <View className="flex-row justify-between items-start mb-3">
+                <View className="flex-row justify-between items-start">
                   <View className="flex-1 mr-3">
                     <Text style={{ color: colors.foreground }} className="font-bold text-lg tracking-tight">
                       {driver.driver_name}
-                    </Text>
-                    <Text className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mt-1">
-                      Commercial Operator
                     </Text>
                   </View>
                   <View className="flex-row gap-2">
@@ -282,7 +279,7 @@ export default function DriversManager() {
                   </View>
                 </View>
 
-                <View className="gap-y-1.5 pt-1">
+                <View className="gap-y-1">
                   <Text style={{ color: colors.foreground }} className="text-sm font-medium">📞 {driver.contact_number}</Text>
                   <Text style={{ color: colors.foreground }} className="text-sm font-medium">📜 {driver.license_card_url ? "License Registered" : "License Missing"}</Text>
                 </View>

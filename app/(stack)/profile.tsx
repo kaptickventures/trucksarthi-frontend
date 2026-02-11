@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import {
   Briefcase,
   Building2,
@@ -37,7 +37,6 @@ import API from "../api/axiosInstance";
 
 export default function Profile() {
   const router = useRouter();
-  const navigation = useNavigation();
   const { theme, colors } = useThemeStore();
   const { user, updateUser, refreshUser, uploadProfilePicture, loading: userLoading } = useUser();
 
@@ -68,6 +67,7 @@ export default function Profile() {
   // Bank verification states
   const [verifyingBank, setVerifyingBank] = useState(false);
   const [bankVerificationResult, setBankVerificationResult] = useState<any>(null);
+  const isKycVerified = Boolean(user?.is_pan_verified && user?.is_gstin_verified);
 
   useEffect(() => {
     if (user) {
@@ -275,26 +275,41 @@ export default function Profile() {
               </TouchableOpacity>
             </View>
 
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.foreground, marginTop: 16 }}>
-              {formData.name || "User"}
-            </Text>
-            <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 4 }}>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.foreground, marginTop: 16, textAlign: 'center' }}>
               {formData.company_name || "Enterprise Account"}
             </Text>
+            <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 4 }}>
+              {formData.name || "User"}
+            </Text>
+          </View>
 
+          {/* KYC PRIORITY CARD */}
+          <View style={{ paddingHorizontal: 24, marginBottom: 12 }}>
             <TouchableOpacity
-              onPress={() => setIsEditing(!isEditing)}
+              onPress={() => router.push("/kyc-verification" as any)}
               style={{
-                marginTop: 16,
-                backgroundColor: isEditing ? (theme === 'dark' ? '#450a0a' : '#fee2e2') : (theme === 'dark' ? '#064e3b' : '#f0fdf4'),
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 20
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: isKycVerified ? '#f0fdf4' : '#fff7ed',
+                padding: 14,
+                borderRadius: 12,
+                borderWidth: 1.5,
+                borderColor: isKycVerified ? '#86efac' : '#fdba74'
               }}
             >
-              <Text style={{ color: isEditing ? colors.destructive : colors.primary, fontWeight: 'bold', fontSize: 13 }}>
-                {isEditing ? "Discard Changes" : "Edit Profile"}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <ShieldCheck size={20} color={isKycVerified ? '#16a34a' : '#ea580c'} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 14, color: isKycVerified ? '#16a34a' : '#ea580c' }}>
+                    KYC Status: {isKycVerified ? 'Verified' : 'Pending'}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                    {isKycVerified ? 'Your PAN and GSTIN are verified.' : 'Complete KYC now to unlock all account features.'}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
             </TouchableOpacity>
           </View>
 
@@ -329,7 +344,22 @@ export default function Profile() {
           <View style={{ padding: 24 }}>
             {activeTab === 'personal' && (
               <View style={{ gap: 20 }}>
-                <SectionHeader title="Basic Details" icon={<UserIcon size={18} color={colors.primary} />} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <SectionHeader title="Basic Details" icon={<UserIcon size={18} color={colors.primary} />} />
+                  <TouchableOpacity
+                    onPress={() => setIsEditing(!isEditing)}
+                    style={{
+                      backgroundColor: isEditing ? (theme === 'dark' ? '#450a0a' : '#fee2e2') : (theme === 'dark' ? '#064e3b' : '#f0fdf4'),
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 16
+                    }}
+                  >
+                    <Text style={{ color: isEditing ? colors.destructive : colors.primary, fontWeight: 'bold', fontSize: 12 }}>
+                      {isEditing ? "Stop Editing" : "Edit"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <ProfileInput label="Full Name" value={formData.name} editable={isEditing} onChange={(v: string) => markChanged("name", v)} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
                 <ProfileInput label="Email Address" value={formData.email} editable={false} icon={<Mail size={18} color={colors.mutedForeground} />} />
                 <ProfileInput label="Phone Number" value={formData.phone} editable={isEditing} onChange={(v: string) => markChanged("phone", v)} icon={<Phone size={18} color={colors.mutedForeground} />} />
@@ -356,51 +386,55 @@ export default function Profile() {
                 {showDatePicker && (
                   <DateTimePicker value={dobDate || new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} />
                 )}
-
-                {/* KYC Verification Link */}
-                <SectionHeader title="Identity Verification" icon={<ShieldCheck size={18} color={colors.primary} />} />
-
-                <TouchableOpacity
-                  onPress={() => router.push("/kyc-verification" as any)}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    backgroundColor: (user?.is_pan_verified && user?.is_gstin_verified) ? '#f0fdf4' : '#fff7ed',
-                    padding: 12,
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor: (user?.is_pan_verified && user?.is_gstin_verified) ? '#bbf7d0' : '#fed7aa',
-                    marginBottom: 8
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <ShieldCheck size={20} color={(user?.is_pan_verified && user?.is_gstin_verified) ? '#16a34a' : '#ea580c'} />
-                    <View>
-                      <Text style={{ fontWeight: 'bold', fontSize: 14, color: (user?.is_pan_verified && user?.is_gstin_verified) ? '#16a34a' : '#ea580c' }}>
-                        KYC Status: {(user?.is_pan_verified && user?.is_gstin_verified) ? 'Verified' : 'Pending'}
-                      </Text>
-                      <Text style={{ fontSize: 11, color: colors.mutedForeground }}>Tap to complete your verification</Text>
-                    </View>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
-                </TouchableOpacity>
               </View>
             )}
 
             {activeTab === 'company' && (
               <View style={{ gap: 20 }}>
                 <SectionHeader title="Business Information" icon={<Briefcase size={18} color={colors.primary} />} />
-                <ProfileInput label="Company Name (As per GSTIN)" value={formData.company_name} editable={isEditing} onChange={(v: string) => markChanged("company_name", v)} icon={<Building2 size={18} color={colors.mutedForeground} />} />
-                <ProfileInput label="GST Number" value={formData.gstin} editable={isEditing && !user?.is_gstin_verified} onChange={(v: string) => markChanged("gstin", v)} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Optional" />
-                <ProfileInput label="PAN Number" value={formData.pan_number} editable={isEditing && !user?.is_pan_verified} onChange={(v: string) => markChanged("pan_number", v)} icon={<Hash size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
-                <ProfileInput label="Office Address" value={formData.address} editable={isEditing} onChange={(v: string) => markChanged("address", v)} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Full street address" />
+                <ProfileInput label="Company Name (As per GSTIN)" value={formData.company_name} editable={false} onChange={(v: string) => markChanged("company_name", v)} icon={<Building2 size={18} color={colors.mutedForeground} />} />
+                <ProfileInput
+                  label="GST Number"
+                  value={formData.gstin}
+                  editable={false}
+                  onChange={(v: string) => markChanged("gstin", v)}
+                  icon={<Hash size={18} color={colors.mutedForeground} />}
+                  placeholder="Optional"
+                  labelAction="Verify New"
+                  onLabelActionPress={() => router.push("/kyc-verification" as any)}
+                />
+                <ProfileInput
+                  label="PAN Number"
+                  value={formData.pan_number}
+                  editable={false}
+                  onChange={(v: string) => markChanged("pan_number", v)}
+                  icon={<Hash size={18} color={colors.mutedForeground} />}
+                  autoCapitalize="characters"
+                  labelAction="Verify New"
+                  onLabelActionPress={() => router.push("/kyc-verification" as any)}
+                />
+                <ProfileInput label="Office Address" value={formData.address} editable={false} onChange={(v: string) => markChanged("address", v)} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Full street address" />
               </View>
             )}
 
             {activeTab === 'financial' && (
               <View style={{ gap: 20 }}>
-                <SectionHeader title="Settlement Details" icon={<Landmark size={18} color={colors.primary} />} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <SectionHeader title="Settlement Details" icon={<Landmark size={18} color={colors.primary} />} />
+                  <TouchableOpacity
+                    onPress={() => router.push("/kyc-verification" as any)}
+                    style={{
+                      backgroundColor: '#e0f2fe',
+                      borderColor: '#7dd3fc',
+                      borderWidth: 1,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 16
+                    }}
+                  >
+                    <Text style={{ color: '#0369a1', fontWeight: '700', fontSize: 12 }}>Update</Text>
+                  </TouchableOpacity>
+                </View>
 
                 {/* Bank Verification Status */}
                 {(user?.is_bank_verified || bankVerificationResult?.verified) && (
@@ -436,10 +470,10 @@ export default function Profile() {
                   </View>
                 )}
 
-                <ProfileInput label="Bank Name" value={formData.bank_name} editable={isEditing} onChange={(v: string) => markChanged("bank_name", v)} icon={<Landmark size={18} color={colors.mutedForeground} />} />
-                <ProfileInput label="Account Holder" value={formData.account_holder_name} editable={isEditing} onChange={(v: string) => markChanged("account_holder_name", v)} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
-                <ProfileInput label="Account Number" value={formData.account_number} editable={isEditing} onChange={(v: string) => markChanged("account_number", v)} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Enter account number" />
-                <ProfileInput label="IFSC Code" value={formData.ifsc_code} editable={isEditing} onChange={(v: string) => markChanged("ifsc_code", v)} icon={<ShieldCheck size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
+                <ProfileInput label="Bank Name" value={formData.bank_name} editable={false} onChange={(v: string) => markChanged("bank_name", v)} icon={<Landmark size={18} color={colors.mutedForeground} />} />
+                <ProfileInput label="Account Holder" value={formData.account_holder_name} editable={false} onChange={(v: string) => markChanged("account_holder_name", v)} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
+                <ProfileInput label="Account Number" value={formData.account_number} editable={false} onChange={(v: string) => markChanged("account_number", v)} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Enter account number" />
+                <ProfileInput label="IFSC Code" value={formData.ifsc_code} editable={false} onChange={(v: string) => markChanged("ifsc_code", v)} icon={<ShieldCheck size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
 
                 {/* Verify Bank Button */}
                 {formData.account_number && formData.ifsc_code && (
@@ -472,10 +506,6 @@ export default function Profile() {
                     )}
                   </TouchableOpacity>
                 )}
-
-                <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: -8, textAlign: 'center' }}>
-                  Verification powered by Cashfree • Secure & Instant
-                </Text>
               </View>
             )}
 
@@ -515,11 +545,28 @@ const SectionHeader = ({ title, icon }: any) => (
   </View>
 );
 
-const ProfileInput = ({ label, value, editable, onChange, icon, multiline, placeholder, autoCapitalize }: any) => {
+const ProfileInput = ({ label, value, editable, onChange, icon, multiline, placeholder, autoCapitalize, labelAction, onLabelActionPress }: any) => {
   const { colors } = useThemeStore();
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>{label}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>{label}</Text>
+        {labelAction && (
+          <TouchableOpacity
+            onPress={onLabelActionPress}
+            style={{
+              backgroundColor: '#e0f2fe',
+              borderColor: '#7dd3fc',
+              borderWidth: 1,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 999
+            }}
+          >
+            <Text style={{ color: '#0369a1', fontWeight: '700', fontSize: 11 }}>{labelAction}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
       <View style={{
         flexDirection: 'row',
         alignItems: multiline ? 'flex-start' : 'center',

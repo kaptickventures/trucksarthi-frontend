@@ -78,6 +78,7 @@ export interface Truck {
   insurance_upto?: ISODate;
   permit_upto?: ISODate;
   national_permit_upto?: ISODate;
+  rc_details?: Record<string, any>;
 }
 
 // ===============================

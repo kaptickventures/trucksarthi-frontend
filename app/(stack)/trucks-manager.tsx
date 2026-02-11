@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Skeleton } from "../../components/Skeleton";
 import TruckFormModal from "../../components/TruckModal";
+import type { TruckFormData } from "../../components/TruckModal";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
@@ -51,13 +52,17 @@ export default function TrucksManager() {
     }
   }, [fetchTrucks]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<TruckFormData>({
     registration_number: "",
     chassis_number: "",
     engine_number: "",
     registered_owner_name: "",
+    vehicle_class: "",
+    fuel_norms: "",
+    registration_date: "",
     container_dimension: "",
     loading_capacity: "",
+    rc_details: undefined,
   });
 
   /* ---------------- FETCH ---------------- */
@@ -76,10 +81,14 @@ export default function TrucksManager() {
         chassis_number: data.chassis_number || "",
         engine_number: data.engine_number || "",
         registered_owner_name: data.registered_owner_name || "",
+        vehicle_class: data.vehicle_class || "",
+        fuel_norms: data.fuel_norms || "",
+        registration_date: data.registration_date || "",
         container_dimension: data.container_dimension || "",
         loading_capacity: data.loading_capacity
           ? String(data.loading_capacity)
           : "",
+        rc_details: data.rc_details || undefined,
       });
     } else {
       setEditingId(null);
@@ -88,8 +97,12 @@ export default function TrucksManager() {
         chassis_number: "",
         engine_number: "",
         registered_owner_name: "",
+        vehicle_class: "",
+        fuel_norms: "",
+        registration_date: "",
         container_dimension: "",
         loading_capacity: "",
+        rc_details: undefined,
       });
     }
     setModalVisible(true);
@@ -110,13 +123,13 @@ export default function TrucksManager() {
       if (editingId) {
         await updateTruck(editingId, {
           ...formData,
-          loading_capacity: Number(formData.loading_capacity),
+          loading_capacity: formData.loading_capacity ? Number(formData.loading_capacity) : undefined,
         });
         Alert.alert("Success", "Truck updated successfully.");
       } else {
         await addTruck({
           ...formData,
-          loading_capacity: Number(formData.loading_capacity),
+          loading_capacity: formData.loading_capacity ? Number(formData.loading_capacity) : undefined,
         });
         Alert.alert("Success", "Truck added successfully.");
       }
@@ -192,15 +205,16 @@ export default function TrucksManager() {
                   params: { truck_id: truck._id },
                 })
               }
-              className="bg-card border border-border rounded-2xl p-5 mb-4 shadow-sm"
+              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
             >
-              <View className="flex-row justify-between items-start mb-3">
+              <View className="flex-row justify-between items-start mb-2">
                 <View className="flex-1 mr-3">
                   <Text style={{ color: colors.foreground }} className="font-bold text-lg uppercase tracking-tight">
                     {truck.registration_number}
                   </Text>
                   <Text className="text-muted-foreground text-xs font-medium uppercase tracking-widest mt-0.5">
-                    {truck.vehicle_class || "HCV"} • FLEET UNIT
+                    {truck.registered_owner_name} •  {truck.vehicle_class || "HCV"} 
+
                   </Text>
                 </View>
                 <View className="flex-row gap-2">
@@ -220,10 +234,7 @@ export default function TrucksManager() {
                 </View>
               </View>
 
-              <View className="gap-y-1.5 pt-1">
-                <Text style={{ color: colors.foreground }} className="text-sm font-medium">🏢 {truck.registered_owner_name}</Text>
-                <Text style={{ color: colors.foreground }} className="text-sm font-medium">📦 {truck.loading_capacity ? `${truck.loading_capacity} Tons` : "Capacity N/A"} • {truck.container_dimension || "Dim. N/A"}</Text>
-              </View>
+              
             </TouchableOpacity>
           ))
         )}

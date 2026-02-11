@@ -2,12 +2,9 @@ import { X, Search, CheckCircle2 } from "lucide-react-native";
 import { useRef, useState } from "react";
 import {
     Animated,
-    KeyboardAvoidingView,
     Modal,
     PanResponder,
-    Platform,
     Pressable,
-    ScrollView,
     Text,
     TextInput,
     TouchableOpacity,
@@ -15,18 +12,31 @@ import {
     ActivityIndicator,
     Alert,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { useKYC } from "../hooks/useKYC";
 
-type TruckFormData = {
+export type TruckFormData = {
     registration_number: string;
     chassis_number: string;
     engine_number: string;
     registered_owner_name: string;
+    vehicle_class?: string;
+    fuel_norms?: string;
+    registration_date?: string;
     container_dimension: string;
     loading_capacity: string;
+    rc_details?: Record<string, any>;
 };
+
+type TruckInputFieldKey =
+    | "registration_number"
+    | "registered_owner_name"
+    | "container_dimension"
+    | "loading_capacity"
+    | "chassis_number"
+    | "engine_number";
 
 type Props = {
     visible: boolean;
@@ -54,6 +64,31 @@ export default function TruckFormModal({
     const { verifyRC, loading: isFetching } = useKYC();
     const [isVerified, setIsVerified] = useState(false);
     const [showAllFields, setShowAllFields] = useState(editing); // Show all fields if editing
+    const [showFetchedSummary, setShowFetchedSummary] = useState(false);
+
+    const toIsoDate = (input?: string) => {
+        if (!input) return undefined;
+        const trimmed = input.trim();
+
+        const dmyMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (dmyMatch) {
+            const [, dd, mm, yyyy] = dmyMatch;
+            return `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+        }
+
+        const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+        const parsed = new Date(trimmed);
+        if (!isNaN(parsed.getTime())) {
+            const yyyy = parsed.getFullYear();
+            const mm = String(parsed.getMonth() + 1).padStart(2, "0");
+            const dd = String(parsed.getDate()).padStart(2, "0");
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        return undefined;
+    };
 
     const handleFetchRC = async () => {
         if (!formData.registration_number) {
@@ -70,18 +105,25 @@ export default function TruckFormModal({
                     registered_owner_name: rc.owner || prev.registered_owner_name,
                     chassis_number: rc.chassis || prev.chassis_number,
                     engine_number: rc.engine || prev.engine_number,
+                    vehicle_class: rc.class || prev.vehicle_class,
+                    fuel_norms: rc.norms_type || prev.fuel_norms,
+                    registration_date: toIsoDate(rc.reg_date) || toIsoDate(rc.status_as_on) || prev.registration_date,
+                    rc_details: rc,
                 }));
                 setIsVerified(true);
-                setShowAllFields(true); // Show all fields after successful verification
+                setShowAllFields(false);
+                setShowFetchedSummary(true);
                 Alert.alert("Success", "Vehicle details fetched successfully!");
             } else {
                 Alert.alert("Not Found", "Details not found for this vehicle. Please enter manually.");
                 setShowAllFields(true); // Allow manual entry if not found
+                setShowFetchedSummary(false);
             }
         } catch (error: any) {
             console.error(error);
             Alert.alert("Error", error.response?.data?.message || "Failed to fetch vehicle details.");
             setShowAllFields(true); // Allow manual entry on error
+            setShowFetchedSummary(false);
         }
     };
 
@@ -94,6 +136,7 @@ export default function TruckFormModal({
             translateY.setValue(0);
             setIsVerified(false);
             setShowAllFields(editing); // Reset to initial state
+            setShowFetchedSummary(false);
             onClose();
         });
     };
@@ -117,7 +160,7 @@ export default function TruckFormModal({
         })
     ).current;
 
-    const allFields: { label: string; key: keyof TruckFormData; placeholder: string; required?: boolean; numeric?: boolean }[] = [
+    const allFields: { label: string; key: TruckInputFieldKey; placeholder: string; required?: boolean; numeric?: boolean }[] = [
         { label: "Registration Number", key: "registration_number", placeholder: "e.g. MH 12 AB 1234", required: true },
         { label: "Registered Owner", key: "registered_owner_name", placeholder: "Full Owner Name", required: true },
         { label: "Container Dimension", key: "container_dimension", placeholder: "e.g. 20ft / 32ft" },
@@ -126,7 +169,11 @@ export default function TruckFormModal({
         { label: "Engine Number", key: "engine_number", placeholder: "Optional" },
     ];
 
-    const fieldsToShow = showAllFields ? allFields : [allFields[0]]; // Show only registration number initially
+    const fieldsToShow = showAllFields
+        ? allFields
+        : showFetchedSummary
+            ? [allFields[0], allFields[1]]
+            : [allFields[0]];
 
     return (
         <Modal visible={visible} transparent animationType="fade">
@@ -136,17 +183,13 @@ export default function TruckFormModal({
                     className="absolute bottom-0 w-full rounded-t-[42px]"
                     style={{
                         backgroundColor: colors.background,
-                        height: showAllFields ? "90%" : "50%",
+                        height: showAllFields ? "94%" : "78%",
                         paddingHorizontal: 24,
                         paddingTop: 12,
                         transform: [{ translateY }],
                     }}
                 >
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === "ios" ? "padding" : "position"}
-                        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 24}
-                        className="flex-1"
-                    >
+                   
                         {/* Grab Handle */}
                         <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-6 opacity-40" />
 
@@ -157,7 +200,7 @@ export default function TruckFormModal({
                                     {editing ? "Update Vehicle" : "Add New Truck"}
                                 </Text>
                                 <Text className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-widest">
-                                    {showAllFields ? "Vehicle Configuration" : "Enter Registration Number"}
+                                    {showAllFields ? "Vehicle Configuration" : showFetchedSummary ? "Verified Details" : "Enter Registration Number"}
                                 </Text>
                             </View>
                             <TouchableOpacity onPress={closeModal} className="w-10 h-10 bg-muted rounded-full items-center justify-center">
@@ -166,11 +209,14 @@ export default function TruckFormModal({
                         </View>
 
                         {/* Form */}
-                        <ScrollView
+                        <KeyboardAwareScrollView
+                            enableOnAndroid
+                            extraScrollHeight={80}
+                            extraHeight={240}
                             showsVerticalScrollIndicator={false}
                             keyboardShouldPersistTaps="handled"
                             keyboardDismissMode="on-drag"
-                            contentContainerStyle={{ paddingBottom: 220 + insets.bottom }}
+                            contentContainerStyle={{ paddingBottom: 140 + insets.bottom }}
                         >
                             <View className="gap-5 pb-10">
                                 {fieldsToShow.map((field) => (
@@ -190,8 +236,15 @@ export default function TruckFormModal({
                                                     }}
                                                     value={formData[field.key]}
                                                     onChangeText={(val) => {
-                                                        if (field.key === "registration_number") setIsVerified(false);
-                                                        setFormData({ ...formData, [field.key]: val });
+                                                        if (field.key === "registration_number") {
+                                                            setIsVerified(false);
+                                                            setShowFetchedSummary(false);
+                                                        }
+                                                        setFormData({
+                                                            ...formData,
+                                                            [field.key]: val,
+                                                            ...(field.key === "registration_number" ? { rc_details: undefined } : {}),
+                                                        });
                                                     }}
                                                     placeholder={field.placeholder}
                                                     placeholderTextColor={colors.mutedForeground + '80'}
@@ -199,7 +252,7 @@ export default function TruckFormModal({
                                                     autoCapitalize={field.key === "registration_number" ? "characters" : "words"}
                                                 />
                                             </View>
-                                            {field.key === "registration_number" && !editing && !showAllFields && (
+                                            {field.key === "registration_number" && !editing && !showAllFields && !showFetchedSummary && (
                                                 <TouchableOpacity
                                                     onPress={handleFetchRC}
                                                     disabled={isFetching}
@@ -225,9 +278,12 @@ export default function TruckFormModal({
                                     </View>
                                 ))}
 
-                                {!showAllFields && (
+                                {!showAllFields && !showFetchedSummary && (
                                     <TouchableOpacity
-                                        onPress={() => setShowAllFields(true)}
+                                        onPress={() => {
+                                            setShowFetchedSummary(false);
+                                            setShowAllFields(true);
+                                        }}
                                         style={{ marginTop: 8 }}
                                     >
                                         <Text style={{ color: colors.primary, textAlign: 'center', fontSize: 14, fontWeight: '600' }}>
@@ -236,8 +292,14 @@ export default function TruckFormModal({
                                     </TouchableOpacity>
                                 )}
 
+                                {showFetchedSummary && !editing && (
+                                    <Text style={{ color: colors.mutedForeground, textAlign: 'center', fontSize: 12 }}>
+                                        Only owner name is shown now. You can view full vehicle details later in truck profile.
+                                    </Text>
+                                )}
+
                                 {/* Actions */}
-                                {showAllFields && (
+                                {(showAllFields || showFetchedSummary) && (
                                     <>
                                         <TouchableOpacity
                                             onPress={onSubmit}
@@ -258,8 +320,7 @@ export default function TruckFormModal({
                                     </>
                                 )}
                             </View>
-                        </ScrollView>
-                    </KeyboardAvoidingView>
+                        </KeyboardAwareScrollView>
                 </Animated.View>
             </Pressable>
         </Modal>

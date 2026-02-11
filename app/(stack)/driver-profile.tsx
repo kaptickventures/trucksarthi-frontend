@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
+  Linking,
   Modal,
   RefreshControl,
   ScrollView,
@@ -218,8 +219,16 @@ export default function DriverProfile() {
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.muted, alignItems: 'center', justifyContent: 'center' }}>
               <UserIcon size={32} color={colors.mutedForeground} />
             </View>
-            <View style={{ marginLeft: 16 }}>
-              <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.foreground }}>{driver.driver_name}</Text>
+            <View style={{ marginLeft: 16, flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.foreground }}>{driver.driver_name}</Text>
+                <TouchableOpacity
+                  onPress={() => driver.contact_number && Linking.openURL(`tel:${driver.contact_number}`)}
+                  style={{ backgroundColor: colors.muted, padding: 6, borderRadius: 16 }}
+                >
+                  <Ionicons name="call-outline" size={14} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
               <Text style={{ fontSize: 14, color: colors.mutedForeground }}>{driver.contact_number}</Text>
             </View>
           </View>

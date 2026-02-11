@@ -5,22 +5,16 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
-  Cpu,
   FileText,
   Pencil,
-  Settings,
   Share2,
   Truck,
-  User as UserIcon,
-  Weight,
   X,
-  Zap
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Modal,
   Platform,
   RefreshControl,
@@ -65,20 +59,66 @@ const getVehicleAge = (dateString?: string) => {
 
 const formatDate = (dateString?: string) => globalFormatDate(dateString);
 
+const toIsoDate = (input?: string) => {
+  if (!input) return undefined;
+  const trimmed = input.trim();
+
+  const dmyMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmyMatch) {
+    const [, dd, mm, yyyy] = dmyMatch;
+    return `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+  }
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) {
+    const yyyy = parsed.getFullYear();
+    const mm = String(parsed.getMonth() + 1).padStart(2, "0");
+    const dd = String(parsed.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return undefined;
+};
+
+const formatLabel = (key: string) =>
+  key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const normalizeDisplayValue = (value: any): string | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.toLowerCase() === "null" || trimmed.toLowerCase() === "na") return null;
+    return trimmed;
+  }
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : null;
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) {
+    const parts = value.map((item) => normalizeDisplayValue(item)).filter(Boolean);
+    return parts.length ? parts.join(", ") : null;
+  }
+  if (typeof value === "object") {
+    const serialized = JSON.stringify(value);
+    return serialized === "{}" ? null : serialized;
+  }
+  return String(value);
+};
+
 /* ---------------- COMPONENTS ---------------- */
 
-const InfoItem = ({ label, value, icon }: any) => {
+const DetailItem = ({ label, value }: { label: string; value: string }) => {
   const { colors } = useThemeStore();
   return (
     <View className="mb-6 w-[48%]">
-      <View className="flex-row items-center mb-1.5 opacity-70">
-        {React.cloneElement(icon, { size: 14, color: colors.primary })}
-        <Text style={{ color: colors.mutedForeground }} className="text-[10px] font-bold uppercase tracking-wider ml-2">
-          {label}
-        </Text>
-      </View>
-      <Text style={{ color: colors.foreground }} className="text-sm font-bold ml-5">
-        {value || "—"}
+      <Text style={{ color: colors.mutedForeground }} className="text-[10px] font-bold uppercase tracking-wider">
+        {label}
+      </Text>
+      <Text style={{ color: colors.foreground }} className="text-sm font-bold mt-1">
+        {value}
       </Text>
     </View>
   );
@@ -109,7 +149,6 @@ const DateItem = ({ label, date }: any) => {
 export default function TruckProfile() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
-  const isDark = theme === 'dark';
 
   const { truck_id } = useLocalSearchParams<{ truck_id?: string | string[] }>();
   const id = useMemo(() => Array.isArray(truck_id) ? truck_id[0] : truck_id, [truck_id]);
@@ -117,8 +156,8 @@ export default function TruckProfile() {
   const { trucks, loading: trucksLoading, updateTruck, updateImportantDates, fetchTrucks } = useTrucks();
 
   const [refreshing, setRefreshing] = useState(false);
-
   const [showDates, setShowDates] = useState(false);
+  const [showOtherDetails, setShowOtherDetails] = useState(false);
 
   const [dateField, setDateField] = useState<string | null>(null);
   const [isPickerVisible, setIsPickerVisible] = useState(false);
@@ -162,6 +201,79 @@ export default function TruckProfile() {
   });
 
   const truck = useMemo(() => trucks.find((t) => t._id === id), [trucks, id]);
+  const sectionOneItems = useMemo(() => {
+    if (!truck) return [];
+    const resolvedRegistrationDate =
+      toIsoDate(String(truck.registration_date || "")) ||
+      toIsoDate(truck.rc_details?.reg_date) ||
+      toIsoDate(truck.rc_details?.status_as_on);
+    return [
+      { key: "chassis_number", label: "Chassis No.", value: normalizeDisplayValue(truck.chassis_number) },
+      { key: "engine_number", label: "Engine No.", value: normalizeDisplayValue(truck.engine_number) },
+      { key: "vehicle_class", label: "Vehicle Class", value: normalizeDisplayValue(truck.vehicle_class || truck.rc_details?.class) },
+      { key: "fuel_norms", label: "Norms", value: normalizeDisplayValue(truck.fuel_norms || truck.rc_details?.norms_type) },
+      {
+        key: "registration_date",
+        label: "Registration Date",
+        value: resolvedRegistrationDate ? normalizeDisplayValue(formatDate(resolvedRegistrationDate as string)) : null
+      },
+      {
+        key: "vehicle_age",
+        label: "Vehicle Age",
+        value: resolvedRegistrationDate ? normalizeDisplayValue(getVehicleAge(resolvedRegistrationDate as string)) : null
+      },
+    ].filter((item) => Boolean(item.value));
+  }, [truck]);
+  const importantDateItems = useMemo(() => {
+    if (!truck) return [];
+    return [
+      { label: "Insurance Upto", date: truck.insurance_upto },
+      { label: "PUCC Upto", date: truck.pollution_upto },
+      { label: "Fitness Upto", date: truck.fitness_upto },
+      { label: "Road Tax Upto", date: truck.road_tax_upto },
+      { label: "Permit Upto", date: truck.permit_upto },
+      { label: "National Permit Upto", date: truck.national_permit_upto },
+    ].filter((item) => normalizeDisplayValue(item.date));
+  }, [truck]);
+  const moreDetailsEntries = useMemo(() => {
+    if (!truck) return [];
+
+    const primaryKeys = new Set([
+      "registration_number",
+      "registered_owner_name",
+      "vehicle_class",
+      "fuel_norms",
+      "registration_date",
+      "insurance_upto",
+      "pollution_upto",
+      "fitness_upto",
+      "road_tax_upto",
+      "permit_upto",
+      "national_permit_upto",
+      "chassis_number",
+      "engine_number",
+      "rc_details",
+      "_id",
+      "user",
+      "createdAt",
+      "updatedAt",
+      "__v",
+    ]);
+
+    const detailsMap = new Map<string, string>();
+    const addEntry = (key: string, raw: any) => {
+      const val = normalizeDisplayValue(raw);
+      if (!val || primaryKeys.has(key)) return;
+      detailsMap.set(key, val);
+    };
+
+    Object.entries(truck).forEach(([key, value]) => addEntry(key, value));
+    if (truck.rc_details && typeof truck.rc_details === "object") {
+      Object.entries(truck.rc_details).forEach(([key, value]) => addEntry(key, value));
+    }
+
+    return Array.from(detailsMap.entries()).map(([key, value]) => ({ key, label: formatLabel(key), value }));
+  }, [truck]);
 
   useEffect(() => {
     if (truck) {
@@ -303,23 +415,24 @@ export default function TruckProfile() {
             </View>
             <View style={{ marginLeft: 16, flex: 1 }}>
               <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.foreground }} className="uppercase tracking-tight">{truck.registration_number}</Text>
-              <Text style={{ fontSize: 13, color: colors.mutedForeground }}>{truck.make} {truck.vehicle_model}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.mutedForeground, marginTop: 2 }}>
+                {normalizeDisplayValue(truck.registered_owner_name) || "Owner not available"}
+              </Text>
             </View>
           </View>
 
-          <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 24, opacity: 0.5 }} />
-
-          <View className="flex-row flex-wrap justify-between">
-            <InfoItem label="Chassis" value={truck.chassis_number} icon={<Settings />} />
-            <InfoItem label="Engine" value={truck.engine_number} icon={<Cpu />} />
-            <InfoItem label="Owner" value={truck.registered_owner_name} icon={<UserIcon />} />
-            <InfoItem label="Norms" value={truck.fuel_norms || "BS-VI"} icon={<Zap />} />
-            <InfoItem label="Weight" value={truck.unladen_weight ? `${truck.unladen_weight} kg` : "-"} icon={<Weight />} />
-            <InfoItem label="Class" value={truck.vehicle_class || "HCV"} icon={<FileText />} />
+          <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 12, opacity: 0.5 }} />
+          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+            {sectionOneItems.length === 0 ? (
+              <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>No basic details available.</Text>
+            ) : (
+              sectionOneItems.map((item) => (
+                <DetailItem key={item.key} label={item.label} value={item.value as string} />
+              ))
+            )}
           </View>
         </View>
 
-        {/* IMPORTANT DATES ACCORDION */}
         <View style={{ backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' }}>
           <TouchableOpacity
             activeOpacity={0.7}
@@ -332,20 +445,47 @@ export default function TruckProfile() {
             </View>
             {showDates ? <ChevronUp size={20} color={colors.mutedForeground} /> : <ChevronDown size={20} color={colors.mutedForeground} />}
           </TouchableOpacity>
-
           {showDates && (
             <View className="px-5 pb-4">
-              <DateItem label="Registration Date" date={truck.registration_date} />
-              <View className="flex-row justify-between items-center py-4 border-b border-border/10">
-                <Text style={{ color: colors.mutedForeground }} className="text-xs font-bold opacity-80">Vehicle Age</Text>
-                <Text style={{ color: colors.foreground }} className="font-bold text-xs">{getVehicleAge(truck.registration_date as string)}</Text>
-              </View>
-              <DateItem label="Fitness Upto" date={truck.fitness_upto} />
-              <DateItem label="Pollution Upto" date={truck.pollution_upto} />
-              <DateItem label="Road Tax Upto" date={truck.road_tax_upto} />
-              <DateItem label="Insurance Upto" date={truck.insurance_upto} />
-              <DateItem label="Permit Upto" date={truck.permit_upto} />
-              <DateItem label="National Permit Upto" date={truck.national_permit_upto} />
+              {importantDateItems.length === 0 ? (
+                <Text style={{ color: colors.mutedForeground, fontSize: 13, paddingTop: 12 }}>
+                  No important dates available.
+                </Text>
+              ) : (
+                importantDateItems.map((item) => (
+                  <DateItem key={item.label} label={item.label} date={item.date} />
+                ))
+              )}
+            </View>
+          )}
+        </View>
+
+        <View style={{ backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setShowOtherDetails(!showOtherDetails)}
+            style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, backgroundColor: colors.muted + "20" }}
+          >
+            <View className="flex-row items-center">
+              <FileText size={20} color={colors.primary} />
+              <Text style={{ color: colors.foreground }} className="text-base font-bold ml-3">Other Details</Text>
+            </View>
+            {showOtherDetails ? <ChevronUp size={20} color={colors.mutedForeground} /> : <ChevronDown size={20} color={colors.mutedForeground} />}
+          </TouchableOpacity>
+          {showOtherDetails && (
+            <View style={{ paddingHorizontal: 20, paddingVertical: 8 }}>
+              {moreDetailsEntries.length === 0 ? (
+                <Text style={{ color: colors.mutedForeground, fontSize: 13, paddingVertical: 12 }}>
+                  No additional details available.
+                </Text>
+              ) : (
+                moreDetailsEntries.map((item) => (
+                  <View key={item.key} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border + "30" }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", flex: 0.42 }}>{item.label}</Text>
+                    <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600", flex: 0.56, textAlign: "right" }}>{item.value}</Text>
+                  </View>
+                ))
+              )}
             </View>
           )}
         </View>
@@ -455,4 +595,5 @@ export default function TruckProfile() {
     </SafeAreaView>
   );
 }
+
 

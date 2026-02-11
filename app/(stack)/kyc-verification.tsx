@@ -31,6 +31,18 @@ export default function KYCVerification() {
 
     const [isVerifying, setIsVerifying] = useState(false);
 
+    const VerifiedValue = ({ label, value }: { label: string; value?: string }) => {
+        if (!value) return null;
+        return (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                <CheckCircle size={14} color="#16a34a" />
+                <Text style={{ color: colors.mutedForeground, fontSize: 13, marginLeft: 6 }}>
+                    {label}: {value}
+                </Text>
+            </View>
+        );
+    };
+
     const handleVerifyPAN = async () => {
         if (!pan || pan.length !== 10) {
             Alert.alert("Error", "Please enter a valid 10-digit PAN number");
@@ -86,7 +98,10 @@ export default function KYCVerification() {
         try {
             const result = await verifyGSTIN(gstin);
             if (result.verified) {
-                const legalName = result.data?.legal_name_of_business;
+                const gstinData = result.data || {};
+                const legalName = gstinData.legal_name_of_business;
+                const tradeName = gstinData.trade_name_of_business;
+                const principalAddress = gstinData.principal_place_address;
 
                 Alert.alert(
                     "Verification Successful",
@@ -98,8 +113,14 @@ export default function KYCVerification() {
                             onPress: async () => {
                                 try {
                                     await updateUser({
-                                        gstin: gstin,
-                                        company_name: legalName || undefined
+                                        gstin: gstin.toUpperCase(),
+                                        company_name: legalName || tradeName || undefined,
+                                        address: principalAddress || user?.address,
+                                        is_gstin_verified: true,
+                                        kyc_data: {
+                                            ...(user?.kyc_data || {}),
+                                            gstin_details: gstinData
+                                        }
                                     });
                                     Alert.alert("Success", "Business profile updated!");
                                     refreshUser();
@@ -230,7 +251,10 @@ export default function KYCVerification() {
 
                                 <View style={{ gap: 16 }}>
                                     <View>
-                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: 8, textTransform: 'uppercase' }}>PAN Number</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>PAN Number</Text>
+                                            {user?.is_pan_verified && <CheckCircle size={14} color="#16a34a" />}
+                                        </View>
                                         <TextInput
                                             value={pan}
                                             onChangeText={setPan}
@@ -269,8 +293,8 @@ export default function KYCVerification() {
                             {user?.is_pan_verified && user.kyc_data?.pan_details && (
                                 <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
                                     <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Details:</Text>
-                                    <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 4 }}>Registered Name: {user.kyc_data.pan_details.registered_name}</Text>
-                                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Type: {user.kyc_data.pan_details.type}</Text>
+                                    <VerifiedValue label="Registered Name" value={user.kyc_data.pan_details.registered_name} />
+                                    <VerifiedValue label="Type" value={user.kyc_data.pan_details.type} />
                                 </View>
                             )}
                         </View>
@@ -297,7 +321,10 @@ export default function KYCVerification() {
 
                                 <View style={{ gap: 16 }}>
                                     <View>
-                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: 8, textTransform: 'uppercase' }}>GSTIN</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>GSTIN</Text>
+                                            {user?.is_gstin_verified && <CheckCircle size={14} color="#16a34a" />}
+                                        </View>
                                         <TextInput
                                             value={gstin}
                                             onChangeText={setGstin}
@@ -329,9 +356,11 @@ export default function KYCVerification() {
                             {user?.is_gstin_verified && user.kyc_data?.gstin_details && (
                                 <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
                                     <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Business Details:</Text>
-                                    <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 4 }}>Trade Name: {user.kyc_data.gstin_details.trade_name_of_business}</Text>
-                                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Taxpayer Type: {user.kyc_data.gstin_details.taxpayer_type}</Text>
-                                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Status: {user.kyc_data.gstin_details.gst_in_status}</Text>
+                                    <VerifiedValue label="Legal Name" value={user.kyc_data.gstin_details.legal_name_of_business} />
+                                    <VerifiedValue label="Trade Name" value={user.kyc_data.gstin_details.trade_name_of_business} />
+                                    <VerifiedValue label="Taxpayer Type" value={user.kyc_data.gstin_details.taxpayer_type} />
+                                    <VerifiedValue label="Status" value={user.kyc_data.gstin_details.gst_in_status} />
+                                    <VerifiedValue label="Principal Address" value={user.kyc_data.gstin_details.principal_place_address} />
                                 </View>
                             )}
                         </View>
@@ -358,7 +387,10 @@ export default function KYCVerification() {
 
                                 <View style={{ gap: 16 }}>
                                     <View>
-                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: 8, textTransform: 'uppercase' }}>Account Number</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>Account Number</Text>
+                                            {user?.is_bank_verified && <CheckCircle size={14} color="#16a34a" />}
+                                        </View>
                                         <TextInput
                                             value={bankAccount}
                                             onChangeText={setBankAccount}
@@ -370,7 +402,10 @@ export default function KYCVerification() {
                                         />
                                     </View>
                                     <View>
-                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: 8, textTransform: 'uppercase' }}>IFSC Code</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>IFSC Code</Text>
+                                            {user?.is_bank_verified && <CheckCircle size={14} color="#16a34a" />}
+                                        </View>
                                         <TextInput
                                             value={ifsc}
                                             onChangeText={setIfsc}
@@ -402,19 +437,13 @@ export default function KYCVerification() {
                             {user?.is_bank_verified && user.kyc_data?.bank_details && (
                                 <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
                                     <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Bank Details:</Text>
-                                    <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 4 }}>Beneficiary: {user.kyc_data.bank_details.name_at_bank}</Text>
-                                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Bank: {user.kyc_data.bank_details.bank_name}</Text>
-                                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Status: {user.kyc_data.bank_details.account_status}</Text>
+                                    <VerifiedValue label="Beneficiary" value={user.kyc_data.bank_details.name_at_bank} />
+                                    <VerifiedValue label="Bank" value={user.kyc_data.bank_details.bank_name} />
+                                    <VerifiedValue label="Status" value={user.kyc_data.bank_details.account_status} />
                                 </View>
                             )}
                         </View>
                     )}
-
-                    <View style={{ marginTop: 40, alignItems: 'center' }}>
-                        <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: 'center' }}>
-                            All data is processed securely through Cashfree Payments and complies with Indian security standards.
-                        </Text>
-                    </View>
                 </ScrollView>
             </View>
         </SafeAreaView>

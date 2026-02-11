@@ -4,14 +4,12 @@ import { ScrollView, Switch, Text, TouchableOpacity, View, Alert } from 'react-n
 import { useDriverAppContext } from '../../context/DriverAppContext';
 import { logout } from '../../hooks/useAuth';
 import { useThemeStore } from '../../hooks/useThemeStore';
-import { useUser } from '../../hooks/useUser';
 import { translations } from '../../constants/driver/translations';
 import DriverScreenHeader from '../../components/driver/DriverScreenHeader';
 
 export default function DriverSettings() {
     const router = useRouter();
-    const { theme, toggleTheme, colors } = useThemeStore();
-    const { user } = useUser();
+    const { theme, setMode, colors } = useThemeStore();
     const { language, setLanguage } = useDriverAppContext();
     const isDark = theme === 'dark';
     const t = translations[language];
@@ -98,7 +96,7 @@ export default function DriverSettings() {
                         rightElement={
                             <Switch
                                 value={isDark}
-                                onValueChange={toggleTheme}
+                                onValueChange={(value) => setMode(value ? 'dark' : 'light')}
                                 trackColor={{ false: '#767577', true: colors.primary }}
                                 thumbColor={isDark ? '#fff' : '#f4f3f4'}
                             />
