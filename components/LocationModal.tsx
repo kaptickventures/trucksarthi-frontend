@@ -133,7 +133,7 @@ export default function LocationFormModal({
 
                                 <View>
                                     <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
-                                        Full Postal Address <Text style={{ color: colors.destructive }}>*</Text>
+                                        Full Postal Address
                                     </Text>
                                     <TextInput
                                         className="rounded-2xl p-4 text-base font-bold min-h-[120px]"

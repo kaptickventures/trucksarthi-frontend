@@ -26,14 +26,14 @@ export default function StackLayout() {
       !loading &&
       user &&
       userRole === "driver" &&
-      !pathname.startsWith("/(driver)/(tabs)")
+      !pathname.includes("driver-own-profile")
     ) {
       router.replace("/(driver)/(tabs)/home" as any);
     }
   }, [user, loading, pathname, router]);
 
   const userRole = getUserRole(user);
-  if (loading || !user || userRole === "driver") {
+  if (loading || !user || (userRole === "driver" && !pathname.includes("driver-own-profile"))) {
     return null;
   }
 
@@ -102,6 +102,7 @@ export default function StackLayout() {
               contentStyle: { backgroundColor },
             }}
           />
+          <Stack.Screen name="driver-own-profile" options={{ title: "My Profile", headerShown: false }} />
           <Stack.Screen
             name="settings"
             options={{ title: "Trucksarthi" }}

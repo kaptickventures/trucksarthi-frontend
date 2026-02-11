@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   UIManager,
   View,
+  RefreshControl,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -299,7 +300,7 @@ export default function TripLog() {
       ),
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/notifications")}
+          onPress={() => router.push("/notifications" as any)}
           style={{ paddingHorizontal: 6, paddingVertical: 4 }}
         >
           <Ionicons name="notifications-outline" size={24} color={foregroundColor} />
@@ -308,11 +309,30 @@ export default function TripLog() {
     });
   }, [navigation, menuVisible, foregroundColor, colors.background, colors.foreground, router]);
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchTrips(),
+      fetchDrivers(),
+      fetchClients(),
+      fetchTrucks(),
+      fetchLocations(),
+    ]);
+    setRefreshing(false);
+  };
+
   const formatDateLocal = (d: Date | null) => d ? formatDate(d) : "Select Date";
 
   return (
     <View className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#FFF" : "#000"} />
+        }
+      >
         <View className="mb-6 px-5 mt-5">
           <Text className="text-3xl font-black" style={{ color: colors.foreground }}>Trip Log</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Track and manage your history</Text>
@@ -334,7 +354,7 @@ export default function TripLog() {
             <Ionicons name="download-outline" size={18} color={isDark ? "#93C5FD" : "#2563EB"} />
             <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#BFDBFE" : "#1D4ED8" }}>PDF</Text>
           </TouchableOpacity>
-        </View>
+        </View >
 
         <TripFilters
           filters={filters}
@@ -357,53 +377,55 @@ export default function TripLog() {
           <Text className="text-3xl font-extrabold text-primary mt-1">₹{sortedTrips.reduce((acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense), 0).toLocaleString()}</Text>
         </View>
 
-        {tripsLoading ? (
-          <ActivityIndicator size="large" className="mt-10" />
-        ) : sortedTrips.length === 0 ? (
-          <Text className="text-center text-muted-foreground mt-10">No trips available</Text>
-        ) : (
-          sortedTrips.map((trip) => {
-            const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
-            return (
-              <View key={trip._id} style={{ marginHorizontal: 12, marginBottom: 20 }}>
-                <View className="bg-card border border-border rounded-2xl p-5 shadow-sm">
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                    <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : "No Date"}</Text>
-                    <Text style={{ fontSize: 22, fontWeight: "800", color: THEME.light.primary }}>{`₹${totalCost.toLocaleString()}`}</Text>
-                  </View>
-                  <Text style={{ fontSize: 18, fontWeight: "700", color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 10 }}>{getLocationName(trip.start_location)} → {getLocationName(trip.end_location)}</Text>
-                  <View style={{ marginBottom: 12 }}>
-                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🏢 {getClientName(trip.client)}</Text>
-                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🚚 {getTruckReg(trip.truck)}</Text>
-                    <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }}>👤 {getDriverName(trip.driver)}</Text>
-                  </View>
-                  <View style={{ borderTopWidth: 1, borderTopColor: isDark ? THEME.dark.border : THEME.light.border, opacity: 0.6, marginVertical: 12 }} />
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                    <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>Trip Cost: ₹{Number(trip.cost_of_trip).toLocaleString()}</Text>
-                    <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>Misc: ₹{Number(trip.miscellaneous_expense).toLocaleString()}</Text>
-                  </View>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
-                    {trip.notes ? <Text style={{ fontStyle: "italic", color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>📝 {trip.notes}</Text> : <View />}
-                    <View style={{ flexDirection: "row" }}>
-                      <TouchableOpacity onPress={() => { setSelectedTrip(trip); setEditVisible(true); }} style={{ padding: 8, marginRight: 8 }}>
-                        <Edit3 size={22} color="#2563EB" />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => {
-                        Alert.alert("Delete", "Delete this trip?", [
-                          { text: "Cancel", style: "cancel" },
-                          { text: "Delete", style: "destructive", onPress: async () => { await deleteTrip(trip._id); fetchTrips(); } },
-                        ]);
-                      }} style={{ padding: 8 }}>
-                        <Trash2 size={22} color="#ef4444" />
-                      </TouchableOpacity>
+        {
+          tripsLoading ? (
+            <ActivityIndicator size="large" className="mt-10" />
+          ) : sortedTrips.length === 0 ? (
+            <Text className="text-center text-muted-foreground mt-10">No trips available</Text>
+          ) : (
+            sortedTrips.map((trip) => {
+              const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
+              return (
+                <View key={trip._id} style={{ marginHorizontal: 12, marginBottom: 20 }}>
+                  <View className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+                      <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : "No Date"}</Text>
+                      <Text style={{ fontSize: 22, fontWeight: "800", color: THEME.light.primary }}>{`₹${totalCost.toLocaleString()}`}</Text>
+                    </View>
+                    <Text style={{ fontSize: 18, fontWeight: "700", color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 10 }}>{getLocationName(trip.start_location)} → {getLocationName(trip.end_location)}</Text>
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🏢 {getClientName(trip.client)}</Text>
+                      <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🚚 {getTruckReg(trip.truck)}</Text>
+                      <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }}>👤 {getDriverName(trip.driver)}</Text>
+                    </View>
+                    <View style={{ borderTopWidth: 1, borderTopColor: isDark ? THEME.dark.border : THEME.light.border, opacity: 0.6, marginVertical: 12 }} />
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+                      <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>Trip Cost: ₹{Number(trip.cost_of_trip).toLocaleString()}</Text>
+                      <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>Misc: ₹{Number(trip.miscellaneous_expense).toLocaleString()}</Text>
+                    </View>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+                      {trip.notes ? <Text style={{ fontStyle: "italic", color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>📝 {trip.notes}</Text> : <View />}
+                      <View style={{ flexDirection: "row" }}>
+                        <TouchableOpacity onPress={() => { setSelectedTrip(trip); setEditVisible(true); }} style={{ padding: 8, marginRight: 8 }}>
+                          <Edit3 size={22} color="#2563EB" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => {
+                          Alert.alert("Delete", "Delete this trip?", [
+                            { text: "Cancel", style: "cancel" },
+                            { text: "Delete", style: "destructive", onPress: async () => { await deleteTrip(trip._id); fetchTrips(); } },
+                          ]);
+                        }} style={{ padding: 8 }}>
+                          <Trash2 size={22} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 </View>
-              </View>
-            );
-          })
-        )}
-      </ScrollView>
+              );
+            })
+          )
+        }
+      </ScrollView >
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
       <EditTripModal
         visible={isEditVisible}
@@ -416,6 +438,6 @@ export default function TripLog() {
         onSave={async (id, data) => { await updateTrip(id, data); fetchTrips(); }}
         onDelete={async (id) => { await deleteTrip(id); fetchTrips(); }}
       />
-    </View>
+    </View >
   );
 }

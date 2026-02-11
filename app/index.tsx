@@ -14,7 +14,7 @@ export default function Index() {
       if (user) {
         const role = getUserRole(user);
         if (role === "driver") {
-          router.replace("/(driver)/home" as any);
+          router.replace("/(driver)/(tabs)/home" as any);
         } else {
           postLoginFlow(router);
         }

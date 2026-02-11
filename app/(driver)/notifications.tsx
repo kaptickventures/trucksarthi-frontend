@@ -1,25 +1,16 @@
-import { Stack } from 'expo-router';
 import { AlertCircle } from 'lucide-react-native';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
+import DriverScreenHeader from '../../components/driver/DriverScreenHeader';
 import { useDriverAppContext } from '../../context/DriverAppContext';
 import { useThemeStore } from '../../hooks/useThemeStore';
 
 export default function NotificationsScreen() {
-  const { colors, theme } = useThemeStore();
+  const { colors } = useThemeStore();
   const { notifications } = useDriverAppContext();
-  const isDark = theme === 'dark';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen
-        options={{
-          title: 'Notifications',
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.foreground,
-          headerTitleStyle: { color: colors.foreground }
-        }}
-      />
+      <DriverScreenHeader title="Notifications" />
       <FlatList
         data={notifications}
         keyExtractor={(item) => item._id}

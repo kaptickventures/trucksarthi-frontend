@@ -1,15 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Calendar,
   ChevronDown,
   ChevronUp,
   Cpu,
-  FileCheck,
   FileText,
-  MapPin,
   Pencil,
   Settings,
   Share2,
@@ -37,12 +34,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import useDrivers from "../../hooks/useDriver";
 import { useThemeStore } from "../../hooks/useThemeStore";
-import useTrips from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
-import useTruckDocuments from "../../hooks/useTruckDocuments";
-import { getFileUrl, formatDate as globalFormatDate } from "../../lib/utils";
+import { formatDate as globalFormatDate } from "../../lib/utils";
 
 /* ---------------- HELPERS ---------------- */
 
@@ -70,8 +64,6 @@ const getVehicleAge = (dateString?: string) => {
 };
 
 const formatDate = (dateString?: string) => globalFormatDate(dateString);
-
-const DOCUMENT_TYPES = ["RC", "INSURANCE", "PERMIT", "FITNESS"];
 
 /* ---------------- COMPONENTS ---------------- */
 
@@ -123,16 +115,10 @@ export default function TruckProfile() {
   const id = useMemo(() => Array.isArray(truck_id) ? truck_id[0] : truck_id, [truck_id]);
 
   const { trucks, loading: trucksLoading, updateTruck, updateImportantDates, fetchTrucks } = useTrucks();
-  const { documents, fetchDocuments, uploadDocument } = useTruckDocuments(id);
-  const { trips, fetchTrips } = useTrips();
-  const { drivers, fetchDrivers } = useDrivers();
 
   const [refreshing, setRefreshing] = useState(false);
 
   const [showDates, setShowDates] = useState(false);
-  const [showDocs, setShowDocs] = useState(false);
-  const [showTrips, setShowTrips] = useState(true);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [dateField, setDateField] = useState<string | null>(null);
   const [isPickerVisible, setIsPickerVisible] = useState(false);
@@ -207,26 +193,15 @@ export default function TruckProfile() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([
-        fetchTrucks(),
-        fetchDocuments(),
-        fetchTrips(),
-        fetchDrivers(),
-      ]);
+      await fetchTrucks();
     } catch (e) {
       console.error(e);
     } finally {
       setRefreshing(false);
     }
-  }, [fetchTrucks, fetchDocuments, fetchTrips, fetchDrivers]);
+  }, [fetchTrucks]);
 
-  const truckTrips = trips.filter(t => (typeof t.truck === 'object' ? t.truck?._id : t.truck) === id);
 
-  const driverMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    (drivers || []).forEach((d) => { if (d && d._id) map[d._id] = d.name || d.driver_name || "Driver"; });
-    return map;
-  }, [drivers]);
 
   const handleUpdateTruck = async () => {
     if (!id) return;
@@ -251,15 +226,6 @@ export default function TruckProfile() {
       setEditForm(prev => ({ ...prev, [dateField]: selectedDate.toISOString().split("T")[0] }));
     }
     setDateField(null);
-  };
-
-  const handleUpload = async (type: string) => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.3 });
-      if (result.canceled) return;
-      await uploadDocument({ truck_id: id!, document_type: type, expiry_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0], file: { uri: result.assets[0].uri, name: `${type}.jpg`, type: "image/jpeg" } });
-      fetchDocuments();
-    } catch (e) { console.error(e); }
   };
 
   const handleShareDetails = async () => {
@@ -383,85 +349,6 @@ export default function TruckProfile() {
             </View>
           )}
         </View>
-
-        {/* DOCUMENTS ACCORDION */}
-        <View style={{ backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' }}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setShowDocs(!showDocs)}
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: colors.muted + '20' }}
-          >
-            <View className="flex-row items-center">
-              <FileCheck size={20} color={colors.primary} />
-              <Text style={{ color: colors.foreground }} className="text-base font-bold ml-3">Vault Documents</Text>
-            </View>
-            {showDocs ? <ChevronUp size={20} color={colors.mutedForeground} /> : <ChevronDown size={20} color={colors.mutedForeground} />}
-          </TouchableOpacity>
-
-          {showDocs && (
-            <View className="p-5">
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                {DOCUMENT_TYPES.map((type) => {
-                  const doc = documents.find((d) => d.document_type === type);
-                  const expiring = doc && isExpiringSoon(doc.expiry_date as string);
-                  return (
-                    <View key={type} style={{ width: '48%' }}>
-                      <DocumentCard
-                        label={type}
-                        url={getFileUrl(doc?.file_url)}
-                        expiring={expiring}
-                        expiryDate={formatDate(doc?.expiry_date as string)}
-                        onPress={() => doc?.file_url ? setPreviewImage(getFileUrl(doc.file_url)) : handleUpload(type)}
-                        onEdit={() => handleUpload(type)}
-                      />
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* RECENT LOGS ACCORDION */}
-        <View style={{ backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' }}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setShowTrips(!showTrips)}
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: colors.muted + '20' }}
-          >
-            <View className="flex-row items-center">
-              <MapPin size={20} color={colors.primary} />
-              <Text style={{ color: colors.foreground }} className="text-base font-bold ml-3">Recent Trip Logs</Text>
-            </View>
-            {showTrips ? <ChevronUp size={20} color={colors.mutedForeground} /> : <ChevronDown size={20} color={colors.mutedForeground} />}
-          </TouchableOpacity>
-
-          {showTrips && (
-            <View className="p-5">
-              {truckTrips.length === 0 ? (
-                <Text style={{ color: colors.mutedForeground, textAlign: 'center', marginVertical: 20 }}>No logs recorded.</Text>
-              ) : (
-                truckTrips.slice(0, 5).map((t) => (
-                  <View key={t._id} style={{ backgroundColor: colors.background, padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <View>
-                        <Text style={{ fontWeight: '700', color: colors.foreground }}>Trip #{t._id.slice(-6)}</Text>
-                        <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 2 }}>{formatDate(t.trip_date as string)}</Text>
-                      </View>
-                      <Text style={{ fontWeight: '800', fontSize: 16, color: colors.primary }}>
-                        ₹{Number(t.cost_of_trip).toLocaleString()}
-                      </Text>
-                    </View>
-                    <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 12, opacity: 0.5 }} />
-                    <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                      Operator: <Text style={{ color: colors.foreground, fontWeight: '600' }}>{driverMap[typeof t.driver === 'object' ? (t.driver as any)?._id : t.driver] || "N/A"}</Text>
-                    </Text>
-                  </View>
-                ))
-              )}
-            </View>
-          )}
-        </View>
       </ScrollView>
 
       {/* EDIT MODAL */}
@@ -565,41 +452,7 @@ export default function TruckProfile() {
           </View>
         </View>
       </Modal>
-
-      {/* IMAGE PREVIEW */}
-      <Modal visible={!!previewImage} transparent animationType="fade">
-        <TouchableOpacity activeOpacity={1} onPress={() => setPreviewImage(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
-          <Image source={{ uri: previewImage || "" }} style={{ width: '90%', height: '80%' }} resizeMode="contain" />
-          <TouchableOpacity onPress={() => setPreviewImage(null)} style={{ position: 'absolute', top: 50, right: 24, backgroundColor: 'white', padding: 8, borderRadius: 24 }}>
-            <Ionicons name="close" size={24} color="black" />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
     </SafeAreaView>
-  );
-}
-
-function DocumentCard({ label, url, onPress, onEdit }: any) {
-  const { colors } = useThemeStore();
-  return (
-    <View style={{ flex: 1 }}>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={{ aspectRatio: 1.2, width: "100%", backgroundColor: colors.card, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: colors.border, justifyContent: 'center', alignItems: 'center' }}>
-        {url ? (
-          <>
-            <Image source={{ uri: url }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-            <TouchableOpacity onPress={onEdit} style={{ position: "absolute", bottom: 8, right: 8, backgroundColor: "rgba(0,0,0,0.6)", padding: 6, borderRadius: 12 }}>
-              <Pencil size={12} color="white" />
-            </TouchableOpacity>
-          </>
-        ) : (
-          <View style={{ alignItems: "center", opacity: 0.5 }}>
-            <FileText size={24} color={colors.mutedForeground} />
-            <Text style={{ fontSize: 9, fontWeight: "bold", marginTop: 4, color: colors.mutedForeground }}>MISSING</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-      <Text style={{ textAlign: 'center', fontSize: 11, fontWeight: "bold", marginTop: 6, color: colors.mutedForeground }}>{label}</Text>
-    </View>
   );
 }
 

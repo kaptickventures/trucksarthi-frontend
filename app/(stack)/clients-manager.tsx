@@ -57,9 +57,6 @@ export default function ClientsManager() {
     "client_name",
     "contact_number",
     "contact_person_name",
-    "alternate_contact_number",
-    "email_address",
-    "office_address",
   ];
   const OPTIONAL_FIELDS: string[] = [];
 

@@ -179,7 +179,7 @@ export default function Settings() {
       {/* Notification Settings Toggle */}
       <View className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-6">
         <TouchableOpacity
-          onPress={() => router.push("/notifications")}
+          onPress={() => router.push("/notifications" as any)}
           className="flex-row items-center gap-2 flex-1"
         >
           <Bell size={20} color={colors.primary} />

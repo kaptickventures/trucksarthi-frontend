@@ -53,6 +53,7 @@ export default function TruckFormModal({
 
     const { verifyRC, loading: isFetching } = useKYC();
     const [isVerified, setIsVerified] = useState(false);
+    const [showAllFields, setShowAllFields] = useState(editing); // Show all fields if editing
 
     const handleFetchRC = async () => {
         if (!formData.registration_number) {
@@ -71,13 +72,16 @@ export default function TruckFormModal({
                     engine_number: rc.engine || prev.engine_number,
                 }));
                 setIsVerified(true);
+                setShowAllFields(true); // Show all fields after successful verification
                 Alert.alert("Success", "Vehicle details fetched successfully!");
             } else {
                 Alert.alert("Not Found", "Details not found for this vehicle. Please enter manually.");
+                setShowAllFields(true); // Allow manual entry if not found
             }
         } catch (error: any) {
             console.error(error);
             Alert.alert("Error", error.response?.data?.message || "Failed to fetch vehicle details.");
+            setShowAllFields(true); // Allow manual entry on error
         }
     };
 
@@ -89,6 +93,7 @@ export default function TruckFormModal({
         }).start(() => {
             translateY.setValue(0);
             setIsVerified(false);
+            setShowAllFields(editing); // Reset to initial state
             onClose();
         });
     };
@@ -112,7 +117,7 @@ export default function TruckFormModal({
         })
     ).current;
 
-    const fields: { label: string; key: keyof TruckFormData; placeholder: string; required?: boolean; numeric?: boolean }[] = [
+    const allFields: { label: string; key: keyof TruckFormData; placeholder: string; required?: boolean; numeric?: boolean }[] = [
         { label: "Registration Number", key: "registration_number", placeholder: "e.g. MH 12 AB 1234", required: true },
         { label: "Registered Owner", key: "registered_owner_name", placeholder: "Full Owner Name", required: true },
         { label: "Container Dimension", key: "container_dimension", placeholder: "e.g. 20ft / 32ft" },
@@ -120,6 +125,8 @@ export default function TruckFormModal({
         { label: "Chassis Number", key: "chassis_number", placeholder: "Optional" },
         { label: "Engine Number", key: "engine_number", placeholder: "Optional" },
     ];
+
+    const fieldsToShow = showAllFields ? allFields : [allFields[0]]; // Show only registration number initially
 
     return (
         <Modal visible={visible} transparent animationType="fade">
@@ -129,7 +136,7 @@ export default function TruckFormModal({
                     className="absolute bottom-0 w-full rounded-t-[42px]"
                     style={{
                         backgroundColor: colors.background,
-                        height: "90%",
+                        height: showAllFields ? "90%" : "50%",
                         paddingHorizontal: 24,
                         paddingTop: 12,
                         transform: [{ translateY }],
@@ -149,7 +156,7 @@ export default function TruckFormModal({
                                     {editing ? "Update Vehicle" : "Add New Truck"}
                                 </Text>
                                 <Text className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-widest">
-                                    Vehicle Configuration
+                                    {showAllFields ? "Vehicle Configuration" : "Enter Registration Number"}
                                 </Text>
                             </View>
                             <TouchableOpacity onPress={closeModal} className="w-10 h-10 bg-muted rounded-full items-center justify-center">
@@ -160,7 +167,7 @@ export default function TruckFormModal({
                         {/* Form */}
                         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
                             <View className="gap-5 pb-10">
-                                {fields.map((field) => (
+                                {fieldsToShow.map((field) => (
                                     <View key={field.key}>
                                         <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
                                             {field.label} {field.required && <Text style={{ color: colors.destructive }}>*</Text>}
@@ -186,7 +193,7 @@ export default function TruckFormModal({
                                                     autoCapitalize={field.key === "registration_number" ? "characters" : "words"}
                                                 />
                                             </View>
-                                            {field.key === "registration_number" && !editing && (
+                                            {field.key === "registration_number" && !editing && !showAllFields && (
                                                 <TouchableOpacity
                                                     onPress={handleFetchRC}
                                                     disabled={isFetching}
@@ -212,23 +219,38 @@ export default function TruckFormModal({
                                     </View>
                                 ))}
 
-                                {/* Actions */}
-                                <TouchableOpacity
-                                    onPress={onSubmit}
-                                    style={{ backgroundColor: colors.primary }}
-                                    className="py-5 rounded-[22px] mt-4 shadow-lg shadow-green-500/20"
-                                >
-                                    <Text style={{ color: colors.primaryForeground }} className="text-center font-black text-lg">
-                                        {editing ? "Apply Changes" : "Save Truck"}
-                                    </Text>
-                                </TouchableOpacity>
+                                {!showAllFields && (
+                                    <TouchableOpacity
+                                        onPress={() => setShowAllFields(true)}
+                                        style={{ marginTop: 8 }}
+                                    >
+                                        <Text style={{ color: colors.primary, textAlign: 'center', fontSize: 14, fontWeight: '600' }}>
+                                            Enter details manually
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
 
-                                <TouchableOpacity
-                                    onPress={closeModal}
-                                    className="py-4 items-center"
-                                >
-                                    <Text className="text-muted-foreground font-bold">Discard</Text>
-                                </TouchableOpacity>
+                                {/* Actions */}
+                                {showAllFields && (
+                                    <>
+                                        <TouchableOpacity
+                                            onPress={onSubmit}
+                                            style={{ backgroundColor: colors.primary }}
+                                            className="py-5 rounded-[22px] mt-4 shadow-lg shadow-green-500/20"
+                                        >
+                                            <Text style={{ color: colors.primaryForeground }} className="text-center font-black text-lg">
+                                                {editing ? "Apply Changes" : "Save Truck"}
+                                            </Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity
+                                            onPress={closeModal}
+                                            className="py-4 items-center"
+                                        >
+                                            <Text className="text-muted-foreground font-bold">Discard</Text>
+                                        </TouchableOpacity>
+                                    </>
+                                )}
                             </View>
                         </ScrollView>
                     </KeyboardAvoidingView>

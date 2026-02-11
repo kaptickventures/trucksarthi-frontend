@@ -48,7 +48,7 @@ export default function AuthDebugScreen() {
 
   const targetRoute = useMemo(() => {
     if (!user) return "/auth/login";
-    if (role === "driver") return "/(driver)/(tabs)";
+    if (role === "driver") return "/(driver)/(tabs)/home";
     if (profileCompleted === true) return "/(tabs)/home";
     if (profileCompleted === false) return "/basic-details";
     return "waiting_profile_check";
@@ -130,4 +130,3 @@ function DebugRow({ label, value, color }: { label: string; value: string; color
     </View>
   );
 }
-

@@ -78,8 +78,8 @@ export default function LocationsManager() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.location_name || !formData.complete_address) {
-      Alert.alert("⚠️ Missing Fields", "All fields are required.");
+    if (!formData.location_name) {
+      Alert.alert("⚠️ Missing Fields", "Location title is required.");
       return;
     }
 

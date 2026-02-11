@@ -35,13 +35,6 @@ const MANAGER_LINKS = [
   { title: "Locations", icon: "location-outline", route: "/locations-manager" as const },
 ] as const;
 
-const DRIVER_LINKS = [
-  { title: "Home", icon: "home", route: "/(driver)/home" as const },
-  { title: "History", icon: "history", route: "/(driver)/history" as const },
-  { title: "Khata", icon: "list", route: "/(driver)/ledger" as const },
-  { title: "Notifications", icon: "notifications", route: "/(driver)/notifications" as const },
-] as const;
-
 export default function SideMenu({
   isVisible,
   onClose,
@@ -141,7 +134,7 @@ export default function SideMenu({
         <View style={{ flex: 1 }}>
           {/* STATIC PROFILE HEADER (Sticky) */}
           <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 24, marginBottom: 16 }}>
-            <TouchableOpacity onPress={() => navigate("/profile")}>
+            <TouchableOpacity onPress={() => navigate("/(driver)/profile")}>
               <View className="flex-row items-center">
                 <View
                   className="w-16 h-16 rounded-full overflow-hidden items-center justify-center"
@@ -178,24 +171,8 @@ export default function SideMenu({
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
             {userRole === "driver" ? (
               <>
-                <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                  MAIN MENU
-                </Text>
-                {DRIVER_LINKS.map((item, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    onPress={() => navigate(item.route)}
-                    className="flex-row items-center py-4"
-                  >
-                    {renderIcon(item.icon)}
-                    <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                      {item.title}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-
                 <TouchableOpacity
-                  onPress={() => navigate("/settings")}
+                  onPress={() => navigate("/(driver)/settings")}
                   className="flex-row items-center py-4"
                 >
                   <Ionicons name="settings-outline" size={24} color={colors.foreground} />
