@@ -7,6 +7,7 @@ import {
   Building2,
   Calendar,
   Camera,
+  CheckCircle2,
   Hash,
   Landmark,
   Mail,
@@ -63,6 +64,10 @@ export default function Profile() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dobDate, setDobDate] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<"personal" | "company" | "financial">("personal");
+  const [contactOtpType, setContactOtpType] = useState<"email" | "phone" | null>(null);
+  const [contactOtp, setContactOtp] = useState("");
+  const [sendingContactOtp, setSendingContactOtp] = useState(false);
+  const [verifyingContactOtp, setVerifyingContactOtp] = useState(false);
 
   // Bank verification states
   const [verifyingBank, setVerifyingBank] = useState(false);
@@ -123,7 +128,7 @@ export default function Profile() {
         Alert.alert("Success", "Profile photo updated!");
         refreshUser();
       }
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "Failed to update photo");
     } finally {
       setLoading(false);
@@ -206,6 +211,47 @@ export default function Profile() {
       );
     } finally {
       setVerifyingBank(false);
+    }
+  };
+
+  const handleRequestSecondaryOtp = async (type: "email" | "phone") => {
+    const value = type === "email" ? formData.email?.trim().toLowerCase() : formData.phone?.trim();
+    if (!value) {
+      Alert.alert("Missing Information", `Please add your ${type} first.`);
+      return;
+    }
+
+    try {
+      setSendingContactOtp(true);
+      await API.post("/api/auth/request-secondary-otp", { type, value });
+      setContactOtpType(type);
+      setContactOtp("");
+      Alert.alert("OTP Sent", `A verification OTP has been sent to your ${type}.`);
+    } catch (error: any) {
+      Alert.alert("Verification Failed", error?.response?.data?.error || `Failed to send OTP to ${type}.`);
+    } finally {
+      setSendingContactOtp(false);
+    }
+  };
+
+  const handleVerifySecondaryOtp = async () => {
+    if (!contactOtpType) return;
+    if (!contactOtp.trim()) {
+      Alert.alert("Enter OTP", "Please enter the OTP first.");
+      return;
+    }
+
+    try {
+      setVerifyingContactOtp(true);
+      await API.post("/api/auth/verify-secondary-otp", { type: contactOtpType, otp: contactOtp.trim() });
+      setContactOtp("");
+      setContactOtpType(null);
+      await refreshUser();
+      Alert.alert("Success", "Contact verified successfully.");
+    } catch (error: any) {
+      Alert.alert("Verification Failed", error?.response?.data?.error || "Invalid OTP.");
+    } finally {
+      setVerifyingContactOtp(false);
     }
   };
 
@@ -361,8 +407,75 @@ export default function Profile() {
                   </TouchableOpacity>
                 </View>
                 <ProfileInput label="Full Name" value={formData.name} editable={isEditing} onChange={(v: string) => markChanged("name", v)} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
-                <ProfileInput label="Email Address" value={formData.email} editable={false} icon={<Mail size={18} color={colors.mutedForeground} />} />
-                <ProfileInput label="Phone Number" value={formData.phone} editable={isEditing} onChange={(v: string) => markChanged("phone", v)} icon={<Phone size={18} color={colors.mutedForeground} />} />
+                <ProfileInput
+                  label="Email Address"
+                  value={formData.email}
+                  editable={false}
+                  icon={<Mail size={18} color={colors.mutedForeground} />}
+                  labelAction={!user?.is_email_verified ? (sendingContactOtp && contactOtpType === "email" ? "Sending..." : "Verify") : undefined}
+                  onLabelActionPress={!user?.is_email_verified ? () => handleRequestSecondaryOtp("email") : undefined}
+                  rightNode={user?.is_email_verified ? <CheckCircle2 size={18} color="#16a34a" /> : undefined}
+                />
+                {contactOtpType === "email" && (
+                  <View style={{ gap: 10, marginTop: -8 }}>
+                    <Text style={{ fontSize: 12, color: colors.mutedForeground }}>Enter OTP sent to your email.</Text>
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <View style={{ flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.card }}>
+                        <TextInput
+                          value={contactOtp}
+                          onChangeText={setContactOtp}
+                          keyboardType="number-pad"
+                          placeholder="Enter 6-digit OTP"
+                          placeholderTextColor={colors.mutedForeground}
+                          style={{ paddingHorizontal: 12, paddingVertical: 10, color: colors.foreground, fontSize: 14, fontWeight: "600" }}
+                          maxLength={6}
+                        />
+                      </View>
+                      <TouchableOpacity
+                        onPress={handleVerifySecondaryOtp}
+                        disabled={verifyingContactOtp}
+                        style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 14, justifyContent: "center" }}
+                      >
+                        {verifyingContactOtp ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={{ color: colors.primaryForeground, fontWeight: "700" }}>Verify</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                <ProfileInput
+                  label="Phone Number"
+                  value={formData.phone}
+                  editable={false}
+                  icon={<Phone size={18} color={colors.mutedForeground} />}
+                  labelAction={!user?.is_mobile_verified ? (sendingContactOtp && contactOtpType === "phone" ? "Sending..." : "Verify") : undefined}
+                  onLabelActionPress={!user?.is_mobile_verified ? () => handleRequestSecondaryOtp("phone") : undefined}
+                  rightNode={user?.is_mobile_verified ? <CheckCircle2 size={18} color="#16a34a" /> : undefined}
+                />
+                {contactOtpType === "phone" && (
+                  <View style={{ gap: 10, marginTop: -8 }}>
+                    <Text style={{ fontSize: 12, color: colors.mutedForeground }}>Enter OTP sent to your phone.</Text>
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <View style={{ flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.card }}>
+                        <TextInput
+                          value={contactOtp}
+                          onChangeText={setContactOtp}
+                          keyboardType="number-pad"
+                          placeholder="Enter 6-digit OTP"
+                          placeholderTextColor={colors.mutedForeground}
+                          style={{ paddingHorizontal: 12, paddingVertical: 10, color: colors.foreground, fontSize: 14, fontWeight: "600" }}
+                          maxLength={6}
+                        />
+                      </View>
+                      <TouchableOpacity
+                        onPress={handleVerifySecondaryOtp}
+                        disabled={verifyingContactOtp}
+                        style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 14, justifyContent: "center" }}
+                      >
+                        {verifyingContactOtp ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={{ color: colors.primaryForeground, fontWeight: "700" }}>Verify</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
 
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: -12, textTransform: 'uppercase' }}>Date of Birth</Text>
                 <TouchableOpacity
@@ -545,7 +658,7 @@ const SectionHeader = ({ title, icon }: any) => (
   </View>
 );
 
-const ProfileInput = ({ label, value, editable, onChange, icon, multiline, placeholder, autoCapitalize, labelAction, onLabelActionPress }: any) => {
+const ProfileInput = ({ label, value, editable, onChange, icon, multiline, placeholder, autoCapitalize, labelAction, onLabelActionPress, rightNode }: any) => {
   const { colors } = useThemeStore();
   return (
     <View style={{ gap: 8 }}>
@@ -596,6 +709,7 @@ const ProfileInput = ({ label, value, editable, onChange, icon, multiline, place
             textAlignVertical: multiline ? 'top' : 'center'
           }}
         />
+        {rightNode ? <View style={{ marginRight: 2 }}>{rightNode}</View> : null}
       </View>
     </View>
   );

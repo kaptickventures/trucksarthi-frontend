@@ -33,6 +33,8 @@ export interface User {
   account_holder_name?: string;
   account_number?: string;
   ifsc_code?: string;
+  is_email_verified?: boolean;
+  is_mobile_verified?: boolean;
   is_gstin_verified?: boolean;
   is_pan_verified?: boolean;
   is_bank_verified?: boolean;
