@@ -445,7 +445,8 @@ export default function Profile() {
                 <ProfileInput
                   label="Phone Number"
                   value={formData.phone}
-                  editable={false}
+                  editable={!user?.is_mobile_verified}
+                  onChange={(v: string) => markChanged("phone", v)}
                   icon={<Phone size={18} color={colors.mutedForeground} />}
                   labelAction={!user?.is_mobile_verified ? (sendingContactOtp && contactOtpType === "phone" ? "Sending..." : "Verify") : undefined}
                   onLabelActionPress={!user?.is_mobile_verified ? () => handleRequestSecondaryOtp("phone") : undefined}

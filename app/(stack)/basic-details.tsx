@@ -108,6 +108,7 @@ export default function BasicDetailsScreen() {
         if (!name.trim()) return "Full Name is required";
         if (!company_name.trim()) return "Company Name is required";
         if (!dob) return "Date of Birth is required";
+        if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return "A valid Mobile Number is required";
         if (!email.trim() || !email.includes("@")) return "A valid Email Address is required";
         if (!address.trim()) return "Address is required";
         return null;
@@ -265,11 +266,12 @@ export default function BasicDetailsScreen() {
                             <CustomInput
                                 label="MOBILE NUMBER"
                                 value={phone}
+                                onChange={setPhone}
                                 colors={colors}
-                                editable={false}
+                                editable={!user?.is_mobile_verified}
                                 placeholder="+91 XXXXX XXXXX"
                                 icon={<Smartphone size={18} color={colors.mutedForeground} />}
-                                containerStyle={{ opacity: 0.7, backgroundColor: colors.muted }}
+                                containerStyle={user?.is_mobile_verified ? { opacity: 0.7, backgroundColor: colors.muted } : {}}
                             />
 
                             <CustomInput
