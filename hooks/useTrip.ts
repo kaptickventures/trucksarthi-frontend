@@ -71,12 +71,12 @@ export default function useTrips(options: UseTripsOptions = {}) {
   };
 
   const totalRevenue = trips.reduce(
-    (acc, t) => acc + Number(t.cost_of_trip),
+    (acc, t) => acc + Number(t.cost_of_trip || 0) + Number(t.miscellaneous_expense || 0),
     0
   );
 
   const totalTrips = trips.length;
-  const recentTrips = trips.slice(-3).reverse();
+  const recentTrips = trips.slice(0, 3);
 
   return {
     trips,

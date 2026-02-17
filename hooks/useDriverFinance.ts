@@ -79,11 +79,25 @@ export default function useDriverFinance() {
     }
   };
 
+  /* ---------------- UPDATE STATUS ---------------- */
+  const updateEntryStatus = async (id: string, status: string) => {
+    try {
+      const res = await API.patch(`/api/finance/transaction/${id}/status`, { status });
+      // Update local state
+      setEntries(prev => prev.map(e => e._id === id ? { ...e, approvalStatus: status as any } : e));
+      return res.data;
+    } catch (error: any) {
+       console.error(error);
+       Alert.alert("Error", "Failed to update status");
+    }
+  };
+
   return {
     entries,
     loading,
     fetchDriverLedger,
     fetchDriverSummary,
     addLedgerEntry,
+    updateEntryStatus
   };
 }

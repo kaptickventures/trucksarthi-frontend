@@ -258,6 +258,8 @@ export default function TruckProfile() {
       "createdAt",
       "updatedAt",
       "__v",
+      "split_present_address",
+      "split_permanent_address",
     ]);
 
     const detailsMap = new Map<string, string>();

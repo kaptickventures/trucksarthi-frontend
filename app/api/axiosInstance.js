@@ -1,9 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
+const configuredBaseUrl = process.env.EXPO_PUBLIC_BASE_URL?.trim();
+
 const API = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_BASE_URL,
+  baseURL: configuredBaseUrl || "http://localhost:5000",
 });
+
+if (!configuredBaseUrl) {
+  console.warn("EXPO_PUBLIC_BASE_URL is not set. Falling back to http://localhost:5000");
+}
 
 // Request Interceptor: Attach JWT Token
 API.interceptors.request.use(

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 
@@ -67,6 +67,10 @@ export default function useClients() {
       Alert.alert("Error", "Failed to delete client");
     }
   };
+
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
 
   return {
     clients,

@@ -29,6 +29,7 @@ const FLEET_LINKS = [
 ] as const;
 
 const MANAGER_LINKS = [
+  { title: "Finance Hub", icon: "wallet-outline", route: "/(stack)/finance" as const },
   { title: "Trucks", icon: "bus-outline", route: "/(stack)/trucks-manager" as const },
   { title: "Drivers", icon: "person-add-outline", route: "/(stack)/drivers-manager" as const },
   { title: "Clients", icon: "people-outline", route: "/(stack)/clients-manager" as const },
@@ -241,6 +242,7 @@ export default function SideMenu({
                 </View>
               </>
             )}
+
 
             {/* Logout */}
             <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4 mt-4">

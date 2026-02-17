@@ -23,6 +23,7 @@ import {
   Alert,
   Image,
   Platform,
+  RefreshControl,
   Text,
   TextInput,
   TouchableOpacity,
@@ -60,6 +61,7 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dobDate, setDobDate] = useState<Date | null>(null);
@@ -214,6 +216,15 @@ export default function Profile() {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await refreshUser();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleRequestSecondaryOtp = async (type: "email" | "phone") => {
     const value = type === "email" ? formData.email?.trim().toLowerCase() : formData.phone?.trim();
     if (!value) {
@@ -280,6 +291,14 @@ export default function Profile() {
           extraScrollHeight={140}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 100 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
         >
           {/* HEADER SECTION */}
           <View style={{ alignItems: 'center', marginVertical: 24 }}>
@@ -514,7 +533,7 @@ export default function Profile() {
                   onChange={(v: string) => markChanged("gstin", v)}
                   icon={<Hash size={18} color={colors.mutedForeground} />}
                   placeholder="Optional"
-                  labelAction="Verify New"
+                  labelAction="Update GSTIN"
                   onLabelActionPress={() => router.push("/kyc-verification" as any)}
                 />
                 <ProfileInput
@@ -524,7 +543,7 @@ export default function Profile() {
                   onChange={(v: string) => markChanged("pan_number", v)}
                   icon={<Hash size={18} color={colors.mutedForeground} />}
                   autoCapitalize="characters"
-                  labelAction="Verify New"
+                  labelAction="Update PAN"
                   onLabelActionPress={() => router.push("/kyc-verification" as any)}
                 />
                 <ProfileInput label="Office Address" value={formData.address} editable={false} onChange={(v: string) => markChanged("address", v)} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Full street address" />

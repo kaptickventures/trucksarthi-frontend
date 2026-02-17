@@ -152,6 +152,56 @@ export interface DriverLedger {
   remarks?: string;
   title?: string;
   entry_date: ISODate;
+  
+  // New Master Finance Fields
+  tripId?: ObjectId;
+  truckId?: ObjectId;
+  clientId?: ObjectId;
+  invoiceId?: ObjectId;
+  category?: string;
+  sourceModule?: string;
+  transactionSubtype?: string; // e.g. "OWNER_TO_DRIVER"
+  approvalStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  source?: "OLD" | "NEW";
+  
+  createdAt?: ISODate;
+  updatedAt?: ISODate;
+}
+
+// ===============================
+// 5.5 Finance Transaction (New Master Model)
+// ===============================
+
+export interface FinanceTransaction {
+  _id: ObjectId;
+  user: ObjectId | User;
+  date: ISODate;
+  amount: number;
+  direction: 'INCOME' | 'EXPENSE';
+  sourceModule: 'DRIVER_KHATA' | 'CLIENT_PAYMENT' | 'RUNNING_EXPENSE' | 'MAINTENANCE' | 'MISC';
+  category: string;
+  subcategory?: string;
+  
+  transactionSubtype: string;
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
+  
+  paymentMode: string;
+  notes?: string;
+  attachmentUrl?: string;
+  createdBy: 'OWNER' | 'DRIVER' | 'SYSTEM';
+  
+  driverId?: ObjectId;
+  truckId?: ObjectId;
+  tripId?: ObjectId;
+  clientId?: ObjectId;
+  invoiceId?: ObjectId;
+  vendorId?: ObjectId;
+  
+  // Fuel/Maintenance specific
+  litres?: number;
+  kmReading?: number;
+  serviceType?: string; // DOCUMENT, SERVICE, REPAIR
+  
   createdAt?: ISODate;
   updatedAt?: ISODate;
 }
@@ -192,6 +242,9 @@ export interface ClientLedger {
   amount: number;
   remarks?: string;
   entry_date: ISODate;
+  source?: "OLD" | "NEW";
+  payment_mode?: string;
+  payment_type?: "FULL" | "PARTIAL";
   createdAt?: ISODate;
   updatedAt?: ISODate;
 }
@@ -245,7 +298,7 @@ export interface Trip {
 // 10. Invoice (Mongoose)
 // ===============================
 
-export type InvoiceStatus = "pending" | "paid" | "cancelled";
+export type InvoiceStatus = "pending" | "paid" | "partially_paid" | "cancelled";
 
 export interface InvoiceItem {
   trip: ObjectId | Trip;

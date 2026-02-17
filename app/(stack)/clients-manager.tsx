@@ -2,9 +2,11 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { Edit3, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useRef, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import {
   Alert,
   Animated,
+  Linking,
   PanResponder,
   RefreshControl,
   ScrollView,
@@ -237,7 +239,7 @@ export default function ClientsManager() {
                   </Text>
                   <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-light">
                     {client.contact_person_name || "N/A"}
-                    </Text>
+                  </Text>
 
                 </View>
                 <View className="flex-row gap-2">
@@ -246,6 +248,13 @@ export default function ClientsManager() {
                     className="w-10 h-10 bg-muted rounded-full items-center justify-center border border-border/20"
                   >
                     <Edit3 size={16} color={isDark ? THEME.dark.foreground : THEME.light.foreground} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation(); Linking.openURL(`https://wa.me/91${client.contact_number}`); }}
+                    className="w-10 h-10 bg-[#25D366]/10 rounded-full items-center justify-center"
+                  >
+                    <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
                   </TouchableOpacity>
 
                   <TouchableOpacity

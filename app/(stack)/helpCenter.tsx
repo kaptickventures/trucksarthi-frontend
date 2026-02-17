@@ -10,10 +10,13 @@ import {
   View,
 } from "react-native";
 
+import { useThemeStore } from "../../hooks/useThemeStore";
+
 const PHONE = "9319595984";
 const EMAIL = "trucksarthi@gmail.com";
 
 export default function HelpCenter() {
+  const { colors } = useThemeStore();
   const openWhatsApp = async () => {
     const url = `https://wa.me/91${PHONE}`;
     const supported = await Linking.canOpenURL(url);
@@ -37,7 +40,7 @@ export default function HelpCenter() {
           className="flex-row items-center justify-between"
         >
           <View className="flex-row items-center">
-            <View className="bg-green-600 p-3 rounded-xl">
+            <View className="bg-[#25D366] p-3 rounded-xl shadow-lg shadow-[#25D366]/40">
               <Ionicons name="logo-whatsapp" size={24} color="#fff" />
             </View>
             <View className="ml-4">
@@ -49,6 +52,7 @@ export default function HelpCenter() {
               </Text>
             </View>
           </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
         </TouchableOpacity>
       </View>
 

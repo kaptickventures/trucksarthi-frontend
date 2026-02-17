@@ -231,15 +231,14 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
       throw new Error("Driver not loaded");
     }
 
-    const tag = tripId ? `[Trip:${tripId}] ` : "";
-
     await addLedgerEntry({
       driver_id: user._id,
       transaction_nature: "paid_by_driver",
       counterparty_type: "vendor",
       direction: "to",
       amount,
-      remarks: `${tag}${description}`,
+      remarks: description,
+      tripId: tripId, // Pass as proper field
     });
 
     await fetchDriverLedger(user._id);
@@ -247,8 +246,8 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
 
   const getTripExpenseEntries = useCallback((tripId: string) => {
     return entries.filter((entry) => {
-      if (entry.transaction_nature !== "paid_by_driver") return false;
-      return extractTripIdFromRemarks(entry.remarks) === tripId;
+      // Check both new explicit driverId and legacy remarks if necessary
+      return String(entry.tripId) === tripId || extractTripIdFromRemarks(entry.remarks) === tripId;
     });
   }, [entries]);
 

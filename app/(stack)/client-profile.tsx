@@ -67,6 +67,7 @@ export default function ClientProfile() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentRemarks, setPaymentRemarks] = useState("");
+  const [paymentMode, setPaymentMode] = useState("CASH");
   const [paymentDate, setPaymentDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -497,6 +498,7 @@ export default function ClientProfile() {
       invoice_id: settlingInvoiceId || undefined,
       amount: Number(paymentAmount),
       remarks: paymentRemarks,
+      paymentMode,
       date: paymentDate.toISOString(),
     });
 
@@ -504,6 +506,7 @@ export default function ClientProfile() {
 
     setPaymentAmount("");
     setPaymentRemarks("");
+    setPaymentMode("CASH");
     setPaymentDate(new Date());
     setShowPaymentForm(false);
 
@@ -540,6 +543,7 @@ export default function ClientProfile() {
     setSettlingInvoiceId(invoice._id);
     setPaymentAmount((invoice.total_amount || 0).toString());
     setPaymentRemarks(`Settlement for Invoice #${invoice.invoice_number || "—"}`);
+    setPaymentMode("BANK");
     setPaymentDate(new Date());
     setShowPaymentForm(true);
   };
@@ -756,11 +760,14 @@ export default function ClientProfile() {
                   `https://wa.me/91${client.contact_number}?text=Hello ${client.client_name}`
                 )
               }
-              style={{ flex: 1, backgroundColor: '#16a34a', paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
+              style={{ flex: 1, backgroundColor: '#25D366', paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
-              <Text style={{ fontWeight: '600', fontSize: 14, color: 'white' }}>
-                💬 WhatsApp
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="logo-whatsapp" size={18} color="white" />
+                <Text style={{ fontWeight: '600', fontSize: 14, color: 'white' }}>
+                  WhatsApp
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -870,9 +877,16 @@ export default function ClientProfile() {
                 </View>
                 <View className="flex-1">
                   <Text className="text-foreground font-bold">{entry.remarks || "Payment Received"}</Text>
-                  <Text className="text-muted-foreground text-xs">{formatDate(entry.entry_date)}</Text>
+                  <Text className="text-muted-foreground text-xs">{formatDate(entry.entry_date)} | {entry.payment_mode || "CASH"}</Text>
                 </View>
-                <Text className="text-success font-bold">₹{Number(entry.amount).toLocaleString()}</Text>
+                <View className="items-end">
+                  <View className={`px-2 py-1 rounded-md mb-1 ${(entry.payment_type || "PARTIAL") === "FULL" ? "bg-success/10" : "bg-amber-500/10"}`}>
+                    <Text className={`text-[10px] font-bold ${(entry.payment_type || "PARTIAL") === "FULL" ? "text-success" : "text-amber-700"}`}>
+                      {entry.payment_type || "PARTIAL"}
+                    </Text>
+                  </View>
+                  <Text className="text-success font-bold">₹{Number(entry.amount).toLocaleString()}</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -996,6 +1010,22 @@ export default function ClientProfile() {
                   </View>
                 </View>
 
+                <View className="mb-8">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Payment Mode
+                  </Text>
+                  <View className="flex-row items-center bg-muted rounded-2xl px-4 py-3">
+                    <TextInput
+                      placeholder="CASH / BANK / UPI"
+                      value={paymentMode}
+                      onChangeText={setPaymentMode}
+                      className="flex-1 text-base"
+                      style={{ color: colors.foreground }}
+                      placeholderTextColor={colors.mutedForeground}
+                    />
+                  </View>
+                </View>
+
                 <TouchableOpacity
                   onPress={handleAddPayment}
                   className="bg-primary py-4 rounded-2xl items-center"
@@ -1014,90 +1044,95 @@ export default function ClientProfile() {
           animationType="slide"
           onRequestClose={closeEditModal}
         >
-          <View className="flex-1 bg-black/40 justify-end">
-            <Animated.View
-              {...panResponder.panHandlers}
-              className="bg-background rounded-t-3xl px-6 pt-4 pb-12"
-              style={{ transform: [{ translateY }] }}
-            >
-              <View className="items-center mb-6">
-                <View className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
-              </View>
-
-              <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-xl font-bold text-foreground">Edit Client</Text>
-                <TouchableOpacity onPress={closeEditModal} className="w-9 h-9 rounded-full bg-muted items-center justify-center">
-                  <X size={20} color={colors.foreground} />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView className="max-h-[70%]">
-                <View className="gap-4">
-                  <View>
-                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Client Name *</Text>
-                    <TextInput
-                      className="bg-muted p-4 rounded-xl text-foreground"
-                      value={editFormData.client_name}
-                      onChangeText={(t) => setEditFormData(prev => ({ ...prev, client_name: t }))}
-                      placeholder="e.g. Acme Corp"
-                      placeholderTextColor={colors.mutedForeground}
-                    />
-                  </View>
-                  <View>
-                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Contact Person *</Text>
-                    <TextInput
-                      className="bg-muted p-4 rounded-xl text-foreground"
-                      value={editFormData.contact_person_name}
-                      onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_person_name: t }))}
-                      placeholder="Full Name"
-                      placeholderTextColor={colors.mutedForeground}
-                    />
-                  </View>
-                  <View className="flex-row gap-4">
-                    <View className="flex-1">
-                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Client Contact *</Text>
-                      <TextInput
-                        className="bg-muted p-4 rounded-xl text-foreground"
-                        value={editFormData.contact_number}
-                        onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_number: t }))}
-                        keyboardType="phone-pad"
-                        placeholderTextColor={colors.mutedForeground}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Email *</Text>
-                      <TextInput
-                        className="bg-muted p-4 rounded-xl text-foreground"
-                        value={editFormData.email_address}
-                        onChangeText={(t) => setEditFormData(prev => ({ ...prev, email_address: t }))}
-                        keyboardType="email-address"
-                        placeholderTextColor={colors.mutedForeground}
-                      />
-                    </View>
-                  </View>
-                  <View>
-                    <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Office Address *</Text>
-                    <TextInput
-                      className="bg-muted p-4 rounded-xl text-foreground"
-                      value={editFormData.office_address}
-                      onChangeText={(t) => setEditFormData(prev => ({ ...prev, office_address: t }))}
-                      multiline
-                      numberOfLines={3}
-                      textAlignVertical="top"
-                      placeholderTextColor={colors.mutedForeground}
-                    />
-                  </View>
-                </View>
-              </ScrollView>
-
-              <TouchableOpacity
-                onPress={handleUpdateClient}
-                className="bg-primary py-4 rounded-2xl items-center mt-6"
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            className="flex-1"
+          >
+            <View className="flex-1 bg-black/40 justify-end">
+              <Animated.View
+                {...panResponder.panHandlers}
+                className="bg-background rounded-t-3xl px-6 pt-4 pb-12"
+                style={{ transform: [{ translateY }] }}
               >
-                <Text className="text-white font-bold text-lg">Save Updates</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
+                <View className="items-center mb-6">
+                  <View className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
+                </View>
+
+                <View className="flex-row justify-between items-center mb-6">
+                  <Text className="text-xl font-bold text-foreground">Edit Client</Text>
+                  <TouchableOpacity onPress={closeEditModal} className="w-9 h-9 rounded-full bg-muted items-center justify-center">
+                    <X size={20} color={colors.foreground} />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView className="max-h-[70%]" showsVerticalScrollIndicator={false}>
+                  <View className="gap-4">
+                    <View>
+                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Client Name *</Text>
+                      <TextInput
+                        className="bg-muted p-4 rounded-xl text-foreground"
+                        value={editFormData.client_name}
+                        onChangeText={(t) => setEditFormData(prev => ({ ...prev, client_name: t }))}
+                        placeholder="e.g. Acme Corp"
+                        placeholderTextColor={colors.mutedForeground}
+                      />
+                    </View>
+                    <View>
+                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Contact Person *</Text>
+                      <TextInput
+                        className="bg-muted p-4 rounded-xl text-foreground"
+                        value={editFormData.contact_person_name}
+                        onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_person_name: t }))}
+                        placeholder="Full Name"
+                        placeholderTextColor={colors.mutedForeground}
+                      />
+                    </View>
+                    <View className="flex-row gap-4">
+                      <View className="flex-1">
+                        <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Client Contact *</Text>
+                        <TextInput
+                          className="bg-muted p-4 rounded-xl text-foreground"
+                          value={editFormData.contact_number}
+                          onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_number: t }))}
+                          keyboardType="phone-pad"
+                          placeholderTextColor={colors.mutedForeground}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Email *</Text>
+                        <TextInput
+                          className="bg-muted p-4 rounded-xl text-foreground"
+                          value={editFormData.email_address}
+                          onChangeText={(t) => setEditFormData(prev => ({ ...prev, email_address: t }))}
+                          keyboardType="email-address"
+                          placeholderTextColor={colors.mutedForeground}
+                        />
+                      </View>
+                    </View>
+                    <View>
+                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Office Address *</Text>
+                      <TextInput
+                        className="bg-muted p-4 rounded-xl text-foreground"
+                        value={editFormData.office_address}
+                        onChangeText={(t) => setEditFormData(prev => ({ ...prev, office_address: t }))}
+                        multiline
+                        numberOfLines={3}
+                        textAlignVertical="top"
+                        placeholderTextColor={colors.mutedForeground}
+                      />
+                    </View>
+                  </View>
+                </ScrollView>
+
+                <TouchableOpacity
+                  onPress={handleUpdateClient}
+                  className="bg-primary py-4 rounded-2xl items-center mt-6"
+                >
+                  <Text className="text-white font-bold text-lg">Save Updates</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+          </KeyboardAvoidingView>
         </Modal>
 
       </ScrollView>

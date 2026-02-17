@@ -55,6 +55,10 @@ export default function LedgerScreen() {
         const dateValue = String(item.createdAt || item.entry_date || new Date().toISOString());
         const time = new Date(dateValue).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        const isPending = item.approvalStatus === 'PENDING';
+        const isRejected = item.approvalStatus === 'REJECTED';
+        const isLegacy = item.source === 'OLD';
+
         return (
             <View style={[styles.card, { backgroundColor: colors.card }]}>
                 <View style={[styles.iconBox, { backgroundColor: `${color}20` }]}>
@@ -63,9 +67,44 @@ export default function LedgerScreen() {
 
                 <View style={styles.details}>
                     <Text style={[styles.desc, { color: colors.foreground }]}>{item.remarks || item.title || 'Ledger Entry'}</Text>
+
                     <View style={styles.metaRow}>
                         <Clock size={12} color={colors.mutedForeground} />
                         <Text style={[styles.date, { color: colors.mutedForeground }]}>{new Date(dateValue).toLocaleDateString()} | {time}</Text>
+                    </View>
+
+                    {/* Tags Row */}
+                    <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                        {/* Status Badge */}
+                        {isPending && (
+                            <View style={{ backgroundColor: '#fff7ed', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: '#fdba74' }}>
+                                <Text style={{ fontSize: 10, color: '#c2410c', fontWeight: '600' }}>PENDING</Text>
+                            </View>
+                        )}
+                        {isRejected && (
+                            <View style={{ backgroundColor: '#fef2f2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: '#fca5a5' }}>
+                                <Text style={{ fontSize: 10, color: '#b91c1c', fontWeight: '600' }}>REJECTED</Text>
+                            </View>
+                        )}
+                        {!isPending && !isRejected && !isLegacy && (
+                            <View style={{ backgroundColor: '#f0fdf4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: '#86efac' }}>
+                                <Text style={{ fontSize: 10, color: '#15803d', fontWeight: '600' }}>APPROVED</Text>
+                            </View>
+                        )}
+
+                        {/* Legacy Badge */}
+                        {isLegacy && (
+                            <View style={{ backgroundColor: '#f3f4f6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                <Text style={{ fontSize: 10, color: '#4b5563' }}>LEGACY</Text>
+                            </View>
+                        )}
+
+                        {/* Trip Badge */}
+                        {item.tripId && (
+                            <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                <Text style={{ fontSize: 10, color: '#1d4ed8' }}>TRIP LINKED</Text>
+                            </View>
+                        )}
                     </View>
                 </View>
 

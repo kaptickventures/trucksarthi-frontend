@@ -125,6 +125,15 @@ export default function StackLayout() {
           <Stack.Screen name="basic-details" options={{ title: "Trucksarthi" }} />
           <Stack.Screen name="documents-manager" options={{ title: "Documents" }} />
           <Stack.Screen name="document-details" options={{ title: "Document Details", headerShown: false }} />
+          <Stack.Screen name="finance" options={{ title: "Finance Hub" }} />
+          <Stack.Screen name="transactions" options={{ title: "Transactions", headerShown: false }} />
+          <Stack.Screen name="expense-manager" options={{ title: "Expense Manager", headerShown: false }} />
+          <Stack.Screen name="driver-ledger" options={{ title: "Driver Ledger", headerShown: false }} />
+          <Stack.Screen name="driver-ledger-detail" options={{ title: "Driver Khata", headerShown: false }} />
+          <Stack.Screen name="client-ledger" options={{ title: "Client Ledger", headerShown: false }} />
+          <Stack.Screen name="client-ledger-detail" options={{ title: "Client Khata", headerShown: false }} />
+          <Stack.Screen name="client-payments" options={{ title: "Client Payments", headerShown: false }} />
+          <Stack.Screen name="misc-transactions" options={{ title: "Misc Transactions", headerShown: false }} />
         </Stack>
       </GestureHandlerRootView>
     </BottomSheetModalProvider>

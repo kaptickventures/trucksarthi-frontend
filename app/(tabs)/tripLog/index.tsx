@@ -1,4 +1,4 @@
-// app/(tabs)/tripLog/index.tsx
+
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -113,25 +113,43 @@ export default function TripLog() {
   const getId = (obj: any): string => (typeof obj === "object" ? obj?._id : obj);
 
   const getDriverName = (idOrObj: any) => {
-    const id = getId(idOrObj);
-    return drivers.find((d) => d._id === id)?.driver_name || "Unknown Driver";
+    if (!idOrObj) return "N/A";
+    const id = typeof idOrObj === "object" ? idOrObj?._id : idOrObj;
+    const sId = id ? String(id) : "";
+    const found = drivers.find((v) => String(v._id) === sId);
+    if (found) return found.driver_name || found.name || "N/A";
+    if (typeof idOrObj === "object") return idOrObj.driver_name || idOrObj.name || "N/A";
+    return sId.slice(-6) || "N/A";
   };
 
   const getClientName = (idOrObj: any) => {
-    const id = getId(idOrObj);
-    return clients.find((c) => c._id === id)?.client_name || "Unknown Client";
+    if (!idOrObj) return "N/A";
+    const id = typeof idOrObj === "object" ? idOrObj?._id : idOrObj;
+    const sId = id ? String(id) : "";
+    const found = clients.find((c) => String(c._id) === sId);
+    if (found) return found.client_name || "N/A";
+    if (typeof idOrObj === "object") return idOrObj.client_name || "N/A";
+    return sId.slice(-6) || "N/A";
   };
 
   const getTruckReg = (idOrObj: any) => {
-    const id = getId(idOrObj);
-    return (
-      trucks.find((t) => t._id === id)?.registration_number || "Unknown Truck"
-    );
+    if (!idOrObj) return "N/A";
+    const id = typeof idOrObj === "object" ? idOrObj?._id : idOrObj;
+    const sId = id ? String(id) : "";
+    const found = trucks.find((t) => String(t._id) === sId);
+    if (found) return found.registration_number || "N/A";
+    if (typeof idOrObj === "object") return idOrObj.registration_number || "N/A";
+    return sId.slice(-6) || "N/A";
   };
 
   const getLocationName = (idOrObj: any) => {
-    const id = getId(idOrObj);
-    return locations.find((l) => l._id === id)?.location_name || "Unknown";
+    if (!idOrObj) return "N/A";
+    const id = typeof idOrObj === "object" ? idOrObj?._id : idOrObj;
+    const sId = id ? String(id) : "";
+    const found = locations.find((l) => String(l._id) === sId);
+    if (found) return found.location_name || "N/A";
+    if (typeof idOrObj === "object") return idOrObj.location_name || "N/A";
+    return sId.slice(-6) || "N/A";
   };
 
   const sortedTrips = useMemo(() => {
@@ -206,69 +224,69 @@ export default function TripLog() {
 
       const html = `
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        padding: 30px;
-        color: #000;
-      }
-      .title { text-align: center; font-size: 28px; font-weight: 800; margin-bottom: 4px; }
-      .subtitle { text-align: center; font-size: 13px; opacity: 0.7; margin-bottom: 12px; }
-      .divider { height: 2px; background: #000; margin: 18px 0 22px 0; }
-      .section-title { text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
-      .generated { text-align: center; font-size: 12px; opacity: 0.65; margin-bottom: 10px; }
-      .daterange { text-align: center; font-size: 13px; opacity: 0.75; margin-bottom: 18px; }
-      .card { border: 1px solid #000; border-radius: 10px; padding: 14px; margin-bottom: 22px; }
-      .card-top { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; margin-bottom: 10px; }
-      .route { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
-      .meta-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
-      .meta-col { flex: 1; }
-      .label { font-size: 11px; opacity: 0.6; }
-      .value { font-size: 13px; font-weight: 600; margin-top: 4px; }
-      .cost-row { display: flex; justify-content: space-between; margin-top: 12px; border-top: 1px solid #000; padding-top: 10px; font-size: 13px; }
-      .notes { margin-top: 10px; font-size: 13px; font-style: italic; opacity: 0.8; }
-    </style>
-  </head>
-  <body>
-    <div class="title">Trucksarthi</div>
-    <div class="subtitle">By Kaptick Labs</div>
-    <div class="divider"></div>
-    <div class="section-title">Trip Report</div>
-    <div class="generated">Generated on ${formatDate(new Date())}</div>
-    ${dateRangeText ? `<div class="daterange">${dateRangeText}</div>` : ""}
-    ${sortedTrips
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      padding: 30px;
+      color: #000;
+    }
+    .title { text-align: center; font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+    .subtitle { text-align: center; font-size: 13px; opacity: 0.7; margin-bottom: 12px; }
+    .divider { height: 2px; background: #000; margin: 18px 0 22px 0; }
+    .section-title { text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .generated { text-align: center; font-size: 12px; opacity: 0.65; margin-bottom: 10px; }
+    .daterange { text-align: center; font-size: 13px; opacity: 0.75; margin-bottom: 18px; }
+    .card { border: 1px solid #000; border-radius: 10px; padding: 14px; margin-bottom: 22px; }
+    .card-top { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+    .route { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .meta-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+    .meta-col { flex: 1; }
+    .label { font-size: 11px; opacity: 0.6; }
+    .value { font-size: 13px; font-weight: 600; margin-top: 4px; }
+    .cost-row { display: flex; justify-content: space-between; margin-top: 12px; border-top: 1px solid #000; padding-top: 10px; font-size: 13px; }
+    .notes { margin-top: 10px; font-size: 13px; font-style: italic; opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <div class="title">Trucksarthi</div>
+  <div class="subtitle">By Kaptick Labs</div>
+  <div class="divider"></div>
+  <div class="section-title">Trip Report</div>
+  <div class="generated">Generated on ${formatDate(new Date())}</div>
+  ${dateRangeText ? `<div class="daterange">${dateRangeText}</div>` : ""}
+  ${sortedTrips
           .map((t) => {
             const total = Number(t.cost_of_trip) + Number(t.miscellaneous_expense);
             return `
-        <div class="card">
-          <div class="card-top">
-            <div>${t.trip_date ? fmt(new Date(t.trip_date)) : "No Date"}</div>
-            <div>₹${total.toLocaleString()}</div>
-          </div>
-          <div class="route">Route: ${getLocationName(t.start_location)} → ${getLocationName(t.end_location)}</div>
-          <div class="meta-row">
-            <div class="meta-col"><div class="label">TRUCK</div><div class="value">${getTruckReg(
+    <div class="card">
+      <div class="card-top">
+        <div>${t.trip_date ? fmt(new Date(t.trip_date)) : "No Date"}</div>
+        <div>₹${total.toLocaleString()}</div>
+      </div>
+      <div class="route">Route: ${getLocationName(t.start_location)} → ${getLocationName(t.end_location)}</div>
+      <div class="meta-row">
+        <div class="meta-col"><div class="label">TRUCK</div><div class="value">${getTruckReg(
               t.truck
             )}</div></div>
-            <div class="meta-col"><div class="label">DRIVER</div><div class="value">${getDriverName(
+        <div class="meta-col"><div class="label">DRIVER</div><div class="value">${getDriverName(
               t.driver
             )}</div></div>
-            <div class="meta-col"><div class="label">CLIENT</div><div class="value">${getClientName(
+        <div class="meta-col"><div class="label">CLIENT</div><div class="value">${getClientName(
               t.client
             )}</div></div>
-          </div>
-          <div class="cost-row">
-            <div><div class="label">TRIP COST</div><div class="value">₹${Number(t.cost_of_trip).toLocaleString()}</div></div>
-            <div><div class="label">MISC EXPENSE</div><div class="value">₹${Number(t.miscellaneous_expense).toLocaleString()}</div></div>
-          </div>
-          ${t.notes ? `<div class="notes">Notes: ${t.notes}</div>` : ""}
-        </div>
-      `;
+      </div>
+      <div class="cost-row">
+        <div><div class="label">TRIP COST</div><div class="value">₹${Number(t.cost_of_trip).toLocaleString()}</div></div>
+        <div><div class="label">MISC EXPENSE</div><div class="value">₹${Number(t.miscellaneous_expense).toLocaleString()}</div></div>
+      </div>
+      ${t.notes ? `<div class="notes">Notes: ${t.notes}</div>` : ""}
+    </div>
+  `;
           })
           .join("")}
-  </body>
+</body>
 </html>
 `;
       const { uri } = await Print.printToFileAsync({ html });

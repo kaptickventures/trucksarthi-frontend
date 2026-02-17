@@ -1,7 +1,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
-import { useLayoutEffect, useState, useCallback } from "react";
+import { useLayoutEffect, useState, useCallback, useEffect } from "react";
 import {
   ScrollView,
   Text,
@@ -16,6 +16,10 @@ import { useThemeStore } from "../../../hooks/useThemeStore";
 import useTrips from "../../../hooks/useTrip";
 import { useUser } from "../../../hooks/useUser";
 import useTruckDocuments from "../../../hooks/useTruckDocuments";
+import useDrivers from "../../../hooks/useDriver";
+import useClients from "../../../hooks/useClient";
+import useTrucks from "../../../hooks/useTruck";
+import useLocations from "../../../hooks/useLocation";
 import { formatDate } from "../../../lib/utils";
 
 export default function HomeScreen() {
@@ -28,12 +32,102 @@ export default function HomeScreen() {
   const { user, loading: userLoading, refreshUser } = useUser();
   const { loading: tripsLoading, totalRevenue, totalTrips, recentTrips, fetchTrips } = useTrips();
   const { documents, loading: docsLoading, fetchDocuments } = useTruckDocuments();
+  const { drivers, fetchDrivers } = useDrivers();
+  const { clients, fetchClients } = useClients();
+  const { trucks, fetchTrucks } = useTrucks();
+  const { locations, fetchLocations } = useLocations();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refreshUser(), fetchTrips(), fetchDocuments()]);
+    await Promise.all([
+      refreshUser(),
+      fetchTrips(),
+      fetchDocuments(),
+      fetchDrivers(),
+      fetchClients(),
+      fetchTrucks(),
+      fetchLocations()
+    ]);
     setRefreshing(false);
-  }, [refreshUser, fetchTrips, fetchDocuments]);
+  }, [refreshUser, fetchTrips, fetchDocuments, fetchDrivers, fetchClients, fetchTrucks, fetchLocations]);
+
+  useEffect(() => {
+    onRefresh();
+  }, []);
+
+  const toShortId = (value: any): string => {
+    if (!value) return "N/A";
+    const raw = typeof value === "object" ? value?._id : value;
+    const str = raw != null ? String(raw) : "";
+    return str ? str.slice(-6) : "N/A";
+  };
+
+  const getTruckName = (truckOrId: any): string => {
+    if (!truckOrId) return "N/A";
+    const id = typeof truckOrId === "object" ? truckOrId?._id : truckOrId;
+    const sId = id ? String(id) : "";
+
+    // 1. Try to find in the fetched trucks list for consistency
+    const found = trucks?.find(t => String(t._id) === sId);
+    if (found) return found.registration_number || "N/A";
+
+    // 2. Fallback to properties on the object itself if populated
+    if (typeof truckOrId === "object") {
+      return truckOrId.registration_number || toShortId(sId);
+    }
+
+    // 3. Last resort: short ID
+    return toShortId(sId);
+  };
+
+  const getDriverName = (driverOrId: any): string => {
+    if (!driverOrId) return "N/A";
+    const id = typeof driverOrId === "object" ? driverOrId?._id : driverOrId;
+    const sId = id ? String(id) : "";
+
+    // 1. Try to find in the fetched drivers list (which has mapDriverFromApi applied)
+    const found = drivers?.find(d => String(d._id) === sId);
+    if (found) return found.driver_name || found.name || "N/A";
+
+    // 2. Fallback to properties on the object itself
+    if (typeof driverOrId === "object") {
+      return driverOrId.driver_name || driverOrId.name || toShortId(sId);
+    }
+
+    return toShortId(sId);
+  };
+
+  const getClientName = (clientOrId: any): string => {
+    if (!clientOrId) return "N/A";
+    const id = typeof clientOrId === "object" ? clientOrId?._id : clientOrId;
+    const sId = id ? String(id) : "";
+
+    // 1. Try local list
+    const found = clients?.find(c => String(c._id) === sId);
+    if (found) return found.client_name || "N/A";
+
+    // 2. Try object fields
+    if (typeof clientOrId === "object") {
+      return clientOrId.client_name || toShortId(sId);
+    }
+
+    return toShortId(sId);
+  };
+
+  const getLocationName = (locationOrId: any): string => {
+    if (!locationOrId) return "N/A";
+    const id = typeof locationOrId === "object" ? locationOrId?._id : locationOrId;
+    const sId = id ? String(id) : "";
+
+    const found = locations?.find(l => String(l._id) === sId);
+    if (found) return found.location_name || "N/A";
+
+    if (typeof locationOrId === "object") {
+      return locationOrId.location_name || toShortId(sId);
+    }
+
+    return toShortId(sId);
+  };
 
   // Filter expiring documents (next 30 days)
   const expiringDocs = documents.filter(doc => {
@@ -224,7 +318,7 @@ export default function HomeScreen() {
                       {doc.document_type} Expiring
                     </Text>
                     <Text className="text-muted-foreground text-[10px] mt-1">
-                      Truck: {truckId ? truckId.toString().slice(-6) : 'N/A'}
+                      Truck: {getTruckName(doc.truck)}
                     </Text>
                   </View>
                   <View className="items-end">
@@ -255,7 +349,7 @@ export default function HomeScreen() {
             recentTrips.map((trip) => {
               const getId = (obj: any): string =>
                 typeof obj === "object" ? obj?._id : obj;
-              const tripId = trip._id;
+              const tripId = trip?._id;
               const truckId = getId(trip.truck);
               const driverId = getId(trip.driver);
               const dateStr = trip.trip_date
@@ -271,10 +365,10 @@ export default function HomeScreen() {
                 >
                   <View className="flex-1">
                     <Text style={{ color: colors.secondaryForeground }} className="font-medium text-sm">
-                      Trip #{tripId.slice(-6)}
+                      {getLocationName(trip.start_location)} → {getLocationName(trip.end_location)}
                     </Text>
                     <Text className="text-muted-foreground text-[10px] mt-1">
-                      Truck: {truckId.slice(-6)} • Driver: {driverId.slice(-6)}
+                      Truck: {getTruckName(trip.truck)} • Driver: {getDriverName(trip.driver)} • Client: {getClientName(trip.client)}
                     </Text>
                   </View>
                   <View className="items-end">
@@ -300,3 +394,4 @@ export default function HomeScreen() {
     </>
   );
 }
+

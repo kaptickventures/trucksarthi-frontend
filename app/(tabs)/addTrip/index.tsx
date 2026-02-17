@@ -15,7 +15,8 @@ import {
   View,
   ScrollView,
   KeyboardAvoidingView,
-  StyleSheet
+  StyleSheet,
+  RefreshControl
 } from "react-native";
 import { useThemeStore } from "../../../hooks/useThemeStore";
 import { Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Plus, Navigation } from 'lucide-react-native';
@@ -98,6 +99,23 @@ export default function AddTrip() {
   const { clients, addClient, fetchClients } = useClients();
   const { locations, addLocation, fetchLocations } = useLocations();
   const { addTrip } = useTrips();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchClients(),
+        fetchDrivers(),
+        fetchTrucks(),
+        fetchLocations()
+      ]);
+    } catch (error) {
+      console.error("Refresh failed:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     fetchClients();
@@ -196,6 +214,14 @@ export default function AddTrip() {
         <ScrollView
           contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
         >
           {/* Header Title Section */}
           <View className="mb-6">

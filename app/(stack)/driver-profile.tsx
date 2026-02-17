@@ -7,7 +7,9 @@ import {
   Pencil,
   Share2,
   Trash2,
-  User as UserIcon
+  User as UserIcon,
+  CheckCircle,
+  XCircle
 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -40,7 +42,7 @@ export default function DriverProfile() {
   const { drivers, loading: driverLoading, uploadLicense, uploadAadhaar, fetchDrivers } = useDrivers();
   const driver = useMemo(() => drivers.find(d => d._id === driver_id), [drivers, driver_id]);
 
-  const { entries, fetchDriverLedger, fetchDriverSummary, addLedgerEntry } = useDriverFinance();
+  const { entries, fetchDriverLedger, fetchDriverSummary, addLedgerEntry, updateEntryStatus } = useDriverFinance();
   const [netBalance, setNetBalance] = useState<number>(0);
 
   const [showModal, setShowModal] = useState(false);
@@ -228,6 +230,12 @@ export default function DriverProfile() {
                 >
                   <Ionicons name="call-outline" size={14} color={colors.primary} />
                 </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => driver.contact_number && Linking.openURL(`https://wa.me/91${driver.contact_number}`)}
+                  style={{ backgroundColor: '#25D366', padding: 6, borderRadius: 16 }}
+                >
+                  <Ionicons name="logo-whatsapp" size={14} color="white" />
+                </TouchableOpacity>
               </View>
               <Text style={{ fontSize: 14, color: colors.mutedForeground }}>{driver.contact_number}</Text>
             </View>
@@ -260,20 +268,49 @@ export default function DriverProfile() {
             </TouchableOpacity>
           </View>
 
-          {entries.map((entry) => (
-            <View key={entry._id} style={{ backgroundColor: colors.card, padding: 16, borderRadius: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: entry.direction === 'from' ? (theme === 'dark' ? '#450a0a' : '#fef2f2') : (theme === 'dark' ? '#064e3b' : '#f0fdf4'), alignItems: 'center', justifyContent: 'center' }}>
-                {entry.direction === 'from' ? <ArrowDownLeft size={20} color={colors.destructive} /> : <ArrowUpRight size={20} color={colors.success} />}
+          {entries.map((entry) => {
+            const isPending = entry.approvalStatus === 'PENDING';
+            const isRejected = entry.approvalStatus === 'REJECTED';
+            return (
+              <View key={entry._id} style={{ backgroundColor: colors.card, padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border, opacity: isRejected ? 0.6 : 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: entry.direction === 'from' ? (theme === 'dark' ? '#450a0a' : '#fef2f2') : (theme === 'dark' ? '#064e3b' : '#f0fdf4'), alignItems: 'center', justifyContent: 'center' }}>
+                    {entry.direction === 'from' ? <ArrowDownLeft size={20} color={colors.destructive} /> : <ArrowUpRight size={20} color={colors.success} />}
+                  </View>
+                  <View style={{ marginLeft: 16, flex: 1 }}>
+                    <Text style={{ fontWeight: '700', color: colors.foreground }}>{entry.remarks}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{formatDate(entry.entry_date)}</Text>
+                      {isPending && <View style={{ paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#fff7ed', borderRadius: 4, borderWidth: 1, borderColor: '#fdba74' }}><Text style={{ fontSize: 9, fontWeight: 'bold', color: '#c2410c' }}>PENDING</Text></View>}
+                      {isRejected && <View style={{ paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#fef2f2', borderRadius: 4, borderWidth: 1, borderColor: '#fca5a5' }}><Text style={{ fontSize: 9, fontWeight: 'bold', color: '#b91c1c' }}>REJECTED</Text></View>}
+                    </View>
+                  </View>
+                  <Text style={{ fontWeight: '800', fontSize: 16, color: entry.direction === 'from' ? colors.destructive : colors.success }}>
+                    {entry.direction === 'from' ? '-' : '+'}₹{entry.amount}
+                  </Text>
+                </View>
+
+                {isPending && (
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: colors.border }}>
+                    <TouchableOpacity
+                      onPress={() => updateEntryStatus(String(entry._id), 'REJECTED')}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 8, borderRadius: 8, backgroundColor: '#fef2f2' }}
+                    >
+                      <XCircle size={16} color="#dc2626" />
+                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#dc2626' }}>Reject</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => updateEntryStatus(String(entry._id), 'APPROVED')}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 8, borderRadius: 8, backgroundColor: '#f0fdf4' }}
+                    >
+                      <CheckCircle size={16} color="#16a34a" />
+                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#16a34a' }}>Approve</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
-              <View style={{ marginLeft: 16, flex: 1 }}>
-                <Text style={{ fontWeight: '700', color: colors.foreground }}>{entry.remarks}</Text>
-                <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 2 }}>{formatDate(entry.entry_date)}</Text>
-              </View>
-              <Text style={{ fontWeight: '800', fontSize: 16, color: entry.direction === 'from' ? colors.destructive : colors.success }}>
-                {entry.direction === 'from' ? '-' : '+'}₹{entry.amount}
-              </Text>
-            </View>
-          ))}
+            )
+          })}
         </View>
       </ScrollView>
 

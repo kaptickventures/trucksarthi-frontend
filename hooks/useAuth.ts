@@ -23,7 +23,14 @@ export async function loginWithEmail(email: string, pass: string) {
     }
     return { token, user };
   } catch (err: any) {
-    console.error("❌ Login error:", { status: err.response?.status, data: err.response?.data, message: err.message });
+    console.error("Login error:", { status: err.response?.status, data: err.response?.data, message: err.message });
+    if (!err.response) {
+      const baseUrl = (API.defaults.baseURL || "").toString();
+      const hint = baseUrl
+        ? `Cannot reach server at ${baseUrl}. If this is a real device, use your PC LAN IP instead of localhost.`
+        : "API URL missing. Set EXPO_PUBLIC_BASE_URL.";
+      throw `Network Error. ${hint}`;
+    }
     throw err.response?.data?.error || err.message || "Login failed";
   }
 }
