@@ -227,12 +227,10 @@ export default function TruckProfile() {
   const importantDateItems = useMemo(() => {
     if (!truck) return [];
     return [
-      { label: "Insurance Upto", date: truck.insurance_upto },
-      { label: "PUCC Upto", date: truck.pollution_upto },
-      { label: "Fitness Upto", date: truck.fitness_upto },
-      { label: "Road Tax Upto", date: truck.road_tax_upto },
-      { label: "Permit Upto", date: truck.permit_upto },
-      { label: "National Permit Upto", date: truck.national_permit_upto },
+      { label: "Insurance Expiry", date: truck.insurance_upto },
+      { label: "Fitness Expiry", date: truck.fitness_upto },
+      { label: "Permit Expiry", date: truck.permit_upto },
+      { label: "PUCC Expiry", date: truck.pollution_upto },
     ].filter((item) => normalizeDisplayValue(item.date));
   }, [truck]);
   const moreDetailsEntries = useMemo(() => {
@@ -521,9 +519,10 @@ export default function TruckProfile() {
                 </View>
 
                 {[
-                  { label: "Fitness Expiry", key: "fitness_upto" },
                   { label: "Insurance Expiry", key: "insurance_upto" },
-                  { label: "National Permit", key: "national_permit_upto" },
+                  { label: "Fitness Expiry", key: "fitness_upto" },
+                  { label: "Permit Expiry", key: "permit_upto" },
+                  { label: "PUCC Expiry", key: "pollution_upto" },
                 ].map(f => (
                   <TouchableOpacity key={f.key} activeOpacity={0.7} onPress={() => { setDateField(f.key); setIsPickerVisible(true); }}>
                     <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8 }}>{f.label}</Text>

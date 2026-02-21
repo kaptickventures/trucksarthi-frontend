@@ -128,6 +128,12 @@ export default function StackLayout() {
           <Stack.Screen name="finance" options={{ title: "Finance Hub" }} />
           <Stack.Screen name="transactions" options={{ title: "Transactions", headerShown: false }} />
           <Stack.Screen name="expense-manager" options={{ title: "Expense Manager", headerShown: false }} />
+          <Stack.Screen name="running-expenses" options={{ title: "Running Expenses", headerShown: false }} />
+          <Stack.Screen name="running-expenses-dashboard" options={{ title: "Truck Running", headerShown: false }} />
+          <Stack.Screen name="running-expenses-add" options={{ title: "Add Running Expense", headerShown: false }} />
+          <Stack.Screen name="maintenance-khata" options={{ title: "Maintenance Khata", headerShown: false }} />
+          <Stack.Screen name="maintenance-dashboard" options={{ title: "Truck Maintenance", headerShown: false }} />
+          <Stack.Screen name="maintenance-add" options={{ title: "Add Maintenance", headerShown: false }} />
           <Stack.Screen name="driver-ledger" options={{ title: "Driver Ledger", headerShown: false }} />
           <Stack.Screen name="driver-ledger-detail" options={{ title: "Driver Khata", headerShown: false }} />
           <Stack.Screen name="client-ledger" options={{ title: "Client Ledger", headerShown: false }} />

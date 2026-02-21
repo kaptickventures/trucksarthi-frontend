@@ -19,6 +19,7 @@ export default function useFinance() {
       if (filters.category) params.append("category", filters.category);
       if (filters.sourceModule) params.append("sourceModule", filters.sourceModule);
       if (filters.direction) params.append("direction", filters.direction);
+      if (filters.truckId) params.append("truckId", filters.truckId);
       
       const res = await API.get(`/api/finance/transactions?${params.toString()}`);
       setTransactions(res.data);
@@ -55,6 +56,10 @@ export default function useFinance() {
 
   /* ---------------- ADD EXPENSES ---------------- */
   const addRunningExpense = async (data: any) => {
+    if (!data?.truckId) {
+      Alert.alert("Truck Required", "Please select a truck before saving running expense.");
+      throw new Error("truckId is required for running expense");
+    }
     try {
         setLoading(true);
         const res = await API.post("/api/finance/running-expense", data);
@@ -69,6 +74,10 @@ export default function useFinance() {
   };
 
   const addMaintenanceExpense = async (data: any) => {
+    if (!data?.truckId) {
+      Alert.alert("Truck Required", "Please select a truck before saving maintenance expense.");
+      throw new Error("truckId is required for maintenance expense");
+    }
     try {
         setLoading(true);
         const res = await API.post("/api/finance/maintenance-expense", data);
