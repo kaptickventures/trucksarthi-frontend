@@ -134,9 +134,9 @@ export default function StackLayout() {
           <Stack.Screen name="maintenance-khata" options={{ title: "Maintenance Khata", headerShown: false }} />
           <Stack.Screen name="maintenance-dashboard" options={{ title: "Truck Maintenance", headerShown: false }} />
           <Stack.Screen name="maintenance-add" options={{ title: "Add Maintenance", headerShown: false }} />
-          <Stack.Screen name="driver-ledger" options={{ title: "Driver Ledger", headerShown: false }} />
+          <Stack.Screen name="driver-ledger" options={{ title: "Driver Khata", headerShown: false }} />
           <Stack.Screen name="driver-ledger-detail" options={{ title: "Driver Khata", headerShown: false }} />
-          <Stack.Screen name="client-ledger" options={{ title: "Client Ledger", headerShown: false }} />
+          <Stack.Screen name="client-ledger" options={{ title: "Client Khata", headerShown: false }} />
           <Stack.Screen name="client-ledger-detail" options={{ title: "Client Khata", headerShown: false }} />
           <Stack.Screen name="client-payments" options={{ title: "Client Payments", headerShown: false }} />
           <Stack.Screen name="misc-transactions" options={{ title: "Misc Transactions", headerShown: false }} />

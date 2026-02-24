@@ -3,7 +3,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -12,14 +15,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
+import FinanceFAB from "../../components/finance/FinanceFAB";
 import useDrivers from "../../hooks/useDriver";
 import useDriverFinance, { TransactionNature } from "../../hooks/useDriverFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { formatDate } from "../../lib/utils";
 
-type FilterType = "ALL" | "OWNER_TO_DRIVER" | "DRIVER_SPEND" | "DRIVER_TO_VENDOR";
-type QuickType = "ADVANCE" | "SETTLEMENT" | "ADJUSTMENT";
+type TabType = "ALL" | "TO_DRIVER" | "DRIVER_SPENDS";
+type QuickType = "ADVANCE" | "SETTLEMENT" | "EXPENSE";
 
 export default function DriverLedgerDetailScreen() {
   const router = useRouter();
@@ -28,11 +33,10 @@ export default function DriverLedgerDetailScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { drivers, fetchDrivers } = useDrivers();
-  const { entries, loading, fetchDriverLedger, fetchDriverSummary, addLedgerEntry, updateEntryStatus } = useDriverFinance();
+  const { entries, loading, fetchDriverLedger, addLedgerEntry } = useDriverFinance();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [netBalance, setNetBalance] = useState(0);
-  const [filter, setFilter] = useState<FilterType>("ALL");
+  const [activeTab, setActiveTab] = useState<TabType>("ALL");
   const [showAdd, setShowAdd] = useState(false);
   const [quickType, setQuickType] = useState<QuickType>("ADVANCE");
   const [amount, setAmount] = useState("");
@@ -44,12 +48,8 @@ export default function DriverLedgerDetailScreen() {
 
   const load = useCallback(async () => {
     if (!id) return;
-    await Promise.all([
-      fetchDrivers(),
-      fetchDriverLedger(id),
-      fetchDriverSummary(id).then((r) => setNetBalance(r.net_balance)),
-    ]);
-  }, [id, fetchDrivers, fetchDriverLedger, fetchDriverSummary]);
+    await Promise.all([fetchDrivers(), fetchDriverLedger(id)]);
+  }, [id, fetchDrivers, fetchDriverLedger]);
 
   useEffect(() => {
     load();
@@ -62,50 +62,49 @@ export default function DriverLedgerDetailScreen() {
   }, [load]);
 
   const normalized = useMemo(() => {
-    const sorted = [...(entries || [])].sort((a, b) => {
-      const ad = new Date((a as any).createdAt || (a as any).entry_date || 0).getTime();
-      const bd = new Date((b as any).createdAt || (b as any).entry_date || 0).getTime();
-      return ad - bd;
-    });
+    return [...(entries || [])]
+      .map((entry: any) => {
+        const transactionNature = String(entry?.transaction_nature || "").toLowerCase();
+        const remarks = String(entry?.remarks || "").toLowerCase();
+        const title = String(entry?.title || "").toLowerCase();
 
-    let running = 0;
-    return sorted.map((entry) => {
-      const nature = entry.transaction_nature;
-      const title = (entry.title || "").toUpperCase();
-      let type: FilterType = "DRIVER_SPEND";
-      if (nature === "received_by_driver" || title.includes("OWNER_TO_DRIVER")) type = "OWNER_TO_DRIVER";
-      else if (title.includes("VENDOR")) type = "DRIVER_TO_VENDOR";
-      else type = "DRIVER_SPEND";
+        const isToDriver = transactionNature === "received_by_driver" || title.includes("owner_to_driver");
+        const isSettlement = remarks.includes("settlement") || title.includes("settlement");
 
-      const credit = type === "OWNER_TO_DRIVER" ? Number(entry.amount || 0) : 0;
-      const debit = type === "OWNER_TO_DRIVER" ? 0 : Number(entry.amount || 0);
-      running = running + credit - debit;
-
-      return {
-        ...entry,
-        type,
-        credit,
-        debit,
-        runningBalance: running,
-      };
-    });
-  }, [entries]);
+        return {
+          ...entry,
+          entryDate: entry?.entry_date || entry?.createdAt || entry?.date,
+          type: isToDriver ? "TO_DRIVER" : "DRIVER_SPENDS",
+          amount: Number(entry?.amount || 0),
+          isSettlement,
+        };
+      })
+      .sort((a: any, b: any) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+  }, [entries, id]);
 
   const filtered = useMemo(() => {
-    if (filter === "ALL") return normalized;
-    return normalized.filter((e) => e.type === filter);
-  }, [normalized, filter]);
+    if (activeTab === "ALL") return normalized;
+    return normalized.filter((entry: any) => entry.type === activeTab);
+  }, [normalized, activeTab]);
 
   const totals = useMemo(() => {
-    const given = normalized.reduce((a, e) => a + e.credit, 0);
-    const spent = normalized.reduce((a, e) => a + e.debit, 0);
-    return { given, spent, balance: given - spent };
-  }, [normalized]);
+    const advances = normalized
+      .filter((entry: any) => entry.type === "TO_DRIVER")
+      .reduce((sum: number, entry: any) => sum + entry.amount, 0);
+    const expenses = normalized
+      .filter((entry: any) => entry.type === "DRIVER_SPENDS")
+      .reduce((sum: number, entry: any) => sum + entry.amount, 0);
+    const settlements = normalized
+      .filter((entry: any) => entry.isSettlement)
+      .reduce((sum: number, entry: any) => sum + entry.amount, 0);
 
-  const driverTransactions = useMemo(
-    () => filtered.filter((e) => e.type !== "OWNER_TO_DRIVER"),
-    [filtered]
-  );
+    return {
+      advances,
+      expenses,
+      settlements,
+      balance: advances - expenses,
+    };
+  }, [normalized]);
 
   const submitQuickAdd = async () => {
     if (!id) return;
@@ -114,9 +113,7 @@ export default function DriverLedgerDetailScreen() {
       return;
     }
 
-    const transactionNature: TransactionNature =
-      quickType === "ADVANCE" ? "received_by_driver" : "paid_by_driver";
-
+    const transactionNature: TransactionNature = quickType === "ADVANCE" ? "received_by_driver" : "paid_by_driver";
     const remark = `${quickType} | ${purpose || "General"} | ${paymentMode}${notes ? ` | ${notes}` : ""}`;
 
     await addLedgerEntry({
@@ -140,124 +137,217 @@ export default function DriverLedgerDetailScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <View style={{ paddingHorizontal: 20, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingVertical: 16,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.foreground} />
         </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Driver Khata</Text>
-        <TouchableOpacity onPress={() => setShowAdd(true)}>
-          <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 90 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 12 }}>
-          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>{driver?.driver_name || driver?.name || "Driver"}</Text>
-          <Text style={{ color: colors.mutedForeground, marginTop: 2 }}>{driver?.contact_number || driver?.phone || "-"}</Text>
+          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
+            {driver?.driver_name || driver?.name || "Driver"}
+          </Text>
+          <Text style={{ color: colors.mutedForeground, marginTop: 2 }}>
+            {driver?.contact_number || driver?.phone || "-"}
+          </Text>
+          <Text style={{ color: totals.balance >= 0 ? colors.success : colors.destructive, marginTop: 8, fontWeight: "800" }}>
+            {totals.balance >= 0 ? "+" : "-"}Rs {Math.abs(totals.balance).toLocaleString()}
+          </Text>
         </View>
 
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-          <SummaryCard label="Total Given" value={totals.given} tone="green" />
-          <SummaryCard label="Total Spent" value={totals.spent} tone="red" />
-          <SummaryCard label="Balance" value={totals.balance} tone={totals.balance >= 0 ? "green" : "red"} />
-        </View>
-        <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 12 }}>
-          Dynamic Balance (API): ₹{Number(netBalance || 0).toLocaleString()}
-        </Text>
-
-        <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 12 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 10 }}>SECTION B: OWNER → DRIVER</Text>
-          <Text style={{ color: colors.foreground, marginBottom: 8 }}>Quick add owner advance/settlement/adjustment</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {(["ADVANCE", "SETTLEMENT", "ADJUSTMENT"] as QuickType[]).map((q) => (
-              <TouchableOpacity
-                key={q}
-                onPress={() => {
-                  setQuickType(q);
-                  setShowAdd(true);
-                }}
-                style={{ flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.primary }}
-              >
-                <Text style={{ color: "white", textAlign: "center", fontSize: 11, fontWeight: "700" }}>{q}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <SummaryCard label="Advances" value={totals.advances} tone="green" />
+          <SummaryCard label="Expenses" value={totals.expenses} tone="red" />
+          <SummaryCard label="Settlements" value={totals.settlements} tone="green" />
         </View>
 
-        <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 12 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 10 }}>SECTION C: DRIVER TRANSACTIONS</Text>
-          {driverTransactions.slice(-5).reverse().map((entry: any) => (
-            <Row
-              key={entry._id}
-              title={entry.remarks || entry.type}
-              subtitle={`${formatDate((entry as any).createdAt || (entry as any).entry_date)} | ${entry.type}`}
-              amount={entry.debit}
-              isDebit
-              pending={entry.approvalStatus === "PENDING"}
-              onApprove={entry.approvalStatus === "PENDING" ? () => updateEntryStatus(String(entry._id), "APPROVED") : undefined}
-              onReject={entry.approvalStatus === "PENDING" ? () => updateEntryStatus(String(entry._id), "REJECTED") : undefined}
-            />
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+          {([
+            { id: "ALL", label: "All" },
+            { id: "TO_DRIVER", label: "To Driver" },
+            { id: "DRIVER_SPENDS", label: "Driver Spends" },
+          ] as { id: TabType; label: string }[]).map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id)}
+              style={{
+                flex: 1,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: activeTab === tab.id ? colors.primary : colors.border,
+                backgroundColor: activeTab === tab.id ? colors.primary : "transparent",
+                paddingVertical: 9,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: activeTab === tab.id ? "white" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
           ))}
-          {driverTransactions.length === 0 && <Text style={{ color: colors.mutedForeground }}>No driver spends found.</Text>}
         </View>
 
         <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 10 }}>SECTION D: COMPLETE LEDGER</Text>
-
-          <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-            {(["ALL", "OWNER_TO_DRIVER", "DRIVER_SPEND", "DRIVER_TO_VENDOR"] as FilterType[]).map((f) => (
-              <TouchableOpacity
-                key={f}
-                onPress={() => setFilter(f)}
-                style={{
-                  paddingHorizontal: 8,
-                  paddingVertical: 6,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: filter === f ? colors.primary : colors.border,
-                  backgroundColor: filter === f ? colors.primary : "transparent",
-                }}
-              >
-                <Text style={{ color: filter === f ? "white" : colors.foreground, fontSize: 10, fontWeight: "700" }}>{f.replaceAll("_", " ")}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {filtered.map((entry: any) => (
-            <View key={entry._id} style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 10 }}>
-              <Text style={{ color: colors.foreground, fontWeight: "700" }}>{formatDate((entry as any).createdAt || (entry as any).entry_date)} | {entry.type.replaceAll("_", " ")}</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>{entry.remarks || "-"}</Text>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
-                <Text style={{ color: colors.success, fontSize: 12 }}>Credit: ₹{Number(entry.credit || 0).toLocaleString()}</Text>
-                <Text style={{ color: colors.destructive, fontSize: 12 }}>Debit: ₹{Number(entry.debit || 0).toLocaleString()}</Text>
-                <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "700" }}>Bal: ₹{Number(entry.runningBalance || 0).toLocaleString()}</Text>
+          {filtered.map((entry: any) => {
+            const isToDriver = entry.type === "TO_DRIVER";
+            return (
+              <View key={entry._id} style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 10 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <Text style={{ color: colors.foreground, fontWeight: "700" }}>
+                      {isToDriver ? "Advance To Driver" : "Driver Spend"}
+                    </Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                      {entry.remarks || "-"}
+                    </Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+                      {formatDate(entry.entryDate)}
+                    </Text>
+                  </View>
+                  <Text style={{ color: isToDriver ? colors.success : colors.destructive, fontWeight: "800" }}>
+                    {isToDriver ? "+" : "-"}Rs {entry.amount.toLocaleString()}
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
+
+          {filtered.length === 0 && <Text style={{ color: colors.mutedForeground }}>No ledger entries found.</Text>}
         </View>
       </ScrollView>
 
+      <FinanceFAB onPress={() => setShowAdd(true)} />
+
       <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => setShowAdd(false)}>
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }}>
-          <View style={{ backgroundColor: colors.background, padding: 16, borderTopLeftRadius: 18, borderTopRightRadius: 18 }}>
-            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16, marginBottom: 10 }}>Add Entry ({quickType})</Text>
-            <TextInput placeholder="Amount" placeholderTextColor={colors.mutedForeground} keyboardType="numeric" value={amount} onChangeText={setAmount} style={input(colors)} />
-            <TextInput placeholder="Purpose" placeholderTextColor={colors.mutedForeground} value={purpose} onChangeText={setPurpose} style={input(colors)} />
-            <TextInput placeholder="Payment Mode" placeholderTextColor={colors.mutedForeground} value={paymentMode} onChangeText={setPaymentMode} style={input(colors)} />
-            <TextInput placeholder="Notes" placeholderTextColor={colors.mutedForeground} value={notes} onChangeText={setNotes} style={input(colors)} />
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
-              <TouchableOpacity onPress={() => setShowAdd(false)} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: colors.card }}>
-                <Text style={{ color: colors.foreground, textAlign: "center", fontWeight: "700" }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={submitQuickAdd} style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: colors.primary }}>
-                <Text style={{ color: "white", textAlign: "center", fontWeight: "700" }}>{loading ? "Saving..." : "Save"}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }} onPress={() => setShowAdd(false)}>
+          <KeyboardAvoidingView
+            style={{ flex: 1, justifyContent: "flex-end" }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <Pressable onPress={() => {}}>
+              <KeyboardAwareScrollView
+                enableOnAndroid
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
+              >
+                <View
+                  style={{
+                    backgroundColor: colors.background,
+                    borderTopLeftRadius: 28,
+                    borderTopRightRadius: 28,
+                    paddingHorizontal: 20,
+                    paddingTop: 12,
+                    paddingBottom: 18,
+                    borderTopWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 42,
+                      height: 4,
+                      borderRadius: 4,
+                      alignSelf: "center",
+                      marginBottom: 14,
+                      backgroundColor: colors.mutedForeground,
+                      opacity: 0.35,
+                    }}
+                  />
+
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                    <View>
+                      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 20 }}>Add Entry</Text>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>Driver khata transaction</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setShowAdd(false)}
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 17,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: colors.card,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                      }}
+                    >
+                      <Ionicons name="close" size={18} color={colors.foreground} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "800", marginBottom: 8 }}>ENTRY TYPE</Text>
+                  <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+                    {([
+                      { id: "ADVANCE", label: "Advance" },
+                      { id: "SETTLEMENT", label: "Settlement" },
+                      { id: "EXPENSE", label: "Expense" },
+                    ] as { id: QuickType; label: string }[]).map((type) => (
+                      <TouchableOpacity
+                        key={type.id}
+                        onPress={() => setQuickType(type.id)}
+                        style={{
+                          flex: 1,
+                          height: 40,
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: quickType === type.id ? colors.primary : colors.border,
+                          backgroundColor: quickType === type.id ? colors.primary : colors.card,
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text style={{ color: quickType === type.id ? "white" : colors.foreground, fontSize: 12, fontWeight: "700" }}>
+                          {type.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Field label="Amount">
+                    <TextInput placeholder="Enter amount" placeholderTextColor={colors.mutedForeground} keyboardType="numeric" value={amount} onChangeText={setAmount} style={input(colors)} />
+                  </Field>
+                  <Field label="Purpose">
+                    <TextInput placeholder="Trip diesel, advance, settlement..." placeholderTextColor={colors.mutedForeground} value={purpose} onChangeText={setPurpose} style={input(colors)} />
+                  </Field>
+                  <Field label="Payment Mode">
+                    <TextInput placeholder="CASH / UPI / BANK" placeholderTextColor={colors.mutedForeground} value={paymentMode} onChangeText={setPaymentMode} style={input(colors)} />
+                  </Field>
+                  <Field label="Notes">
+                    <TextInput placeholder="Optional notes" placeholderTextColor={colors.mutedForeground} value={notes} onChangeText={setNotes} style={[input(colors), { minHeight: 82, textAlignVertical: "top" }]} multiline />
+                  </Field>
+
+                  <TouchableOpacity
+                    onPress={submitQuickAdd}
+                    style={{ height: 46, borderRadius: 12, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", marginTop: 2 }}
+                  >
+                    <Text style={{ color: "white", textAlign: "center", fontWeight: "800", fontSize: 15 }}>{loading ? "Saving..." : "Save Entry"}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setShowAdd(false)}
+                    style={{ height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+                  >
+                    <Text style={{ color: colors.foreground, textAlign: "center", fontWeight: "700" }}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </KeyboardAwareScrollView>
+            </Pressable>
+          </KeyboardAvoidingView>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
@@ -267,11 +357,22 @@ function input(colors: any) {
   return {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: 12,
     color: colors.foreground,
-    padding: 10,
-    marginBottom: 8,
+    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   } as const;
+}
+
+function Field({ label, children }: { label: string; children: any }) {
+  const { colors } = useThemeStore();
+  return (
+    <View style={{ marginBottom: 10 }}>
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "800", marginBottom: 6 }}>{label.toUpperCase()}</Text>
+      {children}
+    </View>
+  );
 }
 
 function SummaryCard({ label, value, tone }: { label: string; value: number; tone: "green" | "red" }) {
@@ -280,50 +381,7 @@ function SummaryCard({ label, value, tone }: { label: string; value: number; ton
   return (
     <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 10 }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>{label}</Text>
-      <Text style={{ color, fontWeight: "800", fontSize: 13 }}>₹{Number(value || 0).toLocaleString()}</Text>
-    </View>
-  );
-}
-
-function Row({
-  title,
-  subtitle,
-  amount,
-  isDebit,
-  pending,
-  onApprove,
-  onReject,
-}: {
-  title: string;
-  subtitle: string;
-  amount: number;
-  isDebit?: boolean;
-  pending?: boolean;
-  onApprove?: () => void;
-  onReject?: () => void;
-}) {
-  const { colors } = useThemeStore();
-  return (
-    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 10 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={{ color: colors.foreground, fontWeight: "700" }}>{title}</Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{subtitle}</Text>
-        </View>
-        <Text style={{ color: isDebit ? colors.destructive : colors.success, fontWeight: "800" }}>
-          {isDebit ? "-" : "+"}₹{Number(amount || 0).toLocaleString()}
-        </Text>
-      </View>
-      {pending && (
-        <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
-          <TouchableOpacity onPress={onReject} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: "#fee2e2" }}>
-            <Text style={{ color: "#b91c1c", fontWeight: "700", fontSize: 11 }}>Reject</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onApprove} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: "#dcfce7" }}>
-            <Text style={{ color: "#166534", fontWeight: "700", fontSize: 11 }}>Approve</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <Text style={{ color, fontWeight: "800", fontSize: 13 }}>Rs {Number(value || 0).toLocaleString()}</Text>
     </View>
   );
 }

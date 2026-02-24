@@ -10,14 +10,16 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import API from "../api/axiosInstance";
 import useClients from "../../hooks/useClient";
+import { useClientLedger } from "../../hooks/useClientLedger";
 import { useThemeStore } from "../../hooks/useThemeStore";
 
-type ClientSummary = {
-  total_debits: number;
-  total_credits: number;
-  outstanding: number;
+type ClientRow = {
+  clientId: string;
+  clientName: string;
+  billed: number;
+  settled: number;
+  unbilled: number;
 };
 
 export default function ClientLedgerScreen() {
@@ -25,8 +27,11 @@ export default function ClientLedgerScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { clients, fetchClients } = useClients();
+  const { fetchSummary, addPayment, loading } = useClientLedger();
+
   const [refreshing, setRefreshing] = useState(false);
-  const [summaryByClient, setSummaryByClient] = useState<Record<string, ClientSummary>>({});
+  const [rows, setRows] = useState<ClientRow[]>([]);
+  const [activeFilter, setActiveFilter] = useState<"ALL" | "UNBILLED" | "BILLED" | "SETTLED">("ALL");
 
   const load = useCallback(async () => {
     await fetchClients();
@@ -38,33 +43,43 @@ export default function ClientLedgerScreen() {
 
   useEffect(() => {
     const run = async () => {
-      const next: Record<string, ClientSummary> = {};
+      const next: ClientRow[] = [];
+
       await Promise.all(
-        (clients || []).map(async (client) => {
+        (clients || []).map(async (client: any) => {
           try {
-            const res = await API.get(`/api/ledger/client/${client._id}/summary`);
-            next[client._id] = {
-              total_debits: Number(res.data?.total_debits || 0),
-              total_credits: Number(res.data?.total_credits || 0),
-              outstanding: Number(res.data?.outstanding || 0),
-            };
+            const summary = await fetchSummary(client._id);
+            const billed = Number(summary?.total_debits || 0);
+            const settled = Number(summary?.total_credits || 0);
+            const unbilled = Math.max(0, billed - settled);
+            next.push({
+              clientId: String(client._id),
+              clientName: client.client_name,
+              billed,
+              settled,
+              unbilled,
+            });
           } catch {
-            next[client._id] = { total_debits: 0, total_credits: 0, outstanding: 0 };
+            next.push({
+              clientId: String(client._id),
+              clientName: client.client_name,
+              billed: 0,
+              settled: 0,
+              unbilled: 0,
+            });
           }
         })
       );
-      setSummaryByClient(next);
-    };
-    if (clients?.length) run();
-  }, [clients]);
 
-  const totals = useMemo(() => {
-    const rows = Object.values(summaryByClient);
-    const billed = rows.reduce((a, b) => a + b.total_debits, 0);
-    const received = rows.reduce((a, b) => a + b.total_credits, 0);
-    const outstanding = rows.reduce((a, b) => a + b.outstanding, 0);
-    return { billed, received, outstanding };
-  }, [summaryByClient]);
+      setRows(next.sort((a, b) => b.unbilled - a.unbilled));
+    };
+
+    if (clients?.length) {
+      run();
+    } else {
+      setRows([]);
+    }
+  }, [clients, fetchSummary]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -72,57 +87,168 @@ export default function ClientLedgerScreen() {
     setRefreshing(false);
   }, [load]);
 
+  const filteredRows = rows.filter((row) => {
+    if (activeFilter === "ALL") return true;
+    if (activeFilter === "UNBILLED") return row.unbilled > 0;
+    if (activeFilter === "BILLED") return row.billed > 0;
+    if (activeFilter === "SETTLED") return row.billed > 0 && row.unbilled === 0;
+    return true;
+  });
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <View style={{ paddingHorizontal: 20, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingVertical: 16,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.foreground} />
         </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Client Ledger</Text>
+        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Client Khata</Text>
         <View style={{ width: 24 }} />
       </View>
 
+      {/* Filter pills */}
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8 }}
+      >
+        {(["ALL", "UNBILLED", "BILLED", "SETTLED"] as const).map((f) => (
+          <TouchableOpacity
+            key={f}
+            onPress={() => setActiveFilter(f)}
+            style={{
+              paddingHorizontal: 16,
+              height: 40,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: activeFilter === f ? colors.primary : colors.border,
+              backgroundColor: activeFilter === f ? colors.primary : "transparent",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: activeFilter === f ? "white" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+              {f.charAt(0) + f.slice(1).toLowerCase()}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
-          <SummaryCard label="Billed" value={`₹${totals.billed.toLocaleString()}`} />
-          <SummaryCard label="Received" value={`₹${totals.received.toLocaleString()}`} />
-          <SummaryCard label="Outstanding" value={`₹${totals.outstanding.toLocaleString()}`} color={colors.destructive} />
-        </View>
+        {filteredRows.length === 0 && (
+          <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 40 }}>No clients found.</Text>
+        )}
 
-        {(clients || []).map((client) => {
-          const row = summaryByClient[client._id] || { total_debits: 0, total_credits: 0, outstanding: 0 };
+        {filteredRows.map((row) => {
+          const hasOutstanding = row.unbilled > 0;
+          const isSettled = row.billed > 0 && row.unbilled === 0;
+
           return (
             <TouchableOpacity
-              key={client._id}
-              onPress={() => router.push({ pathname: "/(stack)/client-ledger-detail", params: { clientId: client._id } })}
-              style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 10 }}
+              key={row.clientId}
+              activeOpacity={0.85}
+              onPress={() =>
+                router.push({
+                  pathname: "/(stack)/client-ledger-detail",
+                  params: { clientId: row.clientId },
+                } as any)
+              }
+              style={{
+                backgroundColor: colors.card,
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
             >
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <Text style={{ color: colors.foreground, fontWeight: "700", flex: 1, marginRight: 8 }}>{client.client_name}</Text>
-                <Text style={{ color: colors.destructive, fontWeight: "800" }}>₹{row.outstanding.toLocaleString()}</Text>
+              {/* Top row: name + outstanding badge */}
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3 }}>
+                    {row.clientName}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 20,
+                    backgroundColor: hasOutstanding ? "#fee2e2" : "#dcfce7",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "800",
+                      color: hasOutstanding ? "#dc2626" : "#16a34a",
+                    }}
+                  >
+                    {hasOutstanding ? `-Rs ${row.unbilled.toLocaleString()} due` : "Settled"}
+                  </Text>
+                </View>
               </View>
-              <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{client.contact_person_name || "-"}</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
-                Billed: ₹{row.total_debits.toLocaleString()} | Received: ₹{row.total_credits.toLocaleString()}
-              </Text>
+
+              {/* Stats row */}
+              <View style={{ flexDirection: "row", gap: 16, marginBottom: 10 }}>
+                <View>
+                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>BILLED</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
+                    Rs {row.billed.toLocaleString()}
+                  </Text>
+                </View>
+                <View style={{ width: 1, backgroundColor: colors.border }} />
+                <View>
+                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>RECEIVED</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}>
+                    Rs {row.settled.toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Bottom row: status + CTA */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 6,
+                    backgroundColor: isSettled ? "#dcfce7" : hasOutstanding ? "#fff7ed" : colors.border + "40",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "700",
+                      color: isSettled ? "#16a34a" : hasOutstanding ? "#9a3412" : colors.mutedForeground,
+                    }}
+                  >
+                    {isSettled ? "✓ SETTLED" : hasOutstanding ? "PENDING" : "NO ACTIVITY"}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>View Khata</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
+                </View>
+              </View>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function SummaryCard({ label, value, color }: { label: string; value: string; color?: string }) {
-  const { colors } = useThemeStore();
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 12 }}>
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 4 }}>{label}</Text>
-      <Text style={{ color: color || colors.foreground, fontWeight: "800" }}>{value}</Text>
-    </View>
   );
 }

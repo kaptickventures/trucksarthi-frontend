@@ -27,3 +27,19 @@ export function formatDate(date: Date | string | number | null | undefined): str
 
   return `${day}/${month}/${year}`;
 }
+
+export function formatSignedAmount(
+  amount: number,
+  direction: "INCOME" | "EXPENSE" | "CREDIT" | "DEBIT"
+): string {
+  const sign = direction === "INCOME" || direction === "CREDIT" ? "+" : "-";
+  return `${sign}Rs ${Math.abs(Number(amount || 0)).toLocaleString()}`;
+}
+
+export function formatLabel(label: string | null | undefined): string {
+  if (!label) return "";
+  return label
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}

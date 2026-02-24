@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect, useLayoutEffect } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View, StatusBar } from "react-native";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useFinance from "../../hooks/useFinance";
+import FinanceFAB from "../../components/finance/FinanceFAB";
 
 export default function FinanceScreen() {
   const router = useRouter();
@@ -41,13 +42,14 @@ export default function FinanceScreen() {
 
   const sections = [
     { title: "Transactions", description: "All entries", icon: "list-outline", color: "#3b82f6", route: "/(stack)/transactions" },
-    { title: "Driver Ledger", description: "Driver khata", icon: "people-outline", color: "#f59e0b", route: "/(stack)/driver-ledger" },
-    { title: "Client Ledger", description: "Client khata", icon: "business-outline", color: "#10b981", route: "/(stack)/client-ledger" },
-    { title: "Client Payments", description: "Receipts", icon: "card-outline", color: "#0ea5e9", route: "/(stack)/client-payments" },
-    { title: "Running Expenses", description: "Fuel, Fastag, Loading, Unloading, Challan", icon: "speedometer-outline", color: "#ef4444", route: "/(stack)/running-expenses" },
-    { title: "Maintenance Khata", description: "Document, Service, Repair", icon: "construct-outline", color: "#0f766e", route: "/(stack)/maintenance-khata" },
+    { title: "Driver Khata", description: "Driver khata", icon: "people-outline", color: "#f59e0b", route: "/(stack)/driver-ledger" },
+    { title: "Client Khata", description: "Client khata", icon: "business-outline", color: "#10b981", route: "/(stack)/client-ledger" },
+    { title: "Running Expenses", description: "Fuel, Fastag Recharge, Challan", icon: "speedometer-outline", color: "#ef4444", route: "/(stack)/running-expenses" },
+    { title: "Maintenance Khata", description: "Document Expenses, Service & Repair", icon: "construct-outline", color: "#0f766e", route: "/(stack)/maintenance-khata" },
     { title: "Misc Transactions", description: "Other entries", icon: "apps-outline", color: "#f97316", route: "/(stack)/misc-transactions" },
   ];
+
+  const balance = Number(metrics.income || 0) - Number(metrics.expense || 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -68,7 +70,7 @@ export default function FinanceScreen() {
               </View>
               <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "600" }}>Income</Text>
             </View>
-            <Text style={{ fontSize: 20, fontWeight: "bold", color: colors.foreground }}>₹{metrics.income.toLocaleString()}</Text>
+            <Text style={{ fontSize: 20, fontWeight: "bold", color: colors.foreground }}>+Rs {metrics.income.toLocaleString()}</Text>
           </View>
           <View style={{ flex: 1, backgroundColor: colors.card, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -77,14 +79,14 @@ export default function FinanceScreen() {
               </View>
               <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "600" }}>Expense</Text>
             </View>
-            <Text style={{ fontSize: 20, fontWeight: "bold", color: colors.foreground }}>₹{metrics.expense.toLocaleString()}</Text>
+            <Text style={{ fontSize: 20, fontWeight: "bold", color: colors.foreground }}>-Rs {metrics.expense.toLocaleString()}</Text>
           </View>
         </View>
 
         <View style={{ backgroundColor: colors.primary, padding: 20, borderRadius: 20, marginBottom: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <View>
-            <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, fontWeight: "600", marginBottom: 4 }}>Net</Text>
-            <Text style={{ color: "white", fontSize: 28, fontWeight: "bold" }}>₹{metrics.net.toLocaleString()}</Text>
+            <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, fontWeight: "600", marginBottom: 4 }}>Balance</Text>
+            <Text style={{ color: "white", fontSize: 28, fontWeight: "bold" }}>{balance >= 0 ? "+" : "-"}Rs {Math.abs(balance).toLocaleString()}</Text>
           </View>
           <View style={{ backgroundColor: "rgba(255,255,255,0.2)", padding: 10, borderRadius: 12 }}>
             <PieChart size={32} color="white" />
@@ -114,7 +116,7 @@ export default function FinanceScreen() {
           ))}
         </View>
       </ScrollView>
+      <FinanceFAB onPress={() => router.push("/(stack)/misc-transactions" as any)} />
     </View>
   );
 }
-

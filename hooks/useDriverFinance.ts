@@ -18,10 +18,17 @@ export default function useDriverFinance() {
   const fetchDriverLedger = useCallback(async (driverId: string) => {
     try {
       setLoading(true);
-      const res = await API.get(
-        `/api/driver-ledger/driver/${driverId}`
-      );
-      setEntries(res.data);
+      let data: any = [];
+      try {
+        const res = await API.get(`/api/driver-ledger/driver/${driverId}`);
+        data = res.data;
+      } catch {
+        const res = await API.get(`/api/driver-ledger?driver_id=${driverId}`);
+        data = res.data;
+      }
+
+      const rows = Array.isArray(data) ? data : data?.entries || data?.data || [];
+      setEntries(rows);
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to load driver ledger");
