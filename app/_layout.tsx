@@ -2,7 +2,7 @@
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
-import { StatusBar } from "react-native";
+import { StatusBar, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import 'react-native-reanimated'; // MUST be at top
 import "../global.css";
@@ -10,9 +10,9 @@ import { ThemeStoreProvider, useThemeStore } from "../hooks/useThemeStore";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { NAV_THEME } from "../theme";
 
-import { View } from "react-native";
-
 import { AuthProvider } from "../context/AuthContext";
+
+import { LanguageProvider } from "../context/LanguageContext";
 
 function MainLayout() {
   const { theme } = useThemeStore();
@@ -20,7 +20,7 @@ function MainLayout() {
 
   return (
     <ThemeProvider value={NAV_THEME[theme]}>
-      <View style={{ flex: 1 }} className={theme === "dark" ? "dark" : ""}>
+      <View style={{ flex: 1 }}>
         <StatusBar
           barStyle={theme === "dark" ? "light-content" : "dark-content"}
         />
@@ -34,11 +34,13 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <ThemeStoreProvider>
-          <BottomSheetModalProvider>
-            <MainLayout />
-          </BottomSheetModalProvider>
-        </ThemeStoreProvider>
+        <LanguageProvider>
+          <ThemeStoreProvider>
+            <BottomSheetModalProvider>
+              <MainLayout />
+            </BottomSheetModalProvider>
+          </ThemeStoreProvider>
+        </LanguageProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );

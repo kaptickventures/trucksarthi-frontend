@@ -30,7 +30,7 @@ export function useClientLedger() {
   }, []);
 
   // 📊 Fetch derived summary (SOURCE OF TRUTH)
-  const fetchSummary = async (client_id: string) => {
+  const fetchSummary = useCallback(async (client_id: string) => {
     try {
       const res = await API.get(
         `/api/ledger/client/${client_id}/summary`
@@ -45,10 +45,10 @@ export function useClientLedger() {
       Alert.alert("Error", "Failed to load summary");
       throw error;
     }
-  };
+  }, []);
 
   // 💳 Add payment (CREDIT ONLY)
-  const addPayment = async (data: {
+  const addPayment = useCallback(async (data: {
     client_id: string;
     invoice_id?: string;
     amount: number;
@@ -77,7 +77,7 @@ export function useClientLedger() {
       );
       throw error;
     }
-  };
+  }, [fetchLedger]);
 
   const fetchPaymentLedger = useCallback(async (filters: {
     clientId?: string;
@@ -112,7 +112,7 @@ export function useClientLedger() {
   }, []);
 
   // ✏️ Update ledger entry
-  const updateEntry = async (
+  const updateEntry = useCallback(async (
     entry_id: string,
     data: { amount?: number; remarks?: string; date?: string, client_id: string }
   ) => {
@@ -127,7 +127,7 @@ export function useClientLedger() {
       );
       throw error;
     }
-  };
+  }, [fetchLedger]);
 
   return {
     entries,

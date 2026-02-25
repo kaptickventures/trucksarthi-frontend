@@ -5,17 +5,17 @@ import {
   Platform,
   StatusBar,
   TouchableOpacity,
-  useColorScheme,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
 
-import { THEME } from "../../theme";
 import { useAuth } from "../../context/AuthContext";
 import { getUserRole } from "../../hooks/useAuth";
+import { useThemeStore } from "../../hooks/useThemeStore";
 
 export default function StackLayout() {
-  const isDark = useColorScheme() === "dark";
+  const { theme, colors } = useThemeStore();
+  const isDark = theme === "dark";
   const router = useRouter();
   const { user, loading } = useAuth();
 
@@ -40,14 +40,8 @@ export default function StackLayout() {
     return null;
   }
 
-  // Use proper theme colors
-  const backgroundColor = isDark
-    ? THEME.dark.background
-    : THEME.light.background;
-
-  const foregroundColor = isDark
-    ? THEME.dark.foreground
-    : THEME.light.foreground;
+  const backgroundColor = colors.background;
+  const foregroundColor = colors.foreground;
 
   return (
     <BottomSheetModalProvider>
@@ -130,10 +124,8 @@ export default function StackLayout() {
           <Stack.Screen name="expense-manager" options={{ title: "Expense Manager", headerShown: false }} />
           <Stack.Screen name="running-expenses" options={{ title: "Running Expenses", headerShown: false }} />
           <Stack.Screen name="running-expenses-dashboard" options={{ title: "Truck Running", headerShown: false }} />
-          <Stack.Screen name="running-expenses-add" options={{ title: "Add Running Expense", headerShown: false }} />
           <Stack.Screen name="maintenance-khata" options={{ title: "Maintenance Khata", headerShown: false }} />
           <Stack.Screen name="maintenance-dashboard" options={{ title: "Truck Maintenance", headerShown: false }} />
-          <Stack.Screen name="maintenance-add" options={{ title: "Add Maintenance", headerShown: false }} />
           <Stack.Screen name="driver-ledger" options={{ title: "Driver Khata", headerShown: false }} />
           <Stack.Screen name="driver-ledger-detail" options={{ title: "Driver Khata", headerShown: false }} />
           <Stack.Screen name="client-ledger" options={{ title: "Client Khata", headerShown: false }} />

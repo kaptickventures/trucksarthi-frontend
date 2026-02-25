@@ -21,7 +21,6 @@ import { Skeleton } from "../../components/Skeleton";
 import useClients from "../../hooks/useClient";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
-import { THEME } from "../../theme";
 
 export default function ClientsManager() {
   const router = useRouter();
@@ -60,7 +59,6 @@ export default function ClientsManager() {
     "contact_number",
     "contact_person_name",
   ];
-  const OPTIONAL_FIELDS: string[] = [];
 
   const [formData, setFormData] = useState({
     client_name: "",
@@ -79,24 +77,6 @@ export default function ClientsManager() {
       fetchClients();
     }, [fetchClients])
   );
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (_, state) => state.y0 < SCROLL_THRESHOLD,
-      onPanResponderMove: (_, state) => {
-        if (state.dy > 0) translateY.setValue(state.dy);
-      },
-      onPanResponderRelease: (_, state) => {
-        if (state.dy > 120) closeModal();
-        else
-          Animated.timing(translateY, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }).start();
-      },
-    })
-  ).current;
 
   const openModal = (editing = false, data?: any) => {
     if (editing && data) {
@@ -205,18 +185,18 @@ export default function ClientsManager() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
-        className="flex-1 px-5 pt-2 bg-background"
+        className="flex-1 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#FFF" : "#000"} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
         {clients.length === 0 ? (
-          <Text className="text-center text-muted-foreground mt-10">
+          <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
             No clients found.
           </Text>
         ) : (
@@ -230,24 +210,25 @@ export default function ClientsManager() {
                   params: { clientId: client._id }
                 })
               }
-              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
+              className="border rounded-2xl p-4 mb-3 shadow-sm"
+              style={{ backgroundColor: colors.card, borderColor: colors.border }}
             >
               <View className="flex-row justify-between items-start mb-2">
                 <View className="flex-1 mr-3">
-                  <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="font-bold text-lg tracking-tight">
+                  <Text style={{ color: colors.foreground }} className="font-bold text-lg tracking-tight">
                     {client.client_name}
                   </Text>
-                  <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-light">
+                  <Text style={{ color: colors.foreground, opacity: 0.7 }} className="text-sm font-light">
                     {client.contact_person_name || "N/A"}
                   </Text>
-
                 </View>
                 <View className="flex-row gap-2">
                   <TouchableOpacity
                     onPress={(e) => { e.stopPropagation(); openModal(true, client); }}
-                    className="w-10 h-10 bg-muted rounded-full items-center justify-center border border-border/20"
+                    className="w-10 h-10 rounded-full items-center justify-center border"
+                    style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
                   >
-                    <Edit3 size={16} color={isDark ? THEME.dark.foreground : THEME.light.foreground} />
+                    <Edit3 size={16} color={colors.foreground} />
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -267,8 +248,8 @@ export default function ClientsManager() {
               </View>
 
               <View className="gap-y-1">
-                <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-medium">📞 {client.contact_number}</Text>
-                <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }} className="text-sm font-medium" numberOfLines={1}>📍 {client.office_address || "Address N/A"}</Text>
+                <Text style={{ color: colors.foreground }} className="text-sm font-medium">📞 {client.contact_number}</Text>
+                <Text style={{ color: colors.foreground }} className="text-sm font-medium" numberOfLines={1}>📍 {client.office_address || "Address N/A"}</Text>
               </View>
             </TouchableOpacity>
           ))
@@ -300,7 +281,6 @@ export default function ClientsManager() {
         <Plus color="#FFFFFF" size={28} strokeWidth={3} />
       </TouchableOpacity>
 
-      {/* Full Screen Modal */}
       <ClientFormModal
         visible={modalVisible}
         editing={!!editingId}
@@ -309,7 +289,6 @@ export default function ClientsManager() {
         onSubmit={handleSubmit}
         onClose={() => setModalVisible(false)}
       />
-
     </SafeAreaView>
   );
 }

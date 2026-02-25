@@ -146,7 +146,7 @@ export default function ClientFormModal({
             className="flex-1"
           >
             {/* Grab Handle */}
-            <View className="w-12 h-1.5 bg-muted rounded-full self-center mb-6 opacity-40" />
+            <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-6 opacity-40" />
 
             {/* Header */}
             <View className="flex-row justify-between items-center mb-8">
@@ -158,7 +158,11 @@ export default function ClientFormModal({
                   Customer Information
                 </Text>
               </View>
-              <TouchableOpacity onPress={closeModal} className="w-10 h-10 bg-muted rounded-full items-center justify-center">
+              <TouchableOpacity
+                onPress={closeModal}
+                className="w-10 h-10 rounded-full items-center justify-center"
+                style={{ backgroundColor: colors.muted }}
+              >
                 <X size={22} color={colors.foreground} />
               </TouchableOpacity>
             </View>

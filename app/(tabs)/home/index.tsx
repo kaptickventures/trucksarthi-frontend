@@ -21,12 +21,16 @@ import useClients from "../../../hooks/useClient";
 import useTrucks from "../../../hooks/useTruck";
 import useLocations from "../../../hooks/useLocation";
 import { formatDate } from "../../../lib/utils";
+import { useTranslation } from "../../../context/LanguageContext";
+
 
 export default function HomeScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
   const { colors } = useThemeStore();
+  const { t } = useTranslation();
+
 
   const [refreshing, setRefreshing] = useState(false);
   const { user, loading: userLoading, refreshUser } = useUser();
@@ -246,13 +250,13 @@ export default function HomeScreen() {
         {/* ====== Stats Section ====== */}
         <View className="flex-row justify-between mb-4">
           <View style={{ backgroundColor: colors.card }} className="flex-1 rounded-2xl p-4 mr-2">
-            <Text className="text-muted-foreground text-xs">Monthly Revenue</Text>
+            <Text className="text-muted-foreground text-xs">{t('monthlyRevenue')}</Text>
             <Text style={{ color: colors.foreground }} className="text-xl font-bold mt-1">
               ₹{totalRevenue.toLocaleString()}
             </Text>
           </View>
           <View style={{ backgroundColor: colors.card }} className="flex-1 rounded-2xl p-4 ml-2">
-            <Text className="text-muted-foreground text-xs">Number of Trips</Text>
+            <Text className="text-muted-foreground text-xs">{t('numberOfTrips')}</Text>
             <Text style={{ color: colors.foreground }} className="text-xl font-bold mt-1">
               {totalTrips}
             </Text>
@@ -266,16 +270,16 @@ export default function HomeScreen() {
           className="rounded-full p-4 flex-row justify-center items-center mb-3"
         >
           <Ionicons name="bus-outline" size={20} color="white" />
-          <Text style={{ color: colors.primaryForeground }} className="font-semibold text-base ml-2">Add Trip</Text>
+          <Text style={{ color: colors.primaryForeground }} className="font-semibold text-base ml-2">{t('addTrip')}</Text>
         </TouchableOpacity>
 
         {/* ====== Quick Actions ====== */}
         <View className="flex-row gap-2 justify-between mt-2 mb-6">
           {[
-            { title: "Trucks", icon: "bus-outline", route: "/trucks-manager" },
-            { title: "Drivers", icon: "person-add-outline", route: "/drivers-manager" },
-            { title: "Clients", icon: "people-outline", route: "/clients-manager" },
-            { title: "Locations", icon: "location-outline", route: "/locations-manager" },
+            { title: t('trucks'), icon: "bus-outline", route: "/trucks-manager" },
+            { title: t('drivers'), icon: "person-add-outline", route: "/drivers-manager" },
+            { title: t('clients'), icon: "people-outline", route: "/clients-manager" },
+            { title: t('locations'), icon: "location-outline", route: "/locations-manager" },
           ].map((item, idx) => (
             <TouchableOpacity
               key={idx}
@@ -294,9 +298,9 @@ export default function HomeScreen() {
         {/* ====== Reminders Card ====== */}
         <View style={{ backgroundColor: colors.card }} className="rounded-2xl p-4 mb-6">
           <View className="flex-row justify-between items-center mb-3">
-            <Text style={{ color: colors.foreground }} className="font-semibold text-lg">Reminders</Text>
+            <Text style={{ color: colors.foreground }} className="font-semibold text-lg">{t('reminders')}</Text>
             <TouchableOpacity onPress={() => router.push("/(stack)/notifications" as any)}>
-              <Text className="text-muted-foreground text-sm">View All →</Text>
+              <Text className="text-muted-foreground text-sm">{t('viewAll')} →</Text>
             </TouchableOpacity>
           </View>
 
@@ -331,7 +335,7 @@ export default function HomeScreen() {
             })
           ) : (
             <Text className="text-muted-foreground text-center py-4">
-              All documents are up to date!
+              {t('allDocsUpToDate')}
             </Text>
           )}
         </View>
@@ -339,9 +343,9 @@ export default function HomeScreen() {
         {/* ====== Recent Trips ====== */}
         <View style={{ backgroundColor: colors.card }} className="rounded-2xl p-4 mb-6">
           <View className="flex-row justify-between items-center mb-3">
-            <Text style={{ color: colors.foreground }} className="font-semibold text-lg">Recent Trips</Text>
+            <Text style={{ color: colors.foreground }} className="font-semibold text-lg">{t('recentTrips')}</Text>
             <TouchableOpacity onPress={() => router.push("/tripLog")}>
-              <Text className="text-muted-foreground text-sm">View All →</Text>
+              <Text className="text-muted-foreground text-sm">{t('viewAll')} →</Text>
             </TouchableOpacity>
           </View>
 
@@ -384,7 +388,7 @@ export default function HomeScreen() {
             })
           ) : (
             <Text className="text-muted-foreground text-center py-4">
-              No trips found.
+              {t('noTripsFound')}
             </Text>
           )}
         </View>

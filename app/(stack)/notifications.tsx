@@ -1,30 +1,69 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
-import React, { useLayoutEffect, useState, useEffect } from "react";
+import React, { useLayoutEffect, useState, useEffect, useMemo } from "react";
 import {
   ScrollView,
   Text,
-  useColorScheme,
   View,
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  StatusBar,
 } from "react-native";
 import "../../global.css";
-import { THEME } from "../../theme";
+import { useThemeStore } from "../../hooks/useThemeStore";
 import API from "../api/axiosInstance";
+import useTruckDocuments from "../../hooks/useTruckDocuments";
+import useTrucks from "../../hooks/useTruck";
+import { formatDate } from "../../lib/utils";
 
 export default function NotificationsScreen() {
   const navigation = useNavigation();
-  const isDark = useColorScheme() === "dark";
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const backgroundColor = colors.background;
+  const foregroundColor = colors.foreground;
+  const emptyIconColor = colors.mutedForeground;
 
-  // Theme colors
-  const backgroundColor = isDark ? THEME.dark.background : THEME.light.background;
-  const foregroundColor = isDark ? THEME.dark.foreground : THEME.light.foreground;
-  const emptyIconColor = isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground;
+  const { documents, loading: docsLoading, fetchDocuments } = useTruckDocuments();
+  const { trucks, fetchTrucks } = useTrucks();
+
+  const allNotifications = useMemo(() => {
+    // Filter expiring documents (next 30 days) - same logic as HomeScreen
+    const reminders = documents.filter(doc => {
+      if (!doc.expiry_date || doc.status === 'expired') return false;
+      const expiry = new Date(doc.expiry_date);
+      const today = new Date();
+      const diffTime = expiry.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays <= 30;
+    }).map(doc => {
+      const truckId = typeof doc.truck === "object" ? doc.truck?._id : doc.truck;
+      const truck = trucks.find(t => String(t._id) === String(truckId));
+      const truckName = truck?.registration_number || (typeof doc.truck === "object" ? doc.truck?.registration_number : 'N/A');
+
+      return {
+        _id: `reminder-${doc._id}`,
+        title: `${doc.document_type} Expiring`,
+        message: `Your ${doc.document_type} for truck ${truckName} is expiring on ${formatDate(doc.expiry_date)}.`,
+        type: "DOC_EXPIRY",
+        status: "REMINDER",
+        scheduled_at: new Date().toISOString(), // Sort at top/recent
+        is_reminder: true
+      };
+    });
+
+    // Combine and sort by scheduled_at desc
+    const combined = [...reminders, ...notifications];
+    return combined.sort((a, b) => {
+      const dateA = new Date(a.scheduled_at || 0).getTime();
+      const dateB = new Date(b.scheduled_at || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [documents, notifications, trucks]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -52,9 +91,14 @@ export default function NotificationsScreen() {
     fetchNotifications();
   }, []);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    fetchNotifications();
+    await Promise.all([
+      fetchNotifications(),
+      fetchDocuments(),
+      fetchTrucks()
+    ]);
+    setRefreshing(false);
   };
 
   const handleNotificationPress = (n: any) => {
@@ -89,48 +133,53 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1" style={{ backgroundColor: colors.background }}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
         className="flex-1 p-4"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={foregroundColor} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
         {loading ? (
           <View className="flex-1 items-center justify-center mt-32">
-            <ActivityIndicator size="large" color={foregroundColor} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
-        ) : notifications.length === 0 ? (
+        ) : allNotifications.length === 0 ? (
           <View className="flex-1 items-center justify-center mt-32">
             <Ionicons
               name="notifications-off-outline"
               size={60}
               color={emptyIconColor}
             />
-            <Text className="text-muted-foreground text-lg font-medium mt-4">
+            <Text className="text-lg font-medium mt-4" style={{ color: colors.mutedForeground }}>
               No notifications found
             </Text>
           </View>
         ) : (
-          notifications.map((n) => (
+          allNotifications.map((n) => (
             <TouchableOpacity
               key={n._id}
-              className="bg-card rounded-2xl p-4 mb-3 flex-row items-start border border-border/10"
+              className={`rounded-2xl p-4 mb-3 flex-row items-start border`}
+              style={{
+                backgroundColor: colors.card,
+                borderColor: n.is_reminder ? colors.primary + '4D' : colors.border + '1A'
+              }}
               onPress={() => handleNotificationPress(n)}
             >
               {/* Left icon */}
-              <View className="mr-3 mt-1 p-2 bg-primary/10 rounded-xl">
+              <View className="mr-3 mt-1 p-2 rounded-xl" style={{ backgroundColor: colors.primary + '1A' }}>
                 <Ionicons
                   name={getStatusIcon(n.type)}
                   size={24}
-                  color={isDark ? THEME.dark.primary : THEME.light.primary}
+                  color={colors.primary}
                 />
               </View>
 
               {/* Content */}
               <View className="flex-1">
                 <View className="flex-row justify-between items-center mb-1">
-                  <Text className="text-card-foreground font-bold text-base">
+                  <Text className="font-bold text-base" style={{ color: colors.foreground }}>
                     {n.title}
                   </Text>
                   {n.status === "SCHEDULED" && (
@@ -140,13 +189,13 @@ export default function NotificationsScreen() {
                   )}
                 </View>
 
-                <Text className="text-muted-foreground text-sm font-medium leading-5 mb-2">
+                <Text className="text-sm font-medium leading-5 mb-2" style={{ color: colors.mutedForeground }}>
                   {n.message}
                 </Text>
 
                 <View className="flex-row items-center">
                   <Ionicons name="time-outline" size={12} color={emptyIconColor} />
-                  <Text className="text-muted-foreground text-xs ml-1">
+                  <Text className="text-xs ml-1" style={{ color: colors.mutedForeground }}>
                     {getTimeAgo(n.scheduled_at)}
                   </Text>
                 </View>

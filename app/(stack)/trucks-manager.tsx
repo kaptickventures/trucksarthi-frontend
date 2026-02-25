@@ -191,7 +191,7 @@ export default function TrucksManager() {
         }
       >
         {trucks.length === 0 ? (
-          <Text className="text-center text-muted-foreground mt-10">
+          <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
             No trucks found.
           </Text>
         ) : (
@@ -205,22 +205,23 @@ export default function TrucksManager() {
                   params: { truck_id: truck._id },
                 })
               }
-              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
+              className="border rounded-2xl p-4 mb-3 shadow-sm"
+              style={{ backgroundColor: colors.card, borderColor: colors.border }}
             >
               <View className="flex-row justify-between items-start mb-2">
                 <View className="flex-1 mr-3">
                   <Text style={{ color: colors.foreground }} className="font-bold text-lg uppercase tracking-tight">
                     {truck.registration_number}
                   </Text>
-                  <Text className="text-muted-foreground text-xs font-medium uppercase tracking-widest mt-0.5">
-                    {truck.registered_owner_name} •  {truck.vehicle_class || "HCV"} 
-
+                  <Text className="text-xs font-medium uppercase tracking-widest mt-0.5" style={{ color: colors.mutedForeground }}>
+                    {truck.registered_owner_name} •  {truck.vehicle_class || "HCV"}
                   </Text>
                 </View>
                 <View className="flex-row gap-2">
                   <TouchableOpacity
                     onPress={(e) => { e.stopPropagation(); openModal(true, truck); }}
-                    className="w-10 h-10 bg-muted rounded-full items-center justify-center border border-border/20"
+                    className="w-10 h-10 rounded-full items-center justify-center border"
+                    style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
                   >
                     <Edit3 size={16} color={colors.foreground} />
                   </TouchableOpacity>
@@ -233,8 +234,6 @@ export default function TrucksManager() {
                   </TouchableOpacity>
                 </View>
               </View>
-
-              
             </TouchableOpacity>
           ))
         )}

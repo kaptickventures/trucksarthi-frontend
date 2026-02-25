@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Skeleton } from "../../components/Skeleton";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
@@ -43,6 +44,7 @@ export default function MaintenanceKhataScreen() {
   }, [transactions]);
 
   const loading = trucksLoading || financeLoading;
+  const showInitialSkeleton = loading && !refreshing && (trucks || []).length === 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -69,6 +71,14 @@ export default function MaintenanceKhataScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80, paddingTop: 4 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
+        {showInitialSkeleton && (
+          <View>
+            {[1, 2, 3, 4].map((item) => (
+              <Skeleton key={item} width="100%" height={122} borderRadius={16} style={{ marginBottom: 12 }} />
+            ))}
+          </View>
+        )}
+
         {!loading && (trucks || []).length === 0 && (
           <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 40 }}>
             No trucks found.

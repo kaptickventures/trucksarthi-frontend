@@ -1,7 +1,7 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform, useColorScheme } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { THEME } from '../theme';
+import { useThemeStore } from '../hooks/useThemeStore';
 
 interface DatePickerModalProps {
     visible: boolean;
@@ -16,9 +16,7 @@ export function DatePickerModal({
     date,
     onChange,
 }: DatePickerModalProps) {
-    const colorScheme = useColorScheme();
-    const isDark = colorScheme === 'dark';
-    const colors = isDark ? THEME.dark : THEME.light;
+    const { colors } = useThemeStore();
 
     if (Platform.OS === 'android' && visible) {
         return (

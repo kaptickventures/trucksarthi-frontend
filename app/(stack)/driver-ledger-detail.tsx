@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import useDrivers from "../../hooks/useDriver";
 import useDriverFinance, { TransactionNature } from "../../hooks/useDriverFinance";
@@ -24,7 +25,7 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import { formatDate } from "../../lib/utils";
 
 type TabType = "ALL" | "TO_DRIVER" | "DRIVER_SPENDS";
-type QuickType = "ADVANCE" | "SETTLEMENT" | "EXPENSE";
+type QuickType = "ADVANCE" | "EXPENSE";
 
 export default function DriverLedgerDetailScreen() {
   const router = useRouter();
@@ -32,7 +33,7 @@ export default function DriverLedgerDetailScreen() {
   const id = Array.isArray(driverId) ? driverId[0] : driverId;
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
-  const { drivers, fetchDrivers } = useDrivers();
+  const { drivers, fetchDrivers, loading: driversLoading } = useDrivers();
   const { entries, loading, fetchDriverLedger, addLedgerEntry } = useDriverFinance();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -105,6 +106,7 @@ export default function DriverLedgerDetailScreen() {
       balance: advances - expenses,
     };
   }, [normalized]);
+  const showInitialSkeleton = (loading || driversLoading) && !refreshing && filtered.length === 0;
 
   const submitQuickAdd = async () => {
     if (!id) return;
@@ -119,7 +121,7 @@ export default function DriverLedgerDetailScreen() {
     await addLedgerEntry({
       driver_id: id,
       transaction_nature: transactionNature,
-      counterparty_type: quickType === "SETTLEMENT" ? "vendor" : "owner",
+      counterparty_type: "owner",
       direction: transactionNature === "paid_by_driver" ? "to" : "from",
       amount: Number(amount),
       remarks: remark,
@@ -202,7 +204,15 @@ export default function DriverLedgerDetailScreen() {
         </View>
 
         <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14 }}>
-          {filtered.map((entry: any) => {
+          {showInitialSkeleton && (
+            <View>
+              {[1, 2, 3].map((item) => (
+                <Skeleton key={item} width="100%" height={58} borderRadius={10} style={{ marginBottom: 10 }} />
+              ))}
+            </View>
+          )}
+
+          {!showInitialSkeleton && filtered.map((entry: any) => {
             const isToDriver = entry.type === "TO_DRIVER";
             return (
               <View key={entry._id} style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 10 }}>
@@ -226,7 +236,7 @@ export default function DriverLedgerDetailScreen() {
             );
           })}
 
-          {filtered.length === 0 && <Text style={{ color: colors.mutedForeground }}>No ledger entries found.</Text>}
+          {!showInitialSkeleton && filtered.length === 0 && <Text style={{ color: colors.mutedForeground }}>No ledger entries found.</Text>}
         </View>
       </ScrollView>
 
@@ -238,7 +248,7 @@ export default function DriverLedgerDetailScreen() {
             style={{ flex: 1, justifyContent: "flex-end" }}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
-            <Pressable onPress={() => {}}>
+            <Pressable onPress={() => { }}>
               <KeyboardAwareScrollView
                 enableOnAndroid
                 keyboardShouldPersistTaps="handled"
@@ -294,7 +304,6 @@ export default function DriverLedgerDetailScreen() {
                   <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
                     {([
                       { id: "ADVANCE", label: "Advance" },
-                      { id: "SETTLEMENT", label: "Settlement" },
                       { id: "EXPENSE", label: "Expense" },
                     ] as { id: QuickType; label: string }[]).map((type) => (
                       <TouchableOpacity
@@ -325,7 +334,28 @@ export default function DriverLedgerDetailScreen() {
                     <TextInput placeholder="Trip diesel, advance, settlement..." placeholderTextColor={colors.mutedForeground} value={purpose} onChangeText={setPurpose} style={input(colors)} />
                   </Field>
                   <Field label="Payment Mode">
-                    <TextInput placeholder="CASH / UPI / BANK" placeholderTextColor={colors.mutedForeground} value={paymentMode} onChangeText={setPaymentMode} style={input(colors)} />
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      {["CASH", "UPI", "BANK"].map((mode) => (
+                        <TouchableOpacity
+                          key={mode}
+                          onPress={() => setPaymentMode(mode)}
+                          style={{
+                            flex: 1,
+                            height: 40,
+                            borderRadius: 12,
+                            borderWidth: 1,
+                            borderColor: paymentMode === mode ? colors.primary : colors.border,
+                            backgroundColor: paymentMode === mode ? colors.primary : colors.card,
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontSize: 11, fontWeight: "800" }}>
+                            {mode}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </Field>
                   <Field label="Notes">
                     <TextInput placeholder="Optional notes" placeholderTextColor={colors.mutedForeground} value={notes} onChangeText={setNotes} style={[input(colors), { minHeight: 82, textAlignVertical: "top" }]} multiline />

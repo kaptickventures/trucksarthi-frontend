@@ -12,15 +12,17 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import API from "../api/axiosInstance";
 import useDrivers from "../../hooks/useDriver";
+import { Skeleton } from "../../components/Skeleton";
 import { useThemeStore } from "../../hooks/useThemeStore";
 
 export default function DriverLedgerScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
-  const { drivers, fetchDrivers } = useDrivers();
+  const { drivers, fetchDrivers, loading } = useDrivers();
   const [refreshing, setRefreshing] = useState(false);
   const [balances, setBalances] = useState<Record<string, number>>({});
+  const showInitialSkeleton = loading && !refreshing && (drivers || []).length === 0;
 
   const load = useCallback(async () => {
     await fetchDrivers();
@@ -77,7 +79,15 @@ export default function DriverLedgerScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80, paddingTop: 4 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {(drivers || []).length === 0 && (
+        {showInitialSkeleton && (
+          <View>
+            {[1, 2, 3, 4].map((item) => (
+              <Skeleton key={item} width="100%" height={96} borderRadius={16} style={{ marginBottom: 12 }} />
+            ))}
+          </View>
+        )}
+
+        {!loading && (drivers || []).length === 0 && (
           <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 40 }}>No drivers found.</Text>
         )}
 

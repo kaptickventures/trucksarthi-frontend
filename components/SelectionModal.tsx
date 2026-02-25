@@ -7,11 +7,10 @@ import {
     FlatList,
     TextInput,
     StyleSheet,
-    useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Search, Plus, X, Check } from 'lucide-react-native';
-import { THEME } from '../theme';
+import { useThemeStore } from '../hooks/useThemeStore';
 
 interface SelectionModalProps {
     visible: boolean;
@@ -35,9 +34,8 @@ export function SelectionModal({
     selectedValue,
 }: SelectionModalProps) {
     const [search, setSearch] = useState('');
-    const colorScheme = useColorScheme();
-    const isDark = colorScheme === 'dark';
-    const colors = isDark ? THEME.dark : THEME.light;
+    const { colors, theme } = useThemeStore();
+    const isDark = theme === "dark";
 
     const filteredItems = items.filter(item =>
         item.label.toLowerCase().includes(search.toLowerCase())

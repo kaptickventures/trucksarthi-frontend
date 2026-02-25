@@ -28,13 +28,16 @@ export default function HelpCenter() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-background px-5 pt-10">
-      <Text className="text-foreground text-base mb-6">
+    <ScrollView className="flex-1 px-5 pt-10" style={{ backgroundColor: colors.background }}>
+      <Text className="text-base mb-6" style={{ color: colors.foreground }}>
         We are available 24×7 to help you with any issues or questions.
       </Text>
 
       {/* WhatsApp Card */}
-      <View className="bg-card rounded-2xl p-5 mb-4 shadow-md shadow-black/10">
+      <View
+        className="rounded-2xl p-5 mb-4 border"
+        style={{ backgroundColor: colors.card, borderColor: colors.border }}
+      >
         <TouchableOpacity
           onPress={openWhatsApp}
           className="flex-row items-center justify-between"
@@ -44,10 +47,10 @@ export default function HelpCenter() {
               <Ionicons name="logo-whatsapp" size={24} color="#fff" />
             </View>
             <View className="ml-4">
-              <Text className="text-foreground font-semibold text-base">
+              <Text className="font-semibold text-base" style={{ color: colors.foreground }}>
                 WhatsApp Support
               </Text>
-              <Text className="text-muted-foreground text-sm mt-1">
+              <Text className="text-sm mt-1" style={{ color: colors.mutedForeground }}>
                 Chat instantly on WhatsApp
               </Text>
             </View>
@@ -57,7 +60,10 @@ export default function HelpCenter() {
       </View>
 
       {/* Call Card */}
-      <View className="bg-card rounded-2xl p-5 mb-4 shadow-md shadow-black/10">
+      <View
+        className="rounded-2xl p-5 mb-4 border"
+        style={{ backgroundColor: colors.card, borderColor: colors.border }}
+      >
         <TouchableOpacity
           onPress={() => Linking.openURL(`tel:${PHONE}`)}
           className="flex-row items-center justify-between"
@@ -67,10 +73,10 @@ export default function HelpCenter() {
               <Phone size={20} color="#fff" />
             </View>
             <View className="ml-4">
-              <Text className="text-foreground font-semibold text-base">
+              <Text className="font-semibold text-base" style={{ color: colors.foreground }}>
                 Call Support
               </Text>
-              <Text className="text-muted-foreground text-sm mt-1">
+              <Text className="text-sm mt-1" style={{ color: colors.mutedForeground }}>
                 +91 {PHONE}
               </Text>
             </View>
@@ -79,7 +85,10 @@ export default function HelpCenter() {
       </View>
 
       {/* Email Card */}
-      <View className="bg-card rounded-2xl p-5 mb-4 shadow-md shadow-black/10">
+      <View
+        className="rounded-2xl p-5 mb-4 border"
+        style={{ backgroundColor: colors.card, borderColor: colors.border }}
+      >
         <TouchableOpacity
           onPress={() => Linking.openURL(`mailto:${EMAIL}`)}
           className="flex-row items-center justify-between"
@@ -89,10 +98,10 @@ export default function HelpCenter() {
               <Mail size={20} color="#fff" />
             </View>
             <View className="ml-4">
-              <Text className="text-foreground font-semibold text-base">
+              <Text className="font-semibold text-base" style={{ color: colors.foreground }}>
                 Email Support
               </Text>
-              <Text className="text-muted-foreground text-sm mt-1">
+              <Text className="text-sm mt-1" style={{ color: colors.mutedForeground }}>
                 {EMAIL}
               </Text>
             </View>

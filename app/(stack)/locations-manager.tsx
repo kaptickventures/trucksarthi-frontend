@@ -8,13 +8,13 @@ import {
   StatusBar,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import LocationFormModal from "../../components/LocationModal";
 import { Skeleton } from "../../components/Skeleton";
 import useLocations from "../../hooks/useLocation";
+import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
 
 export default function LocationsManager() {
@@ -31,7 +31,8 @@ export default function LocationsManager() {
 
   const loading = userLoading || locationsLoading;
 
-  const isDark = useColorScheme() === "dark";
+  const { theme, colors } = useThemeStore();
+  const isDark = theme === "dark";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     location_name: "",
@@ -114,10 +115,10 @@ export default function LocationsManager() {
 
   if (loading && !user) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
+      <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
         <View className="px-5 pt-2">
           {[1, 2, 3, 4, 5].map(i => (
-            <View key={i} className="bg-card border border-border rounded-2xl p-5 mb-4 shadow-sm">
+            <View key={i} className="border rounded-2xl p-5 mb-4 shadow-sm" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
               <View className="flex-row justify-between mb-3">
                 <View style={{ gap: 8 }}>
                   <Skeleton width={150} height={24} borderRadius={4} />
@@ -137,7 +138,7 @@ export default function LocationsManager() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* List */}
@@ -145,31 +146,33 @@ export default function LocationsManager() {
         className="flex-1 px-5 pt-2"
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#FFF" : "#000"} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
         {locations.length === 0 ? (
-          <Text className="text-center text-muted-foreground mt-10">
+          <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
             No locations found.
           </Text>
         ) : (
           locations.map((loc) => (
             <View
               key={loc._id}
-              className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
+              className="border rounded-2xl p-4 mb-3 shadow-sm"
+              style={{ backgroundColor: colors.card, borderColor: colors.border }}
             >
               <View className="flex-row justify-between items-start mb-2">
                 <View className="flex-1 mr-3">
-                  <Text style={{ color: isDark ? "#FFF" : "#000" }} className="font-bold text-lg tracking-tight">
+                  <Text style={{ color: colors.foreground }} className="font-bold text-lg tracking-tight">
                     {loc.location_name}
                   </Text>
                 </View>
                 <View className="flex-row gap-2">
                   <TouchableOpacity
                     onPress={() => openModal(true, loc)}
-                    className="w-10 h-10 bg-muted rounded-full items-center justify-center border border-border/20"
+                    className="w-10 h-10 rounded-full items-center justify-center border"
+                    style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
                   >
-                    <Edit3 size={16} color={isDark ? "#FFF" : "#000"} />
+                    <Edit3 size={16} color={colors.foreground} />
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -182,7 +185,7 @@ export default function LocationsManager() {
               </View>
 
               <View className="gap-y-1">
-                <Text style={{ color: isDark ? "#F3F4F6" : "#4B5563" }} className="text-sm font-medium">📍 {loc.complete_address}</Text>
+                <Text style={{ color: colors.mutedForeground }} className="text-sm font-medium">📍 {loc.complete_address}</Text>
               </View>
             </View>
           ))
@@ -192,8 +195,9 @@ export default function LocationsManager() {
       {/* Add FAB */}
       <TouchableOpacity
         onPress={() => openModal(false)}
-        className="absolute bottom-8 right-6 bg-primary w-16 h-16 rounded-full justify-center items-center"
+        className="absolute bottom-8 right-6 w-16 h-16 rounded-full justify-center items-center"
         style={{
+          backgroundColor: colors.primary,
           elevation: 8,
           shadowColor: "#000",
           shadowOpacity: 0.25,

@@ -4,8 +4,8 @@ import API from "../app/api/axiosInstance";
 import useDriverFinance, { DriverLedger } from "../hooks/useDriverFinance";
 import { getCurrentUser, logout as authLogout } from "../hooks/useAuth";
 import useTrips, { Trip } from "../hooks/useTrip";
+import { useTranslation } from "./LanguageContext";
 
-const DRIVER_LANG_KEY = "driver_language";
 const TRIP_STATUS_MARKER = "[TRIP_STATUS:COMPLETED]";
 
 type DriverLanguage = "en" | "hi";
@@ -102,8 +102,10 @@ const mapTrip = (trip: Trip): DriverTripView => {
   };
 };
 
+
+
 export function DriverAppProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<DriverLanguage>("en");
+  const { language, setLanguage } = useTranslation();
   const [user, setUser] = useState<any | null>(null);
   const [notifications, setNotifications] = useState<DriverNotification[]>([]);
   const [bootLoading, setBootLoading] = useState(true);
@@ -111,18 +113,6 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
 
   const { trips, loading: tripsLoading, fetchTrips, updateTrip } = useTrips({ autoFetch: false });
   const { entries, loading: ledgerLoading, fetchDriverLedger, addLedgerEntry } = useDriverFinance();
-
-  const loadLanguage = useCallback(async () => {
-    const saved = await AsyncStorage.getItem(DRIVER_LANG_KEY);
-    if (saved === "hi" || saved === "en") {
-      setLanguageState(saved);
-    }
-  }, []);
-
-  const setLanguage = useCallback(async (lang: DriverLanguage) => {
-    setLanguageState(lang);
-    await AsyncStorage.setItem(DRIVER_LANG_KEY, lang);
-  }, []);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -156,7 +146,6 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
 
     const boot = async () => {
       try {
-        await loadLanguage();
         if (mounted) {
           await refreshAll();
         }
@@ -171,7 +160,7 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, [loadLanguage, refreshAll]);
+  }, [refreshAll]);
 
   const mappedTrips = useMemo(() => {
     const converted = trips.map(mapTrip);
@@ -231,14 +220,14 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
       throw new Error("Driver not loaded");
     }
 
-    await addLedgerEntry({
+    await (addLedgerEntry as any)({
       driver_id: user._id,
       transaction_nature: "paid_by_driver",
       counterparty_type: "vendor",
       direction: "to",
       amount,
       remarks: description,
-      tripId: tripId, // Pass as proper field
+      tripId: tripId,
     });
 
     await fetchDriverLedger(user._id);

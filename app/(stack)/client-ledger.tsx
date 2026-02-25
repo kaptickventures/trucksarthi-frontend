@@ -27,11 +27,10 @@ export default function ClientLedgerScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { clients, fetchClients } = useClients();
-  const { fetchSummary, addPayment, loading } = useClientLedger();
+  const { fetchSummary } = useClientLedger();
 
   const [refreshing, setRefreshing] = useState(false);
   const [rows, setRows] = useState<ClientRow[]>([]);
-  const [activeFilter, setActiveFilter] = useState<"ALL" | "UNBILLED" | "BILLED" | "SETTLED">("ALL");
 
   const load = useCallback(async () => {
     await fetchClients();
@@ -42,6 +41,7 @@ export default function ClientLedgerScreen() {
   }, [load]);
 
   useEffect(() => {
+    let isMounted = true;
     const run = async () => {
       const next: ClientRow[] = [];
 
@@ -71,7 +71,18 @@ export default function ClientLedgerScreen() {
         })
       );
 
-      setRows(next.sort((a, b) => b.unbilled - a.unbilled));
+      if (isMounted) {
+        setRows(
+          next.sort((a, b) => {
+            // Primary sort: Unbilled amount (descending)
+            if (b.unbilled !== a.unbilled) {
+              return b.unbilled - a.unbilled;
+            }
+            // Secondary sort: Client name (ascending) for deterministic order
+            return a.clientName.localeCompare(b.clientName);
+          })
+        );
+      }
     };
 
     if (clients?.length) {
@@ -79,6 +90,10 @@ export default function ClientLedgerScreen() {
     } else {
       setRows([]);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [clients, fetchSummary]);
 
   const onRefresh = useCallback(async () => {
@@ -86,14 +101,6 @@ export default function ClientLedgerScreen() {
     await load();
     setRefreshing(false);
   }, [load]);
-
-  const filteredRows = rows.filter((row) => {
-    if (activeFilter === "ALL") return true;
-    if (activeFilter === "UNBILLED") return row.unbilled > 0;
-    if (activeFilter === "BILLED") return row.billed > 0;
-    if (activeFilter === "SETTLED") return row.billed > 0 && row.unbilled === 0;
-    return true;
-  });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -115,45 +122,16 @@ export default function ClientLedgerScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Filter pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8 }}
-      >
-        {(["ALL", "UNBILLED", "BILLED", "SETTLED"] as const).map((f) => (
-          <TouchableOpacity
-            key={f}
-            onPress={() => setActiveFilter(f)}
-            style={{
-              paddingHorizontal: 16,
-              height: 40,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: activeFilter === f ? colors.primary : colors.border,
-              backgroundColor: activeFilter === f ? colors.primary : "transparent",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ color: activeFilter === f ? "white" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
-              {f.charAt(0) + f.slice(1).toLowerCase()}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {filteredRows.length === 0 && (
+        {rows.length === 0 && (
           <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 40 }}>No clients found.</Text>
         )}
 
-        {filteredRows.map((row) => {
+        {rows.map((row) => {
           const hasOutstanding = row.unbilled > 0;
           const isSettled = row.billed > 0 && row.unbilled === 0;
 

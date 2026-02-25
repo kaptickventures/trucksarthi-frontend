@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import QuickActionButton from "../../components/finance/QuickActionButton";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -75,6 +76,7 @@ export default function MaintenanceDashboardScreen() {
   }, [transactions, truckId]);
 
   const totalExpense = useMemo(() => truckRows.reduce((sum: number, t: any) => sum + Number(t?.amount || 0), 0), [truckRows]);
+  const showInitialSkeleton = financeLoading && !refreshing && truckRows.length === 0;
 
   const onSave = async () => {
     if (!truckId) {
@@ -168,13 +170,21 @@ export default function MaintenanceDashboardScreen() {
           REPAIR HISTORY
         </Text>
 
+        {showInitialSkeleton && (
+          <View>
+            {[1, 2, 3].map((item) => (
+              <Skeleton key={item} width="100%" height={86} borderRadius={16} style={{ marginBottom: 12 }} />
+            ))}
+          </View>
+        )}
+
         {truckRows.length === 0 && !financeLoading && (
           <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 30, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
             <Text style={{ color: colors.mutedForeground }}>No maintenance records found.</Text>
           </View>
         )}
 
-        {truckRows.map((item: any) => {
+        {!showInitialSkeleton && truckRows.map((item: any) => {
           const rawType = String(item.serviceType || item.category || "").toUpperCase();
           const isDocument = rawType === "DOCUMENT";
 

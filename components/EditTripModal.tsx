@@ -11,12 +11,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
-import { THEME } from "../theme"; // ← make sure this path matches your project
+import { useThemeStore } from "../hooks/useThemeStore";
 
 /* ---------------- Types ---------------- */
 type DropdownKey = "truck" | "driver" | "client" | "start" | "end";
@@ -54,10 +53,9 @@ export default function EditTripModal({
   onSave,
   onDelete,
 }: Props) {
-  const isDark = useColorScheme() === "dark";
+  const { theme: themeName, colors: theme } = useThemeStore();
+  const isDark = themeName === "dark";
   const insets = useSafeAreaInsets();
-
-  const theme = isDark ? THEME.dark : THEME.light;
 
   const translateY = useRef(new Animated.Value(0)).current;
   const SCROLL_THRESHOLD = 40;
@@ -242,19 +240,23 @@ export default function EditTripModal({
       <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
         <Animated.View
           {...panResponder.panHandlers}
-          className="absolute bottom-0 w-full bg-background rounded-t-3xl"
+          className="absolute bottom-0 w-full rounded-t-3xl"
           style={{
             height: "100%",
             paddingHorizontal: 20,
             paddingTop: insets.top + 20,
+            backgroundColor: theme.background,
             transform: [{ translateY }],
           }}
         >
-          <View className="w-14 h-1.5 bg-muted rounded-full self-center mb-4 opacity-60" />
+          <View
+            className="w-14 h-1.5 rounded-full self-center mb-4 opacity-60"
+            style={{ backgroundColor: theme.muted }}
+          />
 
           {/* Header */}
           <View className="flex-row justify-between items-center mb-5">
-            <Text className="text-2xl font-semibold text-foreground">Edit Trip</Text>
+            <Text className="text-2xl font-semibold" style={{ color: theme.foreground }}>Edit Trip</Text>
             <TouchableOpacity onPress={closeModal}>
               <X size={28} color={theme.mutedForeground} />
             </TouchableOpacity>
@@ -262,17 +264,22 @@ export default function EditTripModal({
 
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Date (readonly) */}
-            <Text className="text-muted-foreground mb-1 font-medium">Trip Date</Text>
+            <Text className="mb-1 font-medium" style={{ color: theme.mutedForeground }}>Trip Date</Text>
             <TextInput
               editable={false}
               value={getDisplayDate(rawTripDate)}
-              className="border border-input text-input-text rounded-xl p-3 mb-4 bg-input-bg opacity-90"
+              className="border rounded-xl p-3 mb-4 opacity-90"
+              style={{
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+                color: theme.foreground
+              }}
             />
 
             {/* Dropdowns */}
             {dropdownConfig.map((d, i) => (
               <View key={d.key} style={{ marginBottom: 20, zIndex: 5000 - i }}>
-                <Text className="text-muted-foreground mb-1 font-medium">{d.label}</Text>
+                <Text className="mb-1 font-medium" style={{ color: theme.mutedForeground }}>{d.label}</Text>
 
                 <DropDownPicker
                   open={dropdowns[d.openKey]}
@@ -294,7 +301,7 @@ export default function EditTripModal({
                   scrollViewProps={{ nestedScrollEnabled: true }}
                   style={{
                     height: 48,
-                    backgroundColor: theme.input,
+                    backgroundColor: theme.card,
                     borderColor: theme.border,
                   }}
                   dropDownContainerStyle={{
@@ -308,44 +315,70 @@ export default function EditTripModal({
             ))}
 
             {/* Cost */}
-            <Text className="text-muted-foreground mb-1 font-medium">Cost of Trip (₹)</Text>
+            <Text className="mb-1 font-medium" style={{ color: theme.mutedForeground }}>Cost of Trip (₹)</Text>
             <TextInput
               keyboardType="numeric"
               value={form.cost_of_trip}
               onChangeText={(v: string) => setForm((p) => ({ ...p, cost_of_trip: v }))}
-              className="border border-input text-input-text rounded-xl p-3 mb-4 bg-input-bg"
+              className="border rounded-xl p-3 mb-4"
+              style={{
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+                color: theme.foreground
+              }}
+              placeholderTextColor={theme.mutedForeground}
             />
 
             {/* Misc */}
-            <Text className="text-muted-foreground mb-1 font-medium">Miscellaneous Expense (₹)</Text>
+            <Text className="mb-1 font-medium" style={{ color: theme.mutedForeground }}>Miscellaneous Expense (₹)</Text>
             <TextInput
               keyboardType="numeric"
               value={form.miscellaneous_expense}
               onChangeText={(v: string) => setForm((p) => ({ ...p, miscellaneous_expense: v }))}
-              className="border border-input text-input-text rounded-xl p-3 mb-4 bg-input-bg"
+              className="border rounded-xl p-3 mb-4"
+              style={{
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+                color: theme.foreground
+              }}
+              placeholderTextColor={theme.mutedForeground}
             />
 
             {/* Notes */}
-            <Text className="text-muted-foreground mb-1 font-medium">Notes</Text>
+            <Text className="mb-1 font-medium" style={{ color: theme.mutedForeground }}>Notes</Text>
             <TextInput
               multiline
               numberOfLines={3}
               value={form.notes}
               onChangeText={(v: string) => setForm((p) => ({ ...p, notes: v }))}
-              className="border border-input text-input-text rounded-xl p-3 mb-6 bg-input-bg"
+              className="border rounded-xl p-3 mb-6"
+              style={{
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+                color: theme.foreground
+              }}
+              placeholderTextColor={theme.mutedForeground}
             />
 
             {/* Actions */}
             <TouchableOpacity onPress={handleSavePress} className="bg-primary p-4 rounded-xl mb-3">
-              <Text className="text-center text-primary-foreground font-semibold">Save Changes</Text>
+              <Text className="text-center font-semibold" style={{ color: theme.primaryForeground }}>Save Changes</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleDeletePress} className="bg-destructive p-4 rounded-xl mb-3">
-              <Text className="text-center text-destructive-foreground font-semibold">Delete Trip</Text>
+            <TouchableOpacity
+              onPress={handleDeletePress}
+              className="p-4 rounded-xl mb-3"
+              style={{ backgroundColor: theme.destructive }}
+            >
+              <Text className="text-center font-semibold" style={{ color: 'white' }}>Delete Trip</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={closeModal} className="border border-border p-4 rounded-xl">
-              <Text className="text-center text-muted-foreground">Cancel</Text>
+            <TouchableOpacity
+              onPress={closeModal}
+              className="border p-4 rounded-xl"
+              style={{ borderColor: theme.border }}
+            >
+              <Text className="text-center" style={{ color: theme.mutedForeground }}>Cancel</Text>
             </TouchableOpacity>
           </ScrollView>
         </Animated.View>

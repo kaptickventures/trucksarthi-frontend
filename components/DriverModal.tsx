@@ -156,7 +156,11 @@ export default function DriverFormModal({
                                     Driver Information
                                 </Text>
                             </View>
-                            <TouchableOpacity onPress={closeModal} className="w-10 h-10 bg-muted rounded-full items-center justify-center">
+                            <TouchableOpacity
+                                onPress={closeModal}
+                                className="w-10 h-10 rounded-full items-center justify-center"
+                                style={{ backgroundColor: colors.muted }}
+                            >
                                 <X size={22} color={colors.foreground} />
                             </TouchableOpacity>
                         </View>

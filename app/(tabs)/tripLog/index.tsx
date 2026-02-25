@@ -29,12 +29,13 @@ import { useThemeStore } from "../../../hooks/useThemeStore";
 import TripFilters from "../../../components/FilterSection";
 
 import { Edit3, Trash2 } from "lucide-react-native";
-import { THEME } from "../../../theme";
 
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { formatDate } from "../../../lib/utils";
+import { useTranslation } from "../../../context/LanguageContext";
+
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   // @ts-ignore
@@ -46,6 +47,8 @@ export default function TripLog() {
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
+
   const isDark = theme === "dark";
 
   const {
@@ -299,13 +302,13 @@ export default function TripLog() {
     }
   };
 
-  const foregroundColor = isDark ? THEME.dark.foreground : THEME.light.foreground;
+  const foregroundColor = colors.foreground;
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
-      headerStyle: { backgroundColor: colors.background, elevation: 0, shadowOpacity: 0 },
+      headerStyle: { backgroundColor: colors.background },
       headerTitleStyle: { color: colors.foreground, fontWeight: "800", fontSize: 22 },
       headerTintColor: colors.foreground,
       headerLeft: () => (
@@ -344,22 +347,33 @@ export default function TripLog() {
   const formatDateLocal = (d: Date | null) => d ? formatDate(d) : "Select Date";
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-background" style={{ backgroundColor: colors.background }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? "#FFF" : "#000"} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
         <View className="mb-6 px-5 mt-5">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>Trip Log</Text>
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('tripLog')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Track and manage your history</Text>
         </View>
 
         <View style={{ marginHorizontal: 12, marginTop: 12, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <TouchableOpacity
             onPress={toggleFilters}
-            style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: isDark ? "#0A3325" : "#E7FCEB", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              borderRadius: 999,
+              backgroundColor: isDark ? "#0A3325" : "#E7FCEB",
+              shadowColor: "#000",
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+              elevation: 2
+            }}
           >
             <Ionicons name="filter" size={18} color={isDark ? "#4ADE80" : "#25D366"} />
             <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#86EFAC" : "#128C7E" }}>Filters</Text>
@@ -367,7 +381,18 @@ export default function TripLog() {
 
           <TouchableOpacity
             onPress={generatePDF}
-            style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: isDark ? "#111B3C" : "#E8F0FE", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              borderRadius: 999,
+              backgroundColor: isDark ? "#111B3C" : "#E8F0FE",
+              shadowColor: "#000",
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+              elevation: 2
+            }}
           >
             <Ionicons name="download-outline" size={18} color={isDark ? "#93C5FD" : "#2563EB"} />
             <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#BFDBFE" : "#1D4ED8" }}>PDF</Text>
@@ -390,39 +415,45 @@ export default function TripLog() {
           formatDate={formatDateLocal}
         />
 
-        <View className="mx-3 mt-1 mb-6 bg-card border border-border p-4 rounded-2xl shadow-sm">
-          <Text className="text-lg font-semibold text-foreground">{sortedTrips.length} trips found</Text>
-          <Text className="text-3xl font-extrabold text-primary mt-1">₹{sortedTrips.reduce((acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense), 0).toLocaleString()}</Text>
+        <View
+          className="mx-3 mt-1 mb-6 p-4 rounded-2xl shadow-sm border"
+          style={{ backgroundColor: colors.card, borderColor: colors.border }}
+        >
+          <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>{sortedTrips.length} trips found</Text>
+          <Text className="text-3xl font-extrabold mt-1" style={{ color: colors.primary }}>₹{sortedTrips.reduce((acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense), 0).toLocaleString()}</Text>
         </View>
 
         {
           tripsLoading ? (
             <ActivityIndicator size="large" className="mt-10" />
           ) : sortedTrips.length === 0 ? (
-            <Text className="text-center text-muted-foreground mt-10">No trips available</Text>
+            <Text className="text-center text-muted-foreground mt-10" style={{ color: colors.mutedForeground }}>{t('noTripsFound')}</Text>
           ) : (
             sortedTrips.map((trip) => {
               const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
               return (
                 <View key={trip._id} style={{ marginHorizontal: 12, marginBottom: 20 }}>
-                  <View className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+                  <View
+                    className="border rounded-2xl p-5 shadow-sm"
+                    style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                  >
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                      <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : "No Date"}</Text>
-                      <Text style={{ fontSize: 22, fontWeight: "800", color: THEME.light.primary }}>{`₹${totalCost.toLocaleString()}`}</Text>
+                      <Text style={{ color: colors.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : "No Date"}</Text>
+                      <Text style={{ fontSize: 22, fontWeight: "800", color: colors.primary }}>{`₹${totalCost.toLocaleString()}`}</Text>
                     </View>
-                    <Text style={{ fontSize: 18, fontWeight: "700", color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 10 }}>{getLocationName(trip.start_location)} → {getLocationName(trip.end_location)}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground, marginBottom: 10 }}>{getLocationName(trip.start_location)} → {getLocationName(trip.end_location)}</Text>
                     <View style={{ marginBottom: 12 }}>
-                      <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🏢 {getClientName(trip.client)}</Text>
-                      <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground, marginBottom: 4 }}>🚚 {getTruckReg(trip.truck)}</Text>
-                      <Text style={{ color: isDark ? THEME.dark.foreground : THEME.light.foreground }}>👤 {getDriverName(trip.driver)}</Text>
+                      <Text style={{ color: colors.foreground, marginBottom: 4 }}>🏢 {getClientName(trip.client)}</Text>
+                      <Text style={{ color: colors.foreground, marginBottom: 4 }}>🚚 {getTruckReg(trip.truck)}</Text>
+                      <Text style={{ color: colors.foreground }}>👤 {getDriverName(trip.driver)}</Text>
                     </View>
-                    <View style={{ borderTopWidth: 1, borderTopColor: isDark ? THEME.dark.border : THEME.light.border, opacity: 0.6, marginVertical: 12 }} />
+                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 12 }} />
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                      <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>Trip Cost: ₹{Number(trip.cost_of_trip).toLocaleString()}</Text>
-                      <Text style={{ color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>Misc: ₹{Number(trip.miscellaneous_expense).toLocaleString()}</Text>
+                      <Text style={{ color: colors.mutedForeground }}>Trip Cost: ₹{Number(trip.cost_of_trip).toLocaleString()}</Text>
+                      <Text style={{ color: colors.mutedForeground }}>Misc: ₹{Number(trip.miscellaneous_expense).toLocaleString()}</Text>
                     </View>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
-                      {trip.notes ? <Text style={{ fontStyle: "italic", color: isDark ? THEME.dark.mutedForeground : THEME.light.mutedForeground }}>📝 {trip.notes}</Text> : <View />}
+                      {trip.notes ? <Text style={{ fontStyle: "italic", color: colors.mutedForeground }}>📝 {trip.notes}</Text> : <View />}
                       <View style={{ flexDirection: "row" }}>
                         <TouchableOpacity onPress={() => { setSelectedTrip(trip); setEditVisible(true); }} style={{ padding: 8, marginRight: 8 }}>
                           <Edit3 size={22} color="#2563EB" />

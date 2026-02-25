@@ -12,6 +12,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 import { logout, getUserRole } from "../hooks/useAuth";
 import { useThemeStore } from "../hooks/useThemeStore";
@@ -20,21 +21,9 @@ import { getFileUrl } from "../lib/utils";
 import { Clock, Globe, Bell } from "lucide-react-native";
 import { useDriverAppContext } from "../context/DriverAppContext";
 
+import { useTranslation } from "../context/LanguageContext";
+
 const SCREEN_WIDTH = Dimensions.get("window").width;
-
-const FLEET_LINKS = [
-  { title: "Trip Log", icon: "clock", route: "/(tabs)/tripLog" as const },
-  { title: "Documents", icon: "folder", route: "/(stack)/documents-manager" as const },
-  { title: "Settings", icon: "settings-outline", route: "/(stack)/settings" as const },
-] as const;
-
-const MANAGER_LINKS = [
-  { title: "Finance Hub", icon: "wallet-outline", route: "/(stack)/finance" as const },
-  { title: "Trucks", icon: "bus-outline", route: "/(stack)/trucks-manager" as const },
-  { title: "Drivers", icon: "person-add-outline", route: "/(stack)/drivers-manager" as const },
-  { title: "Clients", icon: "people-outline", route: "/(stack)/clients-manager" as const },
-  { title: "Locations", icon: "location-outline", route: "/(stack)/locations-manager" as const },
-] as const;
 
 export default function SideMenu({
   isVisible,
@@ -46,11 +35,27 @@ export default function SideMenu({
   topOffset?: number;
 }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeStore();
   const { user, loading } = useUser();
+  const { t, language, setLanguage } = useTranslation();
   const userRole = getUserRole(user);
   // Driver specific hooks
   const driverContext = useDriverAppContext(true);
+
+  const FLEET_LINKS = [
+    { title: t('tripLog'), icon: "clock", route: "/(tabs)/tripLog" as const },
+    { title: t('documents'), icon: "folder", route: "/(stack)/documents-manager" as const },
+    { title: t('settings'), icon: "settings-outline", route: "/(stack)/settings" as const },
+  ] as const;
+
+  const MANAGER_LINKS = [
+    { title: t('financeHub'), icon: "wallet-outline", route: "/(stack)/finance" as const },
+    { title: t('trucks'), icon: "bus-outline", route: "/(stack)/trucks-manager" as const },
+    { title: t('drivers'), icon: "person-add-outline", route: "/(stack)/drivers-manager" as const },
+    { title: t('clients'), icon: "people-outline", route: "/(stack)/clients-manager" as const },
+    { title: t('locations'), icon: "location-outline", route: "/(stack)/locations-manager" as const },
+  ] as const;
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
 
@@ -89,6 +94,15 @@ export default function SideMenu({
     }
   };
 
+  const toggleLanguage = async () => {
+    const newLang = language === 'en' ? 'hi' : 'en';
+    await setLanguage(newLang);
+    // Also sync with driver context if it exists
+    if (driverContext) {
+      await driverContext.setLanguage(newLang);
+    }
+  };
+
   const renderIcon = (iconName: string, size = 24) => {
     if (iconName === "clock" || iconName === "history") return <Clock size={size} color={colors.foreground} />;
     if (iconName === "folder") return <Ionicons name="folder-outline" size={size} color={colors.foreground} />;
@@ -121,7 +135,6 @@ export default function SideMenu({
         style={{
           transform: [{ translateX: slideAnim }],
           width: SCREEN_WIDTH * 0.82,
-          // height: "100%", // removed to let top/bottom control height
           position: "absolute",
           top: topOffset,
           bottom: 0,
@@ -129,7 +142,8 @@ export default function SideMenu({
           backgroundColor: colors.background,
           zIndex: 9999,
           paddingHorizontal: 24,
-          paddingVertical: 40,
+          paddingTop: 12,
+          paddingBottom: Math.max(insets.bottom, 20),
         }}
       >
         <View style={{ flex: 1 }}>
@@ -158,7 +172,7 @@ export default function SideMenu({
 
                 <View className="ml-4">
                   <Text className="text-xl font-semibold" style={{ color: colors.foreground }}>
-                    {loading ? "Loading..." : user?.name || "Guest"}
+                    {loading ? t('loading') : user?.name || "Guest"}
                   </Text>
                   <Text className="text-sm" style={{ color: colors.mutedForeground }}>
                     {user?.email || user?.phone || ""}
@@ -178,7 +192,7 @@ export default function SideMenu({
                 >
                   <Ionicons name="settings-outline" size={24} color={colors.foreground} />
                   <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                    Settings
+                    {t('settings')}
                   </Text>
                 </TouchableOpacity>
 
@@ -188,26 +202,14 @@ export default function SideMenu({
                 >
                   <Bell size={24} color={colors.foreground} />
                   <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                    Notifications
+                    {t('notifications')}
                   </Text>
                 </TouchableOpacity>
-
-                {driverContext && (
-                  <TouchableOpacity
-                    onPress={() => driverContext.setLanguage(driverContext.language === 'en' ? 'hi' : 'en')}
-                    className="flex-row items-center py-4"
-                  >
-                    <Globe size={24} color={colors.foreground} />
-                    <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                      {driverContext.language === 'en' ? 'Switch to Hindi' : 'Switch to English'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
               </>
             ) : (
               <>
                 <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                  MAIN MENU
+                  {t('mainMenu')}
                 </Text>
                 {FLEET_LINKS.map((item, idx) => (
                   <TouchableOpacity
@@ -225,7 +227,7 @@ export default function SideMenu({
                 {/* MANAGER SECTION */}
                 <View className="mt-8 mb-6">
                   <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                    MANAGER
+                    {t('manager')}
                   </Text>
                   {MANAGER_LINKS.map((item, idx) => (
                     <TouchableOpacity
@@ -243,6 +245,16 @@ export default function SideMenu({
               </>
             )}
 
+            {/* Language Toggle for everyone */}
+            <TouchableOpacity
+              onPress={toggleLanguage}
+              className="flex-row items-center py-4"
+            >
+              <Globe size={24} color={colors.foreground} />
+              <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                {language === 'en' ? t('switchHindi') : t('switchEnglish')}
+              </Text>
+            </TouchableOpacity>
 
             {/* Logout */}
             <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4 mt-4">
@@ -251,7 +263,7 @@ export default function SideMenu({
                 className="ml-4 text-lg font-medium"
                 style={{ color: "#ef4444" }}
               >
-                Logout
+                {t('logout')}
               </Text>
             </TouchableOpacity>
           </ScrollView>

@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useFinance from "../../hooks/useFinance";
@@ -105,6 +106,7 @@ export default function MiscTransactionsScreen() {
     }
     return [...rows].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, activeFilter]);
+  const showInitialSkeleton = loading && !refreshing && filteredTransactions.length === 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -124,16 +126,23 @@ export default function MiscTransactionsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* Summary Info */}
-        <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-          <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>INCOME</Text>
-            <Text style={{ color: colors.success, fontSize: 16, fontWeight: "800" }}>+Rs {summary.income.toLocaleString()}</Text>
+        {showInitialSkeleton ? (
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+            <Skeleton style={{ flex: 1, height: 74, borderRadius: 16 }} />
+            <Skeleton style={{ flex: 1, height: 74, borderRadius: 16 }} />
           </View>
-          <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>EXPENSE</Text>
-            <Text style={{ color: colors.destructive, fontSize: 16, fontWeight: "800" }}>-Rs {summary.expense.toLocaleString()}</Text>
+        ) : (
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+            <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.border }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>INCOME</Text>
+              <Text style={{ color: colors.success, fontSize: 16, fontWeight: "800" }}>+Rs {summary.income.toLocaleString()}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.border }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>EXPENSE</Text>
+              <Text style={{ color: colors.destructive, fontSize: 16, fontWeight: "800" }}>-Rs {summary.expense.toLocaleString()}</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Filter Pills */}
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
@@ -162,7 +171,15 @@ export default function MiscTransactionsScreen() {
           RECENT TRANSACTIONS
         </Text>
 
-        {filteredTransactions.map((item: any) => {
+        {showInitialSkeleton && (
+          <View>
+            {[1, 2, 3, 4].map((item) => (
+              <Skeleton key={item} width="100%" height={88} borderRadius={16} style={{ marginBottom: 12 }} />
+            ))}
+          </View>
+        )}
+
+        {!showInitialSkeleton && filteredTransactions.map((item: any) => {
           const isIncome = item.direction === "INCOME";
           return (
             <View

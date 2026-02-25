@@ -7,7 +7,6 @@ import {
   HelpCircle,
   Languages,
   LogOut,
-  Monitor,
   MonitorSmartphone,
   Moon,
   Palette,
@@ -18,6 +17,7 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
+  StatusBar,
   Switch,
   Text,
   TouchableOpacity,
@@ -25,15 +25,19 @@ import {
 } from "react-native";
 
 import { logout } from "../../hooks/useAuth";
+import { useTranslation } from "../../context/LanguageContext";
+
 import { useThemeStore } from "../../hooks/useThemeStore";
 
 const BIOMETRIC_KEY = "@user_biometric_enabled";
 
 export default function Settings() {
   const router = useRouter();
-  const { mode, setMode, colors, theme } = useThemeStore();
+  const { mode, setMode, colors } = useThemeStore();
+  const { t, language, setLanguage } = useTranslation();
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+  const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -72,49 +76,53 @@ export default function Settings() {
   };
 
   const THEME_OPTIONS = [
-    { id: "system", label: "System", icon: Monitor },
     { id: "light", label: "Light", icon: Sun },
     { id: "dark", label: "Dark", icon: Moon },
   ] as const;
 
   return (
-    <ScrollView className="flex-1 bg-background px-5 pt-10">
-      <Text className="text-3xl font-bold mb-6 text-foreground">Settings</Text>
+    <ScrollView className="flex-1 px-5 pt-10" style={{ backgroundColor: colors.background }}>
+      <StatusBar barStyle={mode === "dark" ? "light-content" : "dark-content"} />
+      <Text className="text-3xl font-bold mb-6" style={{ color: colors.foreground }}>{t('settings')}</Text>
 
       {/* ===================== ACCOUNT ===================== */}
-      <Text className="text-lg font-semibold text-foreground mb-3">Account</Text>
+      <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>{t('account')}</Text>
 
       {/* Plans & Pricing */}
       <TouchableOpacity
         onPress={() => Alert.alert("Coming Soon", "Plans and Pricing placeholder")}
-        className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
+        className="flex-row items-center justify-between p-4 rounded-xl mb-3 border"
+        style={{ backgroundColor: colors.card, borderColor: colors.border }}
       >
         <View className="flex-row items-center gap-2">
           <Wallet size={20} color={colors.primary} />
-          <Text className="text-foreground text-base">Plans & Pricing</Text>
+          <Text className="text-base" style={{ color: colors.foreground }}>{t('plansPricing')}</Text>
         </View>
       </TouchableOpacity>
 
 
 
       {/* ===================== APP PREFERENCES ===================== */}
-      <Text className="text-lg font-semibold text-foreground mb-3">
-        App Preferences
+      <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>
+        {t('appPreferences')}
       </Text>
 
       {/* Theme Trigger */}
-      <View className="bg-card p-5 rounded-2xl mb-4 border border-border/50">
+      <View
+        className="p-5 rounded-2xl mb-4 border"
+        style={{ backgroundColor: colors.card, borderColor: colors.border }}
+      >
         <View className="flex-row items-center gap-3 mb-6">
           <View className={`p-2 rounded-lg`}>
             <Palette size={20} color={colors.primary} />
           </View>
           <View>
-            <Text className="text-foreground font-bold text-base">Appearance</Text>
-            <Text className="text-muted-foreground text-xs">Customize your workspace</Text>
+            <Text className="font-bold text-base" style={{ color: colors.foreground }}>{t('appearance')}</Text>
+            <Text className="text-xs" style={{ color: colors.mutedForeground }}>{t('customizeWorkspace')}</Text>
           </View>
         </View>
 
-        <View className="flex-row bg-muted/30 p-1.5 rounded-2xl gap-1">
+        <View className="flex-row p-1.5 rounded-2xl gap-1" style={{ backgroundColor: colors.muted + '4D' }}>
           {THEME_OPTIONS.map((opt) => {
             const Icon = opt.icon;
             const isActive = mode === opt.id;
@@ -123,9 +131,9 @@ export default function Settings() {
               <TouchableOpacity
                 key={opt.id}
                 onPress={() => setMode(opt.id)}
-                className={`flex-1 flex-row items-center justify-center gap-2 py-3 rounded-xl ${isActive ? "bg-background" : "opacity-60"
-                  }`}
+                className={`flex-1 flex-row items-center justify-center gap-2 py-3 rounded-xl ${!isActive ? "opacity-60" : ""}`}
                 style={isActive ? {
+                  backgroundColor: colors.background,
                   shadowColor: "#000",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.1,
@@ -135,8 +143,8 @@ export default function Settings() {
               >
                 <Icon size={16} color={isActive ? colors.primary : colors.mutedForeground} />
                 <Text
-                  className={`font-bold text-xs uppercase tracking-tight ${isActive ? "text-foreground" : "text-muted-foreground"
-                    }`}
+                  className={`font-bold text-xs uppercase tracking-tight`}
+                  style={{ color: isActive ? colors.foreground : colors.mutedForeground }}
                 >
                   {opt.label}
                 </Text>
@@ -147,13 +155,15 @@ export default function Settings() {
       </View>
 
       {/* Biometric Authentication */}
-      {/* Biometric Authentication */}
       {isBiometricSupported && (
-        <View className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3">
+        <View
+          className="flex-row items-center justify-between p-4 rounded-xl mb-3 border"
+          style={{ backgroundColor: colors.card, borderColor: colors.border }}
+        >
           <View className="flex-row items-center gap-2">
             <Fingerprint size={20} color={colors.primary} />
-            <Text className="text-foreground text-base">
-              Biometric Login
+            <Text className="text-base" style={{ color: colors.foreground }}>
+              {t('biometricLogin')}
             </Text>
           </View>
           <Switch
@@ -167,35 +177,44 @@ export default function Settings() {
 
       {/* App Language */}
       <TouchableOpacity
-        onPress={() => Alert.alert("Coming Soon", "Language Selection placeholder")}
-        className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-3"
+        onPress={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+        className="flex-row items-center justify-between p-4 rounded-xl mb-3 border"
+        style={{ backgroundColor: colors.card, borderColor: colors.border }}
       >
         <View className="flex-row items-center gap-2">
           <Languages size={20} color={colors.primary} />
-          <Text className="text-foreground text-base">App Language</Text>
+          <Text className="text-base" style={{ color: colors.foreground }}>
+            {t('language')}: {language === 'en' ? 'English' : 'Hindi'}
+          </Text>
         </View>
+        <Text style={{ color: colors.primary, fontWeight: '500' }}>{t('changeLanguage')}</Text>
       </TouchableOpacity>
 
       {/* Notification Settings Toggle */}
-      <View className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-6">
-        <TouchableOpacity
-          onPress={() => router.push("/(stack)/notifications" as any)}
-          className="flex-row items-center gap-2 flex-1"
-        >
+      <View
+        className="flex-row items-center justify-between p-4 rounded-xl mb-6 border"
+        style={{ backgroundColor: colors.card, borderColor: colors.border }}
+      >
+        <View className="flex-row items-center gap-2 flex-1">
           <Bell size={20} color={colors.primary} />
           <View>
-            <Text className="text-foreground text-base">Push Notifications</Text>
-            <Text className="text-muted-foreground text-[10px]">Manage alerts & history</Text>
+            <Text className="text-base" style={{ color: colors.foreground }}>{t('pushNotifications')}</Text>
+            <TouchableOpacity onPress={() => router.push("/(stack)/notifications" as any)}>
+              <Text style={{ color: colors.primary, fontSize: 10 }}>{t('viewHistory')}</Text>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
         <Switch
-          value={true} // In a real app, this should track actual permission status or a user preference
-          onValueChange={() => {
-            Alert.alert(
-              "Notification Permissions",
-              "To change notification settings, please go to your device system settings.",
-              [{ text: "OK" }]
-            );
+          value={isNotificationsEnabled}
+          onValueChange={(val) => {
+            setIsNotificationsEnabled(val);
+            if (!val) {
+              Alert.alert(
+                "Notifications Disabled",
+                "You will no longer receive alerts for new trips and updates.",
+                [{ text: "OK" }]
+              );
+            }
           }}
           trackColor={{ false: colors.muted, true: colors.primary }}
           thumbColor="#f4f3f4"
@@ -203,30 +222,32 @@ export default function Settings() {
       </View>
 
       {/* ===================== DESKTOP ===================== */}
-      <Text className="text-lg font-semibold text-foreground mb-3">Desktop</Text>
+      <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>{t('desktop')}</Text>
 
       <TouchableOpacity
         onPress={() => router.push("https://trucksarthi.com")}
-        className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-8"
+        className="flex-row items-center justify-between p-4 rounded-xl mb-8 border"
+        style={{ backgroundColor: colors.card, borderColor: colors.border }}
       >
         <View className="flex-row items-center gap-2">
           <MonitorSmartphone size={20} color={colors.primary} />
-          <Text className="text-foreground text-base">
-            Use Trucksarthi on Desktop
+          <Text className="text-base" style={{ color: colors.foreground }}>
+            {t('useDesktop')}
           </Text>
         </View>
       </TouchableOpacity>
 
       {/* ===================== SUPPORT ===================== */}
-      <Text className="text-lg font-semibold text-foreground mb-3">Support</Text>
+      <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>{t('support')}</Text>
 
       <TouchableOpacity
         onPress={() => router.push("/(stack)/helpCenter")}
-        className="flex-row items-center justify-between bg-card p-4 rounded-xl mb-10"
+        className="flex-row items-center justify-between p-4 rounded-xl mb-10 border"
+        style={{ backgroundColor: colors.card, borderColor: colors.border }}
       >
         <View className="flex-row items-center gap-2">
           <HelpCircle size={20} color={colors.primary} />
-          <Text className="text-foreground text-base">Help Center</Text>
+          <Text className="text-base" style={{ color: colors.foreground }}>{t('helpCenter')}</Text>
         </View>
       </TouchableOpacity>
 
@@ -237,7 +258,7 @@ export default function Settings() {
         style={{ backgroundColor: colors.destructive }}
       >
         <LogOut size={20} color="#fff" />
-        <Text className="text-white font-semibold text-base ml-2">Logout</Text>
+        <Text className="text-white font-semibold text-base ml-2">{t('logout')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );

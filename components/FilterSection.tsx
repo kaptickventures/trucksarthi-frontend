@@ -4,10 +4,9 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
-import { THEME } from "../theme";
+import { useThemeStore } from "../hooks/useThemeStore";
 
 interface Props {
   filters: any;
@@ -39,8 +38,7 @@ export default function TripFilters({
   setShowDatePicker,
   formatDate,
 }: Props) {
-  const colorScheme = useColorScheme();
-  const t = THEME[colorScheme === "dark" ? "dark" : "light"];
+  const { colors: t } = useThemeStore();
 
   if (!showFilters) return null;
 

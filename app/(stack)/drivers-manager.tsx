@@ -182,17 +182,6 @@ export default function DriversManager() {
     ]);
   };
 
-  const handleShare = async (driver: any) => {
-    try {
-      const message = `Driver Details:\nName: ${driver.driver_name}\nContact: ${driver.contact_number}`;
-      await Share.share({
-        message,
-      });
-    } catch (error) {
-      Alert.alert("Error", "Could not share driver details.");
-    }
-  };
-
   if (loading && !user) {
     return (
       <View style={{ backgroundColor: colors.background, flex: 1, paddingHorizontal: 20, paddingTop: 10 }}>
@@ -231,7 +220,7 @@ export default function DriversManager() {
         }
       >
         {(drivers || []).length === 0 ? (
-          <Text className="text-center text-muted-foreground mt-10">
+          <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
             No drivers found.
           </Text>
         ) : (
@@ -249,9 +238,10 @@ export default function DriversManager() {
                     },
                   })
                 }
-                className="bg-card border border-border rounded-2xl p-4 mb-3 shadow-sm"
+                className="border rounded-2xl p-4 mb-3 shadow-sm"
+                style={{ backgroundColor: colors.card, borderColor: colors.border }}
               >
-                <View className="flex-row justify-between items-start">
+                <View className="flex-row justify-between items-start mb-2">
                   <View className="flex-1 mr-3">
                     <Text style={{ color: colors.foreground }} className="font-bold text-lg tracking-tight">
                       {driver.driver_name}
@@ -260,7 +250,8 @@ export default function DriversManager() {
                   <View className="flex-row gap-2">
                     <TouchableOpacity
                       onPress={(e) => { e.stopPropagation(); openModal(true, driver); }}
-                      className="w-10 h-10 bg-muted rounded-full items-center justify-center border border-border/20"
+                      className="w-10 h-10 rounded-full items-center justify-center border"
+                      style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
                     >
                       <Edit3 size={16} color={colors.foreground} />
                     </TouchableOpacity>

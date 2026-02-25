@@ -63,6 +63,7 @@ export default function useDriverFinance() {
     direction: LedgerDirection;
     amount: number;
     remarks: string;
+    tripId?: string;
   }) => {
     try {
       if (!data.remarks) {

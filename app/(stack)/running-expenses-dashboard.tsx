@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import QuickActionButton from "../../components/finance/QuickActionButton";
 import useFinance from "../../hooks/useFinance";
@@ -23,7 +24,7 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
 import { formatDate, formatLabel } from "../../lib/utils";
 
-const RUNNING_ACTIONS = ["FUEL", "FASTAG_RECHARGE", "CHALLAN"] as const;
+const RUNNING_ACTIONS = ["FUEL", "FASTAG", "CHALLAN"] as const;
 
 export default function RunningExpensesDashboardScreen() {
   const router = useRouter();
@@ -85,6 +86,7 @@ export default function RunningExpensesDashboardScreen() {
     () => truckRows.filter((t: any) => t?.transactionSubtype === "FUEL" || t?.category === "FUEL").reduce((sum: number, t: any) => sum + Number(t?.amount || 0), 0),
     [truckRows]
   );
+  const showInitialSkeleton = financeLoading && !refreshing && truckRows.length === 0;
 
   const onSave = async () => {
     if (!truckId) {
@@ -182,7 +184,7 @@ export default function RunningExpensesDashboardScreen() {
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }} contentContainerStyle={{ gap: 10 }}>
           {RUNNING_ACTIONS.map((action) => (
-            <QuickActionButton key={action} label={formatLabel(action)} onPress={() => openAddModal(action)} />
+            <QuickActionButton key={action} label={action === "FASTAG" ? "Fastag Recharge" : formatLabel(action)} onPress={() => openAddModal(action)} />
           ))}
         </ScrollView>
 
@@ -191,13 +193,21 @@ export default function RunningExpensesDashboardScreen() {
           EXPENSE HISTORY
         </Text>
 
+        {showInitialSkeleton && (
+          <View>
+            {[1, 2, 3].map((item) => (
+              <Skeleton key={item} width="100%" height={86} borderRadius={16} style={{ marginBottom: 12 }} />
+            ))}
+          </View>
+        )}
+
         {truckRows.length === 0 && !financeLoading && (
           <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 30, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
             <Text style={{ color: colors.mutedForeground }}>No expenses found for this month.</Text>
           </View>
         )}
 
-        {truckRows.map((item: any) => {
+        {!showInitialSkeleton && truckRows.map((item: any) => {
           const type = String(item.transactionSubtype || item.category || "Expense").toUpperCase();
           const isFuel = type === "FUEL";
 
@@ -299,7 +309,9 @@ export default function RunningExpensesDashboardScreen() {
                       alignItems: "center",
                     }}
                   >
-                    <Text style={{ color: expenseCategory === cat ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>{formatLabel(cat)}</Text>
+                    <Text style={{ color: expenseCategory === cat ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>
+                      {cat === "FASTAG" ? "Fastag" : formatLabel(cat)}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
