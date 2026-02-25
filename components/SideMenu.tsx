@@ -50,11 +50,21 @@ export default function SideMenu({
   ] as const;
 
   const MANAGER_LINKS = [
-    { title: t('financeHub'), icon: "wallet-outline", route: "/(stack)/finance" as const },
     { title: t('trucks'), icon: "bus-outline", route: "/(stack)/trucks-manager" as const },
     { title: t('drivers'), icon: "person-add-outline", route: "/(stack)/drivers-manager" as const },
     { title: t('clients'), icon: "people-outline", route: "/(stack)/clients-manager" as const },
     { title: t('locations'), icon: "location-outline", route: "/(stack)/locations-manager" as const },
+  ] as const;
+
+  const FINANCE_LINKS = [
+    { title: t('financeHub'), icon: "wallet-outline", route: "/(stack)/finance" as const },
+    { title: "P&L Reports", icon: "stats-chart-outline", route: "/(stack)/pl-reports" as const },
+    { title: t('transactions'), icon: "list-outline", route: "/(stack)/transactions" as const },
+    { title: t('driverKhata'), icon: "people-outline", route: "/(stack)/driver-ledger" as const },
+    { title: t('clientKhata'), icon: "business-outline", route: "/(stack)/client-ledger" as const },
+    { title: t('runningExpenses'), icon: "speedometer-outline", route: "/(stack)/running-expenses" as const },
+    { title: t('maintenanceKhata'), icon: "construct-outline", route: "/(stack)/maintenance-khata" as const },
+    { title: t('miscTransactions'), icon: "apps-outline", route: "/(stack)/misc-transactions" as const },
   ] as const;
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
@@ -224,8 +234,27 @@ export default function SideMenu({
                   </TouchableOpacity>
                 ))}
 
-                {/* MANAGER SECTION */}
+                {/* FINANCE SECTION */}
                 <View className="mt-8 mb-6">
+                  <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
+                    FINANCE
+                  </Text>
+                  {FINANCE_LINKS.map((item, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      onPress={() => navigate(item.route)}
+                      className="flex-row items-center py-4"
+                    >
+                      {renderIcon(item.icon)}
+                      <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                        {item.title}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* MANAGER SECTION */}
+                <View className="mb-6">
                   <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
                     {t('manager')}
                   </Text>

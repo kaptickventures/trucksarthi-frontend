@@ -1,9 +1,11 @@
 import { useRouter } from 'expo-router';
-import { ChevronRight, Globe, LogOut, Moon, Sun, User } from 'lucide-react-native';
+import { ChevronRight, Globe, LogOut, Moon, Sun, User, Bell } from 'lucide-react-native';
 import { ScrollView, Switch, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { useDriverAppContext } from '../../context/DriverAppContext';
 import { logout } from '../../hooks/useAuth';
 import { useThemeStore } from '../../hooks/useThemeStore';
+import { useUser } from '../../hooks/useUser';
+import { useEffect, useState } from 'react';
 import { translations } from '../../constants/driver/translations';
 import DriverScreenHeader from '../../components/driver/DriverScreenHeader';
 
@@ -11,6 +13,14 @@ export default function DriverSettings() {
     const router = useRouter();
     const { theme, setMode, colors } = useThemeStore();
     const { language, setLanguage } = useDriverAppContext();
+    const { user, updateUser } = useUser();
+    const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
+
+    useEffect(() => {
+        if (user) {
+            setIsNotificationsEnabled(user.has_notifications_allowed ?? true);
+        }
+    }, [user]);
     const isDark = theme === 'dark';
     const t = translations[language];
 
@@ -99,6 +109,29 @@ export default function DriverSettings() {
                                 onValueChange={(value) => setMode(value ? 'dark' : 'light')}
                                 trackColor={{ false: '#767577', true: colors.primary }}
                                 thumbColor={isDark ? '#fff' : '#f4f3f4'}
+                            />
+                        }
+                    />
+
+                    <SettingItem
+                        icon={Bell}
+                        label={t.pushNotifications || "Push Notifications"}
+                        rightElement={
+                            <Switch
+                                value={isNotificationsEnabled}
+                                onValueChange={async (val) => {
+                                    setIsNotificationsEnabled(val);
+                                    if (user) updateUser({ has_notifications_allowed: val }).catch(e => console.error("failed sync"));
+                                    if (!val) {
+                                        Alert.alert(
+                                            "Notifications Disabled",
+                                            "You will no longer receive alerts for new trips and updates.",
+                                            [{ text: "OK" }]
+                                        );
+                                    }
+                                }}
+                                trackColor={{ false: '#767577', true: colors.primary }}
+                                thumbColor={isNotificationsEnabled ? '#fff' : '#f4f3f4'}
                             />
                         }
                     />

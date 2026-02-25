@@ -16,11 +16,13 @@ import API from "../api/axiosInstance";
 import useTruckDocuments from "../../hooks/useTruckDocuments";
 import useTrucks from "../../hooks/useTruck";
 import { formatDate } from "../../lib/utils";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function NotificationsScreen() {
   const navigation = useNavigation();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,13 +69,13 @@ export default function NotificationsScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: "Notifications",
+      headerTitle: t("notifications"),
       headerTitleAlign: "center",
       headerStyle: { backgroundColor },
       headerTitleStyle: { color: foregroundColor, fontWeight: "600" },
       headerTintColor: foregroundColor,
     });
-  }, [backgroundColor, foregroundColor, navigation]);
+  }, [backgroundColor, foregroundColor, navigation, t]);
 
   const fetchNotifications = async () => {
     try {
@@ -126,7 +128,7 @@ export default function NotificationsScreen() {
     const diffInHours = Math.floor(diffInMin / 60);
     const diffInDays = Math.floor(diffInHours / 24);
 
-    if (diffInMin < 1) return "Just now";
+    if (diffInMin < 1) return t("justNow");
     if (diffInMin < 60) return `${diffInMin}m ago`;
     if (diffInHours < 24) return `${diffInHours}h ago`;
     return `${diffInDays}d ago`;
@@ -153,7 +155,7 @@ export default function NotificationsScreen() {
               color={emptyIconColor}
             />
             <Text className="text-lg font-medium mt-4" style={{ color: colors.mutedForeground }}>
-              No notifications found
+              {t("noNotificationsFound")}
             </Text>
           </View>
         ) : (
@@ -184,7 +186,7 @@ export default function NotificationsScreen() {
                   </Text>
                   {n.status === "SCHEDULED" && (
                     <View className="bg-amber-100 px-2 py-0.5 rounded-full">
-                      <Text className="text-amber-700 text-[10px] font-black uppercase">Pending</Text>
+                      <Text className="text-amber-700 text-[10px] font-black uppercase">{t("pending")}</Text>
                     </View>
                   )}
                 </View>
@@ -209,3 +211,4 @@ export default function NotificationsScreen() {
     </View>
   );
 }
+

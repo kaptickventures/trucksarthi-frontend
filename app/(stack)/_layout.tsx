@@ -120,6 +120,11 @@ export default function StackLayout() {
           <Stack.Screen name="documents-manager" options={{ title: "Documents" }} />
           <Stack.Screen name="document-details" options={{ title: "Document Details", headerShown: false }} />
           <Stack.Screen name="finance" options={{ title: "Finance Hub" }} />
+          <Stack.Screen name="pl-reports" options={{ title: "P&L Reports", headerShown: false }} />
+          <Stack.Screen name="pl-client-report" options={{ title: "Client Khata Report", headerShown: false }} />
+          <Stack.Screen name="pl-driver-report" options={{ title: "Driver Khata Report", headerShown: false }} />
+          <Stack.Screen name="pl-truck-report" options={{ title: "Truck Report", headerShown: false }} />
+          <Stack.Screen name="pl-misc-report" options={{ title: "Misc Report", headerShown: false }} />
           <Stack.Screen name="transactions" options={{ title: "Transactions", headerShown: false }} />
           <Stack.Screen name="expense-manager" options={{ title: "Expense Manager", headerShown: false }} />
           <Stack.Screen name="running-expenses" options={{ title: "Running Expenses", headerShown: false }} />

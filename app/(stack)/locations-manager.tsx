@@ -16,6 +16,7 @@ import { Skeleton } from "../../components/Skeleton";
 import useLocations from "../../hooks/useLocation";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function LocationsManager() {
   const { user, loading: userLoading } = useUser();
@@ -32,6 +33,7 @@ export default function LocationsManager() {
   const loading = userLoading || locationsLoading;
 
   const { theme, colors } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -80,30 +82,30 @@ export default function LocationsManager() {
 
   const handleSubmit = async () => {
     if (!formData.location_name) {
-      Alert.alert("⚠️ Missing Fields", "Location title is required.");
+      Alert.alert(t("missingFields"), "Location title is required.");
       return;
     }
 
     try {
       if (editingId) {
         await updateLocation(editingId, formData);
-        Alert.alert("Success", "Location updated successfully.");
+        Alert.alert(t("success"), `Location ${t("updatedSuccessfully")}`);
       } else {
         await addLocation(formData);
-        Alert.alert("Success", "Location added successfully.");
+        Alert.alert(t("success"), `Location ${t("addedSuccessfully")}`);
       }
       fetchLocations();
       closeModal();
     } catch (e) {
-      Alert.alert("Error", "Failed to save location.");
+      Alert.alert(t("error"), "Failed to save location.");
     }
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Confirm Delete", "Delete this location?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("confirmDelete"), "Delete this location?", [
+      { text: t("cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("delete"),
         style: "destructive",
         onPress: async () => {
           await deleteLocation(id);
@@ -151,7 +153,7 @@ export default function LocationsManager() {
       >
         {locations.length === 0 ? (
           <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
-            No locations found.
+            {t("noLocationsFound")}
           </Text>
         ) : (
           locations.map((loc) => (
@@ -185,7 +187,7 @@ export default function LocationsManager() {
               </View>
 
               <View className="gap-y-1">
-                <Text style={{ color: colors.mutedForeground }} className="text-sm font-medium">📍 {loc.complete_address}</Text>
+                <Text style={{ color: colors.mutedForeground }} className="text-sm font-medium">Address: {loc.complete_address}</Text>
               </View>
             </View>
           ))
@@ -219,3 +221,7 @@ export default function LocationsManager() {
     </SafeAreaView>
   );
 }
+
+
+
+

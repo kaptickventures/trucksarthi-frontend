@@ -38,6 +38,7 @@ export interface User {
   is_gstin_verified?: boolean;
   is_pan_verified?: boolean;
   is_bank_verified?: boolean;
+  has_notifications_allowed?: boolean;
   kyc_data?: {
     pan_details?: any;
     gstin_details?: any;
@@ -221,6 +222,7 @@ export interface Client {
 
   alternate_contact_number?: string;
   office_address?: string;
+  gstin?: string;
   createdAt?: ISODate;
   updatedAt?: ISODate;
 }

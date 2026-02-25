@@ -227,10 +227,22 @@ export default function TruckProfile() {
   const importantDateItems = useMemo(() => {
     if (!truck) return [];
     return [
-      { label: "Insurance Expiry", date: truck.insurance_upto },
-      { label: "Fitness Expiry", date: truck.fitness_upto },
-      { label: "Permit Expiry", date: truck.permit_upto },
-      { label: "PUCC Expiry", date: truck.pollution_upto },
+      {
+        label: "Insurance Expiry",
+        date: truck.insurance_upto || toIsoDate(truck.rc_details?.vehicle_insurance_upto),
+      },
+      {
+        label: "Fitness Expiry",
+        date: truck.fitness_upto || toIsoDate(truck.rc_details?.rc_expiry_date),
+      },
+      {
+        label: "Permit Expiry",
+        date: truck.permit_upto || toIsoDate(truck.rc_details?.permit_valid_upto),
+      },
+      {
+        label: "PUCC Expiry",
+        date: truck.pollution_upto || toIsoDate(truck.rc_details?.pucc_upto),
+      },
     ].filter((item) => normalizeDisplayValue(item.date));
   }, [truck]);
   const moreDetailsEntries = useMemo(() => {

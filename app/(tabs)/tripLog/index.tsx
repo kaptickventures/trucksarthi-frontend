@@ -218,7 +218,7 @@ export default function TripLog() {
       let dateRangeText = "";
 
       if (filters.startDate && filters.endDate) {
-        dateRangeText = `Date Range: ${fmt(filters.startDate)} → ${fmt(filters.endDate)}`;
+        dateRangeText = `Date Range: ${fmt(filters.startDate)} -> ${fmt(filters.endDate)}`;
       } else if (filters.startDate) {
         dateRangeText = `Date Range: From ${fmt(filters.startDate)}`;
       } else if (filters.endDate) {
@@ -266,9 +266,9 @@ export default function TripLog() {
     <div class="card">
       <div class="card-top">
         <div>${t.trip_date ? fmt(new Date(t.trip_date)) : "No Date"}</div>
-        <div>₹${total.toLocaleString()}</div>
+        <div>Rs ${total.toLocaleString()}</div>
       </div>
-      <div class="route">Route: ${getLocationName(t.start_location)} → ${getLocationName(t.end_location)}</div>
+      <div class="route">Route: ${getLocationName(t.start_location)} -> ${getLocationName(t.end_location)}</div>
       <div class="meta-row">
         <div class="meta-col"><div class="label">TRUCK</div><div class="value">${getTruckReg(
               t.truck
@@ -281,8 +281,8 @@ export default function TripLog() {
             )}</div></div>
       </div>
       <div class="cost-row">
-        <div><div class="label">TRIP COST</div><div class="value">₹${Number(t.cost_of_trip).toLocaleString()}</div></div>
-        <div><div class="label">MISC EXPENSE</div><div class="value">₹${Number(t.miscellaneous_expense).toLocaleString()}</div></div>
+        <div><div class="label">TRIP COST</div><div class="value">Rs ${Number(t.cost_of_trip).toLocaleString()}</div></div>
+        <div><div class="label">MISC EXPENSE</div><div class="value">Rs ${Number(t.miscellaneous_expense).toLocaleString()}</div></div>
       </div>
       ${t.notes ? `<div class="notes">Notes: ${t.notes}</div>` : ""}
     </div>
@@ -298,7 +298,7 @@ export default function TripLog() {
       await Sharing.shareAsync(newUri);
     } catch (err) {
       console.log(err);
-      Alert.alert("Error", "PDF creation failed.");
+      Alert.alert(t("error"), "PDF creation failed.");
     }
   };
 
@@ -356,7 +356,7 @@ export default function TripLog() {
       >
         <View className="mb-6 px-5 mt-5">
           <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('tripLog')}</Text>
-          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Track and manage your history</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t("trackManageHistory")}</Text>
         </View>
 
         <View style={{ marginHorizontal: 12, marginTop: 12, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -376,7 +376,7 @@ export default function TripLog() {
             }}
           >
             <Ionicons name="filter" size={18} color={isDark ? "#4ADE80" : "#25D366"} />
-            <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#86EFAC" : "#128C7E" }}>Filters</Text>
+            <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#86EFAC" : "#128C7E" }}>{t("filters")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -395,7 +395,7 @@ export default function TripLog() {
             }}
           >
             <Ionicons name="download-outline" size={18} color={isDark ? "#93C5FD" : "#2563EB"} />
-            <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#BFDBFE" : "#1D4ED8" }}>PDF</Text>
+            <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#BFDBFE" : "#1D4ED8" }}>{t("pdf")}</Text>
           </TouchableOpacity>
         </View >
 
@@ -419,8 +419,8 @@ export default function TripLog() {
           className="mx-3 mt-1 mb-6 p-4 rounded-2xl shadow-sm border"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
-          <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>{sortedTrips.length} trips found</Text>
-          <Text className="text-3xl font-extrabold mt-1" style={{ color: colors.primary }}>₹{sortedTrips.reduce((acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense), 0).toLocaleString()}</Text>
+          <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>{sortedTrips.length} {t("tripsFoundCount")}</Text>
+          <Text className="text-3xl font-extrabold mt-1" style={{ color: colors.primary }}>Rs {sortedTrips.reduce((acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense), 0).toLocaleString()}</Text>
         </View>
 
         {
@@ -438,30 +438,34 @@ export default function TripLog() {
                     style={{ backgroundColor: colors.card, borderColor: colors.border }}
                   >
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                      <Text style={{ color: colors.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : "No Date"}</Text>
-                      <Text style={{ fontSize: 22, fontWeight: "800", color: colors.primary }}>{`₹${totalCost.toLocaleString()}`}</Text>
+                      <Text style={{ color: colors.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : t("noDate")}</Text>
+                      <Text style={{ fontSize: 22, fontWeight: "800", color: colors.primary }}>{`Rs ${totalCost.toLocaleString()}`}</Text>
                     </View>
-                    <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground, marginBottom: 10 }}>{getLocationName(trip.start_location)} → {getLocationName(trip.end_location)}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground, marginBottom: 10 }}>
+                      {getLocationName(trip.start_location)}
+                      {" -> "}
+                      {getLocationName(trip.end_location)}
+                    </Text>
                     <View style={{ marginBottom: 12 }}>
-                      <Text style={{ color: colors.foreground, marginBottom: 4 }}>🏢 {getClientName(trip.client)}</Text>
-                      <Text style={{ color: colors.foreground, marginBottom: 4 }}>🚚 {getTruckReg(trip.truck)}</Text>
-                      <Text style={{ color: colors.foreground }}>👤 {getDriverName(trip.driver)}</Text>
+                      <Text style={{ color: colors.foreground, marginBottom: 4 }}>Client: {getClientName(trip.client)}</Text>
+                      <Text style={{ color: colors.foreground, marginBottom: 4 }}>Truck: {getTruckReg(trip.truck)}</Text>
+                      <Text style={{ color: colors.foreground }}>Driver: {getDriverName(trip.driver)}</Text>
                     </View>
                     <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 12 }} />
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                      <Text style={{ color: colors.mutedForeground }}>Trip Cost: ₹{Number(trip.cost_of_trip).toLocaleString()}</Text>
-                      <Text style={{ color: colors.mutedForeground }}>Misc: ₹{Number(trip.miscellaneous_expense).toLocaleString()}</Text>
+                      <Text style={{ color: colors.mutedForeground }}>Trip Cost: Rs {Number(trip.cost_of_trip).toLocaleString()}</Text>
+                      <Text style={{ color: colors.mutedForeground }}>Misc: Rs {Number(trip.miscellaneous_expense).toLocaleString()}</Text>
                     </View>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
-                      {trip.notes ? <Text style={{ fontStyle: "italic", color: colors.mutedForeground }}>📝 {trip.notes}</Text> : <View />}
+                      {trip.notes ? <Text style={{ fontStyle: "italic", color: colors.mutedForeground }}>Notes: {trip.notes}</Text> : <View />}
                       <View style={{ flexDirection: "row" }}>
                         <TouchableOpacity onPress={() => { setSelectedTrip(trip); setEditVisible(true); }} style={{ padding: 8, marginRight: 8 }}>
                           <Edit3 size={22} color="#2563EB" />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => {
-                          Alert.alert("Delete", "Delete this trip?", [
-                            { text: "Cancel", style: "cancel" },
-                            { text: "Delete", style: "destructive", onPress: async () => { await deleteTrip(trip._id); fetchTrips(); } },
+                          Alert.alert(t("delete"), t("deleteTripQuestion"), [
+                            { text: t("cancel"), style: "cancel" },
+                            { text: t("delete"), style: "destructive", onPress: async () => { await deleteTrip(trip._id); fetchTrips(); } },
                           ]);
                         }} style={{ padding: 8 }}>
                           <Trash2 size={22} color="#ef4444" />
@@ -490,3 +494,4 @@ export default function TripLog() {
     </View >
   );
 }
+

@@ -21,6 +21,7 @@ import { Skeleton } from "../../components/Skeleton";
 import useClients from "../../hooks/useClient";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function ClientsManager() {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function ClientsManager() {
   const loading = userLoading || clientsLoading;
 
   const { theme, colors } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -118,37 +120,37 @@ export default function ClientsManager() {
     const missingFields = REQUIRED_FIELDS.filter(f => !String(formData[f as keyof typeof formData] || "").trim());
     if (missingFields.length > 0) {
       const labels = missingFields.map(f => f.replaceAll("_", " ").toUpperCase());
-      Alert.alert("⚠️ Missing Fields", `Please fill the following required fields:\n\n• ${labels.join("\n• ")}`);
+      Alert.alert(t("missingFields"), `Please fill the following required fields:\n\n• ${labels.join("\n• ")}`);
       return;
     }
 
     const email = formData.email_address.trim();
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (email && !emailPattern.test(email)) {
-      Alert.alert("Invalid Email", "Please enter a valid client email address.");
+      Alert.alert(t("error"), "Please enter a valid client email address.");
       return;
     }
 
     try {
       if (editingId) {
         await updateClient(editingId, { ...formData, email_address: email });
-        Alert.alert("Success", "Client updated successfully.");
+        Alert.alert(t("success"), `Client ${t("updatedSuccessfully")}`);
       } else {
         await addClient({ ...formData, email_address: email });
-        Alert.alert("Success", "Client added successfully.");
+        Alert.alert(t("success"), `Client ${t("addedSuccessfully")}`);
       }
       closeModal();
       fetchClients();
     } catch {
-      Alert.alert("Error", "Failed to save client.");
+      Alert.alert(t("error"), "Failed to save client.");
     }
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Confirm Delete", "Delete this client?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("confirmDelete"), "Delete this client?", [
+      { text: t("cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("delete"),
         style: "destructive",
         onPress: async () => {
           await deleteClient(id);
@@ -197,7 +199,7 @@ export default function ClientsManager() {
       >
         {clients.length === 0 ? (
           <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
-            No clients found.
+            {t("noClientsFound")}
           </Text>
         ) : (
           clients.map((client) => (
@@ -248,8 +250,8 @@ export default function ClientsManager() {
               </View>
 
               <View className="gap-y-1">
-                <Text style={{ color: colors.foreground }} className="text-sm font-medium">📞 {client.contact_number}</Text>
-                <Text style={{ color: colors.foreground }} className="text-sm font-medium" numberOfLines={1}>📍 {client.office_address || "Address N/A"}</Text>
+                <Text style={{ color: colors.foreground }} className="text-sm font-medium">Phone: {client.contact_number}</Text>
+                <Text style={{ color: colors.foreground }} className="text-sm font-medium" numberOfLines={1}>Address: {client.office_address || "N/A"}</Text>
               </View>
             </TouchableOpacity>
           ))
@@ -292,3 +294,7 @@ export default function ClientsManager() {
     </SafeAreaView>
   );
 }
+
+
+
+

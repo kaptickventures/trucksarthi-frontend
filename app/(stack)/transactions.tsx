@@ -78,8 +78,9 @@ export default function TransactionsScreen() {
   const filteredTransactions = useMemo(() => {
     const base = (transactions || []).filter((item: any) => {
       const sourceModule = String(item?.sourceModule || "").toUpperCase();
+      const category = String(item?.category || "").toUpperCase();
       // Exclude driver-side spend entries from the global view — only show owner-to-driver payments
-      if (sourceModule === "DRIVER_KHATA" && item.direction === "EXPENSE") return false;
+      if (sourceModule === "DRIVER_KHATA" && category !== "OWNER_TO_DRIVER") return false;
       return true;
     });
 

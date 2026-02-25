@@ -1,17 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { CheckCircle, ShieldCheck, XCircle, Loader2, CreditCard, Building2 } from "lucide-react-native";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    ScrollView,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import "../../global.css";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
@@ -19,17 +19,22 @@ import { useKYC } from "../../hooks/useKYC";
 
 export default function KYCVerification() {
     const router = useRouter();
+    const params = useLocalSearchParams<{ tab?: "pan" | "gstin" | "bank" }>();
     const { colors } = useThemeStore();
     const { user, refreshUser, updateUser } = useUser();
     const { verifyPAN, verifyGSTIN, verifyBank, loading: kycLoading } = useKYC();
 
-    const [pan, setPan] = useState(user?.pan_number || "");
-    const [gstin, setGstin] = useState(user?.gstin || "");
-    const [bankAccount, setBankAccount] = useState(user?.account_number || "");
-    const [ifsc, setIfsc] = useState(user?.ifsc_code || "");
-    const [activeTab, setActiveTab] = useState<"pan" | "gstin" | "bank">("pan");
+    const [pan, setPan] = useState("");
+    const [gstin, setGstin] = useState("");
+    const [bankAccount, setBankAccount] = useState("");
+    const [ifsc, setIfsc] = useState("");
+    const [activeTab, setActiveTab] = useState<"pan" | "gstin" | "bank">(params.tab || "pan");
 
     const [isVerifying, setIsVerifying] = useState(false);
+
+    const isPanVerifiedNow = user?.is_pan_verified && (!pan || pan === user?.pan_number);
+    const isGstinVerifiedNow = user?.is_gstin_verified && (!gstin || gstin === user?.gstin);
+    const isBankVerifiedNow = user?.is_bank_verified && (!bankAccount || bankAccount === user?.account_number) && (!ifsc || ifsc === user?.ifsc_code);
 
     const VerifiedValue = ({ label, value }: { label: string; value?: string }) => {
         if (!value) return null;
@@ -61,7 +66,10 @@ export default function KYCVerification() {
                         {
                             text: "No",
                             style: "cancel",
-                            onPress: () => refreshUser()
+                            onPress: () => {
+                                setPan("");
+                                refreshUser();
+                            }
                         },
                         {
                             text: "Yes, Save Details",
@@ -72,6 +80,7 @@ export default function KYCVerification() {
                                         name_as_on_pan: verifiedName
                                     });
                                     Alert.alert("Success", "Profile updated successfully!");
+                                    setPan("");
                                     refreshUser();
                                 } catch (err) {
                                     Alert.alert("Error", "Verified but could not update profile.");
@@ -107,7 +116,7 @@ export default function KYCVerification() {
                     "Verification Successful",
                     `GSTIN verified for ${legalName || gstin}. Save this business to your profile?`,
                     [
-                        { text: "No", style: "cancel", onPress: () => refreshUser() },
+                        { text: "No", style: "cancel", onPress: () => { setGstin(""); refreshUser(); } },
                         {
                             text: "Yes, Save",
                             onPress: async () => {
@@ -123,6 +132,7 @@ export default function KYCVerification() {
                                         }
                                     });
                                     Alert.alert("Success", "Business profile updated!");
+                                    setGstin("");
                                     refreshUser();
                                 } catch (err) {
                                     Alert.alert("Error", "Verified but failed to update profile.");
@@ -154,7 +164,7 @@ export default function KYCVerification() {
                     "Verification Successful",
                     `Account verified for ${nameAtBank}. Save to your profile?`,
                     [
-                        { text: "No", style: "cancel", onPress: () => refreshUser() },
+                        { text: "No", style: "cancel", onPress: () => { setBankAccount(""); setIfsc(""); refreshUser(); } },
                         {
                             text: "Yes, Save",
                             onPress: async () => {
@@ -164,6 +174,8 @@ export default function KYCVerification() {
                                         ifsc_code: ifsc
                                     });
                                     Alert.alert("Success", "Bank details updated!");
+                                    setBankAccount("");
+                                    setIfsc("");
                                     refreshUser();
                                 } catch (err) {
                                     Alert.alert("Error", "Verified but failed to update profile.");
@@ -194,14 +206,16 @@ export default function KYCVerification() {
                     <Text style={{ fontSize: 20, fontWeight: '700', color: colors.foreground }}>KYC Verification</Text>
                 </View>
 
-                <ScrollView contentContainerStyle={{ padding: 24 }}>
-                    <View style={{ backgroundColor: colors.primary + '10', padding: 20, borderRadius: 16, marginBottom: 24, flexDirection: 'row', gap: 15, alignItems: 'center' }}>
-                        <ShieldCheck size={32} color={colors.primary} />
-                        <View style={{ flex: 1 }}>
-                            <Text style={{ color: colors.foreground, fontWeight: 'bold', fontSize: 16 }}>Complete Your KYC</Text>
-                            <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>Verify your identity to unlock all features and ensure secure payouts.</Text>
+                <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={60} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
+                    {!(user?.is_pan_verified && user?.is_bank_verified) && (
+                        <View style={{ backgroundColor: colors.primary + '10', padding: 20, borderRadius: 16, marginBottom: 24, flexDirection: 'row', gap: 15, alignItems: 'center' }}>
+                            <ShieldCheck size={32} color={colors.primary} />
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ color: colors.foreground, fontWeight: 'bold', fontSize: 16 }}>Complete Your KYC</Text>
+                                <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>Verify your identity to unlock all features and ensure secure payouts.</Text>
+                            </View>
                         </View>
-                    </View>
+                    )}
 
                     {/* Tabs */}
                     <View style={{ flexDirection: 'row', backgroundColor: colors.card, padding: 4, borderRadius: 12, marginBottom: 24 }}>
@@ -231,7 +245,7 @@ export default function KYCVerification() {
                             <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                                     <CreditCard size={24} color={colors.primary} />
-                                    {user?.is_pan_verified ? (
+                                    {isPanVerifiedNow ? (
                                         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
                                             <CheckCircle size={14} color="#16a34a" />
                                             <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
@@ -253,23 +267,22 @@ export default function KYCVerification() {
                                     <View>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                                             <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>PAN Number</Text>
-                                            {user?.is_pan_verified && <CheckCircle size={14} color="#16a34a" />}
+                                            {isPanVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
                                         </View>
                                         <TextInput
                                             value={pan}
                                             onChangeText={setPan}
-                                            placeholder="ABCDE1234F"
+                                            placeholder={user?.pan_number || "ABCDE1234F"}
                                             placeholderTextColor={colors.mutedForeground}
                                             autoCapitalize="characters"
                                             maxLength={10}
-                                            editable={!user?.is_pan_verified}
                                             style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                         />
                                         <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 6, fontStyle: 'italic' }}>Name will be auto-fetched from PAN verification</Text>
                                     </View>
                                 </View>
 
-                                {!user?.is_pan_verified && (
+                                {!isPanVerifiedNow && (
                                     <TouchableOpacity
                                         onPress={handleVerifyPAN}
                                         disabled={isVerifying}
@@ -290,7 +303,7 @@ export default function KYCVerification() {
                                 )}
                             </View>
 
-                            {user?.is_pan_verified && user.kyc_data?.pan_details && (
+                            {isPanVerifiedNow && user.kyc_data?.pan_details && (
                                 <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
                                     <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Details:</Text>
                                     <VerifiedValue label="Registered Name" value={user.kyc_data.pan_details.registered_name} />
@@ -306,7 +319,7 @@ export default function KYCVerification() {
                             <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                                     <Building2 size={24} color={colors.primary} />
-                                    {user?.is_gstin_verified ? (
+                                    {isGstinVerifiedNow ? (
                                         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
                                             <CheckCircle size={14} color="#16a34a" />
                                             <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
@@ -323,21 +336,20 @@ export default function KYCVerification() {
                                     <View>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                                             <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>GSTIN</Text>
-                                            {user?.is_gstin_verified && <CheckCircle size={14} color="#16a34a" />}
+                                            {isGstinVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
                                         </View>
                                         <TextInput
                                             value={gstin}
                                             onChangeText={setGstin}
-                                            placeholder="29AAICP2912R1ZR"
+                                            placeholder={user?.gstin || "29AAICP2912R1ZR"}
                                             placeholderTextColor={colors.mutedForeground}
                                             autoCapitalize="characters"
-                                            editable={!user?.is_gstin_verified}
                                             style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                         />
                                     </View>
                                 </View>
 
-                                {!user?.is_gstin_verified && (
+                                {!isGstinVerifiedNow && (
                                     <TouchableOpacity
                                         onPress={handleVerifyGSTIN}
                                         disabled={kycLoading}
@@ -353,7 +365,7 @@ export default function KYCVerification() {
                                 )}
                             </View>
 
-                            {user?.is_gstin_verified && user.kyc_data?.gstin_details && (
+                            {isGstinVerifiedNow && user.kyc_data?.gstin_details && (
                                 <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
                                     <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Business Details:</Text>
                                     <VerifiedValue label="Legal Name" value={user.kyc_data.gstin_details.legal_name_of_business} />
@@ -372,7 +384,7 @@ export default function KYCVerification() {
                             <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                                     <Building2 size={24} color={colors.primary} />
-                                    {user?.is_bank_verified ? (
+                                    {isBankVerifiedNow ? (
                                         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
                                             <CheckCircle size={14} color="#16a34a" />
                                             <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
@@ -389,36 +401,34 @@ export default function KYCVerification() {
                                     <View>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                                             <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>Account Number</Text>
-                                            {user?.is_bank_verified && <CheckCircle size={14} color="#16a34a" />}
+                                            {isBankVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
                                         </View>
                                         <TextInput
                                             value={bankAccount}
                                             onChangeText={setBankAccount}
-                                            placeholder="Enter Account Number"
+                                            placeholder={user?.account_number || "Enter Account Number"}
                                             placeholderTextColor={colors.mutedForeground}
                                             keyboardType="numeric"
-                                            editable={!user?.is_bank_verified}
                                             style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                         />
                                     </View>
                                     <View>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                                             <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>IFSC Code</Text>
-                                            {user?.is_bank_verified && <CheckCircle size={14} color="#16a34a" />}
+                                            {isBankVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
                                         </View>
                                         <TextInput
                                             value={ifsc}
                                             onChangeText={setIfsc}
-                                            placeholder="HDFC0001234"
+                                            placeholder={user?.ifsc_code || "HDFC0001234"}
                                             placeholderTextColor={colors.mutedForeground}
                                             autoCapitalize="characters"
-                                            editable={!user?.is_bank_verified}
                                             style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                         />
                                     </View>
                                 </View>
 
-                                {!user?.is_bank_verified && (
+                                {!isBankVerifiedNow && (
                                     <TouchableOpacity
                                         onPress={handleVerifyBank}
                                         disabled={isVerifying}
@@ -434,7 +444,7 @@ export default function KYCVerification() {
                                 )}
                             </View>
 
-                            {user?.is_bank_verified && user.kyc_data?.bank_details && (
+                            {isBankVerifiedNow && user.kyc_data?.bank_details && (
                                 <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
                                     <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Bank Details:</Text>
                                     <VerifiedValue label="Beneficiary" value={user.kyc_data.bank_details.name_at_bank} />
@@ -444,7 +454,7 @@ export default function KYCVerification() {
                             )}
                         </View>
                     )}
-                </ScrollView>
+                </KeyboardAwareScrollView>
             </View>
         </SafeAreaView>
     );

@@ -26,6 +26,7 @@ export default function FinanceScreen() {
 
   const sections = [
     { title: "Transactions", description: "All entries", icon: "list-outline", color: "#3b82f6", route: "/(stack)/transactions" },
+    { title: "P&L Reports", description: "Client, driver, truck & misc", icon: "stats-chart-outline", color: "#8b5cf6", route: "/(stack)/pl-reports" },
     { title: "Driver Khata", description: "Driver khata", icon: "people-outline", color: "#f59e0b", route: "/(stack)/driver-ledger" },
     { title: "Client Khata", description: "Client khata", icon: "business-outline", color: "#10b981", route: "/(stack)/client-ledger" },
     { title: "Running Expenses", description: "Fuel, Fastag Recharge, Challan", icon: "speedometer-outline", color: "#ef4444", route: "/(stack)/running-expenses" },

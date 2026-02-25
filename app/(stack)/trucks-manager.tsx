@@ -19,11 +19,13 @@ import type { TruckFormData } from "../../components/TruckModal";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function TrucksManager() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
 
   const {
@@ -115,7 +117,7 @@ export default function TrucksManager() {
   /* ---------------- ACTIONS ---------------- */
   const handleSubmit = async () => {
     if (!formData.registration_number || !formData.registered_owner_name) {
-      Alert.alert("⚠️ Missing Fields", "Please fill required fields.");
+      Alert.alert(t("missingFields"), "Please fill required fields.");
       return;
     }
 
@@ -125,26 +127,26 @@ export default function TrucksManager() {
           ...formData,
           loading_capacity: formData.loading_capacity ? Number(formData.loading_capacity) : undefined,
         });
-        Alert.alert("Success", "Truck updated successfully.");
+        Alert.alert(t("success"), `Truck ${t("updatedSuccessfully")}`);
       } else {
         await addTruck({
           ...formData,
           loading_capacity: formData.loading_capacity ? Number(formData.loading_capacity) : undefined,
         });
-        Alert.alert("Success", "Truck added successfully.");
+        Alert.alert(t("success"), `Truck ${t("addedSuccessfully")}`);
       }
       closeModal();
       fetchTrucks();
     } catch {
-      Alert.alert("Error", "Failed to save truck.");
+      Alert.alert(t("error"), "Failed to save truck.");
     }
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Confirm Delete", "Delete this truck?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("confirmDelete"), "Delete this truck?", [
+      { text: t("cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("delete"),
         style: "destructive",
         onPress: async () => {
           await deleteTruck(id);
@@ -192,7 +194,7 @@ export default function TrucksManager() {
       >
         {trucks.length === 0 ? (
           <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
-            No trucks found.
+            {t("noTrucksFound")}
           </Text>
         ) : (
           trucks.map((truck) => (
@@ -214,7 +216,7 @@ export default function TrucksManager() {
                     {truck.registration_number}
                   </Text>
                   <Text className="text-xs font-medium uppercase tracking-widest mt-0.5" style={{ color: colors.mutedForeground }}>
-                    {truck.registered_owner_name} •  {truck.vehicle_class || "HCV"}
+                    {truck.registered_owner_name} | {truck.vehicle_class || "HCV"}
                   </Text>
                 </View>
                 <View className="flex-row gap-2">
@@ -266,3 +268,6 @@ export default function TrucksManager() {
     </SafeAreaView>
   );
 }
+
+
+

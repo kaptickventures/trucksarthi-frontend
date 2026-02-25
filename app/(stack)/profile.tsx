@@ -534,7 +534,7 @@ export default function Profile() {
                   icon={<Hash size={18} color={colors.mutedForeground} />}
                   placeholder="Optional"
                   labelAction="Update GSTIN"
-                  onLabelActionPress={() => router.push("/kyc-verification" as any)}
+                  onLabelActionPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "gstin" } } as any)}
                 />
                 <ProfileInput
                   label="PAN Number"
@@ -544,7 +544,7 @@ export default function Profile() {
                   icon={<Hash size={18} color={colors.mutedForeground} />}
                   autoCapitalize="characters"
                   labelAction="Update PAN"
-                  onLabelActionPress={() => router.push("/kyc-verification" as any)}
+                  onLabelActionPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "pan" } } as any)}
                 />
                 <ProfileInput label="Office Address" value={formData.address} editable={false} onChange={(v: string) => markChanged("address", v)} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Full street address" />
               </View>
@@ -555,7 +555,7 @@ export default function Profile() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <SectionHeader title="Settlement Details" icon={<Landmark size={18} color={colors.primary} />} />
                   <TouchableOpacity
-                    onPress={() => router.push("/kyc-verification" as any)}
+                    onPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "bank" } } as any)}
                     style={{
                       backgroundColor: '#e0f2fe',
                       borderColor: '#7dd3fc',

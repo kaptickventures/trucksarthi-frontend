@@ -28,6 +28,7 @@ import { logout } from "../../hooks/useAuth";
 import { useTranslation } from "../../context/LanguageContext";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useUser } from "../../hooks/useUser";
 
 const BIOMETRIC_KEY = "@user_biometric_enabled";
 
@@ -35,9 +36,16 @@ export default function Settings() {
   const router = useRouter();
   const { mode, setMode, colors } = useThemeStore();
   const { t, language, setLanguage } = useTranslation();
+  const { user, updateUser } = useUser();
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      setIsNotificationsEnabled(user.has_notifications_allowed ?? true);
+    }
+  }, [user]);
 
   useEffect(() => {
     (async () => {
@@ -59,9 +67,9 @@ export default function Settings() {
       if (result.success) {
         setIsBiometricEnabled(true);
         await AsyncStorage.setItem(BIOMETRIC_KEY, "true");
-        Alert.alert("Success", "Biometric login enabled!");
+        Alert.alert(t("success"), "Biometric login enabled!");
       } else {
-        Alert.alert("Failed", "Authentication failed.");
+        Alert.alert(t("error"), "Authentication failed.");
         setIsBiometricEnabled(false);
       }
     } else {
@@ -90,7 +98,7 @@ export default function Settings() {
 
       {/* Plans & Pricing */}
       <TouchableOpacity
-        onPress={() => Alert.alert("Coming Soon", "Plans and Pricing placeholder")}
+        onPress={() => Alert.alert(t("comingSoon"), "Plans and Pricing placeholder")}
         className="flex-row items-center justify-between p-4 rounded-xl mb-3 border"
         style={{ backgroundColor: colors.card, borderColor: colors.border }}
       >
@@ -184,7 +192,7 @@ export default function Settings() {
         <View className="flex-row items-center gap-2">
           <Languages size={20} color={colors.primary} />
           <Text className="text-base" style={{ color: colors.foreground }}>
-            {t('language')}: {language === 'en' ? 'English' : 'Hindi'}
+            {t('language')}: {language === 'en' ? t('englishLabel') : t('hindiLabel')}
           </Text>
         </View>
         <Text style={{ color: colors.primary, fontWeight: '500' }}>{t('changeLanguage')}</Text>
@@ -208,6 +216,7 @@ export default function Settings() {
           value={isNotificationsEnabled}
           onValueChange={(val) => {
             setIsNotificationsEnabled(val);
+            if (user) updateUser({ has_notifications_allowed: val }).catch(e => console.error("failed sync"));
             if (!val) {
               Alert.alert(
                 "Notifications Disabled",

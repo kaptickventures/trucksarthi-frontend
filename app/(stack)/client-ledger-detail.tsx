@@ -1,454 +1,1167 @@
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Print from "expo-print";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import * as Sharing from "expo-sharing";
+import { ArrowDownLeft, Banknote, Building2, Edit, FileText, MapPin, Plus, Share2, X } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  PanResponder,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { SafeAreaView } from "react-native-safe-area-context";
-import FinanceFAB from "../../components/finance/FinanceFAB";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { Skeleton } from "../../components/Skeleton";
 import useClients from "../../hooks/useClient";
-import { useClientLedger } from "../../hooks/useClientLedger";
+import { ClientLedger, useClientLedger } from "../../hooks/useClientLedger";
+import useDrivers from "../../hooks/useDriver";
+import { Invoice, useInvoices } from "../../hooks/useInvoice";
+import useLocations from "../../hooks/useLocation";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import useTrips, { Trip } from "../../hooks/useTrip";
+import useTrucks from "../../hooks/useTruck";
+import { useUser } from "../../hooks/useUser";
 import { formatDate } from "../../lib/utils";
 
 export default function ClientLedgerDetailScreen() {
-    const router = useRouter();
-    const { colors, theme } = useThemeStore();
-    const isDark = theme === "dark";
+  const router = useRouter();
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
+  const { user, loading: userLoading } = useUser();
 
-    const { clientId } = useLocalSearchParams<{ clientId?: string | string[] }>();
-    const id = Array.isArray(clientId) ? clientId[0] : clientId;
+  /* ---------------- ROUTE PARAM ---------------- */
+  const { clientId } = useLocalSearchParams<{ clientId?: string | string[] }>();
 
-    const { clients, fetchClients } = useClients();
-    const { entries, loading, fetchLedger, fetchSummary, addPayment } = useClientLedger();
+  const id = useMemo(() => {
+    if (!clientId) return undefined;
+    return Array.isArray(clientId) ? clientId[0] : clientId;
+  }, [clientId]);
 
-    const [refreshing, setRefreshing] = useState(false);
-    const [summary, setSummary] = useState({ total_debits: 0, total_credits: 0, outstanding: 0 });
-    const [showAdd, setShowAdd] = useState(false);
-    const [amount, setAmount] = useState("");
-    const [paymentMode, setPaymentMode] = useState("CASH");
-    const [remarks, setRemarks] = useState("");
+  const {
+    entries,
+    fetchLedger,
+    fetchSummary,
+    addPayment,
+    updateEntry,
+  } = useClientLedger();
 
-    const client = useMemo(
-        () => (clients || []).find((c: any) => String(c._id) === String(id)),
-        [clients, id]
+  /* ---------------- STATE ---------------- */
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<"unbilled" | "billed" | "settled">("unbilled");
+
+  // Payment Form
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentRemarks, setPaymentRemarks] = useState("");
+  const [paymentMode, setPaymentMode] = useState("CASH");
+  const [paymentDate, setPaymentDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Transaction Edit
+  const [editingTransaction, setEditingTransaction] = useState<ClientLedger | null>(null);
+  const [editTrxAmount, setEditTrxAmount] = useState("");
+  const [editTrxRemarks, setEditTrxRemarks] = useState("");
+  const [editTrxDate, setEditTrxDate] = useState(new Date());
+  const [showEditTrxDatePicker, setShowEditTrxDatePicker] = useState(false);
+
+  const [selectedTrips, setSelectedTrips] = useState<string[]>([]);
+  const [settlingInvoiceId, setSettlingInvoiceId] = useState<string | null>(null);
+
+  // Edit Client Modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    client_name: "",
+    contact_person_name: "",
+    contact_number: "",
+    alternate_contact_number: "",
+    email_address: "",
+    office_address: "",
+  });
+  const translateY = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
+  const SCROLL_THRESHOLD = 40;
+  const [visibleEntries, setVisibleEntries] = useState(5);
+
+  const { drivers } = useDrivers();
+  const { trucks } = useTrucks();
+  const { locations } = useLocations();
+
+
+  const getId = (obj: any): string => {
+    if (!obj) return "";
+    if (typeof obj === "string") return obj;
+    if (typeof obj === "object" && obj._id) return obj._id;
+    return String(obj);
+  };
+
+  const toggleTripSelection = (tripId: string) => {
+    setSelectedTrips((prev) =>
+      prev.includes(tripId)
+        ? prev.filter((id) => id !== tripId)
+        : [...prev, tripId]
     );
+  };
 
-    const load = useCallback(async () => {
-        if (!id) return;
-        await Promise.all([
-            fetchClients(),
-            fetchLedger(id),
-            fetchSummary(id).then(setSummary).catch(() => { }),
-        ]);
-    }, [id, fetchClients, fetchLedger, fetchSummary]);
+  /* ---------------- DATA HOOKS ---------------- */
+  const { clients, loading: clientsLoading, fetchClients, updateClient } =
+    useClients();
 
-    useEffect(() => {
-        load();
-    }, [load]);
+  const { invoices, fetchInvoices, createInvoice } =
+    useInvoices();
 
-    const onRefresh = useCallback(async () => {
-        setRefreshing(true);
-        await load();
-        setRefreshing(false);
-    }, [load]);
+  const { trips, fetchTrips } = useTrips({ autoFetch: false });
 
-    const submitPayment = async () => {
-        if (!id) return;
-        if (!amount || Number(amount) <= 0) {
-            Alert.alert("Invalid Amount", "Enter a valid amount.");
-            return;
-        }
-        await addPayment({
-            client_id: id,
-            amount: Number(amount),
-            paymentMode,
-            remarks,
-            date: new Date().toISOString(),
-        });
-        setShowAdd(false);
-        setAmount("");
-        setPaymentMode("CASH");
-        setRemarks("");
-        await load();
-    };
 
-    // Sort entries newest first
-    const sortedEntries = useMemo(
-        () =>
-            [...(entries || [])].sort(
-                (a: any, b: any) =>
-                    new Date(b.entry_date || b.createdAt || 0).getTime() -
-                    new Date(a.entry_date || a.createdAt || 0).getTime()
-            ),
-        [entries]
+  /* ---------------- FETCH ---------------- */
+  useEffect(() => {
+    if (!id) return;
+
+    fetchClients();
+    fetchInvoices();
+    fetchTrips();
+    fetchLedger(id);
+    fetchLedger(id);
+  }, [id]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchClients(),
+        fetchInvoices(),
+        fetchTrips(),
+        id ? fetchLedger(id) : Promise.resolve(),
+      ]);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [id, fetchClients, fetchInvoices, fetchTrips, fetchLedger]);
+
+  /* ---------------- HELPERS ---------------- */
+  const normalizeInvoiceStatus = (status: any) => {
+    if (!status) return "not_invoiced";
+    return status.toString().toLowerCase().replace(" ", "_");
+  };
+
+  const driverMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (drivers || []).forEach((d) => {
+      if (d && d._id) map[d._id] = d.name || d.driver_name || "Driver";
+    });
+    return map;
+  }, [drivers]);
+
+  const truckMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (trucks || []).forEach((t) => {
+      if (t && t._id) map[t._id] = t.registration_number;
+    });
+    return map;
+  }, [trucks]);
+
+  const locationMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (locations || []).forEach((l) => {
+      if (l && l._id) map[l._id] = l.location_name;
+    });
+    return map;
+  }, [locations]);
+
+
+  // ✅ ADD — Invoice PDF (same approach as TripLog)
+  const generateInvoicePDF = async (invoice: Invoice) => {
+    try {
+      const invoiceTrips = invoice.items.map(item => {
+        const tripDetail = trips.find(t => getId(t) === getId(item.trip));
+        if (!tripDetail) return null;
+        return {
+          ...tripDetail,
+          cost_of_trip: item.trip_cost,
+          miscellaneous_expense: item.misc_expense,
+          _id: getId(item.trip)
+        } as Trip;
+      }).filter((t): t is Trip => t !== null);
+
+      const subtotal = invoiceTrips.reduce(
+        (acc, t) =>
+          acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0),
+        0
+      );
+
+      const taxRate = 0.05;
+      const tax = subtotal * taxRate;
+      const grandTotal = subtotal + tax;
+
+      const today = formatDate(new Date());
+
+
+      const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 24px;
+      color: #111;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      color: #2563eb;
+      margin: 0;
+    }
+    .header p {
+      font-size: 12px;
+      color: #555;
+      margin: 4px 0 12px;
+    }
+    .divider {
+      border-top: 2px solid #2563eb;
+      margin: 12px 0;
+    }
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+    .billto {
+      background: #f0f7ff;
+      padding: 12px;
+      border-left: 4px solid #2563eb;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th {
+      background: #2563eb;
+      color: white;
+      padding: 8px;
+      text-align: left;
+    }
+    td {
+      padding: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .right {
+      text-align: right;
+    }
+    .totals {
+      margin-top: 12px;
+      font-size: 13px;
+    }
+    .totals div {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .grand {
+      font-weight: bold;
+      color: #2563eb;
+      font-size: 15px;
+      border-top: 2px solid #2563eb;
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+    .footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 11px;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <h1>Trucksarthi</h1>
+    <p>Professional Logistics & Transportation</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="meta">
+    <div>
+      <strong>Invoice Number</strong><br />
+      ${invoice.invoice_number || "—"}
+    </div>
+    <div>
+      <strong>Invoice Date</strong><br />
+      ${today}
+    </div>
+    <div>
+      <strong>Total Trips</strong><br />
+      ${invoiceTrips.length}
+    </div>
+  </div>
+
+  <div class="billto">
+    <strong>Bill To:</strong><br />
+    ${client?.client_name || ""}<br />
+    ${client?.office_address || "Logistics & Transportation Services"}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Route</th>
+        <th>Truck</th>
+        <th>Driver</th>
+        <th class="right">Trip Cost</th>
+        <th class="right">Misc Expense</th>
+        <th class="right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+  ${invoiceTrips
+          .map((t) => {
+            const tripTotal =
+              Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0);
+
+            const driverName =
+              driverMap[getId(t.driver)] || "—";
+
+            const truckNumber =
+              truckMap[getId(t.truck)] || "—";
+
+            const route = `${locationMap[getId(t.start_location)] || "—"
+              } → ${locationMap[getId(t.end_location)] || "—"
+              }`;
+
+            return `
+        <tr>
+          <td>${t.trip_date ? formatDate(t.trip_date) : "—"}</td>
+          <td>${route}</td>
+          <td>${truckNumber}</td>
+          <td>${driverName}</td>
+          <td class="right">₹${Number(
+              t.cost_of_trip
+            ).toLocaleString()}</td>
+          <td class="right">₹${Number(
+              t.miscellaneous_expense || 0
+            ).toLocaleString()}</td>
+          <td class="right"><strong>₹${tripTotal.toLocaleString()}</strong></td>
+        </tr>
+      `;
+          })
+          .join("")}
+</tbody>
+
+  </table>
+
+  <div class="totals">
+    <div>
+      <span>Subtotal (${invoiceTrips.length} trips)</span>
+      <span>₹${subtotal.toLocaleString()}</span>
+    </div>
+    <div>
+      <span>Tax (5%)</span>
+      <span>₹${tax.toLocaleString()}</span>
+    </div>
+    <div class="grand">
+      <span>Grand Total</span>
+      <span>₹${grandTotal.toLocaleString()}</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Thank you for your business!</p>
+    <p>Trucksarthi – Your Trusted Logistics Partner</p>
+    <p>Generated on ${formatDate(new Date())}</p>
+  </div>
+
+</body>
+</html>
+`;
+
+      const { uri } = await Print.printToFileAsync({ html });
+      // @ts-ignore
+      const fileUri = `${FileSystem.documentDirectory}Invoice-${invoice.invoice_number || "N-A"}.pdf`;
+
+      await FileSystem.moveAsync({ from: uri, to: fileUri });
+      await Sharing.shareAsync(fileUri);
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "Failed to generate invoice PDF");
+    }
+  };
+
+
+
+  /* ---------------- DERIVED ---------------- */
+  const client = useMemo(() => {
+    if (!id) return undefined;
+    return clients.find(
+      (c) => c._id === id
     );
+  }, [clients, id]);
 
-    const outstanding = Math.max(0, summary.total_debits - summary.total_credits);
+  const clientInvoices = (invoices || []).filter(
+    (i: Invoice) => i && getId(i.client) === id
+  );
 
-    if (loading && !client) {
-        return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, padding: 20 }}>
-                <Skeleton width={160} height={24} style={{ marginBottom: 14 }} />
-                <Skeleton width="100%" height={120} borderRadius={16} style={{ marginBottom: 12 }} />
-                <Skeleton width="100%" height={300} borderRadius={16} />
-            </SafeAreaView>
-        );
+  const clientTrips = (trips || []).filter(
+    (t: Trip) => t && getId(t.client) === id
+  );
+
+  // 💰 CALCULATED AMOUNTS
+  const unbilledAmount = useMemo(() => {
+    return clientTrips
+      .filter((t) => t && normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced")
+      .reduce((sum, t) => sum + Number(t?.cost_of_trip || 0) + Number(t?.miscellaneous_expense || 0), 0);
+  }, [clientTrips]);
+
+  const billedAmount = useMemo(() => {
+    return clientInvoices
+      .filter((i) => i && i.status === "pending")
+      .reduce((sum, i) => sum + Number(i?.total_amount || 0), 0);
+  }, [clientInvoices]);
+
+  const settledAmount = useMemo(() => {
+    return (entries || [])
+      .filter((e) => e && e.entry_type === "credit")
+      .reduce((sum, e) => sum + Number(e?.amount || 0), 0);
+  }, [entries]);
+
+  /* ---------------- ACTIONS ---------------- */
+  // Update Payment Date helper
+  const onPaymentDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setPaymentDate(selectedDate);
+    }
+  };
+
+  const onEditTrxDateChange = (event: any, selectedDate?: Date) => {
+    setShowEditTrxDatePicker(false);
+    if (selectedDate) {
+      setEditTrxDate(selectedDate);
+    }
+  };
+
+  const handleGenerateInvoice = async () => {
+    if (!selectedTrips.length || !id) {
+      Alert.alert("Select uninvoiced trips");
+      return;
     }
 
-    return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+    await createInvoice({
+      client_id: id,
+      tripIds: selectedTrips,
+      due_date: new Date().toISOString().split("T")[0],
+    });
 
-            {/* Header */}
-            <View
-                style={{
-                    paddingHorizontal: 20,
-                    paddingVertical: 16,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                }}
-            >
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-                </TouchableOpacity>
-                <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Client Khata</Text>
-                <View style={{ width: 24 }} />
+    setSelectedTrips([]);
+    fetchInvoices();
+    fetchTrips();
+    fetchLedger(id);
+  };
+
+  const handleAddPayment = async () => {
+    if (!paymentAmount || !id) {
+      Alert.alert("Enter amount");
+      return;
+    }
+    if (!paymentRemarks.trim()) {
+      Alert.alert("Remarks are mandatory");
+      return;
+    }
+
+    await addPayment({
+      client_id: id,
+      invoice_id: settlingInvoiceId || undefined,
+      amount: Number(paymentAmount),
+      remarks: paymentRemarks,
+      paymentMode,
+      date: paymentDate.toISOString(),
+    });
+
+    setSettlingInvoiceId(null);
+
+    setPaymentAmount("");
+    setPaymentRemarks("");
+    setPaymentMode("CASH");
+    setPaymentDate(new Date());
+    setShowPaymentForm(false);
+
+    fetchLedger(id);
+    fetchInvoices();
+    fetchTrips();
+  };
+
+  const handleUpdateTransaction = async () => {
+    if (!editingTransaction || !editTrxAmount || !id) return;
+
+    await updateEntry(editingTransaction._id, {
+      client_id: id,
+      amount: Number(editTrxAmount),
+      remarks: editTrxRemarks,
+      date: editTrxDate.toISOString(),
+
+    });
+
+    setEditingTransaction(null);
+    fetchLedger(id);
+  };
+
+  const openEditTransaction = (entry: ClientLedger) => {
+    setEditingTransaction(entry);
+    setEditTrxAmount(entry.amount.toString());
+    setEditTrxRemarks(entry.remarks || "");
+    const parsedDate = new Date(entry.entry_date);
+    setEditTrxDate(isNaN(parsedDate.getTime()) ? new Date() : parsedDate);
+  };
+
+  const handleSettleInvoice = async (invoice: Invoice) => {
+    // Open payment modal pre-filled
+    setSettlingInvoiceId(invoice._id);
+    setPaymentAmount((invoice.total_amount || 0).toString());
+    setPaymentRemarks(`Settlement for Invoice #${invoice.invoice_number || "—"}`);
+    setPaymentMode("BANK");
+    setPaymentDate(new Date());
+    setShowPaymentForm(true);
+  };
+
+  // Edit Client Modal Handlers
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (_, state) => state.y0 < SCROLL_THRESHOLD,
+      onPanResponderMove: (_, state) => {
+        if (state.dy > 0) translateY.setValue(state.dy);
+      },
+      onPanResponderRelease: (_, state) => {
+        if (state.dy > 120) closeEditModal();
+        else
+          Animated.timing(translateY, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+          }).start();
+      },
+    })
+  ).current;
+
+  const openEditModal = () => {
+    if (client) {
+      setEditFormData({
+        client_name: client.client_name || "",
+        contact_person_name: client.contact_person_name || "",
+        contact_number: client.contact_number || "",
+        alternate_contact_number: client.alternate_contact_number || "",
+        email_address: client.email_address || "",
+        office_address: client.office_address || "",
+      });
+      setShowEditModal(true);
+    }
+  };
+
+  const closeEditModal = () => {
+    Animated.timing(translateY, {
+      toValue: 800,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      translateY.setValue(0);
+      setShowEditModal(false);
+    });
+  };
+
+  const handleUpdateClient = async () => {
+    const requiredFields = [
+      "client_name",
+      "contact_number",
+      "contact_person_name",
+      "alternate_contact_number",
+      "email_address",
+      "office_address"
+    ];
+
+    const missingFields = requiredFields.filter(f => !editFormData[f as keyof typeof editFormData]);
+
+    if (missingFields.length > 0) {
+      const labels = missingFields.map(f => f.replaceAll("_", " ").toUpperCase());
+      Alert.alert("⚠️ Missing Fields", `Please fill the following required fields:\n\n• ${labels.join("\n• ")}`);
+      return;
+    }
+
+    if (!id) return;
+
+    try {
+      await updateClient(id, editFormData);
+      Alert.alert("Success", "Client updated successfully.");
+      closeEditModal();
+      fetchClients();
+    } catch {
+      Alert.alert("Error", "Failed to update client.");
+    }
+  };
+
+  /* ---------------- GUARDS ---------------- */
+  if (userLoading || clientsLoading || !id) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Skeleton width={24} height={24} borderRadius={12} />
+          <Skeleton width={120} height={24} />
+          <View style={{ width: 24 }} />
+        </View>
+
+        <View style={{ paddingHorizontal: 24 }}>
+          {/* Client Card Skeleton */}
+          <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <Skeleton width={56} height={56} borderRadius={28} style={{ marginRight: 16 }} />
+              <View style={{ gap: 8 }}>
+                <Skeleton width={150} height={20} />
+                <Skeleton width={100} height={14} />
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 16, marginTop: 16 }}>
+              <Skeleton style={{ flex: 1, height: 40, borderRadius: 12 }} />
+              <Skeleton style={{ flex: 1, height: 40, borderRadius: 12 }} />
+            </View>
+          </View>
+
+          {/* Summary Row Skeleton */}
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
+            <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+            <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+            <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+          </View>
+
+          {/* Tabs Skeleton */}
+          <View style={{ flexDirection: 'row', marginBottom: 24, gap: 8 }}>
+            <Skeleton style={{ flex: 1, height: 40, borderRadius: 12 }} />
+            <Skeleton style={{ flex: 1, height: 40, borderRadius: 12 }} />
+            <Skeleton style={{ flex: 1, height: 40, borderRadius: 12 }} />
+          </View>
+
+          {/* List Skeleton */}
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} width="100%" height={100} borderRadius={16} style={{ marginBottom: 12 }} />
+          ))}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!client) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
+        <Text style={{ color: colors.mutedForeground }}>Client not found</Text>
+      </View>
+    );
+  }
+
+  /* ---------------- UI ---------------- */
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+      <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={colors.foreground}
+          />
+        </TouchableOpacity>
+        <Text style={{ fontSize: 18, fontWeight: '600', color: colors.foreground }}>Client Khata</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView
+        style={{ flex: 1, paddingHorizontal: 24 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+      >
+        {/* Client Card */}
+        <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ width: 56, height: 56, backgroundColor: colors.secondary, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+              <Building2 size={26} color="#16a34a" />
             </View>
 
-            <ScrollView
-                contentContainerStyle={{ padding: 20, paddingBottom: 110 }}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: colors.foreground }}>
+                {client.client_name}
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                {client.contact_person_name || "—"}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => client.contact_number && Linking.openURL(`tel:${client.contact_number}`)}
+                style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}
+              >
+                <Ionicons name="call-outline" size={15} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => client.email_address && Linking.openURL(`mailto:${client.email_address}`)}
+                style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}
+              >
+                <Ionicons name="mail-outline" size={15} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* ACTION ROW */}
+          <View style={{ flexDirection: 'row', gap: 16, marginTop: 16 }}>
+            {/* CALL */}
+            <TouchableOpacity
+              onPress={() =>
+                client.contact_number &&
+                Linking.openURL(`tel:${client.contact_number}`)
+              }
+              style={{ flex: 1, backgroundColor: colors.muted, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
-                {/* Client Card */}
-                <View
-                    style={{
-                        backgroundColor: colors.card,
-                        borderRadius: 16,
-                        padding: 16,
-                        marginBottom: 14,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                    }}
-                >
-                    <Text style={{ fontSize: 18, fontWeight: "800", color: colors.foreground, marginBottom: 4 }}>
-                        {(client as any)?.client_name || "Client"}
-                    </Text>
-                    {!!(client as any)?.contact_number && (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                            <Ionicons name="call-outline" size={13} color={colors.mutedForeground} />
-                            <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
-                                {(client as any).contact_number}
-                            </Text>
-                        </View>
-                    )}
-                    <View
-                        style={{
-                            marginTop: 10,
-                            paddingHorizontal: 12,
-                            paddingVertical: 6,
-                            borderRadius: 10,
-                            backgroundColor: outstanding > 0 ? "#fee2e2" : "#dcfce7",
-                            alignSelf: "flex-start",
-                        }}
-                    >
-                        <Text
-                            style={{
-                                fontSize: 15,
-                                fontWeight: "800",
-                                color: outstanding > 0 ? "#dc2626" : "#16a34a",
-                            }}
-                        >
-                            {outstanding > 0 ? `-Rs ${outstanding.toLocaleString()} outstanding` : "Fully Settled ✓"}
-                        </Text>
-                    </View>
-                </View>
+              <Text style={{ fontWeight: '600', fontSize: 14, color: colors.foreground }}>📞 Call</Text>
+            </TouchableOpacity>
 
-                {/* Summary Row */}
-                <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-                    <SummaryCard label="Total Billed" value={summary.total_debits} tone="neutral" colors={colors} />
-                    <SummaryCard label="Received" value={summary.total_credits} tone="green" colors={colors} />
-                    <SummaryCard label="Outstanding" value={outstanding} tone="red" colors={colors} />
-                </View>
-
-                {/* Ledger Entries */}
-                <Text style={{ fontSize: 13, fontWeight: "700", color: colors.mutedForeground, marginBottom: 10 }}>
-                    LEDGER ENTRIES
+            {/* WHATSAPP */}
+            <TouchableOpacity
+              onPress={() =>
+                client.contact_number &&
+                Linking.openURL(
+                  `https://wa.me/91${client.contact_number}?text=Hello ${client.client_name}`
+                )
+              }
+              style={{ flex: 1, backgroundColor: '#25D366', paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="logo-whatsapp" size={18} color="white" />
+                <Text style={{ fontWeight: '600', fontSize: 14, color: 'white' }}>
+                  WhatsApp
                 </Text>
-                <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14 }}>
-                    {sortedEntries.length === 0 && (
-                        <Text style={{ color: colors.mutedForeground, textAlign: "center", paddingVertical: 20 }}>
-                            No ledger entries found.
-                        </Text>
-                    )}
-
-                    {sortedEntries.map((entry: any, idx: number) => {
-                        const isCredit = entry.entry_type === "credit";
-                        return (
-                            <View
-                                key={entry._id || idx}
-                                style={{
-                                    borderTopWidth: idx === 0 ? 0 : 1,
-                                    borderTopColor: colors.border,
-                                    paddingTop: idx === 0 ? 0 : 12,
-                                    marginTop: idx === 0 ? 0 : 12,
-                                }}
-                            >
-                                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                    <View style={{ flex: 1, marginRight: 12 }}>
-                                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                                            <View
-                                                style={{
-                                                    paddingHorizontal: 7,
-                                                    paddingVertical: 2,
-                                                    borderRadius: 6,
-                                                    backgroundColor: isCredit ? "#dcfce7" : "#fff7ed",
-                                                }}
-                                            >
-                                                <Text
-                                                    style={{
-                                                        fontSize: 9,
-                                                        fontWeight: "800",
-                                                        color: isCredit ? "#16a34a" : "#9a3412",
-                                                    }}
-                                                >
-                                                    {isCredit ? "PAYMENT" : "INVOICE"}
-                                                </Text>
-                                            </View>
-                                            {entry.payment_mode && (
-                                                <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600" }}>
-                                                    {entry.payment_mode}
-                                                </Text>
-                                            )}
-                                        </View>
-                                        <Text style={{ fontSize: 13, color: colors.mutedForeground, marginTop: 2 }}>
-                                            {entry.remarks || (isCredit ? "Payment received" : "Invoice raised")}
-                                        </Text>
-                                        <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 3 }}>
-                                            {formatDate(entry.entry_date || entry.createdAt)}
-                                        </Text>
-                                    </View>
-                                    <Text
-                                        style={{
-                                            fontSize: 15,
-                                            fontWeight: "800",
-                                            color: isCredit ? "#16a34a" : colors.foreground,
-                                        }}
-                                    >
-                                        {isCredit ? "+" : ""}Rs {Number(entry.amount || 0).toLocaleString()}
-                                    </Text>
-                                </View>
-                            </View>
-                        );
-                    })}
-                </View>
-            </ScrollView>
-
-            <FinanceFAB onPress={() => setShowAdd(true)} />
-
-            <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => setShowAdd(false)}>
-                <KeyboardAvoidingView
-                    style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.45)" }}
-                    behavior={Platform.OS === "ios" ? "padding" : undefined}
-                >
-                    <KeyboardAwareScrollView
-                        enableOnAndroid
-                        keyboardShouldPersistTaps="handled"
-                        contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
-                    >
-                        <View
-                            style={{
-                                backgroundColor: colors.background,
-                                paddingTop: 12,
-                                paddingHorizontal: 20,
-                                paddingBottom: 32,
-                                borderTopLeftRadius: 24,
-                                borderTopRightRadius: 24,
-                            }}
-                        >
-                            {/* Drag handle */}
-                            <View style={{ alignItems: "center", marginBottom: 16 }}>
-                                <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
-                            </View>
-
-                            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18, marginBottom: 4 }}>
-                                Record Payment
-                            </Text>
-
-                            {client && (
-                                <View
-                                    style={{
-                                        alignSelf: "flex-start",
-                                        paddingHorizontal: 10,
-                                        paddingVertical: 4,
-                                        borderRadius: 20,
-                                        backgroundColor: colors.primary + "20",
-                                        marginBottom: 20,
-                                    }}
-                                >
-                                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
-                                        {(client as any).client_name}
-                                    </Text>
-                                </View>
-                            )}
-
-                            {/* Amount */}
-                            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>
-                                AMOUNT (₹)
-                            </Text>
-                            <TextInput
-                                placeholder="0"
-                                placeholderTextColor={colors.mutedForeground}
-                                keyboardType="numeric"
-                                value={amount}
-                                onChangeText={setAmount}
-                                style={{
-                                    borderWidth: 1,
-                                    borderColor: colors.border,
-                                    borderRadius: 12,
-                                    color: colors.foreground,
-                                    padding: 14,
-                                    fontSize: 24,
-                                    fontWeight: "800",
-                                    marginBottom: 16,
-                                    textAlign: "center",
-                                }}
-                            />
-
-                            {/* Payment Mode chips */}
-                            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>
-                                PAYMENT MODE
-                            </Text>
-                            <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
-                                {["CASH", "BANK", "UPI", "CHEQUE"].map((mode) => (
-                                    <TouchableOpacity
-                                        key={mode}
-                                        onPress={() => setPaymentMode(mode)}
-                                        style={{
-                                            flex: 1,
-                                            paddingVertical: 10,
-                                            borderRadius: 12,
-                                            borderWidth: 1,
-                                            borderColor: paymentMode === mode ? colors.primary : colors.border,
-                                            backgroundColor: paymentMode === mode ? colors.primary : "transparent",
-                                            alignItems: "center",
-                                        }}
-                                    >
-                                        <Text
-                                            style={{
-                                                color: paymentMode === mode ? "white" : colors.foreground,
-                                                fontWeight: "700",
-                                                fontSize: 11,
-                                            }}
-                                        >
-                                            {mode}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            {/* Remarks */}
-                            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>
-                                REMARKS (OPTIONAL)
-                            </Text>
-                            <TextInput
-                                placeholder="e.g. Against invoice #123..."
-                                placeholderTextColor={colors.mutedForeground}
-                                value={remarks}
-                                onChangeText={setRemarks}
-                                multiline
-                                numberOfLines={2}
-                                style={{
-                                    borderWidth: 1,
-                                    borderColor: colors.border,
-                                    borderRadius: 12,
-                                    color: colors.foreground,
-                                    padding: 12,
-                                    fontSize: 14,
-                                    marginBottom: 20,
-                                    textAlignVertical: "top",
-                                    minHeight: 60,
-                                }}
-                            />
-
-                            <View style={{ flexDirection: "row", gap: 10 }}>
-                                <TouchableOpacity
-                                    onPress={() => setShowAdd(false)}
-                                    style={{
-                                        flex: 1,
-                                        padding: 14,
-                                        borderRadius: 12,
-                                        backgroundColor: colors.card,
-                                        borderWidth: 1,
-                                        borderColor: colors.border,
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <Text style={{ color: colors.foreground, fontWeight: "700" }}>Cancel</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={submitPayment}
-                                    style={{
-                                        flex: 2,
-                                        padding: 14,
-                                        borderRadius: 12,
-                                        backgroundColor: colors.primary,
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <Text style={{ color: "white", fontWeight: "800", fontSize: 15 }}>
-                                        {loading ? "Saving..." : "Save Payment"}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </KeyboardAwareScrollView>
-                </KeyboardAvoidingView>
-            </Modal>
-        </SafeAreaView>
-    );
-}
-
-function SummaryCard({
-    label,
-    value,
-    tone,
-    colors,
-}: {
-    label: string;
-    value: number;
-    tone: "green" | "red" | "neutral";
-    colors: any;
-}) {
-    const color = tone === "green" ? colors.success : tone === "red" ? colors.destructive : colors.foreground;
-    return (
-        <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "600", marginBottom: 4 }}>{label}</Text>
-            <Text style={{ color, fontWeight: "800", fontSize: 13 }}>Rs {Number(value || 0).toLocaleString()}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
-    );
+
+        {/* Summary */}
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
+          <SummaryCard label="Billed" value={billedAmount} />
+          <SummaryCard label="Unbilled" value={unbilledAmount} />
+          <SummaryCard label="Settled" value={settledAmount} green />
+        </View>
+
+        {/* Tabs */}
+        <View className="flex-row mb-6 p-1 rounded-2xl" style={{ backgroundColor: colors.muted + '4D' }}>
+          {(["unbilled", "billed", "settled"] as const).map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              className="flex-1 py-3 rounded-xl items-center"
+              style={{
+                backgroundColor: activeTab === tab ? colors.card : 'transparent',
+                shadowColor: activeTab === tab ? "#000" : 'transparent',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: activeTab === tab ? 0.1 : 0,
+                shadowRadius: 4,
+                elevation: activeTab === tab ? 2 : 0,
+              }}
+            >
+              <Text
+                className="font-bold text-sm capitalize"
+                style={{ color: activeTab === tab ? colors.primary : colors.mutedForeground }}
+              >
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Tab Content */}
+        {activeTab === "unbilled" && (
+          <View>
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-lg font-bold" style={{ color: colors.foreground }}>Pending Trips</Text>
+              {selectedTrips.length > 0 && (
+                <TouchableOpacity onPress={handleGenerateInvoice} className="px-4 py-2 rounded-lg" style={{ backgroundColor: colors.primary }}>
+                  <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-xs">Generate Invoice ({selectedTrips.length})</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {clientTrips.filter(t => normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced").map(trip => (
+              <TouchableOpacity
+                key={getId(trip)}
+                onPress={() => toggleTripSelection(getId(trip))}
+                className="p-4 rounded-2xl mb-3 border"
+                style={{
+                  backgroundColor: colors.card,
+                  borderColor: selectedTrips.includes(getId(trip)) ? colors.primary : colors.border + '80'
+                }}
+              >
+                <View className="flex-row justify-between items-start mb-2">
+                  <View>
+                    <Text className="font-bold" style={{ color: colors.foreground }}>Trip #{getId(trip).slice(-6)}</Text>
+                    <Text className="text-xs" style={{ color: colors.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : "N/A"}</Text>
+                  </View>
+                  <Text className="font-bold text-lg" style={{ color: colors.foreground }}>₹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
+                </View>
+                <View className="flex-row items-center gap-2">
+                  <MapPin size={14} color={colors.mutedForeground} />
+                  <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1}>
+                    {locationMap[getId(trip.start_location)]} → {locationMap[getId(trip.end_location)]}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {activeTab === "billed" && (
+          <View>
+            <Text className="text-lg font-bold mb-4" style={{ color: colors.foreground }}>Invoices</Text>
+            {clientInvoices.map(invoice => (
+              <View key={getId(invoice)} className="p-4 rounded-2xl mb-3 border" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
+                <View className="flex-row justify-between items-center mb-3">
+                  <View>
+                    <Text className="font-bold" style={{ color: colors.foreground }}>Invoice #{invoice.invoice_number}</Text>
+                    <Text className="text-xs" style={{ color: colors.mutedForeground }}>Due: {invoice.due_date ? formatDate(invoice.due_date) : "N/A"}</Text>
+                  </View>
+                  <View className="px-2 py-1 rounded-md" style={{ backgroundColor: invoice.status === 'paid' ? '#22c55e20' : '#ef444420' }}>
+                    <Text className="font-bold text-[10px] uppercase" style={{ color: invoice.status === 'paid' ? '#22c55e' : '#ef4444' }}>{invoice.status}</Text>
+                  </View>
+                </View>
+                <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border + '4D' }}>
+                  <Text className="font-bold text-lg" style={{ color: colors.foreground }}>₹{Number(invoice.total_amount).toLocaleString()}</Text>
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity onPress={() => generateInvoicePDF(invoice)} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
+                      <Share2 size={16} color={colors.foreground} />
+                    </TouchableOpacity>
+                    {invoice.status !== 'paid' && (
+                      <TouchableOpacity onPress={() => handleSettleInvoice(invoice)} className="px-4 py-2 rounded-lg" style={{ backgroundColor: colors.primary }}>
+                        <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-xs">Settle</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {activeTab === "settled" && (
+          <View>
+            <Text className="text-lg font-bold mb-4" style={{ color: colors.foreground }}>Payment History</Text>
+            {entries.filter(e => e.entry_type === 'credit').map(entry => (
+              <View key={getId(entry)} className="p-4 rounded-2xl mb-3 border flex-row items-center" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
+                <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#22c55e20' }}>
+                  <ArrowDownLeft size={20} color="#16a34a" />
+                </View>
+                <View className="flex-1">
+                  <Text className="font-bold" style={{ color: colors.foreground }}>{entry.remarks || "Payment Received"}</Text>
+                  <Text className="text-xs" style={{ color: colors.mutedForeground }}>{formatDate(entry.entry_date)} | {entry.payment_mode || "CASH"}</Text>
+                </View>
+                <View className="items-end">
+                  <View className="px-2 py-1 rounded-md mb-1" style={{ backgroundColor: (entry.payment_type || "PARTIAL") === "FULL" ? "#22c55e20" : "#f59e0b20" }}>
+                    <Text className="text-[10px] font-bold" style={{ color: (entry.payment_type || "PARTIAL") === "FULL" ? "#22c55e" : "#d97706" }}>
+                      {entry.payment_type || "PARTIAL"}
+                    </Text>
+                  </View>
+                  <Text className="font-bold" style={{ color: "#16a34a" }}>₹{Number(entry.amount).toLocaleString()}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Add Payment Button - Full Width Bar */}
+        <TouchableOpacity
+          onPress={() => setShowPaymentForm(true)}
+          style={{ backgroundColor: '#16a34a', borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}
+        >
+          <Plus size={20} color="white" />
+          <Text style={{ color: 'white', fontWeight: 'bold', marginLeft: 8 }}>Add Payment Entry</Text>
+        </TouchableOpacity>
+
+        {/* Payment Modal */}
+        <Modal
+          visible={showPaymentForm}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowPaymentForm(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            className="flex-1"
+          >
+            <Pressable
+              className="flex-1 bg-black/40 justify-end"
+              onPress={() => setShowPaymentForm(false)}
+            >
+              <Pressable
+                className="rounded-t-3xl px-6 pt-4 pb-10"
+                style={{ backgroundColor: colors.background }}
+                onPress={(e) => e.stopPropagation()}
+              >
+                <View className="items-center mb-6">
+                  <View className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
+                </View>
+
+                <View className="flex-row justify-between items-center mb-6">
+                  <View>
+                    <Text className="text-xl font-bold text-foreground">Add Payment</Text>
+                    <Text className="text-sm text-muted-foreground mt-0.5">
+                      {client?.client_name || "Client"}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => setShowPaymentForm(false)}
+                    className="w-9 h-9 rounded-full items-center justify-center"
+                    style={{ backgroundColor: colors.muted }}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={18}
+                      color={colors.foreground}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* DATE PICKER */}
+                <View className="mb-6">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Date
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(true)}
+                    className="flex-row items-center rounded-2xl px-4 py-3"
+                    style={{ backgroundColor: colors.muted }}
+                  >
+                    <Text className="text-base font-medium" style={{ color: colors.foreground }}>
+                      {formatDate(paymentDate)}
+                    </Text>
+                  </TouchableOpacity>
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={paymentDate}
+                      mode="date"
+                      display="default"
+                      onChange={onPaymentDateChange}
+                    />
+                  )}
+                </View>
+
+                {/* AMOUNT */}
+                <View className="mb-6">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Amount
+                  </Text>
+
+                  <View className="flex-row items-center rounded-2xl px-4 py-3" style={{ backgroundColor: colors.muted }}>
+                    <Banknote size={20} color="#16a34a" />
+                    <TextInput
+                      placeholder="0"
+                      keyboardType="numeric"
+                      value={paymentAmount}
+                      onChangeText={setPaymentAmount}
+                      className="flex-1 ml-3 text-xl font-bold"
+                      style={{ color: colors.foreground }}
+                      placeholderTextColor={colors.mutedForeground}
+                    />
+                    <Text className="text-xs font-semibold" style={{ color: colors.mutedForeground }}>
+                      INR
+                    </Text>
+                  </View>
+                </View>
+
+                {/* REMARKS */}
+                <View className="mb-8">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Remarks *
+                  </Text>
+
+                  <View className="flex-row items-center rounded-2xl px-4 py-3" style={{ backgroundColor: colors.muted }}>
+                    <FileText size={20} color={colors.mutedForeground} />
+                    <TextInput
+                      placeholder="Payment details (e.g., Bank Transfer)"
+                      value={paymentRemarks}
+                      onChangeText={setPaymentRemarks}
+                      className="flex-1 ml-3 text-base"
+                      style={{ color: colors.foreground }}
+                      placeholderTextColor={colors.mutedForeground}
+                    />
+                  </View>
+                </View>
+
+                <View className="mb-8">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Payment Mode
+                  </Text>
+                  <View className="flex-row items-center rounded-2xl px-4 py-3" style={{ backgroundColor: colors.muted }}>
+                    <TextInput
+                      placeholder="CASH / BANK / UPI"
+                      value={paymentMode}
+                      onChangeText={setPaymentMode}
+                      className="flex-1 text-base"
+                      style={{ color: colors.foreground }}
+                      placeholderTextColor={colors.mutedForeground}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleAddPayment}
+                  className="py-4 rounded-2xl items-center"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-lg">Save Payment</Text>
+                </TouchableOpacity>
+              </Pressable>
+            </Pressable>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        {/* Edit Client Modal */}
+        <Modal
+          visible={showEditModal}
+          transparent
+          animationType="slide"
+          onRequestClose={closeEditModal}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            className="flex-1"
+          >
+            <View className="flex-1 bg-black/40 justify-end">
+              <Animated.View
+                {...panResponder.panHandlers}
+                className="rounded-t-3xl px-6 pt-4 pb-12"
+                style={{ transform: [{ translateY }], backgroundColor: colors.background }}
+              >
+                <View className="items-center mb-6">
+                  <View className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
+                </View>
+
+                <View className="flex-row justify-between items-center mb-6">
+                  <Text className="text-xl font-bold" style={{ color: colors.foreground }}>Edit Client</Text>
+                  <TouchableOpacity onPress={closeEditModal} className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: colors.muted }}>
+                    <X size={20} color={colors.foreground} />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView className="max-h-[70%]" showsVerticalScrollIndicator={false}>
+                  <View className="gap-4">
+                    <View>
+                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Client Name *</Text>
+                      <TextInput
+                        className="p-4 rounded-xl"
+                        style={{ backgroundColor: colors.muted, color: colors.foreground }}
+                        value={editFormData.client_name}
+                        onChangeText={(t) => setEditFormData(prev => ({ ...prev, client_name: t }))}
+                        placeholder="e.g. Acme Corp"
+                        placeholderTextColor={colors.mutedForeground}
+                      />
+                    </View>
+                    <View>
+                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Contact Person *</Text>
+                      <TextInput
+                        className="p-4 rounded-xl"
+                        style={{ backgroundColor: colors.muted, color: colors.foreground }}
+                        value={editFormData.contact_person_name}
+                        onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_person_name: t }))}
+                        placeholder="Full Name"
+                        placeholderTextColor={colors.mutedForeground}
+                      />
+                    </View>
+                    <View className="flex-row gap-4">
+                      <View className="flex-1">
+                        <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Client Contact *</Text>
+                        <TextInput
+                          className="p-4 rounded-xl"
+                          style={{ backgroundColor: colors.muted, color: colors.foreground }}
+                          value={editFormData.contact_number}
+                          onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_number: t }))}
+                          keyboardType="phone-pad"
+                          placeholderTextColor={colors.mutedForeground}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Email *</Text>
+                        <TextInput
+                          className="p-4 rounded-xl"
+                          style={{ backgroundColor: colors.muted, color: colors.foreground }}
+                          value={editFormData.email_address}
+                          onChangeText={(t) => setEditFormData(prev => ({ ...prev, email_address: t }))}
+                          keyboardType="email-address"
+                          placeholderTextColor={colors.mutedForeground}
+                        />
+                      </View>
+                    </View>
+                    <View>
+                      <Text className="text-xs font-bold text-muted-foreground uppercase mb-2">Office Address *</Text>
+                      <TextInput
+                        className="p-4 rounded-xl"
+                        style={{ backgroundColor: colors.muted, color: colors.foreground }}
+                        value={editFormData.office_address}
+                        onChangeText={(t) => setEditFormData(prev => ({ ...prev, office_address: t }))}
+                        multiline
+                        numberOfLines={3}
+                        textAlignVertical="top"
+                        placeholderTextColor={colors.mutedForeground}
+                      />
+                    </View>
+                  </View>
+                </ScrollView>
+
+                <TouchableOpacity
+                  onPress={handleUpdateClient}
+                  className="py-4 rounded-2xl items-center mt-6"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-lg">Save Updates</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
-function inputStyle(colors: any) {
-    return {
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: 10,
-        color: colors.foreground,
-        padding: 10,
-        marginBottom: 10,
-    } as const;
+function SummaryCard({ label, value, green }: any) {
+  const { colors } = useThemeStore();
+  return (
+    <View style={{ backgroundColor: colors.card }} className="flex-1 p-4 rounded-2xl border border-border/50">
+      <Text className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{label}</Text>
+      <Text style={{ color: green ? colors.success : colors.foreground }} className="text-lg font-bold">₹{Number(value).toLocaleString()}</Text>
+    </View>
+  );
 }

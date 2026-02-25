@@ -22,11 +22,13 @@ import { Skeleton } from "../../components/Skeleton";
 import useDrivers from "../../hooks/useDriver";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function DriversManager() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
 
   const {
     drivers,
@@ -79,7 +81,7 @@ export default function DriversManager() {
   const pickImage = async (field: keyof typeof formData) => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission needed", "Allow gallery access to upload images.");
+      Alert.alert(t("requiredFields"), "Allow gallery access to upload images.");
       return;
     }
 
@@ -127,7 +129,7 @@ export default function DriversManager() {
   const handleSubmit = async () => {
     for (const field of requiredFields) {
       if (!formData[field]) {
-        Alert.alert("⚠️ Missing Fields", "Please fill all required fields.");
+        Alert.alert(t("missingFields"), "Please fill all required fields.");
         return;
       }
     }
@@ -154,7 +156,7 @@ export default function DriversManager() {
         await Promise.all(uploadPromises);
       }
 
-      Alert.alert("Success", `Driver ${editingId ? "updated" : "added"} successfully.`);
+      Alert.alert(t("success"), `Driver ${editingId ? t("updatedSuccessfully") : t("addedSuccessfully")}`);
       closeModal();
       fetchDrivers();
     } catch (err) {
@@ -164,15 +166,15 @@ export default function DriversManager() {
         (err as any)?.response?.data?.message ||
         (err as Error)?.message ||
         "Failed to save driver details or upload documents.";
-      Alert.alert("Error", msg);
+      Alert.alert(t("error"), msg);
     }
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Confirm Delete", "Delete this driver?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("confirmDelete"), "Delete this driver?", [
+      { text: t("cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("delete"),
         style: "destructive",
         onPress: async () => {
           await deleteDriver(id);
@@ -221,7 +223,7 @@ export default function DriversManager() {
       >
         {(drivers || []).length === 0 ? (
           <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
-            No drivers found.
+            {t("noDriversFound")}
           </Text>
         ) : (
           (drivers || []).map((driver) => {
@@ -273,8 +275,8 @@ export default function DriversManager() {
                 </View>
 
                 <View className="gap-y-1">
-                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">📞 {driver.contact_number}</Text>
-                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">📜 {driver.license_card_url ? "License Registered" : "License Missing"}</Text>
+                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">Phone: {driver.contact_number}</Text>
+                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">License: {driver.license_card_url ? "Registered" : "Missing"}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -309,3 +311,8 @@ export default function DriversManager() {
     </SafeAreaView>
   );
 }
+
+
+
+
+

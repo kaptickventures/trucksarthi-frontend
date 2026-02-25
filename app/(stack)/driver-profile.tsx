@@ -221,35 +221,30 @@ export default function DriverProfile() {
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.muted, alignItems: 'center', justifyContent: 'center' }}>
               <UserIcon size={32} color={colors.mutedForeground} />
             </View>
-            <View style={{ marginLeft: 16, flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ marginLeft: 16, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View>
                 <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.foreground }}>{driver.driver_name}</Text>
+                <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 2 }}>{driver.contact_number}</Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
                 <TouchableOpacity
                   onPress={() => driver.contact_number && Linking.openURL(`tel:${driver.contact_number}`)}
-                  style={{ backgroundColor: colors.muted, padding: 6, borderRadius: 16 }}
+                  style={{ backgroundColor: colors.muted, padding: 10, borderRadius: 20 }}
                 >
-                  <Ionicons name="call-outline" size={14} color={colors.primary} />
+                  <Ionicons name="call-outline" size={20} color={colors.primary} />
                 </TouchableOpacity>
+
                 <TouchableOpacity
                   onPress={() => driver.contact_number && Linking.openURL(`https://wa.me/91${driver.contact_number}`)}
-                  style={{ backgroundColor: '#25D366', padding: 6, borderRadius: 16 }}
+                  style={{ backgroundColor: '#25D366', padding: 10, borderRadius: 20 }}
                 >
-                  <Ionicons name="logo-whatsapp" size={14} color="white" />
+                  <Ionicons name="logo-whatsapp" size={20} color="white" />
                 </TouchableOpacity>
               </View>
-              <Text style={{ fontSize: 14, color: colors.mutedForeground }}>{driver.contact_number}</Text>
             </View>
           </View>
 
-          <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 20 }} />
-
-          <View>
-            <Text style={{ fontSize: 11, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', letterSpacing: 1 }}>Balance Overview</Text>
-            <Text style={{ fontSize: 32, fontWeight: 'bold', color: netBalance >= 0 ? colors.success : colors.destructive, marginTop: 4 }}>
-              ₹{Math.abs(netBalance).toLocaleString()}
-              <Text style={{ fontSize: 12 }}> {netBalance >= 0 ? "Credit" : "Debit"}</Text>
-            </Text>
-          </View>
         </View>
 
         <View style={{ paddingHorizontal: 20, marginBottom: 32 }}>
@@ -260,97 +255,7 @@ export default function DriverProfile() {
           </View>
         </View>
 
-        <View style={{ paddingHorizontal: 20 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.foreground }}>Financial Ledger</Text>
-            <TouchableOpacity onPress={() => setShowModal(true)} style={{ backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
-              <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 12 }}>+ New Entry</Text>
-            </TouchableOpacity>
-          </View>
-
-          {entries.map((entry) => {
-            const isPending = entry.approvalStatus === 'PENDING';
-            const isRejected = entry.approvalStatus === 'REJECTED';
-            return (
-              <View key={entry._id} style={{ backgroundColor: colors.card, padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border, opacity: isRejected ? 0.6 : 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: entry.direction === 'from' ? (theme === 'dark' ? '#450a0a' : '#fef2f2') : (theme === 'dark' ? '#064e3b' : '#f0fdf4'), alignItems: 'center', justifyContent: 'center' }}>
-                    {entry.direction === 'from' ? <ArrowDownLeft size={20} color={colors.destructive} /> : <ArrowUpRight size={20} color={colors.success} />}
-                  </View>
-                  <View style={{ marginLeft: 16, flex: 1 }}>
-                    <Text style={{ fontWeight: '700', color: colors.foreground }}>{entry.remarks}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                      <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{formatDate(entry.entry_date)}</Text>
-                      {isPending && <View style={{ paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#fff7ed', borderRadius: 4, borderWidth: 1, borderColor: '#fdba74' }}><Text style={{ fontSize: 9, fontWeight: 'bold', color: '#c2410c' }}>PENDING</Text></View>}
-                      {isRejected && <View style={{ paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#fef2f2', borderRadius: 4, borderWidth: 1, borderColor: '#fca5a5' }}><Text style={{ fontSize: 9, fontWeight: 'bold', color: '#b91c1c' }}>REJECTED</Text></View>}
-                    </View>
-                  </View>
-                  <Text style={{ fontWeight: '800', fontSize: 16, color: entry.direction === 'from' ? colors.destructive : colors.success }}>
-                    {entry.direction === 'from' ? '-' : '+'}₹{entry.amount}
-                  </Text>
-                </View>
-
-                {isPending && (
-                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: colors.border }}>
-                    <TouchableOpacity
-                      onPress={() => updateEntryStatus(String(entry._id), 'REJECTED')}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 8, borderRadius: 8, backgroundColor: '#fef2f2' }}
-                    >
-                      <XCircle size={16} color="#dc2626" />
-                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#dc2626' }}>Reject</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => updateEntryStatus(String(entry._id), 'APPROVED')}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 8, borderRadius: 8, backgroundColor: '#f0fdf4' }}
-                    >
-                      <CheckCircle size={16} color="#16a34a" />
-                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#16a34a' }}>Approve</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            )
-          })}
-        </View>
       </ScrollView>
-
-      <Modal visible={showModal} transparent animationType="slide">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: colors.background, padding: 24, borderTopLeftRadius: 32, borderTopRightRadius: 32 }}>
-            <View style={{ width: 40, height: 5, backgroundColor: colors.border, alignSelf: 'center', borderRadius: 3, marginBottom: 24 }} />
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.foreground, marginBottom: 24 }}>Add Transaction</Text>
-
-            <View style={{ gap: 16 }}>
-              <View>
-                <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8 }}>Amount (₹)</Text>
-                <TextInput placeholder="0.00" placeholderTextColor={colors.mutedForeground} value={amount} onChangeText={setAmount} keyboardType="numeric" style={{ backgroundColor: colors.card, color: colors.foreground, padding: 16, borderRadius: 16, fontSize: 18, fontWeight: 'bold', borderWidth: 1, borderColor: colors.border }} />
-              </View>
-
-              <View>
-                <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8 }}>Remarks</Text>
-                <TextInput placeholder="e.g. Food, Diesel, Advance" placeholderTextColor={colors.mutedForeground} value={remarks} onChangeText={setRemarks} style={{ backgroundColor: colors.card, color: colors.foreground, padding: 16, borderRadius: 16, fontSize: 16, borderWidth: 1, borderColor: colors.border }} />
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <TouchableOpacity onPress={() => setTransactionNature("paid_by_driver")} style={{ flex: 1, padding: 16, borderRadius: 16, backgroundColor: transactionNature === "paid_by_driver" ? colors.primary : colors.card, alignItems: 'center', borderWidth: 1, borderColor: transactionNature === "paid_by_driver" ? colors.primary : colors.border }}>
-                  <Text style={{ fontWeight: 'bold', color: transactionNature === "paid_by_driver" ? colors.primaryForeground : colors.foreground }}>Expense</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setTransactionNature("received_by_driver")} style={{ flex: 1, padding: 16, borderRadius: 16, backgroundColor: transactionNature === "received_by_driver" ? colors.primary : colors.card, alignItems: 'center', borderWidth: 1, borderColor: transactionNature === "received_by_driver" ? colors.primary : colors.border }}>
-                  <Text style={{ fontWeight: 'bold', color: transactionNature === "received_by_driver" ? colors.primaryForeground : colors.foreground }}>Payment</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity onPress={handleSaveEntry} style={{ backgroundColor: colors.primary, padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 32 }}>
-              <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Save Entry</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => setShowModal(false)} style={{ marginTop: 12, padding: 12, alignItems: 'center' }}>
-              <Text style={{ color: colors.mutedForeground, fontWeight: '600' }}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       <Modal visible={!!previewImage} transparent animationType="fade">
         <TouchableOpacity activeOpacity={1} onPress={() => setPreviewImage(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
