@@ -1,7 +1,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
-import { useLayoutEffect, useState, useCallback, useEffect } from "react";
+import { useLayoutEffect, useState, useCallback, useEffect, useMemo } from "react";
 import {
   ScrollView,
   Text,
@@ -28,6 +28,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [recentTripsVisibleCount, setRecentTripsVisibleCount] = useState(5);
   const { colors } = useThemeStore();
   const { t } = useTranslation();
 
@@ -142,6 +143,30 @@ export default function HomeScreen() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays >= 0 && diffDays <= 30;
   });
+  const latestReminderDocs = useMemo(
+    () =>
+      [...expiringDocs]
+        .sort((a: any, b: any) => new Date(b.expiry_date || 0).getTime() - new Date(a.expiry_date || 0).getTime())
+        .slice(0, 5),
+    [expiringDocs]
+  );
+
+  useEffect(() => {
+    setRecentTripsVisibleCount(5);
+  }, [recentTrips.length]);
+
+  const visibleRecentTrips = useMemo(
+    () => recentTrips.slice(0, recentTripsVisibleCount),
+    [recentTrips, recentTripsVisibleCount]
+  );
+
+  const handleLoadMoreTrips = () => {
+    if (recentTripsVisibleCount < 10) {
+      setRecentTripsVisibleCount(Math.min(10, recentTrips.length));
+      return;
+    }
+    setRecentTripsVisibleCount(recentTrips.length);
+  };
 
   const loading = userLoading || tripsLoading || docsLoading;
 
@@ -206,11 +231,10 @@ export default function HomeScreen() {
         <Skeleton width="100%" height={56} borderRadius={28} style={{ marginBottom: 12 }} />
 
         {/* Quick Actions Skeleton */}
-        <View className="flex-row gap-2 justify-between mt-2 mb-6">
-          <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
-          <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
-          <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
-          <Skeleton style={{ flex: 1, height: 80, borderRadius: 16 }} />
+        <View className="flex-row flex-wrap justify-between mt-2 mb-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} style={{ width: "32%", height: 92, borderRadius: 16, marginBottom: 8 }} />
+          ))}
         </View>
 
         {/* Reminders Skeleton */}
@@ -274,23 +298,45 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* ====== Quick Actions ====== */}
-        <View className="flex-row gap-2 justify-between mt-2 mb-6">
+        <View className="flex-row flex-wrap justify-between mt-2 mb-6">
           {[
-            { title: t('trucks'), icon: "bus-outline", route: "/trucks-manager" },
-            { title: t('drivers'), icon: "person-add-outline", route: "/drivers-manager" },
-            { title: t('clients'), icon: "people-outline", route: "/clients-manager" },
-            { title: t('locations'), icon: "location-outline", route: "/locations-manager" },
+            { title: "Driver khata", icon: "person-outline", route: "/driver-ledger", iconBg: "#DBEAFE", iconColor: "#1D4ED8" },
+            { title: "Client khata", icon: "people-outline", route: "/client-ledger", iconBg: "#DCFCE7", iconColor: "#166534" },
+            { title: "Document Manager", icon: "document-text-outline", route: "/documents-manager", iconBg: "#FEF3C7", iconColor: "#92400E" },
+            { title: "Running expense", icon: "speedometer-outline", route: "/running-expenses", iconBg: "#FCE7F3", iconColor: "#9D174D" },
+            { title: "Maintenance khata", icon: "build-outline", route: "/maintenance-khata", iconBg: "#EDE9FE", iconColor: "#5B21B6" },
+            { title: "Misc transactions", icon: "swap-horizontal-outline", route: "/misc-transactions", iconBg: "#E0F2FE", iconColor: "#0C4A6E" },
           ].map((item, idx) => (
             <TouchableOpacity
               key={idx}
               onPress={() => router.push(item.route as any)}
-              style={{ backgroundColor: colors.card }}
-              className="flex-1 rounded-2xl items-center justify-center"
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: colors.card,
+                width: "32%",
+                marginBottom: 8,
+                minHeight: 92,
+                borderWidth: 1,
+                borderColor: colors.border,
+                shadowColor: "#000",
+                shadowOpacity: 0.06,
+                shadowRadius: 6,
+                elevation: 2,
+              }}
+              className="rounded-2xl items-center justify-center px-2 py-2"
             >
-              <View className="p-2 py-4 items-center">
-                <Ionicons name={item.icon as any} size={18} color={colors.primary} />
-                <Text className="text-muted-foreground text-[8px] mt-1 font-medium">{item.title}</Text>
+              <View
+                className="rounded-full items-center justify-center mb-2"
+                style={{ width: 34, height: 34, backgroundColor: item.iconBg }}
+              >
+                <Ionicons name={item.icon as any} size={18} color={item.iconColor} />
               </View>
+              <Text
+                className="text-muted-foreground text-[11px] text-center font-semibold"
+                numberOfLines={2}
+              >
+                {item.title}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -304,8 +350,8 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {expiringDocs.length > 0 ? (
-            expiringDocs.slice(0, 3).map((doc) => {
+          {latestReminderDocs.length > 0 ? (
+            latestReminderDocs.map((doc) => {
               const getId = (obj: any): string =>
                 typeof obj === "object" ? obj?._id : obj;
               const truckId = getId(doc.truck);
@@ -350,7 +396,7 @@ export default function HomeScreen() {
           </View>
 
           {recentTrips.length > 0 ? (
-            recentTrips.map((trip) => {
+            visibleRecentTrips.map((trip) => {
               const getId = (obj: any): string =>
                 typeof obj === "object" ? obj?._id : obj;
               const tripId = trip?._id;
@@ -371,8 +417,14 @@ export default function HomeScreen() {
                     <Text style={{ color: colors.secondaryForeground }} className="font-medium text-sm">
                       {getLocationName(trip.start_location)} → {getLocationName(trip.end_location)}
                     </Text>
-                    <Text className="text-muted-foreground text-[10px] mt-1">
-                      Truck: {getTruckName(trip.truck)} • Driver: {getDriverName(trip.driver)} • Client: {getClientName(trip.client)}
+                    <Text className="text-muted-foreground text-[10px] mt-1" numberOfLines={1} ellipsizeMode="tail">
+                      Truck: {getTruckName(trip.truck)}
+                    </Text>
+                    <Text className="text-muted-foreground text-[10px] mt-0.5" numberOfLines={1} ellipsizeMode="tail">
+                      Driver: {getDriverName(trip.driver)}
+                    </Text>
+                    <Text className="text-muted-foreground text-[10px] mt-0.5" numberOfLines={1} ellipsizeMode="tail">
+                      Client: {getClientName(trip.client)}
                     </Text>
                   </View>
                   <View className="items-end">
@@ -391,6 +443,18 @@ export default function HomeScreen() {
               {t('noTripsFound')}
             </Text>
           )}
+
+          {recentTrips.length > recentTripsVisibleCount && (
+            <TouchableOpacity
+              onPress={handleLoadMoreTrips}
+              style={{ backgroundColor: colors.secondary }}
+              className="mt-2 p-2 rounded-lg items-center"
+            >
+              <Text style={{ color: colors.secondaryForeground }} className="text-xs font-semibold">
+                {recentTripsVisibleCount < 10 ? "Load 5 more" : "Show all"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -398,4 +462,5 @@ export default function HomeScreen() {
     </>
   );
 }
+
 

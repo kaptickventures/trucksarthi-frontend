@@ -419,8 +419,14 @@ export default function TripLog() {
           className="mx-3 mt-1 mb-6 p-4 rounded-2xl shadow-sm border"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
-          <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>{sortedTrips.length} {t("tripsFoundCount")}</Text>
-          <Text className="text-3xl font-extrabold mt-1" style={{ color: colors.primary }}>Rs {sortedTrips.reduce((acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense), 0).toLocaleString()}</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>
+              {sortedTrips.length} trips
+            </Text>
+            <Text className="text-3xl font-extrabold" style={{ color: colors.primary }}>
+              Rs {sortedTrips.reduce((acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense), 0).toLocaleString()}
+            </Text>
+          </View>
         </View>
 
         {
@@ -432,43 +438,53 @@ export default function TripLog() {
             sortedTrips.map((trip) => {
               const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
               return (
-                <View key={trip._id} style={{ marginHorizontal: 12, marginBottom: 20 }}>
+                <View key={trip._id} style={{ marginHorizontal: 12, marginBottom: 12 }}>
                   <View
-                    className="border rounded-2xl p-5 shadow-sm"
+                    className="border rounded-2xl p-3 shadow-sm"
                     style={{ backgroundColor: colors.card, borderColor: colors.border }}
                   >
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                      <Text style={{ color: colors.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : t("noDate")}</Text>
-                      <Text style={{ fontSize: 22, fontWeight: "800", color: colors.primary }}>{`Rs ${totalCost.toLocaleString()}`}</Text>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6, alignItems: "center" }}>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{trip.trip_date ? formatDate(trip.trip_date) : t("noDate")}</Text>
+                      <Text style={{ fontSize: 20, fontWeight: "800", color: colors.primary }}>{`Rs ${totalCost.toLocaleString()}`}</Text>
                     </View>
-                    <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground, marginBottom: 10 }}>
+                    <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground, marginBottom: 8 }}>
                       {getLocationName(trip.start_location)}
                       {" -> "}
                       {getLocationName(trip.end_location)}
                     </Text>
-                    <View style={{ marginBottom: 12 }}>
-                      <Text style={{ color: colors.foreground, marginBottom: 4 }}>Client: {getClientName(trip.client)}</Text>
-                      <Text style={{ color: colors.foreground, marginBottom: 4 }}>Truck: {getTruckReg(trip.truck)}</Text>
-                      <Text style={{ color: colors.foreground }}>Driver: {getDriverName(trip.driver)}</Text>
+                    <View style={{ marginBottom: 8 }}>
+                      <Text style={{ color: colors.foreground, marginBottom: 2, fontSize: 12 }}>Client: {getClientName(trip.client)}</Text>
+                      <Text style={{ color: colors.foreground, marginBottom: 2, fontSize: 12 }}>Truck: {getTruckReg(trip.truck)}</Text>
+                      <Text style={{ color: colors.foreground, fontSize: 12 }}>Driver: {getDriverName(trip.driver)}</Text>
                     </View>
-                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 12 }} />
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                      <Text style={{ color: colors.mutedForeground }}>Trip Cost: Rs {Number(trip.cost_of_trip).toLocaleString()}</Text>
-                      <Text style={{ color: colors.mutedForeground }}>Misc: Rs {Number(trip.miscellaneous_expense).toLocaleString()}</Text>
+                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 8 }} />
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {Number(trip.cost_of_trip).toLocaleString()}</Text>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {Number(trip.miscellaneous_expense).toLocaleString()}</Text>
                     </View>
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
-                      {trip.notes ? <Text style={{ fontStyle: "italic", color: colors.mutedForeground }}>Notes: {trip.notes}</Text> : <View />}
-                      <View style={{ flexDirection: "row" }}>
-                        <TouchableOpacity onPress={() => { setSelectedTrip(trip); setEditVisible(true); }} style={{ padding: 8, marginRight: 8 }}>
-                          <Edit3 size={22} color="#2563EB" />
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                      <View style={{ flex: 1, paddingRight: 8 }}>
+                        {trip.notes ? (
+                          <Text
+                            style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11 }}
+                            numberOfLines={2}
+                            ellipsizeMode="tail"
+                          >
+                            Notes: {trip.notes}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={{ flexDirection: "row", marginLeft: 6 }}>
+                        <TouchableOpacity onPress={() => { setSelectedTrip(trip); setEditVisible(true); }} style={{ padding: 6, marginRight: 4 }}>
+                          <Edit3 size={18} color="#2563EB" />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => {
                           Alert.alert(t("delete"), t("deleteTripQuestion"), [
                             { text: t("cancel"), style: "cancel" },
                             { text: t("delete"), style: "destructive", onPress: async () => { await deleteTrip(trip._id); fetchTrips(); } },
                           ]);
-                        }} style={{ padding: 8 }}>
-                          <Trash2 size={22} color="#ef4444" />
+                        }} style={{ padding: 6 }}>
+                          <Trash2 size={18} color="#ef4444" />
                         </TouchableOpacity>
                       </View>
                     </View>

@@ -14,6 +14,7 @@ import {
     Alert,
     Image,
     Modal,
+    RefreshControl,
     ScrollView,
     Text,
     TouchableOpacity,
@@ -33,10 +34,11 @@ import { getFileUrl } from "../../lib/utils";
 
 export default function DriverOwnProfile() {
     const { theme, colors } = useThemeStore();
-    const { user } = useUser();
+    const { user, refreshUser } = useUser();
 
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [previewType, setPreviewType] = useState<'license' | 'aadhaar' | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
 
     if (!user) return null;
 
@@ -114,6 +116,20 @@ export default function DriverOwnProfile() {
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingBottom: 40 }}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={async () => {
+                                setRefreshing(true);
+                                try {
+                                    await refreshUser();
+                                } finally {
+                                    setRefreshing(false);
+                                }
+                            }}
+                            tintColor={colors.primary}
+                        />
+                    }
                 >
                     {/* Profile Header */}
                     <View style={{ alignItems: 'center', marginVertical: 24 }}>

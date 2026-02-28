@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
+import * as Sharing from "expo-sharing";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar, FileText, Plus, Share2, Trash2, X } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -25,12 +27,14 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import useTruckDocuments from "../../hooks/useTruckDocuments";
 import { formatDate as globalFormatDate, getFileUrl } from "../../lib/utils";
 
+const DEFAULT_DOCUMENT_TYPES = ["PUCC", "INSURANCE", "RC", "PERMIT"] as const;
+
 export default function DocumentDetails() {
     const { truckId } = useLocalSearchParams<{ truckId: string }>();
     const router = useRouter();
     const { theme, colors } = useThemeStore();
     const isDark = theme === "dark";
-    const { documents, loading, fetchDocuments, uploadDocument, deleteDocument } = useTruckDocuments(truckId);
+    const { documents, loading, uploadDocument, deleteDocument } = useTruckDocuments(truckId);
 
     const [modalVisible, setModalVisible] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -59,7 +63,7 @@ export default function DocumentDetails() {
         return new Date(dateString) < new Date();
     };
 
-    const handlePickDocument = async () => {
+    const pickDocumentFile = async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -68,14 +72,41 @@ export default function DocumentDetails() {
             });
 
             if (!result.canceled) {
-                setSelectedFile({
+                return {
                     uri: result.assets[0].uri,
                     name: result.assets[0].fileName || `doc_${Date.now()}.jpg`,
                     type: result.assets[0].mimeType || 'image/jpeg',
-                });
+                };
             }
+            return null;
         } catch {
             Alert.alert("Error", "Failed to pick file");
+            return null;
+        }
+    };
+
+    const handlePickDocument = async () => {
+        const file = await pickDocumentFile();
+        if (file) setSelectedFile(file);
+    };
+
+    const handleQuickUpload = async (documentType: string, existingExpiryDate?: string) => {
+        const file = await pickDocumentFile();
+        if (!file || !truckId) return;
+
+        try {
+            setUploading(true);
+            await uploadDocument({
+                truck_id: truckId,
+                document_type: documentType,
+                file,
+                expiry_date: existingExpiryDate || "",
+            });
+            Alert.alert("Success", `${documentType} uploaded successfully`);
+        } catch {
+            // handled by hook
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -110,23 +141,81 @@ export default function DocumentDetails() {
 
     const handleShare = async (url: string) => {
         try {
-            await Share.share({
-                message: `Check out this document: ${url}`,
+            // Web can't share local files via expo-sharing reliably.
+            if (Platform.OS === "web") {
+                await Share.share({ message: url });
+                return;
+            }
+
+            const canShare = await Sharing.isAvailableAsync();
+            if (!canShare) {
+                await Share.share({ message: url });
+                return;
+            }
+
+            const ext = (() => {
+                const clean = url.split("?")[0];
+                const idx = clean.lastIndexOf(".");
+                return (idx > -1 ? clean.substring(idx) : ".jpg").toLowerCase();
+            })();
+            const localPath = `${FileSystem.cacheDirectory}truck_doc_${Date.now()}${ext}`;
+            const isPdf = ext === ".pdf";
+            const mimeType = isPdf ? "application/pdf" : "image/*";
+
+            const downloaded = await FileSystem.downloadAsync(url, localPath);
+            await Sharing.shareAsync(downloaded.uri, {
+                mimeType,
+                dialogTitle: "Share Truck Document",
             });
         } catch (error) {
-            Alert.alert("Error", "Failed to share document");
+            try {
+                await Share.share({ message: url });
+            } catch {
+                Alert.alert("Error", "Failed to share document");
+            }
         }
     }
+
+    const mergedDocuments = useMemo(() => {
+        const docsByType = new Map(
+            (documents || []).map((doc: any) => [String(doc.document_type || "").toUpperCase(), doc])
+        );
+
+        const defaults = DEFAULT_DOCUMENT_TYPES.map((docType) => {
+            const existing = docsByType.get(docType);
+            if (existing) return existing;
+            return {
+                _id: `placeholder-${docType}`,
+                truck: truckId,
+                document_type: docType,
+                file_url: "",
+                expiry_date: undefined,
+                status: "active",
+                createdAt: undefined,
+                updatedAt: undefined,
+                __isPlaceholder: true,
+            };
+        });
+
+        const defaultSet = new Set(DEFAULT_DOCUMENT_TYPES);
+        const customDocs = (documents || []).filter(
+            (doc: any) => !defaultSet.has(String(doc.document_type || "").toUpperCase() as any)
+        );
+
+        return [...defaults, ...customDocs];
+    }, [documents, truckId]);
 
     const renderDocumentItem = ({ item }: { item: any }) => {
         const expired = isExpired(item.expiry_date);
         const expiring = isExpiring(item.expiry_date);
         const fileUrl = getFileUrl(item.file_url);
+        const hasUploadedFile = Boolean(item.file_url);
+        const isPlaceholder = Boolean(item.__isPlaceholder);
 
         return (
             <TouchableOpacity
                 activeOpacity={0.9}
-                onPress={() => fileUrl && setPreviewImage(fileUrl)}
+                onPress={() => hasUploadedFile && fileUrl && setPreviewImage(fileUrl)}
                 style={{
                     backgroundColor: colors.card,
                     borderRadius: 16,
@@ -177,32 +266,44 @@ export default function DocumentDetails() {
                             </Text>
                         ) : (
                             <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                                No Expiry Date
+                                {hasUploadedFile ? "No Expiry Date" : "Not uploaded yet"}
                             </Text>
                         )}
-                        <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 2 }}>
-                            Uploaded: {formatDate(item.updatedAt)}
-                        </Text>
+                        {hasUploadedFile && (
+                            <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 2 }}>
+                                Uploaded: {formatDate(item.updatedAt)}
+                            </Text>
+                        )}
                     </View>
                 </View>
 
                 <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                        disabled={uploading}
+                        onPress={() => handleQuickUpload(String(item.document_type || "").toUpperCase(), item.expiry_date)}
+                        style={{ padding: 8 }}
+                    >
+                        <Ionicons name={hasUploadedFile ? "refresh-outline" : "cloud-upload-outline"} size={20} color={colors.primary} />
+                    </TouchableOpacity>
+
                     {/* Share Button (Optional) */}
-                    {fileUrl && (
+                    {hasUploadedFile && fileUrl && (
                         <TouchableOpacity onPress={() => handleShare(fileUrl)} style={{ padding: 8 }}>
                             <Share2 size={20} color={colors.foreground} />
                         </TouchableOpacity>
                     )}
 
-                    <TouchableOpacity
-                        onPress={() => Alert.alert("Delete", "Delete this document?", [
-                            { text: "Cancel", style: "cancel" },
-                            { text: "Delete", style: "destructive", onPress: () => deleteDocument(item._id) }
-                        ])}
-                        style={{ padding: 8 }}
-                    >
-                        <Trash2 size={20} color={colors.destructive || '#ef4444'} />
-                    </TouchableOpacity>
+                    {hasUploadedFile && !isPlaceholder && (
+                        <TouchableOpacity
+                            onPress={() => Alert.alert("Delete", "Delete this document?", [
+                                { text: "Cancel", style: "cancel" },
+                                { text: "Delete", style: "destructive", onPress: () => deleteDocument(item._id) }
+                            ])}
+                            style={{ padding: 8 }}
+                        >
+                            <Trash2 size={20} color={colors.destructive || '#ef4444'} />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
             </TouchableOpacity>
@@ -236,7 +337,7 @@ export default function DocumentDetails() {
                     </View>
                 ) : (
                     <FlatList
-                        data={documents}
+                        data={mergedDocuments}
                         renderItem={renderDocumentItem}
                         keyExtractor={item => item._id}
                         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}

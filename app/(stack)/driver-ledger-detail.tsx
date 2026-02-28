@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
@@ -66,18 +65,15 @@ export default function DriverLedgerDetailScreen() {
     return [...(entries || [])]
       .map((entry: any) => {
         const transactionNature = String(entry?.transaction_nature || "").toLowerCase();
-        const remarks = String(entry?.remarks || "").toLowerCase();
         const title = String(entry?.title || "").toLowerCase();
 
         const isToDriver = transactionNature === "received_by_driver" || title.includes("owner_to_driver");
-        const isSettlement = remarks.includes("settlement") || title.includes("settlement");
 
         return {
           ...entry,
           entryDate: entry?.entry_date || entry?.createdAt || entry?.date,
           type: isToDriver ? "TO_DRIVER" : "DRIVER_SPENDS",
           amount: Number(entry?.amount || 0),
-          isSettlement,
         };
       })
       .sort((a: any, b: any) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
@@ -95,14 +91,10 @@ export default function DriverLedgerDetailScreen() {
     const expenses = normalized
       .filter((entry: any) => entry.type === "DRIVER_SPENDS")
       .reduce((sum: number, entry: any) => sum + entry.amount, 0);
-    const settlements = normalized
-      .filter((entry: any) => entry.isSettlement)
-      .reduce((sum: number, entry: any) => sum + entry.amount, 0);
 
     return {
       advances,
       expenses,
-      settlements,
       balance: advances - expenses,
     };
   }, [normalized]);
@@ -174,7 +166,6 @@ export default function DriverLedgerDetailScreen() {
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           <SummaryCard label="Advances" value={totals.advances} tone="green" />
           <SummaryCard label="Expenses" value={totals.expenses} tone="red" />
-          <SummaryCard label="Settlements" value={totals.settlements} tone="green" />
         </View>
 
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
@@ -243,29 +234,20 @@ export default function DriverLedgerDetailScreen() {
       <FinanceFAB onPress={() => setShowAdd(true)} />
 
       <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => setShowAdd(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }} onPress={() => setShowAdd(false)}>
-          <KeyboardAvoidingView
-            style={{ flex: 1, justifyContent: "flex-end" }}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-          >
-            <Pressable onPress={() => { }}>
-              <KeyboardAwareScrollView
-                enableOnAndroid
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
-              >
-                <View
-                  style={{
-                    backgroundColor: colors.background,
-                    borderTopLeftRadius: 28,
-                    borderTopRightRadius: 28,
-                    paddingHorizontal: 20,
-                    paddingTop: 12,
-                    paddingBottom: 18,
-                    borderTopWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" }}>
+          <Pressable style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setShowAdd(false)} />
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+            <View
+              style={{
+                maxHeight: "88%",
+                backgroundColor: colors.background,
+                borderTopLeftRadius: 28,
+                borderTopRightRadius: 28,
+                borderTopWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 18 }}>
                   <View
                     style={{
                       width: 42,
@@ -373,11 +355,10 @@ export default function DriverLedgerDetailScreen() {
                   >
                     <Text style={{ color: colors.foreground, textAlign: "center", fontWeight: "700" }}>Cancel</Text>
                   </TouchableOpacity>
-                </View>
-              </KeyboardAwareScrollView>
-            </Pressable>
+              </ScrollView>
+            </View>
           </KeyboardAvoidingView>
-        </Pressable>
+        </View>
       </Modal>
     </SafeAreaView>
   );

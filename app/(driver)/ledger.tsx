@@ -1,7 +1,6 @@
 import { ArrowDownLeft, ArrowUpRight, Clock, Plus, X } from 'lucide-react-native';
-import { useMemo, useState, useLayoutEffect } from 'react';
-import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDriverAppContext } from '../../context/DriverAppContext';
 import { translations } from '../../constants/driver/translations';
@@ -10,11 +9,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SideMenu from '../../components/SideMenu';
 
 export default function LedgerScreen() {
-    const { colors, theme } = useThemeStore();
-    const navigation = useNavigation();
+  const { colors } = useThemeStore();
     const insets = useSafeAreaInsets();
-    const isDark = theme === 'dark';
-    const { ledgerEntries, addLedgerExpense, netKhata, language } = useDriverAppContext();
+    const { ledgerEntries, addLedgerExpense, netKhata, language, refreshAll, refreshing, loading } = useDriverAppContext();
     const t = translations[language];
 
     const [modalVisible, setModalVisible] = useState(false);
@@ -148,6 +145,22 @@ export default function LedgerScreen() {
                 keyExtractor={(item) => String(item._id)}
                 renderItem={renderItem}
                 contentContainerStyle={[styles.list, { paddingBottom: 100 + insets.bottom }]}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshAll} tintColor={colors.primary} />}
+                ListEmptyComponent={
+                    loading ? (
+                        <View style={{ paddingTop: 36, alignItems: "center" }}>
+                            <ActivityIndicator color={colors.primary} />
+                        </View>
+                    ) : (
+                        <View style={{ paddingTop: 36, alignItems: "center" }}>
+                            <Text style={{ color: colors.mutedForeground }}>No transactions yet.</Text>
+                        </View>
+                    )
+                }
+                initialNumToRender={12}
+                maxToRenderPerBatch={12}
+                windowSize={8}
+                removeClippedSubviews
             />
 
             <TouchableOpacity

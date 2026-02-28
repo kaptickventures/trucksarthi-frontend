@@ -1,6 +1,6 @@
-import { useRouter, useNavigation } from 'expo-router';
-import { FlatList, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { useLayoutEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { FlatList, StyleSheet, Text, View, TouchableOpacity, RefreshControl } from 'react-native';
+import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { TripCard } from '../../components/driver/TripCard';
@@ -11,11 +11,10 @@ import SideMenu from '../../components/SideMenu';
 
 export default function HistoryScreen() {
     const router = useRouter();
-    const navigation = useNavigation();
     const { colors } = useThemeStore();
     const insets = useSafeAreaInsets();
     const [menuVisible, setMenuVisible] = useState(false);
-    const { tripHistory, language, getTripExpenses } = useDriverAppContext();
+    const { tripHistory, language, getTripExpenses, refreshAll, refreshing } = useDriverAppContext();
     const t = translations[language];
 
     return (
@@ -43,6 +42,7 @@ export default function HistoryScreen() {
                 data={tripHistory}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.content}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshAll} tintColor={colors.primary} />}
                 renderItem={({ item }) => (
                     <TripCard
                         trip={item}

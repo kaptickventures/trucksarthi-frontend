@@ -23,11 +23,11 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Skeleton } from "../../components/Skeleton";
 import useClients from "../../hooks/useClient";
-import { ClientLedger, useClientLedger } from "../../hooks/useClientLedger";
+import { useClientLedger } from "../../hooks/useClientLedger";
 import useDrivers from "../../hooks/useDriver";
 import { Invoice, useInvoices } from "../../hooks/useInvoice";
 import useLocations from "../../hooks/useLocation";
@@ -41,7 +41,7 @@ export default function ClientLedgerDetailScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
-  const { user, loading: userLoading } = useUser();
+  const { loading: userLoading } = useUser();
 
   /* ---------------- ROUTE PARAM ---------------- */
   const { clientId } = useLocalSearchParams<{ clientId?: string | string[] }>();
@@ -54,9 +54,7 @@ export default function ClientLedgerDetailScreen() {
   const {
     entries,
     fetchLedger,
-    fetchSummary,
     addPayment,
-    updateEntry,
   } = useClientLedger();
 
   /* ---------------- STATE ---------------- */
@@ -70,13 +68,6 @@ export default function ClientLedgerDetailScreen() {
   const [paymentMode, setPaymentMode] = useState("CASH");
   const [paymentDate, setPaymentDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-
-  // Transaction Edit
-  const [editingTransaction, setEditingTransaction] = useState<ClientLedger | null>(null);
-  const [editTrxAmount, setEditTrxAmount] = useState("");
-  const [editTrxRemarks, setEditTrxRemarks] = useState("");
-  const [editTrxDate, setEditTrxDate] = useState(new Date());
-  const [showEditTrxDatePicker, setShowEditTrxDatePicker] = useState(false);
 
   const [selectedTrips, setSelectedTrips] = useState<string[]>([]);
   const [settlingInvoiceId, setSettlingInvoiceId] = useState<string | null>(null);
@@ -92,9 +83,8 @@ export default function ClientLedgerDetailScreen() {
     office_address: "",
   });
   const translateY = useRef(new Animated.Value(0)).current;
-  const insets = useSafeAreaInsets();
   const SCROLL_THRESHOLD = 40;
-  const [visibleEntries, setVisibleEntries] = useState(5);
+  const PAYMENT_MODES = ["CASH", "BANK", "UPI"] as const;
 
   const { drivers } = useDrivers();
   const { trucks } = useTrucks();
@@ -134,8 +124,7 @@ export default function ClientLedgerDetailScreen() {
     fetchInvoices();
     fetchTrips();
     fetchLedger(id);
-    fetchLedger(id);
-  }, [id]);
+  }, [id, fetchClients, fetchInvoices, fetchTrips, fetchLedger]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -439,9 +428,25 @@ export default function ClientLedgerDetailScreen() {
 
   const billedAmount = useMemo(() => {
     return clientInvoices
-      .filter((i) => i && i.status === "pending")
-      .reduce((sum, i) => sum + Number(i?.total_amount || 0), 0);
-  }, [clientInvoices]);
+      .filter((i) => {
+        if (!i) return false;
+        const status = String(i.status || "").toLowerCase();
+        return status === "pending" || status === "partially_paid";
+      })
+      .reduce((sum, invoice) => {
+        const invoiceId = getId(invoice);
+        const totalPaidForInvoice = (entries || [])
+          .filter((entry) => {
+            if (!entry || entry.entry_type !== "credit") return false;
+            const entryInvoiceId = getId((entry as any).invoice || (entry as any).invoice_id);
+            return entryInvoiceId === invoiceId;
+          })
+          .reduce((paid, entry) => paid + Number(entry?.amount || 0), 0);
+
+        const remaining = Math.max(0, Number(invoice?.total_amount || 0) - totalPaidForInvoice);
+        return sum + remaining;
+      }, 0);
+  }, [clientInvoices, entries]);
 
   const settledAmount = useMemo(() => {
     return (entries || [])
@@ -455,13 +460,6 @@ export default function ClientLedgerDetailScreen() {
     setShowDatePicker(false);
     if (selectedDate) {
       setPaymentDate(selectedDate);
-    }
-  };
-
-  const onEditTrxDateChange = (event: any, selectedDate?: Date) => {
-    setShowEditTrxDatePicker(false);
-    if (selectedDate) {
-      setEditTrxDate(selectedDate);
     }
   };
 
@@ -488,15 +486,42 @@ export default function ClientLedgerDetailScreen() {
       Alert.alert("Enter amount");
       return;
     }
+    const amount = Number(paymentAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      Alert.alert("Invalid amount", "Please enter a valid payment amount.");
+      return;
+    }
     if (!paymentRemarks.trim()) {
       Alert.alert("Remarks are mandatory");
       return;
     }
 
+    if (settlingInvoiceId) {
+      const targetInvoice = clientInvoices.find((inv) => getId(inv) === settlingInvoiceId);
+      if (targetInvoice) {
+        const totalPaidForInvoice = (entries || [])
+          .filter((entry) => {
+            if (!entry || entry.entry_type !== "credit") return false;
+            const entryInvoiceId = getId((entry as any).invoice || (entry as any).invoice_id);
+            return entryInvoiceId === settlingInvoiceId;
+          })
+          .reduce((sum, entry) => sum + Number(entry?.amount || 0), 0);
+
+        const remainingAmount = Math.max(0, Number(targetInvoice.total_amount || 0) - totalPaidForInvoice);
+        if (amount > remainingAmount) {
+          Alert.alert(
+            "Amount exceeds remaining",
+            `Remaining for this invoice is ₹${remainingAmount.toLocaleString()}. Please enter a smaller amount.`
+          );
+          return;
+        }
+      }
+    }
+
     await addPayment({
       client_id: id,
       invoice_id: settlingInvoiceId || undefined,
-      amount: Number(paymentAmount),
+      amount,
       remarks: paymentRemarks,
       paymentMode,
       date: paymentDate.toISOString(),
@@ -515,34 +540,23 @@ export default function ClientLedgerDetailScreen() {
     fetchTrips();
   };
 
-  const handleUpdateTransaction = async () => {
-    if (!editingTransaction || !editTrxAmount || !id) return;
-
-    await updateEntry(editingTransaction._id, {
-      client_id: id,
-      amount: Number(editTrxAmount),
-      remarks: editTrxRemarks,
-      date: editTrxDate.toISOString(),
-
-    });
-
-    setEditingTransaction(null);
-    fetchLedger(id);
-  };
-
-  const openEditTransaction = (entry: ClientLedger) => {
-    setEditingTransaction(entry);
-    setEditTrxAmount(entry.amount.toString());
-    setEditTrxRemarks(entry.remarks || "");
-    const parsedDate = new Date(entry.entry_date);
-    setEditTrxDate(isNaN(parsedDate.getTime()) ? new Date() : parsedDate);
-  };
-
   const handleSettleInvoice = async (invoice: Invoice) => {
+    const invoiceId = getId(invoice);
+    const totalPaidForInvoice = (entries || [])
+      .filter((entry) => {
+        if (!entry || entry.entry_type !== "credit") return false;
+        const entryInvoiceId = getId((entry as any).invoice || (entry as any).invoice_id);
+        return entryInvoiceId === invoiceId;
+      })
+      .reduce((sum, entry) => sum + Number(entry?.amount || 0), 0);
+
+    const invoiceTotal = Number(invoice.total_amount || 0);
+    const remainingAmount = Math.max(0, invoiceTotal - totalPaidForInvoice);
+
     // Open payment modal pre-filled
     setSettlingInvoiceId(invoice._id);
-    setPaymentAmount((invoice.total_amount || 0).toString());
-    setPaymentRemarks(`Settlement for Invoice #${invoice.invoice_number || "—"}`);
+    setPaymentAmount(remainingAmount.toString());
+    setPaymentRemarks(`Settlement for Invoice #${invoice.invoice_number || "-"}`);
     setPaymentMode("BANK");
     setPaymentDate(new Date());
     setShowPaymentForm(true);
@@ -722,10 +736,10 @@ export default function ClientLedgerDetailScreen() {
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <TouchableOpacity
-                onPress={() => client.contact_number && Linking.openURL(`tel:${client.contact_number}`)}
+                onPress={openEditModal}
                 style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}
               >
-                <Ionicons name="call-outline" size={15} color={colors.primary} />
+                <Edit size={15} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => client.email_address && Linking.openURL(`mailto:${client.email_address}`)}
@@ -771,8 +785,8 @@ export default function ClientLedgerDetailScreen() {
 
         {/* Summary */}
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
-          <SummaryCard label="Billed" value={billedAmount} />
           <SummaryCard label="Unbilled" value={unbilledAmount} />
+          <SummaryCard label="Billed" value={billedAmount} />
           <SummaryCard label="Settled" value={settledAmount} green />
         </View>
 
@@ -846,11 +860,15 @@ export default function ClientLedgerDetailScreen() {
           <View>
             <Text className="text-lg font-bold mb-4" style={{ color: colors.foreground }}>Invoices</Text>
             {clientInvoices.map(invoice => (
-              <View key={getId(invoice)} className="p-4 rounded-2xl mb-3 border" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
-                <View className="flex-row justify-between items-center mb-3">
-                  <View>
-                    <Text className="font-bold" style={{ color: colors.foreground }}>Invoice #{invoice.invoice_number}</Text>
-                    <Text className="text-xs" style={{ color: colors.mutedForeground }}>Due: {invoice.due_date ? formatDate(invoice.due_date) : "N/A"}</Text>
+                <View key={getId(invoice)} className="p-4 rounded-2xl mb-3 border" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
+                  <View className="flex-row justify-between items-center mb-3">
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text className="font-bold" style={{ color: colors.foreground }} numberOfLines={1} ellipsizeMode="tail">
+                      Invoice #{invoice.invoice_number}
+                    </Text>
+                    <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1} ellipsizeMode="tail">
+                      Due: {invoice.due_date ? formatDate(invoice.due_date) : "N/A"}
+                    </Text>
                   </View>
                   <View className="px-2 py-1 rounded-md" style={{ backgroundColor: invoice.status === 'paid' ? '#22c55e20' : '#ef444420' }}>
                     <Text className="font-bold text-[10px] uppercase" style={{ color: invoice.status === 'paid' ? '#22c55e' : '#ef4444' }}>{invoice.status}</Text>
@@ -878,15 +896,19 @@ export default function ClientLedgerDetailScreen() {
           <View>
             <Text className="text-lg font-bold mb-4" style={{ color: colors.foreground }}>Payment History</Text>
             {entries.filter(e => e.entry_type === 'credit').map(entry => (
-              <View key={getId(entry)} className="p-4 rounded-2xl mb-3 border flex-row items-center" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
+              <View key={getId(entry)} className="p-4 rounded-2xl mb-3 border flex-row items-start" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
                 <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#22c55e20' }}>
                   <ArrowDownLeft size={20} color="#16a34a" />
                 </View>
-                <View className="flex-1">
-                  <Text className="font-bold" style={{ color: colors.foreground }}>{entry.remarks || "Payment Received"}</Text>
-                  <Text className="text-xs" style={{ color: colors.mutedForeground }}>{formatDate(entry.entry_date)} | {entry.payment_mode || "CASH"}</Text>
+                <View className="flex-1" style={{ paddingRight: 10 }}>
+                  <Text className="font-bold" style={{ color: colors.foreground }} numberOfLines={1} ellipsizeMode="tail">
+                    {entry.remarks || "Payment Received"}
+                  </Text>
+                  <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1} ellipsizeMode="tail">
+                    {formatDate(entry.entry_date)} | {entry.payment_mode || "CASH"}
+                  </Text>
                 </View>
-                <View className="items-end">
+                <View className="items-end" style={{ minWidth: 86, marginLeft: 6 }}>
                   <View className="px-2 py-1 rounded-md mb-1" style={{ backgroundColor: (entry.payment_type || "PARTIAL") === "FULL" ? "#22c55e20" : "#f59e0b20" }}>
                     <Text className="text-[10px] font-bold" style={{ color: (entry.payment_type || "PARTIAL") === "FULL" ? "#22c55e" : "#d97706" }}>
                       {entry.payment_type || "PARTIAL"}
@@ -900,13 +922,15 @@ export default function ClientLedgerDetailScreen() {
         )}
 
         {/* Add Payment Button - Full Width Bar */}
-        <TouchableOpacity
-          onPress={() => setShowPaymentForm(true)}
-          style={{ backgroundColor: '#16a34a', borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}
-        >
-          <Plus size={20} color="white" />
-          <Text style={{ color: 'white', fontWeight: 'bold', marginLeft: 8 }}>Add Payment Entry</Text>
-        </TouchableOpacity>
+        {activeTab !== "unbilled" && (
+          <TouchableOpacity
+            onPress={() => setShowPaymentForm(true)}
+            style={{ backgroundColor: '#16a34a', borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 24 }}
+          >
+            <Plus size={20} color="white" />
+            <Text style={{ color: 'white', fontWeight: 'bold', marginLeft: 8 }}>Add Payment Entry</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Payment Modal */}
         <Modal
@@ -1006,13 +1030,21 @@ export default function ClientLedgerDetailScreen() {
                     Remarks *
                   </Text>
 
-                  <View className="flex-row items-center rounded-2xl px-4 py-3" style={{ backgroundColor: colors.muted }}>
-                    <FileText size={20} color={colors.mutedForeground} />
+                  <View className="rounded-2xl px-4 py-3" style={{ backgroundColor: colors.muted }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                      <FileText size={18} color={colors.mutedForeground} />
+                      <Text style={{ marginLeft: 8, color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>
+                        Payment Notes
+                      </Text>
+                    </View>
                     <TextInput
                       placeholder="Payment details (e.g., Bank Transfer)"
                       value={paymentRemarks}
                       onChangeText={setPaymentRemarks}
-                      className="flex-1 ml-3 text-base"
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
+                      className="text-base"
                       style={{ color: colors.foreground }}
                       placeholderTextColor={colors.mutedForeground}
                     />
@@ -1023,15 +1055,35 @@ export default function ClientLedgerDetailScreen() {
                   <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                     Payment Mode
                   </Text>
-                  <View className="flex-row items-center rounded-2xl px-4 py-3" style={{ backgroundColor: colors.muted }}>
-                    <TextInput
-                      placeholder="CASH / BANK / UPI"
-                      value={paymentMode}
-                      onChangeText={setPaymentMode}
-                      className="flex-1 text-base"
-                      style={{ color: colors.foreground }}
-                      placeholderTextColor={colors.mutedForeground}
-                    />
+                  <View className="flex-row gap-2">
+                    {PAYMENT_MODES.map((mode) => {
+                      const selected = paymentMode === mode;
+                      return (
+                        <TouchableOpacity
+                          key={mode}
+                          onPress={() => setPaymentMode(mode)}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            borderRadius: 999,
+                            borderWidth: 1,
+                            alignItems: "center",
+                            backgroundColor: selected ? colors.primary : colors.muted,
+                            borderColor: selected ? colors.primary : colors.border,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: selected ? colors.primaryForeground : colors.foreground,
+                              fontWeight: "700",
+                              fontSize: 12,
+                            }}
+                          >
+                            {mode}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </View>
 
@@ -1165,3 +1217,4 @@ function SummaryCard({ label, value, green }: any) {
     </View>
   );
 }
+

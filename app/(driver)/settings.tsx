@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { ChevronRight, Globe, LogOut, Moon, Sun, User, Bell } from 'lucide-react-native';
+import { ChevronRight, Globe, LogOut, Moon, Sun, Bell } from 'lucide-react-native';
 import { ScrollView, Switch, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { useDriverAppContext } from '../../context/DriverAppContext';
 import { logout } from '../../hooks/useAuth';
@@ -77,23 +77,8 @@ export default function DriverSettings() {
             <DriverScreenHeader title={t.settings || "Settings"} />
 
             <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-                {/* Profile Section */}
-                <View className="mt-6 mb-2 px-4">
-                    <Text className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                        {t.account || "Account"}
-                    </Text>
-                </View>
-
-                <View className="bg-card border-y border-border mb-6">
-                    <SettingItem
-                        icon={User}
-                        label={t.profile || "Edit Profile"}
-                        onPress={() => router.push("/(driver)/profile")}
-                    />
-                </View>
-
                 {/* Preferences Section */}
-                <View className="mb-2 px-4">
+                <View className="mt-6 mb-2 px-4">
                     <Text className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         {t.preferences || "Preferences"}
                     </Text>

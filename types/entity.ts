@@ -117,6 +117,8 @@ export interface Driver {
 
   identity_card_url?: string;
   license_card_url?: string;
+  profile_picture_url?: string;
+  assigned_truck_id?: ObjectId | Truck | null;
   createdAt?: ISODate;
   updatedAt?: ISODate;
 }

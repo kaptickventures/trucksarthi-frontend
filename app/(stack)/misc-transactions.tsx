@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -14,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
@@ -22,8 +22,12 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import useFinance from "../../hooks/useFinance";
 import { formatDate, formatLabel } from "../../lib/utils";
 
-const EXPENSE_CATEGORIES = ["OFFICE_EXPENSE", "FOOD_SNACKS", "ADMIN", "UTILITIES", "OTHER"];
+const EXPENSE_CATEGORIES = ["DOCUMENT", "SERVICE", "REPAIR"];
 const INCOME_CATEGORIES = ["ASSET_SALE", "SCRAP_SALE", "REFUND", "OTHER_INCOME"];
+const MISC_EXPENSE_TAGS = [
+  { id: "DOCUMENT_EXPENSE", label: "Document Expense", categories: ["DOCUMENT", "DOCUMENT_EXPENSE"] },
+  { id: "SERVICE_REPAIR", label: "Service Repair", categories: ["SERVICE", "REPAIR", "SERVICE_REPAIR"] },
+] as const;
 
 export default function MiscTransactionsScreen() {
   const router = useRouter();
@@ -39,6 +43,7 @@ export default function MiscTransactionsScreen() {
   const [notes, setNotes] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
+  const [activeExpenseTag, setActiveExpenseTag] = useState<(typeof MISC_EXPENSE_TAGS)[number]["id"]>("DOCUMENT_EXPENSE");
 
   const monthStart = useMemo(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(), []);
 
@@ -87,14 +92,16 @@ export default function MiscTransactionsScreen() {
     await load();
   };
 
-  const summary = useMemo(() => {
-    const income = (transactions || [])
-      .filter((t: any) => t.sourceModule === "MISC" && t.direction === "INCOME")
-      .reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
-    const expense = (transactions || [])
-      .filter((t: any) => t.sourceModule === "MISC" && t.direction === "EXPENSE")
-      .reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
-    return { income, expense };
+  const summaryByTag = useMemo(() => {
+    return MISC_EXPENSE_TAGS.reduce(
+      (acc, tag) => {
+        acc[tag.id] = (transactions || [])
+          .filter((t: any) => t.sourceModule === "MISC" && t.direction === "EXPENSE" && tag.categories.includes(String(t.category || "").toUpperCase()))
+          .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        return acc;
+      },
+      { DOCUMENT_EXPENSE: 0, SERVICE_REPAIR: 0 } as Record<(typeof MISC_EXPENSE_TAGS)[number]["id"], number>
+    );
   }, [transactions]);
 
   const categoryOptions = entryType === "EXPENSE" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
@@ -104,8 +111,16 @@ export default function MiscTransactionsScreen() {
     if (activeFilter !== "ALL") {
       rows = rows.filter((t: any) => t.direction === activeFilter);
     }
+    if (activeFilter !== "INCOME") {
+      const activeTag = MISC_EXPENSE_TAGS.find((tag) => tag.id === activeExpenseTag);
+      rows = rows.filter(
+        (t: any) =>
+          t.direction === "INCOME" ||
+          (activeTag ? activeTag.categories.includes(String(t.category || "").toUpperCase()) : false)
+      );
+    }
     return [...rows].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, activeFilter]);
+  }, [transactions, activeFilter, activeExpenseTag]);
   const showInitialSkeleton = loading && !refreshing && filteredTransactions.length === 0;
 
   return (
@@ -127,20 +142,22 @@ export default function MiscTransactionsScreen() {
       >
         {/* Summary Info */}
         {showInitialSkeleton ? (
-          <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-            <Skeleton style={{ flex: 1, height: 74, borderRadius: 16 }} />
-            <Skeleton style={{ flex: 1, height: 74, borderRadius: 16 }} />
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+            <Skeleton style={{ flex: 1, height: 70, borderRadius: 12 }} />
+            <Skeleton style={{ flex: 1, height: 70, borderRadius: 12 }} />
           </View>
         ) : (
-          <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-            <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.border }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>INCOME</Text>
-              <Text style={{ color: colors.success, fontSize: 16, fontWeight: "800" }}>+Rs {summary.income.toLocaleString()}</Text>
-            </View>
-            <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.border }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>EXPENSE</Text>
-              <Text style={{ color: colors.destructive, fontSize: 16, fontWeight: "800" }}>-Rs {summary.expense.toLocaleString()}</Text>
-            </View>
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+            {MISC_EXPENSE_TAGS.map((tag) => (
+              <View key={`summary-${tag.id}`} style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 9, fontWeight: "700", marginBottom: 4 }}>
+                  {tag.label.toUpperCase()}
+                </Text>
+                <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "800" }}>
+                  Rs {summaryByTag[tag.id].toLocaleString()}
+                </Text>
+              </View>
+            ))}
           </View>
         )}
 
@@ -165,6 +182,30 @@ export default function MiscTransactionsScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {activeFilter !== "INCOME" && (
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+            {MISC_EXPENSE_TAGS.map((tag) => (
+              <TouchableOpacity
+                key={tag.id}
+                onPress={() => setActiveExpenseTag(tag.id)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: activeExpenseTag === tag.id ? colors.primary : colors.border,
+                  backgroundColor: activeExpenseTag === tag.id ? colors.primary : "transparent",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: activeExpenseTag === tag.id ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>
+                  {tag.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* List */}
         <Text style={{ fontSize: 12, fontWeight: "700", color: colors.mutedForeground, marginBottom: 12, marginLeft: 4 }}>
@@ -243,17 +284,12 @@ export default function MiscTransactionsScreen() {
       <FinanceFAB onPress={() => setShowAdd(true)} />
 
       <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => setShowAdd(false)}>
-        <KeyboardAvoidingView
-          style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.45)" }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <KeyboardAwareScrollView
-            enableOnAndroid
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
-          >
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.45)" }}>
+          <Pressable style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }} onPress={() => setShowAdd(false)} />
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
             <View
               style={{
+                maxHeight: "88%",
                 backgroundColor: colors.background,
                 paddingTop: 12,
                 paddingHorizontal: 20,
@@ -262,6 +298,7 @@ export default function MiscTransactionsScreen() {
                 borderTopRightRadius: 24,
               }}
             >
+              <ScrollView keyboardShouldPersistTaps="handled">
               {/* Drag handle */}
               <View style={{ alignItems: "center", marginBottom: 16 }}>
                 <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
@@ -424,9 +461,10 @@ export default function MiscTransactionsScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
+              </ScrollView>
             </View>
-          </KeyboardAwareScrollView>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
     </SafeAreaView>
   );

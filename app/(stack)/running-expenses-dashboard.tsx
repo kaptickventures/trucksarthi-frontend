@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -14,11 +15,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
-import QuickActionButton from "../../components/finance/QuickActionButton";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
@@ -39,6 +38,7 @@ export default function RunningExpensesDashboardScreen() {
   // Modal State
   const [showAdd, setShowAdd] = useState(false);
   const [expenseCategory, setExpenseCategory] = useState<string>("FUEL");
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<(typeof RUNNING_ACTIONS)[number]>("FUEL");
   const [amount, setAmount] = useState("");
   const [litres, setLitres] = useState("");
   const [kmReading, setKmReading] = useState("");
@@ -81,12 +81,26 @@ export default function RunningExpensesDashboardScreen() {
     return [...rows].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, truckId]);
 
+  const filteredTruckRows = useMemo(
+    () => truckRows.filter((t: any) => String(t?.transactionSubtype || t?.category || "") === activeCategoryFilter),
+    [truckRows, activeCategoryFilter]
+  );
+
   const monthlyExpense = useMemo(() => truckRows.reduce((sum: number, t: any) => sum + Number(t?.amount || 0), 0), [truckRows]);
-  const fuelExpense = useMemo(
-    () => truckRows.filter((t: any) => t?.transactionSubtype === "FUEL" || t?.category === "FUEL").reduce((sum: number, t: any) => sum + Number(t?.amount || 0), 0),
+  const totalsByType = useMemo(
+    () =>
+      RUNNING_ACTIONS.reduce(
+        (acc, type) => {
+          acc[type] = truckRows
+            .filter((t: any) => String(t?.transactionSubtype || t?.category || "") === type)
+            .reduce((sum: number, t: any) => sum + Number(t?.amount || 0), 0);
+          return acc;
+        },
+        { FUEL: 0, FASTAG: 0, CHALLAN: 0 } as Record<(typeof RUNNING_ACTIONS)[number], number>
+      ),
     [truckRows]
   );
-  const showInitialSkeleton = financeLoading && !refreshing && truckRows.length === 0;
+  const showInitialSkeleton = financeLoading && !refreshing && filteredTruckRows.length === 0;
 
   const onSave = async () => {
     if (!truckId) {
@@ -171,26 +185,51 @@ export default function RunningExpensesDashboardScreen() {
             <View style={{ alignItems: "flex-end" }}>
               <View style={{ backgroundColor: "#fff7ed", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
                 <Text style={{ color: "#ea580c", fontSize: 13, fontWeight: "800" }}>
-                  Rs {fuelExpense.toLocaleString()} Fuel
+                  Rs {totalsByType.FUEL.toLocaleString()} Fuel
                 </Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.mutedForeground, marginBottom: 12, marginLeft: 4 }}>
-          QUICK ADD
-        </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }} contentContainerStyle={{ gap: 10 }}>
-          {RUNNING_ACTIONS.map((action) => (
-            <QuickActionButton key={action} label={action === "FASTAG" ? "Fastag Recharge" : formatLabel(action)} onPress={() => openAddModal(action)} />
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+          {RUNNING_ACTIONS.map((type) => (
+            <TouchableOpacity
+              key={type}
+              onPress={() => setActiveCategoryFilter(type)}
+              style={{
+                flex: 1,
+                paddingVertical: 8,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: activeCategoryFilter === type ? colors.primary : colors.border,
+                backgroundColor: activeCategoryFilter === type ? colors.primary : "transparent",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: activeCategoryFilter === type ? "white" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                {type === "FASTAG" ? "Fastag" : formatLabel(type)}
+              </Text>
+            </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
+
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+          {RUNNING_ACTIONS.map((type) => (
+            <View key={`card-${type}`} style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>
+                {type === "FASTAG" ? "FASTAG" : type}
+              </Text>
+              <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "800" }}>
+                Rs {totalsByType[type].toLocaleString()}
+              </Text>
+            </View>
+          ))}
+        </View>
 
         {/* Ledger Entries */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.mutedForeground, marginBottom: 12, marginLeft: 4 }}>
-          EXPENSE HISTORY
+          {formatLabel(activeCategoryFilter).toUpperCase()} HISTORY
         </Text>
 
         {showInitialSkeleton && (
@@ -201,13 +240,13 @@ export default function RunningExpensesDashboardScreen() {
           </View>
         )}
 
-        {truckRows.length === 0 && !financeLoading && (
+        {filteredTruckRows.length === 0 && !financeLoading && (
           <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 30, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ color: colors.mutedForeground }}>No expenses found for this month.</Text>
+            <Text style={{ color: colors.mutedForeground }}>No {formatLabel(activeCategoryFilter).toLowerCase()} expenses found for this month.</Text>
           </View>
         )}
 
-        {!showInitialSkeleton && truckRows.map((item: any) => {
+        {!showInitialSkeleton && filteredTruckRows.map((item: any) => {
           const type = String(item.transactionSubtype || item.category || "Expense").toUpperCase();
           const isFuel = type === "FUEL";
 
@@ -261,17 +300,16 @@ export default function RunningExpensesDashboardScreen() {
         })}
       </ScrollView>
 
-      <FinanceFAB onPress={() => openAddModal("FUEL")} />
+      <FinanceFAB onPress={() => openAddModal(activeCategoryFilter)} />
 
       {/* Add Expense Modal */}
       <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => setShowAdd(false)}>
-        <KeyboardAvoidingView
-          style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.45)" }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <KeyboardAwareScrollView enableOnAndroid keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.45)" }}>
+          <Pressable style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }} onPress={() => setShowAdd(false)} />
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
             <View
               style={{
+                maxHeight: "88%",
                 backgroundColor: colors.background,
                 paddingTop: 12,
                 paddingHorizontal: 20,
@@ -280,6 +318,7 @@ export default function RunningExpensesDashboardScreen() {
                 borderTopRightRadius: 24,
               }}
             >
+              <ScrollView keyboardShouldPersistTaps="handled">
               {/* Drag handle */}
               <View style={{ alignItems: "center", marginBottom: 16 }}>
                 <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
@@ -385,9 +424,10 @@ export default function RunningExpensesDashboardScreen() {
                   <Text style={{ color: "white", fontWeight: "800", fontSize: 15 }}>{financeLoading ? "Saving..." : "Save Expense"}</Text>
                 </TouchableOpacity>
               </View>
+              </ScrollView>
             </View>
-          </KeyboardAwareScrollView>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
     </SafeAreaView>
   );

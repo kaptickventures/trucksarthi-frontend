@@ -53,6 +53,7 @@ export default function useDrivers() {
       const payload = {
         name,
         phoneNumber,
+        assigned_truck_id: data.assigned_truck_id || null,
         // Keep legacy keys too for cross-backend compatibility.
         driver_name: name,
         contact_number: phoneNumber,
@@ -96,19 +97,25 @@ export default function useDrivers() {
     }
   };
 
+  const buildUploadFile = (file: any, fallbackName: string) => {
+    const rawUri = file?.uri || "";
+    const fileUri =
+      Platform.OS === "android" && rawUri && !rawUri.startsWith("file://")
+        ? `file://${rawUri}`
+        : rawUri;
+
+    return {
+      uri: fileUri,
+      name: file?.name || file?.fileName || fallbackName,
+      type: file?.type || file?.mimeType || "image/jpeg",
+    };
+  };
+
   /* ---------------- UPLOAD DOCUMENTS ---------------- */
   const uploadLicense = async (driverId: string, file: any) => {
     try {
       const formData = new FormData();
-      const fileUri = Platform.OS === "android" && !file.uri.startsWith("file://")
-        ? `file://${file.uri}`
-        : file.uri.replace("file://", "");
-
-      formData.append("file", {
-        uri: fileUri,
-        name: file.name || file.fileName || 'license.jpg',
-        type: file.type || file.mimeType || 'image/jpeg',
-      } as any);
+      formData.append("file", buildUploadFile(file, "license.jpg") as any);
 
       const res = await API.post(`/api/drivers/${driverId}/license`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -133,15 +140,7 @@ export default function useDrivers() {
   const uploadAadhaar = async (driverId: string, file: any) => {
     try {
       const formData = new FormData();
-      const fileUri = Platform.OS === "android" && !file.uri.startsWith("file://")
-        ? `file://${file.uri}`
-        : file.uri.replace("file://", "");
-
-      formData.append("file", {
-        uri: fileUri,
-        name: file.name || file.fileName || 'aadhaar.jpg',
-        type: file.type || file.mimeType || 'image/jpeg',
-      } as any);
+      formData.append("file", buildUploadFile(file, "aadhaar.jpg") as any);
 
       const res = await API.post(`/api/drivers/${driverId}/aadhaar`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -159,6 +158,31 @@ export default function useDrivers() {
     } catch (error: any) {
       console.error("AADHAAR UPLOAD ERROR:", error?.response?.data || error);
       Alert.alert("Error", error?.response?.data?.error || "Failed to upload Aadhaar");
+      throw error;
+    }
+  };
+
+  const uploadProfilePicture = async (driverId: string, file: any) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", buildUploadFile(file, "profile.jpg") as any);
+
+      const res = await API.post(`/api/drivers/${driverId}/profile-picture`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setDrivers((prev) =>
+        prev.map((d) =>
+          d._id === driverId
+            ? { ...d, profile_picture_url: res.data.file_url || res.data.driver?.profile_picture_url }
+            : d
+        )
+      );
+
+      return res.data;
+    } catch (error: any) {
+      console.error("PROFILE UPLOAD ERROR:", error?.response?.data || error);
+      Alert.alert("Error", error?.response?.data?.error || "Failed to upload profile photo");
       throw error;
     }
   };
@@ -185,6 +209,7 @@ export default function useDrivers() {
     updateDriver, 
     deleteDriver,
     uploadLicense,
-    uploadAadhaar 
+    uploadAadhaar,
+    uploadProfilePicture,
   };
 }

@@ -23,12 +23,14 @@ import useDrivers from "../../hooks/useDriver";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
 import { useTranslation } from "../../context/LanguageContext";
+import useTrucks from "../../hooks/useTruck";
 
 export default function DriversManager() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
+  const { trucks } = useTrucks();
 
   const {
     drivers,
@@ -63,6 +65,7 @@ export default function DriversManager() {
     contact_number: "",
     identity_card_url: "",
     license_card_url: "",
+    assigned_truck_id: "",
   });
 
   const requiredFields: Array<keyof typeof formData> = [
@@ -86,7 +89,7 @@ export default function DriversManager() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: [ImagePicker.MediaType.images],
       quality: 0.8,
       allowsEditing: true,
     });
@@ -108,6 +111,9 @@ export default function DriversManager() {
         contact_number: data.contact_number || "",
         identity_card_url: data.identity_card_url || "",
         license_card_url: data.license_card_url || "",
+        assigned_truck_id: typeof data.assigned_truck_id === "object"
+          ? (data.assigned_truck_id as any)?._id || ""
+          : data.assigned_truck_id || "",
       });
     } else {
       setEditingId(null);
@@ -116,6 +122,7 @@ export default function DriversManager() {
         contact_number: "",
         identity_card_url: "",
         license_card_url: "",
+        assigned_truck_id: "",
       });
     }
     setModalVisible(true);
@@ -276,6 +283,13 @@ export default function DriversManager() {
 
                 <View className="gap-y-1">
                   <Text style={{ color: colors.foreground }} className="text-sm font-medium">Phone: {driver.contact_number}</Text>
+                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">
+                    Truck: {(driver as any)?.assigned_truck_id
+                      ? (typeof (driver as any).assigned_truck_id === "object"
+                        ? (driver as any).assigned_truck_id.registration_number || "Assigned"
+                        : "Assigned")
+                      : "Not assigned"}
+                  </Text>
                   <Text style={{ color: colors.foreground }} className="text-sm font-medium">License: {driver.license_card_url ? "Registered" : "Missing"}</Text>
                 </View>
               </TouchableOpacity>
@@ -305,6 +319,7 @@ export default function DriversManager() {
         editing={!!editingId}
         formData={formData}
         setFormData={setFormData}
+        trucks={trucks}
         onSubmit={handleSubmit}
         onClose={closeModal}
       />

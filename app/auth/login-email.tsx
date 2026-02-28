@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ChevronLeft, Mail, Lock, ShieldCheck, ArrowRight, UserPlus } from "lucide-react-native";
+import { ChevronLeft, Mail, Lock, ShieldCheck, ArrowRight, Eye, EyeOff } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -26,6 +26,7 @@ export default function LoginEmail() {
 
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -126,7 +127,7 @@ export default function LoginEmail() {
                   <TextInput
                     value={pw}
                     onChangeText={setPw}
-                    secureTextEntry
+                    secureTextEntry={!showPassword}
                     placeholder="••••••••"
                     placeholderTextColor={colors.mutedForeground}
                     style={{
@@ -138,6 +139,18 @@ export default function LoginEmail() {
                       color: colors.foreground
                     }}
                   />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword((prev) => !prev)}
+                    style={{ padding: 6 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} color={colors.mutedForeground} />
+                    ) : (
+                      <Eye size={18} color={colors.mutedForeground} />
+                    )}
+                  </TouchableOpacity>
                 </View>
               </View>
 

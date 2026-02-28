@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useNavigation } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { useLayoutEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, RefreshControl } from 'react-native';
+import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TripCard } from '../../components/driver/TripCard';
 import { useDriverAppContext } from '../../context/DriverAppContext';
@@ -11,7 +11,6 @@ import SideMenu from '../../components/SideMenu';
 
 export default function DashboardScreen() {
     const router = useRouter();
-    const navigation = useNavigation();
     const { colors } = useThemeStore();
     const insets = useSafeAreaInsets();
     const [menuVisible, setMenuVisible] = useState(false);
@@ -21,27 +20,12 @@ export default function DashboardScreen() {
         getTripExpenses,
         language,
         netKhata,
+        refreshAll,
+        refreshing,
         tripsThisMonth,
     } = useDriverAppContext();
 
     const t = translations[language];
-
-    useLayoutEffect(() => {
-        navigation.setOptions({
-            headerShown: false, // We'll handle header manually or let Tabs handle it, but wait, Tabs does weird heavy lifting
-            // Let's rely on Tabs header or custom one.
-            // Actually, we want a custom header with Menu button.
-            // Since we are now DIRECT children of Tabs, navigation.setOptions applies to Tab Stack.
-            // But Tabs headers are static.
-            // Better to hide header in _layout and implement custom header here?
-            // Or use navigation.setOptions to inject buttons into Tab Header.
-            /* 
-            Update: The user asked to remove (tabs) folder structure.
-            So now (driver)/_layout.tsx is the TABS navigator.
-            (driver)/home.tsx is the Home Tab.
-             */
-        });
-    }, [navigation, colors, menuVisible]);
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -64,7 +48,10 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView
+                contentContainerStyle={styles.content}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshAll} tintColor={colors.primary} />}
+            >
                 <View style={[styles.metricCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={styles.metricRow}>
                         <View style={styles.metricItem}>

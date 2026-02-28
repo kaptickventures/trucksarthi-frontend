@@ -39,7 +39,7 @@ export default function DriverProfile() {
   const { colors, theme } = useThemeStore();
   const { driver_id } = useLocalSearchParams<{ driver_id: string }>();
 
-  const { drivers, loading: driverLoading, uploadLicense, uploadAadhaar, fetchDrivers } = useDrivers();
+  const { drivers, loading: driverLoading, uploadLicense, uploadAadhaar, uploadProfilePicture, fetchDrivers } = useDrivers();
   const driver = useMemo(() => drivers.find(d => d._id === driver_id), [drivers, driver_id]);
 
   const { entries, fetchDriverLedger, fetchDriverSummary, addLedgerEntry, updateEntryStatus } = useDriverFinance();
@@ -84,7 +84,7 @@ export default function DriverProfile() {
     }
   };
 
-  const handleUpload = async (type: "LICENSE" | "AADHAAR") => {
+  const handleUpload = async (type: "LICENSE" | "AADHAAR" | "PROFILE") => {
     if (!driver_id) return;
     try {
       const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -94,7 +94,7 @@ export default function DriverProfile() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: [ImagePicker.MediaType.images],
         allowsEditing: true,
         quality: 0.5,
       });
@@ -105,11 +105,17 @@ export default function DriverProfile() {
         name: asset.fileName || `${type.toLowerCase()}.jpg`,
         type: asset.mimeType || "image/jpeg"
       };
-      if (type === "LICENSE") await uploadLicense(driver_id, file);
-      else await uploadAadhaar(driver_id, file);
-      Alert.alert("Success", "Document uploaded successfully");
+      if (type === "LICENSE") {
+        await uploadLicense(driver_id, file);
+      } else if (type === "AADHAAR") {
+        await uploadAadhaar(driver_id, file);
+      } else {
+        await uploadProfilePicture(driver_id, file);
+      }
+
+      Alert.alert("Success", type === "PROFILE" ? "Profile photo uploaded successfully" : "Document uploaded successfully");
     } catch (e) {
-      Alert.alert("Error", "Failed to upload document");
+      Alert.alert("Error", type === "PROFILE" ? "Failed to upload profile photo" : "Failed to upload document");
     }
   };
 
@@ -218,8 +224,23 @@ export default function DriverProfile() {
       >
         <View style={{ padding: 24, backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 24, marginBottom: 24, borderWidth: 1, borderColor: colors.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.muted, alignItems: 'center', justifyContent: 'center' }}>
-              <UserIcon size={32} color={colors.mutedForeground} />
+            <View style={{ width: 70, height: 70, marginRight: 10, position: "relative" }}>
+              <TouchableOpacity
+                onPress={() => (driver.profile_picture_url ? setPreviewImage(getFileUrl(driver.profile_picture_url)) : handleUpload("PROFILE"))}
+                style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.muted, alignItems: 'center', justifyContent: 'center', overflow: "hidden" }}
+              >
+                {driver.profile_picture_url ? (
+                  <Image source={{ uri: getFileUrl(driver.profile_picture_url) || "" }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                ) : (
+                  <UserIcon size={32} color={colors.mutedForeground} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleUpload("PROFILE")}
+                style={{ position: "absolute", right: 0, bottom: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.card }}
+              >
+                <Pencil size={12} color={colors.primaryForeground} />
+              </TouchableOpacity>
             </View>
             <View style={{ marginLeft: 16, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View>

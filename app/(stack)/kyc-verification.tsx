@@ -32,9 +32,31 @@ export default function KYCVerification() {
 
     const [isVerifying, setIsVerifying] = useState(false);
 
-    const isPanVerifiedNow = user?.is_pan_verified && (!pan || pan === user?.pan_number);
-    const isGstinVerifiedNow = user?.is_gstin_verified && (!gstin || gstin === user?.gstin);
-    const isBankVerifiedNow = user?.is_bank_verified && (!bankAccount || bankAccount === user?.account_number) && (!ifsc || ifsc === user?.ifsc_code);
+    const hasPanVerifiedMeta = Boolean(
+        user?.is_pan_verified ||
+        user?.pan_number ||
+        user?.kyc_data?.pan_details?.registered_name
+    );
+    const hasGstinVerifiedMeta = Boolean(
+        user?.is_gstin_verified ||
+        user?.gstin ||
+        user?.kyc_data?.gstin_details?.gst_in_status
+    );
+    const normalizeAccount = (value?: string) => (value || "").replace(/\s+/g, "");
+    const normalizeIfsc = (value?: string) => (value || "").trim().toUpperCase();
+    const isBankInputMatchingSaved =
+        (!bankAccount || normalizeAccount(bankAccount) === normalizeAccount(user?.account_number)) &&
+        (!ifsc || normalizeIfsc(ifsc) === normalizeIfsc(user?.ifsc_code));
+    const hasSavedBankDetails = Boolean(normalizeAccount(user?.account_number) && normalizeIfsc(user?.ifsc_code));
+    const hasVerifiedBankMeta = Boolean(
+        user?.is_bank_verified ||
+        user?.kyc_data?.bank_details?.name_at_bank ||
+        user?.kyc_data?.bank_details?.account_status
+    );
+    const isPanVerifiedNow = hasPanVerifiedMeta && (!pan || pan === user?.pan_number);
+    const isGstinVerifiedNow = hasGstinVerifiedMeta && (!gstin || gstin === user?.gstin);
+    const isBankVerifiedNow = (hasVerifiedBankMeta || hasSavedBankDetails) && isBankInputMatchingSaved;
+    const isKycCompleteNow = Boolean(hasPanVerifiedMeta && hasGstinVerifiedMeta && (hasVerifiedBankMeta || hasSavedBankDetails));
 
     const VerifiedValue = ({ label, value }: { label: string; value?: string }) => {
         if (!value) return null;
@@ -111,10 +133,11 @@ export default function KYCVerification() {
                 const legalName = gstinData.legal_name_of_business;
                 const tradeName = gstinData.trade_name_of_business;
                 const principalAddress = gstinData.principal_place_address;
+                const preferredCompanyName = tradeName || legalName;
 
                 Alert.alert(
                     "Verification Successful",
-                    `GSTIN verified for ${legalName || gstin}. Save this business to your profile?`,
+                    `GSTIN verified for ${preferredCompanyName || gstin}. Save this business to your profile?`,
                     [
                         { text: "No", style: "cancel", onPress: () => { setGstin(""); refreshUser(); } },
                         {
@@ -123,7 +146,7 @@ export default function KYCVerification() {
                                 try {
                                     await updateUser({
                                         gstin: gstin.toUpperCase(),
-                                        company_name: legalName || tradeName || undefined,
+                                        company_name: preferredCompanyName || undefined,
                                         address: principalAddress || user?.address,
                                         is_gstin_verified: true,
                                         kyc_data: {
@@ -169,9 +192,17 @@ export default function KYCVerification() {
                             text: "Yes, Save",
                             onPress: async () => {
                                 try {
+                                    const bankData = result.data || {};
                                     await updateUser({
                                         account_number: bankAccount,
-                                        ifsc_code: ifsc
+                                        ifsc_code: ifsc.toUpperCase(),
+                                        bank_name: bankData.bank_name || bankData.bankName || user?.bank_name,
+                                        account_holder_name: bankData.name_at_bank || bankData.nameAtBank || user?.account_holder_name,
+                                        is_bank_verified: true,
+                                        kyc_data: {
+                                            ...(user?.kyc_data || {}),
+                                            bank_details: bankData
+                                        }
                                     });
                                     Alert.alert("Success", "Bank details updated!");
                                     setBankAccount("");
@@ -207,7 +238,7 @@ export default function KYCVerification() {
                 </View>
 
                 <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={60} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
-                    {!(user?.is_pan_verified && user?.is_bank_verified) && (
+                    {!isKycCompleteNow && (
                         <View style={{ backgroundColor: colors.primary + '10', padding: 20, borderRadius: 16, marginBottom: 24, flexDirection: 'row', gap: 15, alignItems: 'center' }}>
                             <ShieldCheck size={32} color={colors.primary} />
                             <View style={{ flex: 1 }}>

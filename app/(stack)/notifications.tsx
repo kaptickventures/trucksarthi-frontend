@@ -46,6 +46,10 @@ export default function NotificationsScreen() {
       const truckId = typeof doc.truck === "object" ? doc.truck?._id : doc.truck;
       const truck = trucks.find(t => String(t._id) === String(truckId));
       const truckName = truck?.registration_number || (typeof doc.truck === "object" ? doc.truck?.registration_number : 'N/A');
+      const expiry = new Date(doc.expiry_date);
+      const today = new Date();
+      const diffTime = expiry.getTime() - today.getTime();
+      const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
       return {
         _id: `reminder-${doc._id}`,
@@ -54,7 +58,8 @@ export default function NotificationsScreen() {
         type: "DOC_EXPIRY",
         status: "REMINDER",
         scheduled_at: new Date().toISOString(), // Sort at top/recent
-        is_reminder: true
+        is_reminder: true,
+        daysLeft
       };
     });
 
@@ -134,6 +139,13 @@ export default function NotificationsScreen() {
     return `${diffInDays}d ago`;
   };
 
+  const getReminderLevel = (daysLeft?: number) => {
+    if (typeof daysLeft !== "number") return null;
+    if (daysLeft <= 7) return { label: "Reminder - 7 days", bg: "#fee2e2", text: "#b91c1c" };
+    if (daysLeft <= 15) return { label: "Reminder - 15 days", bg: "#ffedd5", text: "#c2410c" };
+    return { label: "Reminder - 30 days", bg: "#fef3c7", text: "#a16207" };
+  };
+
   return (
     <View className="flex-1" style={{ backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -196,10 +208,26 @@ export default function NotificationsScreen() {
                 </Text>
 
                 <View className="flex-row items-center">
-                  <Ionicons name="time-outline" size={12} color={emptyIconColor} />
-                  <Text className="text-xs ml-1" style={{ color: colors.mutedForeground }}>
-                    {getTimeAgo(n.scheduled_at)}
-                  </Text>
+                  {n.is_reminder ? (
+                    (() => {
+                      const level = getReminderLevel(n.daysLeft);
+                      if (!level) return null;
+                      return (
+                        <View style={{ backgroundColor: level.bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
+                          <Text style={{ color: level.text, fontSize: 10, fontWeight: "800", textTransform: "uppercase" }}>
+                            {level.label}
+                          </Text>
+                        </View>
+                      );
+                    })()
+                  ) : (
+                    <>
+                      <Ionicons name="time-outline" size={12} color={emptyIconColor} />
+                      <Text className="text-xs ml-1" style={{ color: colors.mutedForeground }}>
+                        {getTimeAgo(n.scheduled_at)}
+                      </Text>
+                    </>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>

@@ -301,51 +301,94 @@ export default function Profile() {
           }
         >
           {/* HEADER SECTION */}
-          <View style={{ alignItems: 'center', marginVertical: 24 }}>
-            <View style={{ position: 'relative' }}>
-              <View style={{
-                width: 120,
-                height: 120,
-                borderRadius: 60,
-                borderWidth: 4,
-                borderColor: colors.primary,
-                overflow: 'hidden',
-                backgroundColor: colors.muted
-              }}>
-                {profileImage ? (
-                  <Image source={{ uri: getFileUrl(profileImage) || "" }} style={{ width: '100%', height: '100%' }} />
-                ) : (
-                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    <UserIcon size={60} color={colors.mutedForeground} />
-                  </View>
-                )}
-              </View>
-              <TouchableOpacity
-                onPress={showPhotoOptions}
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  backgroundColor: colors.primary,
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  alignItems: 'center',
-                  justifyContent: 'center',
+          <View style={{ paddingHorizontal: 24, marginTop: 16, marginBottom: 14 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 16,
+                padding: 14
+              }}
+            >
+              <View style={{ position: 'relative' }}>
+                <View style={{
+                  width: 88,
+                  height: 88,
+                  borderRadius: 44,
                   borderWidth: 3,
-                  borderColor: colors.background
-                }}
-              >
-                <Camera size={16} color={colors.primaryForeground} />
-              </TouchableOpacity>
-            </View>
+                  borderColor: colors.primary,
+                  overflow: 'hidden',
+                  backgroundColor: colors.muted
+                }}>
+                  {profileImage ? (
+                    <Image source={{ uri: getFileUrl(profileImage) || "" }} style={{ width: '100%', height: '100%' }} />
+                  ) : (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                      <UserIcon size={42} color={colors.mutedForeground} />
+                    </View>
+                  )}
+                </View>
+                <TouchableOpacity
+                  onPress={showPhotoOptions}
+                  style={{
+                    position: 'absolute',
+                    bottom: -2,
+                    right: -2,
+                    backgroundColor: colors.primary,
+                    width: 30,
+                    height: 30,
+                    borderRadius: 15,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: colors.background
+                  }}
+                >
+                  <Camera size={14} color={colors.primaryForeground} />
+                </TouchableOpacity>
+              </View>
 
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.foreground, marginTop: 16, textAlign: 'center' }}>
-              {formData.company_name || "Enterprise Account"}
-            </Text>
-            <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 4 }}>
-              {formData.name || "User"}
-            </Text>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text
+                  numberOfLines={1}
+                  style={{ fontSize: 18, fontWeight: '800', color: colors.foreground }}
+                >
+                  {formData.company_name || "Enterprise Account"}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 2, fontWeight: '600' }}
+                >
+                  {formData.name || "User"}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 6 }}
+                >
+                  {formData.phone || formData.email || "Add phone/email"}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: isKycVerified ? '#dcfce7' : '#fee2e2',
+                      borderRadius: 999,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4
+                    }}
+                  >
+                    <CheckCircle2 size={12} color={isKycVerified ? '#16a34a' : '#dc2626'} />
+                    <Text style={{ fontSize: 11, fontWeight: '700', marginLeft: 4, color: isKycVerified ? '#16a34a' : '#dc2626' }}>
+                      {isKycVerified ? "KYC Verified" : "KYC Pending"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
           </View>
 
           {/* KYC PRIORITY CARD */}

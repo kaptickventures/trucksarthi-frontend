@@ -71,6 +71,25 @@ const hasCompletedMarker = (notes?: string): boolean => {
   return notes.includes(TRIP_STATUS_MARKER);
 };
 
+const isTripCompleted = (trip: Trip, tripDate: number | null): boolean => {
+  if (hasCompletedMarker(trip.notes)) return true;
+
+  const rawStatus = String((trip as any)?.status || (trip as any)?.trip_status || "").toLowerCase();
+  if (["completed", "complete", "closed", "done"].includes(rawStatus)) return true;
+
+  const invoicedStatus = String((trip as any)?.invoiced_status || "").toLowerCase();
+  if (invoicedStatus === "invoiced") return true;
+
+  // Legacy fallback: older trip dates are treated as completed if no explicit status exists.
+  if (tripDate) {
+    const tripDayEnd = new Date(tripDate);
+    tripDayEnd.setHours(23, 59, 59, 999);
+    if (tripDayEnd.getTime() < Date.now()) return true;
+  }
+
+  return false;
+};
+
 const extractTripIdFromRemarks = (remarks?: string): string | null => {
   if (!remarks) return null;
   const match = remarks.match(/\[Trip:([^\]]+)\]/);
@@ -80,9 +99,10 @@ const extractTripIdFromRemarks = (remarks?: string): string | null => {
 const mapTrip = (trip: Trip): DriverTripView => {
   const now = Date.now();
   const tripDate = trip.trip_date ? new Date(trip.trip_date).getTime() : null;
+  const completed = isTripCompleted(trip, tripDate);
 
   let status: DriverTripStatus = "Assigned";
-  if (hasCompletedMarker(trip.notes)) {
+  if (completed) {
     status = "Completed";
   } else if (tripDate && tripDate <= now) {
     status = "Active";
@@ -94,7 +114,7 @@ const mapTrip = (trip: Trip): DriverTripView => {
     destination: readText((trip.end_location as any)?.location_name || (trip.end_location as any)?.complete_address, "Unknown destination"),
     truckNumber: readText((trip.truck as any)?.registration_number, "N/A"),
     startTime: trip.trip_date ? new Date(trip.trip_date).toISOString() : undefined,
-    endTime: hasCompletedMarker(trip.notes) ? (trip.updatedAt ? new Date(trip.updatedAt).toISOString() : undefined) : undefined,
+    endTime: completed ? (trip.updatedAt ? new Date(trip.updatedAt).toISOString() : (trip.trip_date ? new Date(trip.trip_date).toISOString() : undefined)) : undefined,
     status,
     driverName: readText((trip.driver as any)?.name || (trip.driver as any)?.driver_name, "Driver"),
     clientName: readText((trip.client as any)?.client_name || (trip.client as any)?.name, "Client"),
@@ -114,15 +134,78 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
   const { trips, loading: tripsLoading, fetchTrips, updateTrip } = useTrips({ autoFetch: false });
   const { entries, loading: ledgerLoading, fetchDriverLedger, addLedgerEntry } = useDriverFinance();
 
+  const buildAssignedTruckDocReminders = useCallback((docs: any[] = []): DriverNotification[] => {
+    const now = new Date();
+    return (docs || [])
+      .filter((doc) => !!doc?.expiry_date)
+      .map((doc) => {
+        const expiry = new Date(doc.expiry_date);
+        const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const label = String(doc.document_type || "Document");
+
+        let message = `${label} is due soon`;
+        if (diffDays < 0) {
+          message = `${label} expired ${Math.abs(diffDays)} day(s) ago`;
+        } else if (diffDays === 0) {
+          message = `${label} expires today`;
+        } else {
+          message = `${label} expires in ${diffDays} day(s)`;
+        }
+
+        return {
+          _id: `doc-reminder-${doc._id}`,
+          title: "Truck Document Reminder",
+          message,
+          scheduled_at: expiry.toISOString(),
+        } as DriverNotification;
+      })
+      .filter((item) => {
+        const dt = item.scheduled_at ? new Date(item.scheduled_at) : null;
+        if (!dt) return false;
+        const diffDays = Math.ceil((dt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return diffDays <= 30;
+      });
+  }, []);
+
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await API.get("/api/notifications/my", { params: { limit: 50 } });
-      setNotifications(res.data?.notifications || []);
+      const [notificationRes, meRes] = await Promise.all([
+        API.get("/api/notifications/my", { params: { limit: 50 } }),
+        API.get("/api/auth/me"),
+      ]);
+
+      const serverNotifications = notificationRes.data?.notifications || [];
+      const me = meRes.data || {};
+      const assignedTruckId =
+        typeof me.assigned_truck_id === "object"
+          ? me.assigned_truck_id?._id
+          : me.assigned_truck_id;
+
+      if (!assignedTruckId) {
+        setNotifications(serverNotifications);
+        return;
+      }
+
+      let docReminders: DriverNotification[] = [];
+      try {
+        const docsRes = await API.get(`/api/truck-documents/truck/${assignedTruckId}`);
+        docReminders = buildAssignedTruckDocReminders(Array.isArray(docsRes.data) ? docsRes.data : []);
+      } catch (docErr) {
+        console.error("Failed to fetch assigned truck docs", docErr);
+      }
+
+      const combined = [...docReminders, ...serverNotifications].sort((a, b) => {
+        const at = new Date(String(a.scheduled_at || 0)).getTime();
+        const bt = new Date(String(b.scheduled_at || 0)).getTime();
+        return bt - at;
+      });
+
+      setNotifications(combined);
     } catch (error) {
       console.error("Failed to fetch notifications", error);
       setNotifications([]);
     }
-  }, []);
+  }, [buildAssignedTruckDocReminders]);
 
   const refreshAll = useCallback(async () => {
     setRefreshing(true);
@@ -132,9 +215,11 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
 
       await Promise.all([
         fetchTrips(),
-        fetchNotifications(),
         currentUser?._id ? fetchDriverLedger(currentUser._id) : Promise.resolve(),
       ]);
+      fetchNotifications().catch((error) => {
+        console.error("Failed to fetch notifications", error);
+      });
     } finally {
       setRefreshing(false);
       setBootLoading(false);

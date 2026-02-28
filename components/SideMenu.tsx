@@ -18,8 +18,7 @@ import { logout, getUserRole } from "../hooks/useAuth";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { useUser } from "../hooks/useUser";
 import { getFileUrl } from "../lib/utils";
-import { Clock, Globe, Bell } from "lucide-react-native";
-import { useDriverAppContext } from "../context/DriverAppContext";
+import { Bell } from "lucide-react-native";
 
 import { useTranslation } from "../context/LanguageContext";
 
@@ -38,16 +37,8 @@ export default function SideMenu({
   const insets = useSafeAreaInsets();
   const { colors } = useThemeStore();
   const { user, loading } = useUser();
-  const { t, language, setLanguage } = useTranslation();
+  const { t } = useTranslation();
   const userRole = getUserRole(user);
-  // Driver specific hooks
-  const driverContext = useDriverAppContext(true);
-
-  const FLEET_LINKS = [
-    { title: t('tripLog'), icon: "clock", route: "/(tabs)/tripLog" as const },
-    { title: t('documents'), icon: "folder", route: "/(stack)/documents-manager" as const },
-    { title: t('settings'), icon: "settings-outline", route: "/(stack)/settings" as const },
-  ] as const;
 
   const MANAGER_LINKS = [
     { title: t('trucks'), icon: "bus-outline", route: "/(stack)/trucks-manager" as const },
@@ -57,14 +48,8 @@ export default function SideMenu({
   ] as const;
 
   const FINANCE_LINKS = [
-    { title: t('financeHub'), icon: "wallet-outline", route: "/(stack)/finance" as const },
     { title: "P&L Reports", icon: "stats-chart-outline", route: "/(stack)/pl-reports" as const },
-    { title: t('transactions'), icon: "list-outline", route: "/(stack)/transactions" as const },
-    { title: t('driverKhata'), icon: "people-outline", route: "/(stack)/driver-ledger" as const },
-    { title: t('clientKhata'), icon: "business-outline", route: "/(stack)/client-ledger" as const },
-    { title: t('runningExpenses'), icon: "speedometer-outline", route: "/(stack)/running-expenses" as const },
-    { title: t('maintenanceKhata'), icon: "construct-outline", route: "/(stack)/maintenance-khata" as const },
-    { title: t('miscTransactions'), icon: "apps-outline", route: "/(stack)/misc-transactions" as const },
+    { title: "All Transactions", icon: "list-outline", route: "/(stack)/transactions" as const },
   ] as const;
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
@@ -104,17 +89,7 @@ export default function SideMenu({
     }
   };
 
-  const toggleLanguage = async () => {
-    const newLang = language === 'en' ? 'hi' : 'en';
-    await setLanguage(newLang);
-    // Also sync with driver context if it exists
-    if (driverContext) {
-      await driverContext.setLanguage(newLang);
-    }
-  };
-
   const renderIcon = (iconName: string, size = 24) => {
-    if (iconName === "clock" || iconName === "history") return <Clock size={size} color={colors.foreground} />;
     if (iconName === "folder") return <Ionicons name="folder-outline" size={size} color={colors.foreground} />;
     if (iconName === "list") return <Ionicons name="list-outline" size={size} color={colors.foreground} />;
     if (iconName === "home") return <Ionicons name="home-outline" size={size} color={colors.foreground} />;
@@ -205,39 +180,13 @@ export default function SideMenu({
                     {t('settings')}
                   </Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => navigate("/(driver)/notifications")}
-                  className="flex-row items-center py-4"
-                >
-                  <Bell size={24} color={colors.foreground} />
-                  <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                    {t('notifications')}
-                  </Text>
-                </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                  {t('mainMenu')}
-                </Text>
-                {FLEET_LINKS.map((item, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    onPress={() => navigate(item.route)}
-                    className="flex-row items-center py-4"
-                  >
-                    {renderIcon(item.icon)}
-                    <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                      {item.title}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-
                 {/* FINANCE SECTION */}
                 <View className="mt-8 mb-6">
                   <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                    FINANCE
+                    Finance
                   </Text>
                   {FINANCE_LINKS.map((item, idx) => (
                     <TouchableOpacity
@@ -256,7 +205,7 @@ export default function SideMenu({
                 {/* MANAGER SECTION */}
                 <View className="mb-6">
                   <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                    {t('manager')}
+                    Manager
                   </Text>
                   {MANAGER_LINKS.map((item, idx) => (
                     <TouchableOpacity
@@ -271,31 +220,34 @@ export default function SideMenu({
                     </TouchableOpacity>
                   ))}
                 </View>
+
+                <TouchableOpacity
+                  onPress={() => navigate("/(stack)/settings")}
+                  className="flex-row items-center py-4"
+                >
+                  <Ionicons name="settings-outline" size={24} color={colors.foreground} />
+                  <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                    Settings
+                  </Text>
+                </TouchableOpacity>
               </>
             )}
-
-            {/* Language Toggle for everyone */}
-            <TouchableOpacity
-              onPress={toggleLanguage}
-              className="flex-row items-center py-4"
-            >
-              <Globe size={24} color={colors.foreground} />
-              <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                {language === 'en' ? t('switchHindi') : t('switchEnglish')}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Logout */}
-            <TouchableOpacity onPress={handleLogout} className="flex-row items-center py-4 mt-4">
-              <Ionicons name="log-out-outline" size={26} color="#ef4444" />
-              <Text
-                className="ml-4 text-lg font-medium"
-                style={{ color: "#ef4444" }}
-              >
-                {t('logout')}
-              </Text>
-            </TouchableOpacity>
           </ScrollView>
+
+          {/* Logout pinned at bottom */}
+          <TouchableOpacity
+            onPress={handleLogout}
+            className="flex-row items-center py-4 mt-2"
+            style={{ borderTopWidth: 1, borderTopColor: colors.border }}
+          >
+            <Ionicons name="log-out-outline" size={26} color="#ef4444" />
+            <Text
+              className="ml-4 text-lg font-medium"
+              style={{ color: "#ef4444" }}
+            >
+              {t('logout')}
+            </Text>
+          </TouchableOpacity>
         </View>
       </Animated.View>
     </>
