@@ -89,7 +89,7 @@ export default function DriversManager() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: [ImagePicker.MediaType.images],
+      mediaTypes: ["images"],
       quality: 0.8,
       allowsEditing: true,
     });

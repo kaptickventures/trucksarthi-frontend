@@ -2,16 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
   Pencil,
   Share2,
   Trash2,
   User as UserIcon,
-  CheckCircle,
-  XCircle
 } from "lucide-react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -22,7 +18,6 @@ import {
   Share,
   StatusBar,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -30,9 +25,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Skeleton } from "../../components/Skeleton";
 import useDrivers from "../../hooks/useDriver";
-import useDriverFinance, { TransactionNature } from "../../hooks/useDriverFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
-import { formatDate, getFileUrl } from "../../lib/utils";
+import { getFileUrl } from "../../lib/utils";
 
 export default function DriverProfile() {
   const router = useRouter();
@@ -42,44 +36,26 @@ export default function DriverProfile() {
   const { drivers, loading: driverLoading, uploadLicense, uploadAadhaar, uploadProfilePicture, fetchDrivers } = useDrivers();
   const driver = useMemo(() => drivers.find(d => d._id === driver_id), [drivers, driver_id]);
 
-  const { entries, fetchDriverLedger, fetchDriverSummary, addLedgerEntry, updateEntryStatus } = useDriverFinance();
-  const [netBalance, setNetBalance] = useState<number>(0);
-
-  const [showModal, setShowModal] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [remarks, setRemarks] = useState("");
-  const [transactionNature, setTransactionNature] = useState<TransactionNature>("paid_by_driver");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([
-        fetchDrivers(),
-        driver_id ? fetchDriverLedger(driver_id) : Promise.resolve(),
-        driver_id ? fetchDriverSummary(driver_id).then(res => setNetBalance(res.net_balance)) : Promise.resolve(),
-      ]);
+      await fetchDrivers();
     } catch (e) {
       console.error(e);
     } finally {
       setRefreshing(false);
     }
-  }, [driver_id, fetchDrivers, fetchDriverLedger, fetchDriverSummary]);
-
-  useEffect(() => {
-    if (driver_id) {
-      fetchDriverLedger(driver_id);
-      fetchDriverSummary(driver_id).then(res => setNetBalance(res.net_balance));
-    }
-  }, [driver_id]);
+  }, [fetchDrivers]);
 
   const handleShare = async () => {
     if (!driver) return;
     try {
       const message = `Driver Details:\nName: ${driver.driver_name}\nContact: ${driver.contact_number}`;
       await Share.share({ message });
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Could not share driver details.");
     }
   };
@@ -94,7 +70,7 @@ export default function DriverProfile() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: [ImagePicker.MediaType.images],
+        mediaTypes: ["images"],
         allowsEditing: true,
         quality: 0.5,
       });
@@ -114,29 +90,9 @@ export default function DriverProfile() {
       }
 
       Alert.alert("Success", type === "PROFILE" ? "Profile photo uploaded successfully" : "Document uploaded successfully");
-    } catch (e) {
+    } catch {
       Alert.alert("Error", type === "PROFILE" ? "Failed to upload profile photo" : "Failed to upload document");
     }
-  };
-
-  const handleSaveEntry = async () => {
-    if (!amount || !driver_id || !remarks.trim()) {
-      Alert.alert("Required", "Please fill all fields");
-      return;
-    }
-    await addLedgerEntry({
-      driver_id,
-      transaction_nature: transactionNature,
-      counterparty_type: "owner",
-      amount: Number(amount),
-      remarks,
-      direction: transactionNature === "paid_by_driver" ? "to" : "from",
-    });
-    setAmount("");
-    setRemarks("");
-    setShowModal(false);
-    fetchDriverLedger(driver_id);
-    fetchDriverSummary(driver_id).then(res => setNetBalance(res.net_balance));
   };
 
   if (driverLoading || !driver) {

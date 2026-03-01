@@ -124,6 +124,7 @@ export default function StackLayout() {
           <Stack.Screen name="pl-client-report" options={{ title: "Client Khata Report", headerShown: false }} />
           <Stack.Screen name="pl-driver-report" options={{ title: "Driver Khata Report", headerShown: false }} />
           <Stack.Screen name="pl-truck-report" options={{ title: "Truck Report", headerShown: false }} />
+          <Stack.Screen name="pl-report-detail" options={{ title: "P&L Detail", headerShown: false }} />
           <Stack.Screen name="pl-misc-report" options={{ title: "Misc Report", headerShown: false }} />
           <Stack.Screen name="transactions" options={{ title: "Transactions", headerShown: false }} />
           <Stack.Screen name="expense-manager" options={{ title: "Expense Manager", headerShown: false }} />
