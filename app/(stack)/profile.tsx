@@ -293,8 +293,8 @@ export default function Profile() {
           />
         }
       >
-        <View className="mb-6 px-6">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('myProfile')}</Text>
+        <View className="mb-3 px-6">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('myProfile')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your account and business details</Text>
         </View>
 
@@ -390,34 +390,36 @@ export default function Profile() {
         </View>
 
         {/* KYC PRIORITY CARD */}
-        <View style={{ paddingHorizontal: 24, marginBottom: 12 }}>
-          <TouchableOpacity
-            onPress={() => router.push("/kyc-verification" as any)}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: isKycVerified ? '#f0fdf4' : '#fff7ed',
-              padding: 14,
-              borderRadius: 12,
-              borderWidth: 1.5,
-              borderColor: isKycVerified ? '#86efac' : '#fdba74'
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-              <ShieldCheck size={20} color={isKycVerified ? '#16a34a' : '#ea580c'} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: 'bold', fontSize: 14, color: isKycVerified ? '#16a34a' : '#ea580c' }}>
-                  KYC Status: {isKycVerified ? 'Verified' : 'Pending'}
-                </Text>
-                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                  {isKycVerified ? 'Your PAN and GSTIN are verified.' : 'Complete KYC now to unlock all account features.'}
-                </Text>
+        {!isKycVerified && (
+          <View style={{ paddingHorizontal: 24, marginBottom: 12 }}>
+            <TouchableOpacity
+              onPress={() => router.push("/kyc-verification" as any)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#fff7ed',
+                padding: 14,
+                borderRadius: 12,
+                borderWidth: 1.5,
+                borderColor: '#fdba74'
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <ShieldCheck size={20} color="#ea580c" />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#ea580c' }}>
+                    KYC Status: Pending
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                    Complete KYC now to unlock all account features.
+                  </Text>
+                </View>
               </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
-          </TouchableOpacity>
-        </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* TABS */}
         <View style={{ flexDirection: 'row', paddingHorizontal: 24, borderBottomWidth: 1, borderBottomColor: colors.border }}>

@@ -27,7 +27,7 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 export default function SideMenu({
   isVisible,
   onClose,
-  topOffset = 0,
+  topOffset,
 }: {
   isVisible: boolean;
   onClose: () => void;
@@ -39,6 +39,7 @@ export default function SideMenu({
   const { user, loading } = useUser();
   const { t } = useTranslation();
   const userRole = getUserRole(user);
+  const menuTopOffset = typeof topOffset === "number" ? topOffset : insets.top + 56;
 
   const MANAGER_LINKS = [
     { title: t('trucks'), icon: "bus-outline", route: "/(stack)/trucks-manager" as const },
@@ -104,7 +105,7 @@ export default function SideMenu({
           <View
             style={{
               position: "absolute",
-              top: topOffset,
+              top: menuTopOffset,
               bottom: 0,
               left: 0,
               right: 0,
@@ -121,13 +122,13 @@ export default function SideMenu({
           transform: [{ translateX: slideAnim }],
           width: SCREEN_WIDTH * 0.82,
           position: "absolute",
-          top: topOffset,
+          top: menuTopOffset,
           bottom: 0,
           left: 0,
           backgroundColor: colors.background,
           zIndex: 9999,
           paddingHorizontal: 24,
-          paddingTop: topOffset > 0 ? 12 : Math.max(insets.top, 12),
+          paddingTop: 12,
           paddingBottom: Math.max(insets.bottom, 20),
         }}
       >

@@ -44,6 +44,7 @@ export default function MaintenanceDashboardScreen() {
 
   // Modal State
   const [showAdd, setShowAdd] = useState(false);
+  const [filterType, setFilterType] = useState<"ALL" | "DOCUMENT" | "SERVICE_REPAIR">("ALL");
   const [entryType, setEntryType] = useState<string>("SERVICE_REPAIR");
   const [amount, setAmount] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
@@ -73,9 +74,24 @@ export default function MaintenanceDashboardScreen() {
     const rows = (transactions || []).filter((t: any) => {
       if (String(t?.truckId || "") !== String(truckId)) return false;
       const service = String(t?.serviceType || t?.category || "").toUpperCase();
-      return service === "DOCUMENT" || service === "SERVICE" || service === "REPAIR";
+
+      const isDoc = service === "DOCUMENT";
+      const isService = service === "SERVICE" || service === "REPAIR";
+
+      if (filterType === "DOCUMENT" && !isDoc) return false;
+      if (filterType === "SERVICE_REPAIR" && !isService) return false;
+
+      return isDoc || isService;
     });
     return [...rows].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [transactions, truckId, filterType]);
+
+  const lifetimeTotal = useMemo(() => {
+    return (transactions || []).filter((t: any) => {
+      if (String(t?.truckId || "") !== String(truckId)) return false;
+      const service = String(t?.serviceType || t?.category || "").toUpperCase();
+      return service === "DOCUMENT" || service === "SERVICE" || service === "REPAIR";
+    }).reduce((sum, t: any) => sum + Number(t.amount || 0), 0);
   }, [transactions, truckId]);
 
   const totalExpense = useMemo(() => truckRows.reduce((sum: number, t: any) => sum + Number(t?.amount || 0), 0), [truckRows]);
@@ -125,7 +141,7 @@ export default function MaintenanceDashboardScreen() {
           try {
             await deleteTransaction(id);
             await loadData();
-          } catch {}
+          } catch { }
         },
       },
     ]);
@@ -139,8 +155,8 @@ export default function MaintenanceDashboardScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View className="mb-6 px-0">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{selectedTruck?.registration_number || "Truck"} {t('maintenance')}</Text>
+        <View className="mb-3 px-0">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{selectedTruck?.registration_number || "Truck"} {t('maintenance')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('manageMaintenanceSubtitle')}</Text>
         </View>
         {/* Lifetime Summary card */}
@@ -159,7 +175,7 @@ export default function MaintenanceDashboardScreen() {
           </Text>
           <View>
             <Text style={{ color: colors.destructive, fontSize: 24, fontWeight: "800" }}>
-              Rs {totalExpense.toLocaleString()}
+              Rs {lifetimeTotal.toLocaleString()}
             </Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
               Total repairs & document costs
@@ -167,14 +183,38 @@ export default function MaintenanceDashboardScreen() {
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.mutedForeground, marginBottom: 12, marginLeft: 4 }}>
-          {t('quickAdd')}
-        </Text>
-        <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
-          {MAINTENANCE_ACTIONS.map((action) => (
-            <QuickActionButton key={action.value} label={action.label} onPress={() => openAddModal(action.value)} />
-          ))}
+        {/* Filters */}
+        <View style={{ marginBottom: 20 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {[
+              { label: "All", value: "ALL" },
+              { label: "Document Expenses", value: "DOCUMENT" },
+              { label: "Service & Repair", value: "SERVICE_REPAIR" },
+            ].map((f: any) => (
+              <TouchableOpacity
+                key={f.value}
+                onPress={() => setFilterType(f.value)}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 20,
+                  backgroundColor: filterType === f.value ? colors.primary : colors.card,
+                  borderWidth: 1,
+                  borderColor: filterType === f.value ? colors.primary : colors.border,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "700",
+                    color: filterType === f.value ? "white" : colors.foreground,
+                  }}
+                >
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* Expense History */}
@@ -294,7 +334,7 @@ export default function MaintenanceDashboardScreen() {
             keyboardType="numeric"
             value={amount}
             onChangeText={setAmount}
-            className="rounded-2xl p-4 text-3xl font-black text-center"
+            className="rounded-2xl p-4 text-[24px] font-black text-center"
             style={{
               backgroundColor: isDark ? colors.card : colors.secondary + '40',
               color: colors.foreground,
@@ -347,20 +387,13 @@ export default function MaintenanceDashboardScreen() {
             }}
           />
 
-          <View style={{ gap: 4, marginTop: 12 }}>
+          <View style={{ marginTop: 12 }}>
             <TouchableOpacity
               onPress={onSave}
               style={{ backgroundColor: colors.primary }}
               className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
             >
               <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE RECORD</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setShowAdd(false)}
-              className="py-4 items-center"
-            >
-              <Text style={{ color: colors.mutedForeground }} className="font-bold">Discard</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

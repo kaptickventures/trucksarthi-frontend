@@ -64,7 +64,7 @@ export default function PLClientReportScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
         ListHeaderComponent={
           <View className="mb-3 px-0">
-            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('clientPL')}</Text>
+            <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('clientPL')}</Text>
             <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Client profit and loss overview</Text>
           </View>
         }

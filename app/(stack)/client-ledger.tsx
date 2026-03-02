@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -32,6 +32,8 @@ export default function ClientLedgerScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [rows, setRows] = useState<ClientRow[]>([]);
+  // true while clients are still loading or rows are being built
+  const [isBuilding, setIsBuilding] = useState(true);
 
   const load = useCallback(async () => {
     await fetchClients();
@@ -43,7 +45,9 @@ export default function ClientLedgerScreen() {
 
   useEffect(() => {
     let isMounted = true;
+
     const run = async () => {
+      setIsBuilding(true);
       const next: ClientRow[] = [];
 
       await Promise.all(
@@ -75,19 +79,23 @@ export default function ClientLedgerScreen() {
       if (isMounted) {
         setRows(
           next.sort((a, b) => {
-            if (b.unbilled !== a.unbilled) {
-              return b.unbilled - a.unbilled;
-            }
+            if (b.unbilled !== a.unbilled) return b.unbilled - a.unbilled;
             return a.clientName.localeCompare(b.clientName);
           })
         );
+        setIsBuilding(false);
       }
     };
 
-    if (clients?.length) {
+    if (clients === undefined) {
+      // still waiting for initial fetch
+      return;
+    } else if (clients.length > 0) {
       run();
     } else {
+      // clients loaded but genuinely empty
       setRows([]);
+      setIsBuilding(false);
     }
 
     return () => {
@@ -109,12 +117,31 @@ export default function ClientLedgerScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View className="mb-6 px-0">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('clientKhata')}</Text>
+        <View className="mb-3 px-0">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('clientKhata')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('manageFinanceSubtitle')}</Text>
         </View>
 
-        {rows.length === 0 && (
+        {/* Loading skeleton */}
+        {isBuilding && rows.length === 0 && (
+          <View style={{ gap: 12 }}>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <View style={{ width: 140, height: 18, backgroundColor: colors.muted, borderRadius: 6, opacity: 0.5 }} />
+                  <View style={{ width: 60, height: 18, backgroundColor: colors.muted, borderRadius: 10, opacity: 0.4 }} />
+                </View>
+                <View style={{ flexDirection: 'row', gap: 16, marginBottom: 10 }}>
+                  <View style={{ width: 80, height: 14, backgroundColor: colors.muted, borderRadius: 4, opacity: 0.35 }} />
+                  <View style={{ width: 80, height: 14, backgroundColor: colors.muted, borderRadius: 4, opacity: 0.35 }} />
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Empty state - only show after fully loaded */}
+        {!isBuilding && rows.length === 0 && (
           <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 40 }}>No clients found.</Text>
         )}
 

@@ -114,10 +114,6 @@ export default function RunningExpensesDashboardScreen() {
       Alert.alert("Invalid Amount", "Enter a valid amount.");
       return;
     }
-    if (expenseCategory === "FUEL" && (!litres || !kmReading)) {
-      Alert.alert("Missing Fields", "Fuel needs litres and KM.");
-      return;
-    }
 
     await addRunningExpense({
       truckId,
@@ -126,7 +122,10 @@ export default function RunningExpensesDashboardScreen() {
       paymentMode,
       notes,
       date: new Date().toISOString(),
-      ...(expenseCategory === "FUEL" ? { litres: Number(litres), kmReading: Number(kmReading) } : {}),
+      ...(expenseCategory === "FUEL" ? {
+        litres: litres ? Number(litres) : undefined,
+        kmReading: kmReading ? Number(kmReading) : undefined
+      } : {}),
     });
 
     setShowAdd(false);
@@ -153,7 +152,7 @@ export default function RunningExpensesDashboardScreen() {
           try {
             await deleteTransaction(id);
             await loadData();
-          } catch {}
+          } catch { }
         },
       },
     ]);
@@ -167,8 +166,8 @@ export default function RunningExpensesDashboardScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View className="mb-6 px-0">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{selectedTruck?.registration_number || "Truck"} {t('runningExpenses')}</Text>
+        <View className="mb-3 px-0">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{selectedTruck?.registration_number || "Truck"} {t('runningExpenses')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage running expenses for this truck</Text>
         </View>
 
@@ -302,6 +301,22 @@ export default function RunningExpensesDashboardScreen() {
                   <Text style={{ fontSize: 14, fontWeight: "700", color: colors.foreground, marginBottom: 2 }}>
                     {item.notes || formatLabel(type)}
                   </Text>
+                  {isFuel && (item.litres || item.kmReading) && (
+                    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 2 }}>
+                      {item.litres && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Ionicons name="beaker-outline" size={12} color={colors.mutedForeground} />
+                          <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: '600' }}>{item.litres}L</Text>
+                        </View>
+                      )}
+                      {item.kmReading && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Ionicons name="speedometer-outline" size={12} color={colors.mutedForeground} />
+                          <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: '600' }}>{item.kmReading} KM</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
                   <Text style={{ fontSize: 12, color: colors.mutedForeground }}>{formatDate(item.date)}</Text>
                 </View>
                 <Text style={{ fontSize: 16, fontWeight: "800", color: colors.destructive }}>
@@ -360,7 +375,7 @@ export default function RunningExpensesDashboardScreen() {
             keyboardType="numeric"
             value={amount}
             onChangeText={setAmount}
-            className="rounded-2xl p-4 text-3xl font-black text-center"
+            className="rounded-2xl p-4 text-[24px] font-black text-center"
             style={{
               backgroundColor: isDark ? colors.card : colors.secondary + '40',
               color: colors.foreground,
@@ -450,20 +465,13 @@ export default function RunningExpensesDashboardScreen() {
             }}
           />
 
-          <View style={{ gap: 4, marginTop: 12 }}>
+          <View style={{ marginTop: 12 }}>
             <TouchableOpacity
               onPress={onSave}
               style={{ backgroundColor: colors.primary }}
               className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
             >
               <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE EXPENSE</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setShowAdd(false)}
-              className="py-4 items-center"
-            >
-              <Text style={{ color: colors.mutedForeground }} className="font-bold">Discard</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

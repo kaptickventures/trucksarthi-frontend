@@ -262,9 +262,9 @@ export default function PLReportDetailScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
       >
-        <View className="mb-6 px-0 flex-row justify-between items-center">
+        <View className="mb-3 px-0 flex-row justify-between items-center">
           <View>
-            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('pLDetail')}</Text>
+            <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('pLDetail')}</Text>
             <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewPLDetailSubtitle')}</Text>
           </View>
           <TouchableOpacity onPress={handleDownload} disabled={downloading}>

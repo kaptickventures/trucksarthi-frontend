@@ -9,7 +9,6 @@ import {
   View,
   RefreshControl
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SideMenu from "../../../components/SideMenu";
 import { Skeleton } from "../../../components/Skeleton";
 import "../../../global.css";
@@ -28,7 +27,6 @@ import { useTranslation } from "../../../context/LanguageContext";
 export default function HomeScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const [menuVisible, setMenuVisible] = useState(false);
   const [recentTripsVisibleCount, setRecentTripsVisibleCount] = useState(5);
   const { colors, theme } = useThemeStore();
@@ -476,7 +474,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={insets.top + 56} />
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
     </>
   );
 }

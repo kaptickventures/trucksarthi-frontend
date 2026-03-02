@@ -189,138 +189,129 @@ export default function TruckFormModal({
                         transform: [{ translateY }],
                     }}
                 >
-                   
-                        {/* Grab Handle */}
-                        <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-6 opacity-40" />
 
-                        {/* Header */}
-                        <View className="flex-row justify-between items-center mb-8 px-2">
-                            <View>
-                                <Text style={{ color: colors.foreground }} className="text-2xl font-black tracking-tight">
-                                    {editing ? "Update Vehicle" : "Add New Truck"}
-                                </Text>
-                                <Text className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-widest">
-                                    {showAllFields ? "Vehicle Configuration" : showFetchedSummary ? "Verified Details" : "Enter Registration Number"}
-                                </Text>
-                            </View>
-                            <TouchableOpacity onPress={closeModal} className="w-10 h-10 bg-muted rounded-full items-center justify-center">
-                                <X size={22} color={colors.foreground} />
-                            </TouchableOpacity>
+                    {/* Grab Handle */}
+                    <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-6 opacity-40" />
+
+                    {/* Header */}
+                    <View className="flex-row justify-between items-center mb-8 px-2">
+                        <View>
+                            <Text style={{ color: colors.foreground }} className="text-2xl font-black tracking-tight">
+                                {editing ? "Update Vehicle" : "Add New Truck"}
+                            </Text>
+                            <Text className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-widest">
+                                {showAllFields ? "Vehicle Configuration" : showFetchedSummary ? "Verified Details" : "Enter Registration Number"}
+                            </Text>
                         </View>
+                        <TouchableOpacity onPress={closeModal} className="w-10 h-10 bg-muted rounded-full items-center justify-center">
+                            <X size={22} color={colors.foreground} />
+                        </TouchableOpacity>
+                    </View>
 
-                        {/* Form */}
-                        <KeyboardAwareScrollView
-                            enableOnAndroid
-                            extraScrollHeight={80}
-                            extraHeight={240}
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="handled"
-                            keyboardDismissMode="on-drag"
-                            contentContainerStyle={{ paddingBottom: 140 + insets.bottom }}
-                        >
-                            <View className="gap-5 pb-10">
-                                {fieldsToShow.map((field) => (
-                                    <View key={field.key}>
-                                        <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
-                                            {field.label} {field.required && <Text style={{ color: colors.destructive }}>*</Text>}
-                                        </Text>
-                                        <View className="flex-row items-center gap-2">
-                                            <View className="flex-1">
-                                                <TextInput
-                                                    className="rounded-2xl p-4 text-base font-bold"
-                                                    style={{
-                                                        backgroundColor: isDark ? colors.card : colors.secondary + '40',
-                                                        color: colors.foreground,
-                                                        borderWidth: 1,
-                                                        borderColor: (field.key === "registration_number" && isVerified) ? '#22C55E' : (isDark ? colors.border : colors.border + '30')
-                                                    }}
-                                                    value={formData[field.key]}
-                                                    onChangeText={(val) => {
-                                                        if (field.key === "registration_number") {
-                                                            setIsVerified(false);
-                                                            setShowFetchedSummary(false);
-                                                        }
-                                                        setFormData({
-                                                            ...formData,
-                                                            [field.key]: val,
-                                                            ...(field.key === "registration_number" ? { rc_details: undefined } : {}),
-                                                        });
-                                                    }}
-                                                    placeholder={field.placeholder}
-                                                    placeholderTextColor={colors.mutedForeground + '80'}
-                                                    keyboardType={field.numeric ? "numeric" : "default"}
-                                                    autoCapitalize={field.key === "registration_number" ? "characters" : "words"}
-                                                />
-                                            </View>
-                                            {field.key === "registration_number" && !editing && !showAllFields && !showFetchedSummary && (
-                                                <TouchableOpacity
-                                                    onPress={handleFetchRC}
-                                                    disabled={isFetching}
-                                                    style={{
-                                                        backgroundColor: isVerified ? '#22C55E20' : colors.primary,
-                                                        width: 54,
-                                                        height: 54,
-                                                        borderRadius: 16,
-                                                        justifyContent: 'center',
-                                                        alignItems: 'center'
-                                                    }}
-                                                >
-                                                    {isFetching ? (
-                                                        <ActivityIndicator color="white" size="small" />
-                                                    ) : isVerified ? (
-                                                        <CheckCircle2 color="#22C55E" size={24} />
-                                                    ) : (
-                                                        <Search color="white" size={24} />
-                                                    )}
-                                                </TouchableOpacity>
-                                            )}
-                                        </View>
-                                    </View>
-                                ))}
-
-                                {!showAllFields && !showFetchedSummary && (
-                                    <TouchableOpacity
-                                        onPress={() => {
-                                            setShowFetchedSummary(false);
-                                            setShowAllFields(true);
-                                        }}
-                                        style={{ marginTop: 8 }}
-                                    >
-                                        <Text style={{ color: colors.primary, textAlign: 'center', fontSize: 14, fontWeight: '600' }}>
-                                            Enter details manually
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-
-                                {showFetchedSummary && !editing && (
-                                    <Text style={{ color: colors.mutedForeground, textAlign: 'center', fontSize: 12 }}>
-                                        Only owner name is shown now. You can view full vehicle details later in truck profile.
+                    {/* Form */}
+                    <KeyboardAwareScrollView
+                        enableOnAndroid
+                        extraScrollHeight={80}
+                        extraHeight={240}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="on-drag"
+                        contentContainerStyle={{ paddingBottom: 140 + insets.bottom }}
+                    >
+                        <View className="gap-5 pb-10">
+                            {fieldsToShow.map((field) => (
+                                <View key={field.key}>
+                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+                                        {field.label} {field.required && <Text style={{ color: colors.destructive }}>*</Text>}
                                     </Text>
-                                )}
+                                    <View className="flex-row items-center gap-2">
+                                        <View className="flex-1">
+                                            <TextInput
+                                                className="rounded-2xl p-4 text-base font-bold"
+                                                style={{
+                                                    backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                                                    color: colors.foreground,
+                                                    borderWidth: 1,
+                                                    borderColor: (field.key === "registration_number" && isVerified) ? '#22C55E' : (isDark ? colors.border : colors.border + '30')
+                                                }}
+                                                value={formData[field.key]}
+                                                onChangeText={(val) => {
+                                                    if (field.key === "registration_number") {
+                                                        setIsVerified(false);
+                                                        setShowFetchedSummary(false);
+                                                    }
+                                                    setFormData({
+                                                        ...formData,
+                                                        [field.key]: val,
+                                                        ...(field.key === "registration_number" ? { rc_details: undefined } : {}),
+                                                    });
+                                                }}
+                                                placeholder={field.placeholder}
+                                                placeholderTextColor={colors.mutedForeground + '80'}
+                                                keyboardType={field.numeric ? "numeric" : "default"}
+                                                autoCapitalize={field.key === "registration_number" ? "characters" : "words"}
+                                            />
+                                        </View>
+                                        {field.key === "registration_number" && !editing && !showAllFields && !showFetchedSummary && (
+                                            <TouchableOpacity
+                                                onPress={handleFetchRC}
+                                                disabled={isFetching}
+                                                style={{
+                                                    backgroundColor: isVerified ? '#22C55E20' : colors.primary,
+                                                    width: 54,
+                                                    height: 54,
+                                                    borderRadius: 16,
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                {isFetching ? (
+                                                    <ActivityIndicator color="white" size="small" />
+                                                ) : isVerified ? (
+                                                    <CheckCircle2 color="#22C55E" size={24} />
+                                                ) : (
+                                                    <Search color="white" size={24} />
+                                                )}
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
+                                </View>
+                            ))}
 
-                                {/* Actions */}
-                                {(showAllFields || showFetchedSummary) && (
-                                    <>
-                                        <TouchableOpacity
-                                            onPress={onSubmit}
-                                            style={{ backgroundColor: colors.primary }}
-                                            className="py-5 rounded-[22px] mt-4 shadow-lg shadow-green-500/20"
-                                        >
-                                            <Text style={{ color: colors.primaryForeground }} className="text-center font-black text-lg">
-                                                {editing ? "Apply Changes" : "Save Truck"}
-                                            </Text>
-                                        </TouchableOpacity>
+                            {!showAllFields && !showFetchedSummary && (
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setShowFetchedSummary(false);
+                                        setShowAllFields(true);
+                                    }}
+                                    style={{ marginTop: 8 }}
+                                >
+                                    <Text style={{ color: colors.primary, textAlign: 'center', fontSize: 14, fontWeight: '600' }}>
+                                        Enter details manually
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
 
-                                        <TouchableOpacity
-                                            onPress={closeModal}
-                                            className="py-4 items-center"
-                                        >
-                                            <Text className="text-muted-foreground font-bold">Discard</Text>
-                                        </TouchableOpacity>
-                                    </>
-                                )}
-                            </View>
-                        </KeyboardAwareScrollView>
+                            {showFetchedSummary && !editing && (
+                                <Text style={{ color: colors.mutedForeground, textAlign: 'center', fontSize: 12 }}>
+                                    Only owner name is shown now. You can view full vehicle details later in truck profile.
+                                </Text>
+                            )}
+
+                            {/* Actions */}
+                            {(showAllFields || showFetchedSummary) && (
+                                <TouchableOpacity
+                                    onPress={onSubmit}
+                                    style={{ backgroundColor: colors.primary }}
+                                    className="py-5 rounded-[22px] mt-4 shadow-lg shadow-green-500/20"
+                                >
+                                    <Text style={{ color: colors.primaryForeground }} className="text-center font-black text-lg">
+                                        {editing ? "Apply Changes" : "Save Truck"}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </KeyboardAwareScrollView>
                 </Animated.View>
             </Pressable>
         </Modal>

@@ -18,7 +18,6 @@ import {
   StyleSheet,
   RefreshControl
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../../../hooks/useThemeStore";
 import { Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Plus, Navigation } from 'lucide-react-native';
 
@@ -47,7 +46,6 @@ export default function AddTrip() {
   const navigation = useNavigation();
   const router = useRouter();
   const { colors, theme } = useThemeStore();
-  const insets = useSafeAreaInsets();
   const [menuVisible, setMenuVisible] = useState(false);
   const { t } = useTranslation();
   const isDark = theme === "dark";
@@ -245,8 +243,8 @@ export default function AddTrip() {
           }
         >
           {/* Header Title Section */}
-          <View className="mb-6">
-            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('addNewTrip')}</Text>
+          <View className="mb-3">
+            <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('addNewTrip')}</Text>
             <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('recordJourney')}</Text>
           </View>
 
@@ -537,7 +535,7 @@ export default function AddTrip() {
         fetchLocations();
       }} onClose={() => setIsLocationModalVisible(false)} />
 
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={insets.top + 56} />
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
     </View>
   );
 }

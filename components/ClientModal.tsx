@@ -311,7 +311,6 @@ export default function ClientFormModal({
                 </>
               )}
 
-              {/* Save */}
               <TouchableOpacity
                 onPress={onSubmit}
                 style={{ backgroundColor: colors.primary }}
@@ -319,16 +318,6 @@ export default function ClientFormModal({
               >
                 <Text style={{ color: colors.primaryForeground }} className="text-center font-black text-lg">
                   {editing ? "Update Client" : "Create Client"}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Cancel */}
-              <TouchableOpacity
-                onPress={closeModal}
-                className="py-4 items-center"
-              >
-                <Text className="text-muted-foreground font-bold">
-                  Discard
                 </Text>
               </TouchableOpacity>
             </ScrollView>

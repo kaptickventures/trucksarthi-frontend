@@ -403,9 +403,9 @@ export default function TruckProfile() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <View className="mb-6 px-0 flex-row justify-between items-center">
+        <View className="mb-3 px-0 flex-row justify-between items-center">
           <View>
-            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('truckProfile')}</Text>
+            <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('truckProfile')}</Text>
             <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewManageTruckDetails')}</Text>
           </View>
           <View className="flex-row items-center gap-4">

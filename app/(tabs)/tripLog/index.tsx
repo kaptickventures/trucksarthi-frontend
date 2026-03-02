@@ -12,7 +12,6 @@ import {
   View,
   RefreshControl,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
@@ -46,7 +45,6 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 export default function TripLog() {
   const router = useRouter();
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const [menuVisible, setMenuVisible] = useState(false);
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
@@ -371,8 +369,8 @@ export default function TripLog() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <View className="mb-6 px-5">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('tripLog')}</Text>
+        <View className="mb-3 px-5">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('tripLog')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t("trackManageHistory")}</Text>
         </View>
 
@@ -521,7 +519,7 @@ export default function TripLog() {
           )
         }
       </ScrollView >
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={insets.top + 56} />
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
       <EditTripModal
         visible={isEditVisible}
         onClose={() => setEditVisible(false)}

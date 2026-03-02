@@ -608,7 +608,7 @@ export default function ClientLedgerDetailScreen() {
           try {
             await deleteInvoice(invoiceId);
             await Promise.all([fetchInvoices(), fetchTrips(), fetchLedger(id)]);
-          } catch {}
+          } catch { }
         },
       },
     ]);
@@ -625,7 +625,7 @@ export default function ClientLedgerDetailScreen() {
           try {
             await deleteEntry(entryId, id);
             await Promise.all([fetchInvoices(), fetchTrips(), fetchLedger(id)]);
-          } catch {}
+          } catch { }
         },
       },
     ]);
@@ -705,10 +705,10 @@ export default function ClientLedgerDetailScreen() {
     }
   };
 
-  /* ---------------- GUARDS ---------------- */
-  if (userLoading || clientsLoading || !id) {
+  // Still loading or clients array not yet populated — show skeleton
+  if (userLoading || clientsLoading || !id || (clients.length > 0 && !client)) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Skeleton width={24} height={24} borderRadius={12} />
           <Skeleton width={120} height={24} />
@@ -764,21 +764,21 @@ export default function ClientLedgerDetailScreen() {
 
   /* ---------------- UI ---------------- */
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
         style={{ flex: 1, paddingHorizontal: 24 }}
-        contentContainerStyle={{ paddingBottom: 140, paddingTop: 20 }}
+        contentContainerStyle={{ paddingBottom: 140, paddingTop: 6 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <View className="mb-6">
+        <View className="mb-3">
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View>
-              <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('clientKhata')}</Text>
+              <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('clientKhata')}</Text>
               <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('billingSummary')}</Text>
             </View>
             <View className="items-end">
@@ -930,39 +930,63 @@ export default function ClientLedgerDetailScreen() {
         {activeTab === "billed" && (
           <View>
             <Text className="text-lg font-bold mb-4" style={{ color: colors.foreground }}>{t('billed')}</Text>
-            {clientInvoices.map(invoice => (
-              <View key={getId(invoice)} className="p-4 rounded-2xl mb-3 border" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
-                <View className="flex-row justify-between items-center mb-3">
-                  <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text className="font-bold" style={{ color: colors.foreground }} numberOfLines={1} ellipsizeMode="tail">
-                      Invoice #{invoice.invoice_number}
-                    </Text>
-                    <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1} ellipsizeMode="tail">
-                      Due: {invoice.due_date ? formatDate(invoice.due_date) : "N/A"}
-                    </Text>
+            {clientInvoices.map(invoice => {
+              const invoiceId = getId(invoice);
+              const totalPaidForInvoice = (entries || [])
+                .filter((entry) => {
+                  if (!entry || entry.entry_type !== "credit") return false;
+                  const entryInvoiceId = getId((entry as any).invoice || (entry as any).invoice_id);
+                  return entryInvoiceId === invoiceId;
+                })
+                .reduce((sum, entry) => sum + Number(entry?.amount || 0), 0);
+
+              const totalAmount = Number(invoice.total_amount || 0);
+              const remainingAmount = Math.max(0, totalAmount - totalPaidForInvoice);
+              const isPartiallyPaid = String(invoice.status || "").toLowerCase() === "partially_paid";
+
+              return (
+                <View key={invoiceId} className="p-4 rounded-2xl mb-3 border" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
+                  <View className="flex-row justify-between items-center mb-3">
+                    <View style={{ flex: 1, paddingRight: 10 }}>
+                      <Text className="font-bold" style={{ color: colors.foreground }} numberOfLines={1} ellipsizeMode="tail">
+                        Invoice #{invoice.invoice_number}
+                      </Text>
+                      <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1} ellipsizeMode="tail">
+                        Due: {invoice.due_date ? formatDate(invoice.due_date) : "N/A"}
+                      </Text>
+                    </View>
+                    <View className="px-2 py-1 rounded-md" style={{ backgroundColor: invoice.status === 'paid' ? '#22c55e20' : '#ef444420' }}>
+                      <Text className="font-bold text-[10px] uppercase" style={{ color: invoice.status === 'paid' ? '#22c55e' : '#ef4444' }}>{invoice.status}</Text>
+                    </View>
                   </View>
-                  <View className="px-2 py-1 rounded-md" style={{ backgroundColor: invoice.status === 'paid' ? '#22c55e20' : '#ef444420' }}>
-                    <Text className="font-bold text-[10px] uppercase" style={{ color: invoice.status === 'paid' ? '#22c55e' : '#ef4444' }}>{invoice.status}</Text>
-                  </View>
-                </View>
-                <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border + '4D' }}>
-                  <Text className="font-bold text-lg" style={{ color: colors.foreground }}>₹{Number(invoice.total_amount).toLocaleString()}</Text>
-                  <View className="flex-row gap-2">
-                    <TouchableOpacity onPress={() => generateInvoicePDF(invoice)} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
-                      <Share2 size={16} color={colors.foreground} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteInvoice(getId(invoice))} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
-                      <Trash2 size={16} color={colors.destructive} />
-                    </TouchableOpacity>
-                    {invoice.status !== 'paid' && (
-                      <TouchableOpacity onPress={() => handleSettleInvoice(invoice)} className="px-4 py-2 rounded-full" style={{ backgroundColor: colors.primary }}>
-                        <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-xs">Settle</Text>
+                  <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border + '4D' }}>
+                    <View>
+                      <Text className="font-bold text-lg" style={{ color: colors.foreground }}>
+                        ₹{(isPartiallyPaid ? remainingAmount : totalAmount).toLocaleString()}
+                      </Text>
+                      {isPartiallyPaid && (
+                        <Text className="text-[11px]" style={{ color: colors.mutedForeground }}>
+                          Balance due
+                        </Text>
+                      )}
+                    </View>
+                    <View className="flex-row gap-2">
+                      <TouchableOpacity onPress={() => generateInvoicePDF(invoice)} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
+                        <Share2 size={16} color={colors.foreground} />
                       </TouchableOpacity>
-                    )}
+                      <TouchableOpacity onPress={() => handleDeleteInvoice(getId(invoice))} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
+                        <Trash2 size={16} color={colors.destructive} />
+                      </TouchableOpacity>
+                      {invoice.status !== 'paid' && (
+                        <TouchableOpacity onPress={() => handleSettleInvoice(invoice)} className="px-4 py-2 rounded-full" style={{ backgroundColor: colors.primary }}>
+                          <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-xs">Settle</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              )
+            })}
           </View>
         )}
 
@@ -975,7 +999,7 @@ export default function ClientLedgerDetailScreen() {
                   <ArrowDownLeft size={20} color="#16a34a" />
                 </View>
                 <View className="flex-1" style={{ paddingRight: 10 }}>
-                  <Text className="font-bold" style={{ color: colors.foreground }} numberOfLines={1} ellipsizeMode="tail">
+                  <Text className="font-bold" style={{ color: colors.foreground, flexShrink: 1 }}>
                     {entry.remarks || "Payment Received"}
                   </Text>
                   <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1} ellipsizeMode="tail">
@@ -1088,20 +1112,13 @@ export default function ClientLedgerDetailScreen() {
               </View>
             </View>
 
-            <View style={{ gap: 4, marginTop: 12 }}>
+            <View style={{ marginTop: 12 }}>
               <TouchableOpacity
                 onPress={handleAddPayment}
                 style={{ backgroundColor: colors.primary }}
                 className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
               >
                 <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE PAYMENT</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setShowPaymentForm(false)}
-                className="py-4 items-center"
-              >
-                <Text style={{ color: colors.mutedForeground }} className="font-bold">Discard</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -1176,20 +1193,13 @@ export default function ClientLedgerDetailScreen() {
                 />
               </View>
 
-              <View style={{ gap: 4, marginTop: 12 }}>
+              <View style={{ marginTop: 12 }}>
                 <TouchableOpacity
                   onPress={handleUpdateClient}
                   className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
                   style={{ backgroundColor: colors.primary }}
                 >
                   <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">{t('saveUpdates').toUpperCase()}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={closeEditModal}
-                  className="py-4 items-center"
-                >
-                  <Text style={{ color: colors.mutedForeground }} className="font-bold">Discard</Text>
                 </TouchableOpacity>
               </View>
             </View>

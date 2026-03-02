@@ -211,9 +211,9 @@ export default function TransactionsScreen() {
         contentContainerStyle={{ padding: 20, paddingBottom: 110 }}
         ListHeaderComponent={
           <View style={{ paddingBottom: 16 }}>
-            <View className="flex-row justify-between items-start mb-6">
+            <View className="flex-row justify-between items-start mb-3">
               <View>
-                <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('transactions')}</Text>
+                <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('transactions')}</Text>
                 <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Financial history</Text>
               </View>
               <TouchableOpacity

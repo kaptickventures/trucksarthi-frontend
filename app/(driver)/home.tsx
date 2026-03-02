@@ -106,7 +106,7 @@ export default function DashboardScreen() {
                     </>
                 )}
             </ScrollView>
-            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={insets.top + 52} />
+            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
         </View>
     );
 }

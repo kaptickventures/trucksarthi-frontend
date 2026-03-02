@@ -117,9 +117,9 @@ export default function DriverProfile() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <View className="mb-6 px-0 flex-row justify-between items-center">
+        <View className="mb-3 px-0 flex-row justify-between items-center">
           <View>
-            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('driverProfile')}</Text>
+            <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('driverProfile')}</Text>
             <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewManageDriverDetails')}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 16 }}>

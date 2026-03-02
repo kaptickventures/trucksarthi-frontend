@@ -57,7 +57,7 @@ export default function HistoryScreen() {
                     </View>
                 }
             />
-            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={insets.top + 52} />
+            <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
         </View>
     );
 }

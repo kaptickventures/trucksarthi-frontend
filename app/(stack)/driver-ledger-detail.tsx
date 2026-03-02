@@ -68,9 +68,7 @@ export default function DriverLedgerDetailScreen() {
       .map((entry: any) => {
         const transactionNature = String(entry?.transaction_nature || "").toLowerCase();
         const title = String(entry?.title || "").toLowerCase();
-
         const isToDriver = transactionNature === "received_by_driver" || title.includes("owner_to_driver");
-
         return {
           ...entry,
           entryDate: entry?.entry_date || entry?.createdAt || entry?.date,
@@ -93,13 +91,9 @@ export default function DriverLedgerDetailScreen() {
     const expenses = normalized
       .filter((entry: any) => entry.type === "DRIVER_SPENDS")
       .reduce((sum: number, entry: any) => sum + entry.amount, 0);
-
-    return {
-      advances,
-      expenses,
-      balance: advances - expenses,
-    };
+    return { advances, expenses, balance: advances - expenses };
   }, [normalized]);
+
   const showInitialSkeleton = (loading || driversLoading) && !refreshing && filtered.length === 0;
 
   const submitQuickAdd = async () => {
@@ -108,10 +102,8 @@ export default function DriverLedgerDetailScreen() {
       Alert.alert("Invalid Amount", "Enter a valid amount.");
       return;
     }
-
     const transactionNature: TransactionNature = quickType === "ADVANCE" ? "received_by_driver" : "paid_by_driver";
     const remark = `${quickType} | ${purpose || "General"} | ${paymentMode}`;
-
     await addLedgerEntry({
       driver_id: id,
       transaction_nature: transactionNature,
@@ -120,7 +112,6 @@ export default function DriverLedgerDetailScreen() {
       amount: Number(amount),
       remarks: remark,
     });
-
     setShowAdd(false);
     setAmount("");
     setPurpose("");
@@ -138,7 +129,7 @@ export default function DriverLedgerDetailScreen() {
           try {
             await deleteLedgerEntry(entryId);
             await load();
-          } catch {}
+          } catch { }
         },
       },
     ]);
@@ -152,8 +143,8 @@ export default function DriverLedgerDetailScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View className="mb-6 px-0">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{driver?.driver_name || driver?.name || "Driver"} {t('khata')}</Text>
+        <View className="mb-3 px-0">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{driver?.driver_name || driver?.name || "Driver"} {t('khata')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Track and manage driver ledger entries</Text>
         </View>
 
@@ -238,7 +229,9 @@ export default function DriverLedgerDetailScreen() {
             );
           })}
 
-          {!showInitialSkeleton && filtered.length === 0 && <Text style={{ color: colors.mutedForeground, textAlign: 'center', padding: 10 }}>No ledger entries found.</Text>}
+          {!showInitialSkeleton && filtered.length === 0 && (
+            <Text style={{ color: colors.mutedForeground, textAlign: 'center', padding: 10 }}>No ledger entries found.</Text>
+          )}
         </View>
       </ScrollView>
 
@@ -285,7 +278,7 @@ export default function DriverLedgerDetailScreen() {
               keyboardType="numeric"
               value={amount}
               onChangeText={setAmount}
-              className="rounded-2xl p-4 text-3xl font-black text-center"
+              className="rounded-2xl p-4 text-[24px] font-black text-center"
               style={{
                 backgroundColor: isDark ? colors.card : colors.secondary + '40',
                 color: colors.foreground,
@@ -337,7 +330,7 @@ export default function DriverLedgerDetailScreen() {
             </View>
           </Field>
 
-          <View style={{ gap: 4, marginTop: 12 }}>
+          <View style={{ marginTop: 12 }}>
             <TouchableOpacity
               onPress={submitQuickAdd}
               style={{ backgroundColor: colors.primary }}
@@ -347,30 +340,11 @@ export default function DriverLedgerDetailScreen() {
                 {loading ? "SAVING..." : "SAVE ENTRY"}
               </Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setShowAdd(false)}
-              className="py-4 items-center"
-            >
-              <Text style={{ color: colors.mutedForeground }} className="font-bold">Discard</Text>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </BottomSheet>
     </View>
   );
-}
-
-function input(colors: any) {
-  return {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    color: colors.foreground,
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-  } as const;
 }
 
 function Field({ label, children }: { label: string; children: any }) {

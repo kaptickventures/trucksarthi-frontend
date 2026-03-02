@@ -39,7 +39,6 @@ export default function MiscTransactionsScreen() {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
-  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
 
   const monthStart = useMemo(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(), []);
 
@@ -56,9 +55,7 @@ export default function MiscTransactionsScreen() {
     load();
   }, [load]);
 
-  useEffect(() => {
-    setCategory(entryType === "EXPENSE" ? EXPENSE_CATEGORIES[0] : INCOME_CATEGORIES[0]);
-  }, [entryType]);
+
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -75,7 +72,6 @@ export default function MiscTransactionsScreen() {
     await addTransaction({
       sourceModule: "MISC",
       direction: entryType,
-      category,
       paymentMode,
       amount: Number(amount),
       notes,
@@ -98,14 +94,11 @@ export default function MiscTransactionsScreen() {
           try {
             await deleteTransaction(id);
             await load();
-          } catch {}
+          } catch { }
         },
       },
     ]);
   };
-
-  const categoryOptions = entryType === "EXPENSE" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-
   const totals = useMemo(() => {
     return (transactions || []).reduce(
       (acc, t: any) => {
@@ -131,11 +124,11 @@ export default function MiscTransactionsScreen() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110, paddingTop: 20 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110, paddingTop: 6 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View className="mb-6 px-0">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>Misc Transactions</Text>
+        <View className="mb-3 px-0">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>Misc Transactions</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>View and manage other entries</Text>
         </View>
 
@@ -275,20 +268,6 @@ export default function MiscTransactionsScreen() {
           {/* Type Toggle */}
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 24 }}>
             <TouchableOpacity
-              onPress={() => setEntryType("EXPENSE")}
-              style={{
-                flex: 1,
-                paddingVertical: 14,
-                borderRadius: 20,
-                borderWidth: 1,
-                borderColor: entryType === "EXPENSE" ? colors.destructive : colors.border + '30',
-                backgroundColor: entryType === "EXPENSE" ? colors.destructive : (isDark ? colors.card : colors.secondary + '40'),
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ color: entryType === "EXPENSE" ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>Expense</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
               onPress={() => setEntryType("INCOME")}
               style={{
                 flex: 1,
@@ -302,6 +281,20 @@ export default function MiscTransactionsScreen() {
             >
               <Text style={{ color: entryType === "INCOME" ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>Income</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setEntryType("EXPENSE")}
+              style={{
+                flex: 1,
+                paddingVertical: 14,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: entryType === "EXPENSE" ? colors.destructive : colors.border + '30',
+                backgroundColor: entryType === "EXPENSE" ? colors.destructive : (isDark ? colors.card : colors.secondary + '40'),
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: entryType === "EXPENSE" ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>Expense</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Amount */}
@@ -312,7 +305,7 @@ export default function MiscTransactionsScreen() {
             keyboardType="numeric"
             value={amount}
             onChangeText={setAmount}
-            className="rounded-2xl p-4 text-3xl font-black text-center"
+            className="rounded-2xl p-4 text-[24px] font-black text-center"
             style={{
               backgroundColor: isDark ? colors.card : colors.secondary + '40',
               color: colors.foreground,
@@ -323,28 +316,7 @@ export default function MiscTransactionsScreen() {
             }}
           />
 
-          {/* Category selector */}
-          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>CATEGORY</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 24 }}>
-            {categoryOptions.map((cat) => (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => setCategory(cat)}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                  borderRadius: 20,
-                  borderWidth: 1,
-                  borderColor: category === cat ? colors.primary : colors.border + '30',
-                  backgroundColor: category === cat ? colors.primary : (isDark ? colors.card : colors.secondary + '40'),
-                }}
-              >
-                <Text style={{ color: category === cat ? "white" : colors.foreground, fontWeight: "800", fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  {formatLabel(cat)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+
 
           {/* Payment Mode */}
           <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>PAYMENT MODE</Text>
@@ -368,9 +340,9 @@ export default function MiscTransactionsScreen() {
             ))}
           </View>
 
-          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>REMARKS / NOTES</Text>
+          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>DETAILS</Text>
           <TextInput
-            placeholder="e.g. Scrap sale"
+            placeholder="e.g. Parts purchase or Client refund"
             placeholderTextColor={colors.mutedForeground + '60'}
             value={notes}
             onChangeText={setNotes}
@@ -385,20 +357,13 @@ export default function MiscTransactionsScreen() {
             }}
           />
 
-          <View style={{ gap: 4, marginTop: 12 }}>
+          <View style={{ marginTop: 12 }}>
             <TouchableOpacity
               onPress={submit}
               style={{ backgroundColor: colors.primary }}
               className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
             >
               <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE ENTRY</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setShowAdd(false)}
-              className="py-4 items-center"
-            >
-              <Text style={{ color: colors.mutedForeground }} className="font-bold">Discard</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

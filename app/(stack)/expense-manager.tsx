@@ -14,8 +14,8 @@ export default function ExpenseManagerCompatibilityScreen() {
       <StatusBar barStyle={theme === "dark" ? "light-content" : "dark-content"} />
 
       <View style={{ paddingHorizontal: 20 }}>
-        <View className="mb-6 px-0">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('expenseModules')}</Text>
+        <View className="mb-3 px-0">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('expenseModules')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Select an expense module to manage</Text>
         </View>
 

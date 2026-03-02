@@ -23,11 +23,20 @@ import {
 } from "react-native";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
+import useTrucks from "../../hooks/useTruck";
 import useTruckDocuments from "../../hooks/useTruckDocuments";
 import { formatDate as globalFormatDate, getFileUrl } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 
-const DEFAULT_DOCUMENT_TYPES = ["PUCC", "INSURANCE", "RC", "PERMIT"] as const;
+const DEFAULT_DOCUMENT_TYPES = [
+    "INSURANCE",
+    "PUCC",
+    "FITNESS CERTIFICATE",
+    "ROAD TAX",
+    "RC",
+    "STATE PERMIT",
+    "NATIONAL PERMIT"
+] as const;
 
 export default function DocumentDetails() {
     const { truckId } = useLocalSearchParams<{ truckId: string }>();
@@ -36,6 +45,7 @@ export default function DocumentDetails() {
     const { t } = useTranslation();
     const isDark = theme === "dark";
     const { documents, loading, uploadDocument, deleteDocument } = useTruckDocuments(truckId);
+    const { trucks } = useTrucks();
 
     const [modalVisible, setModalVisible] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -46,9 +56,35 @@ export default function DocumentDetails() {
     const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const truck = useMemo(() => trucks.find(t => t._id === truckId), [trucks, truckId]);
 
     // Helper
     const formatDate = (dateString?: string | Date) => globalFormatDate(dateString);
+
+    const getExpiryFromTruck = (docType: string) => {
+        if (!truck) return undefined;
+        const type = docType.toUpperCase();
+        if (type === "INSURANCE") return truck.insurance_upto;
+        if (type === "PUCC") return truck.pollution_upto;
+        if (type === "FITNESS CERTIFICATE" || type === "FITNESS") return truck.fitness_upto;
+        if (type === "ROAD TAX") return truck.road_tax_upto;
+        if (type === "RC") {
+            const regDateStr = truck.registration_date || (truck.rc_details as any)?.reg_date;
+            if (regDateStr) {
+                const date = new Date(regDateStr);
+                if (!isNaN(date.getTime())) {
+                    date.setFullYear(date.getFullYear() + 15);
+                    return date.toISOString();
+                }
+            }
+            return (truck.rc_details as any)?.rc_expiry_date || truck.fitness_upto;
+        }
+        if (type === "STATE PERMIT" || type === "PERMIT") return truck.permit_upto;
+        if (type === "NATIONAL PERMIT") return truck.national_permit_upto;
+        return undefined;
+    };
 
     const isExpiring = (dateString?: string) => {
         if (!dateString) return false;
@@ -184,13 +220,21 @@ export default function DocumentDetails() {
 
         const defaults = DEFAULT_DOCUMENT_TYPES.map((docType) => {
             const existing = docsByType.get(docType);
-            if (existing) return existing;
+            const truckDate = getExpiryFromTruck(docType);
+
+            if (existing) {
+                return {
+                    ...existing,
+                    expiry_date: truckDate || existing.expiry_date
+                };
+            }
+
             return {
                 _id: `placeholder-${docType}`,
                 truck: truckId,
                 document_type: docType,
                 file_url: "",
-                expiry_date: undefined,
+                expiry_date: truckDate,
                 status: "active",
                 createdAt: undefined,
                 updatedAt: undefined,
@@ -201,10 +245,20 @@ export default function DocumentDetails() {
         const defaultSet = new Set(DEFAULT_DOCUMENT_TYPES);
         const customDocs = (documents || []).filter(
             (doc: any) => !defaultSet.has(String(doc.document_type || "").toUpperCase() as any)
-        );
+        ).map((doc: any) => ({
+            ...doc,
+            expiry_date: getExpiryFromTruck(doc.document_type) || doc.expiry_date
+        }));
 
         return [...defaults, ...customDocs];
-    }, [documents, truckId]);
+    }, [documents, truckId, truck]);
+
+    const filteredDocuments = useMemo(() => {
+        if (!searchQuery.trim()) return mergedDocuments;
+        return mergedDocuments.filter(doc =>
+            doc.document_type.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [mergedDocuments, searchQuery]);
 
     const renderDocumentItem = ({ item }: { item: any }) => {
         const expired = isExpired(item.expiry_date);
@@ -270,11 +324,6 @@ export default function DocumentDetails() {
                                 {hasUploadedFile ? "No Expiry Date" : "Not uploaded yet"}
                             </Text>
                         )}
-                        {hasUploadedFile && (
-                            <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 2 }}>
-                                Uploaded: {formatDate(item.updatedAt)}
-                            </Text>
-                        )}
                     </View>
                 </View>
 
@@ -316,23 +365,61 @@ export default function DocumentDetails() {
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
             <FlatList
-                data={mergedDocuments}
+                data={filteredDocuments}
                 renderItem={renderDocumentItem}
                 keyExtractor={item => item._id}
                 contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
                 ListHeaderComponent={
-                    <View className="mb-6 px-0 flex-row justify-between items-center">
-                        <View>
-                            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
-                            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage vehicle documents and expiry</Text>
+                    <View className="mb-4">
+                        <View className="flex-row justify-between items-center mb-4">
+                            <View>
+                                <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
+                                <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage vehicle documents and expiry</Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setModalVisible(true)}
+                                style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}
+                            >
+                                <Plus size={16} color={colors.primaryForeground} />
+                                <Text style={{ color: colors.primaryForeground, fontWeight: '600', marginLeft: 4 }}>Add</Text>
+                            </TouchableOpacity>
                         </View>
-                        <TouchableOpacity
-                            onPress={() => setModalVisible(true)}
-                            style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}
+
+                        {/* Search Bar */}
+                        <View
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: colors.card,
+                                borderWidth: 1,
+                                borderColor: colors.border,
+                                borderRadius: 12,
+                                paddingHorizontal: 12,
+                                height: 50,
+                            }}
                         >
-                            <Plus size={16} color={colors.primaryForeground} />
-                            <Text style={{ color: colors.primaryForeground, fontWeight: '600', marginLeft: 4 }}>Add</Text>
-                        </TouchableOpacity>
+                            <Ionicons name="search" size={18} color={colors.mutedForeground} />
+                            <TextInput
+                                style={{
+                                    flex: 1,
+                                    marginLeft: 10,
+                                    fontSize: 15,
+                                    color: colors.foreground,
+                                    height: '100%',
+                                    includeFontPadding: false,
+                                }}
+                                placeholder="Search documents..."
+                                placeholderTextColor={colors.mutedForeground}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                autoCapitalize="none"
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery("")}>
+                                    <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
                 }
                 ListEmptyComponent={

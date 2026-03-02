@@ -1,7 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { CheckCircle, ShieldCheck, XCircle, Loader2, CreditCard, Building2 } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -18,8 +18,17 @@ import { useUser } from "../../hooks/useUser";
 import { useKYC } from "../../hooks/useKYC";
 import { useTranslation } from "../../context/LanguageContext";
 
+type KycHistory = {
+    pan: string[];
+    gstin: string[];
+    bank: string[];
+};
+
+const HISTORY_LIMIT = 6;
+const EMPTY_HISTORY: KycHistory = { pan: [], gstin: [], bank: [] };
+
 export default function KYCVerification() {
-    const router = useRouter();
+    useRouter();
     const params = useLocalSearchParams<{ tab?: "pan" | "gstin" | "bank" }>();
     const { colors, theme } = useThemeStore();
     const { t } = useTranslation();
@@ -32,6 +41,7 @@ export default function KYCVerification() {
     const [bankAccount, setBankAccount] = useState("");
     const [ifsc, setIfsc] = useState("");
     const [activeTab, setActiveTab] = useState<"pan" | "gstin" | "bank">(params.tab || "pan");
+    const [history, setHistory] = useState<KycHistory>(EMPTY_HISTORY);
 
     const [isVerifying, setIsVerifying] = useState(false);
 
@@ -60,6 +70,77 @@ export default function KYCVerification() {
     const isGstinVerifiedNow = hasGstinVerifiedMeta && (!gstin || gstin === user?.gstin);
     const isBankVerifiedNow = (hasVerifiedBankMeta || hasSavedBankDetails) && isBankInputMatchingSaved;
     const isKycCompleteNow = Boolean(hasPanVerifiedMeta && hasGstinVerifiedMeta && (hasVerifiedBankMeta || hasSavedBankDetails));
+    const historyKey = `kyc_history:${user?._id || "anonymous"}`;
+
+    const normalizePan = (value?: string) => (value || "").trim().toUpperCase();
+    const normalizeGstin = (value?: string) => (value || "").trim().toUpperCase();
+    const normalizeBank = (value?: string) => (value || "").replace(/\s+/g, "");
+
+    const upsertValue = (list: string[], value: string) => [value, ...list.filter((item) => item !== value)].slice(0, HISTORY_LIMIT);
+
+    const persistHistory = async (next: KycHistory) => {
+        try {
+            await AsyncStorage.setItem(historyKey, JSON.stringify(next));
+        } catch (error) {
+            console.warn("Failed to persist KYC history", error);
+        }
+    };
+
+    const pushHistoryValue = (field: keyof KycHistory, rawValue?: string) => {
+        const normalized =
+            field === "pan" ? normalizePan(rawValue)
+                : field === "gstin" ? normalizeGstin(rawValue)
+                    : normalizeBank(rawValue);
+
+        if (!normalized) return;
+
+        setHistory((prev) => {
+            const next = { ...prev, [field]: upsertValue(prev[field], normalized) };
+            persistHistory(next);
+            return next;
+        });
+    };
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadHistory = async () => {
+            try {
+                const saved = await AsyncStorage.getItem(historyKey);
+                const parsed: KycHistory = saved ? { ...EMPTY_HISTORY, ...JSON.parse(saved) } : EMPTY_HISTORY;
+
+                const seeded: KycHistory = {
+                    pan: normalizePan(user?.pan_number) ? upsertValue(parsed.pan, normalizePan(user?.pan_number)) : parsed.pan,
+                    gstin: normalizeGstin(user?.gstin) ? upsertValue(parsed.gstin, normalizeGstin(user?.gstin)) : parsed.gstin,
+                    bank: normalizeBank(user?.account_number) ? upsertValue(parsed.bank, normalizeBank(user?.account_number)) : parsed.bank,
+                };
+
+                if (isMounted) {
+                    setHistory(seeded);
+                }
+
+                const shouldPersistSeeded =
+                    seeded.pan.length !== parsed.pan.length ||
+                    seeded.gstin.length !== parsed.gstin.length ||
+                    seeded.bank.length !== parsed.bank.length;
+
+                if (shouldPersistSeeded) {
+                    await AsyncStorage.setItem(historyKey, JSON.stringify(seeded));
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setHistory(EMPTY_HISTORY);
+                }
+                console.warn("Failed to load KYC history", error);
+            }
+        };
+
+        loadHistory();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [historyKey, user?.pan_number, user?.gstin, user?.account_number]);
 
     const VerifiedValue = ({ label, value }: { label: string; value?: string }) => {
         if (!value) return null;
@@ -73,11 +154,48 @@ export default function KYCVerification() {
         );
     };
 
+    const HistoryChips = ({
+        values,
+        onSelect,
+    }: {
+        values: string[];
+        onSelect: (value: string) => void;
+    }) => {
+        if (!values.length) return null;
+
+        return (
+            <View style={{ marginTop: 10 }}>
+                <Text style={{ fontSize: 11, color: colors.mutedForeground, textTransform: "uppercase", fontWeight: "600", marginBottom: 8 }}>
+                    Previously Used
+                </Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {values.map((item, index) => (
+                        <TouchableOpacity
+                            key={`${item}-${index}`}
+                            onPress={() => onSelect(item)}
+                            style={{
+                                backgroundColor: colors.background,
+                                borderColor: colors.border,
+                                borderWidth: 1,
+                                borderRadius: 999,
+                                paddingHorizontal: 10,
+                                paddingVertical: 6,
+                            }}
+                        >
+                            <Text style={{ color: colors.foreground, fontSize: 12 }}>{item}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+        );
+    };
+
     const handleVerifyPAN = async () => {
         if (!pan || pan.length !== 10) {
             Alert.alert("Error", "Please enter a valid 10-digit PAN number");
             return;
         }
+        pushHistoryValue("pan", pan);
         try {
             setIsVerifying(true);
             const result = await verifyPAN(pan);
@@ -107,7 +225,7 @@ export default function KYCVerification() {
                                     Alert.alert("Success", "Profile updated successfully!");
                                     setPan("");
                                     refreshUser();
-                                } catch (err) {
+                                } catch {
                                     Alert.alert("Error", "Verified but could not update profile.");
                                 }
                             }
@@ -129,6 +247,7 @@ export default function KYCVerification() {
             Alert.alert("Error", "Please enter a GSTIN");
             return;
         }
+        pushHistoryValue("gstin", gstin);
         try {
             const result = await verifyGSTIN(gstin);
             if (result.verified) {
@@ -160,7 +279,7 @@ export default function KYCVerification() {
                                     Alert.alert("Success", "Business profile updated!");
                                     setGstin("");
                                     refreshUser();
-                                } catch (err) {
+                                } catch {
                                     Alert.alert("Error", "Verified but failed to update profile.");
                                 }
                             }
@@ -180,6 +299,7 @@ export default function KYCVerification() {
             Alert.alert("Error", "Please enter bank account number and IFSC code");
             return;
         }
+        pushHistoryValue("bank", bankAccount);
         try {
             setIsVerifying(true);
             const result = await verifyBank(bankAccount, ifsc);
@@ -211,7 +331,7 @@ export default function KYCVerification() {
                                     setBankAccount("");
                                     setIfsc("");
                                     refreshUser();
-                                } catch (err) {
+                                } catch {
                                     Alert.alert("Error", "Verified but failed to update profile.");
                                 }
                             }
@@ -234,8 +354,8 @@ export default function KYCVerification() {
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
             <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={60} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
-                <View className="mb-6 px-0">
-                    <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('kycVerification')}</Text>
+                <View className="mb-3 px-0">
+                    <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('kycVerification')}</Text>
                     <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Complete your identity verification</Text>
                 </View>
 
@@ -311,6 +431,7 @@ export default function KYCVerification() {
                                         style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                     />
                                     <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 6, fontStyle: 'italic' }}>Name will be auto-fetched from PAN verification</Text>
+                                    <HistoryChips values={history.pan} onSelect={setPan} />
                                 </View>
                             </View>
 
@@ -378,6 +499,7 @@ export default function KYCVerification() {
                                         autoCapitalize="characters"
                                         style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                     />
+                                    <HistoryChips values={history.gstin} onSelect={setGstin} />
                                 </View>
                             </View>
 
@@ -443,6 +565,7 @@ export default function KYCVerification() {
                                         keyboardType="numeric"
                                         style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                     />
+                                    <HistoryChips values={history.bank} onSelect={setBankAccount} />
                                 </View>
                                 <View>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>

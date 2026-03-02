@@ -47,8 +47,8 @@ export default function FinanceScreen() {
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View className="mb-6 px-0">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('financeHub')}</Text>
+        <View className="mb-3 px-0">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('financeHub')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('manageFinanceSubtitle')}</Text>
         </View>
 

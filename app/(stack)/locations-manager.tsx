@@ -149,8 +149,8 @@ export default function LocationsManager() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <View className="mb-6 px-0">
-          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('locations')}</Text>
+        <View className="mb-3 px-0">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('locations')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your start and end locations</Text>
         </View>
         {locations.length === 0 ? (
