@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -76,17 +76,6 @@ export default function PLClientReportDetailScreen() {
         contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
       >
-        <View style={{ marginBottom: 20 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 10, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-            <Ionicons name="arrow-back" size={20} color={colors.foreground} />
-          </TouchableOpacity>
-          <Text style={{ fontSize: 30, fontWeight: "900", color: colors.foreground }}>
-            Client Khata Detail
-          </Text>
-          <Text style={{ fontSize: 13, color: colors.mutedForeground, marginTop: 4 }}>
-            From client entries and balance summary
-          </Text>
-        </View>
 
         <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16 }}>{clientName}</Text>
@@ -146,3 +135,6 @@ export default function PLClientReportDetailScreen() {
     </SafeAreaView>
   );
 }
+
+
+

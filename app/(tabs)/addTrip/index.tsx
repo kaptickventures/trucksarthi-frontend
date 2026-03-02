@@ -59,14 +59,18 @@ export default function AddTrip() {
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
       headerShadowVisible: true,
-      headerStyle: { backgroundColor: colors.background },
+      headerStyle: {
+        backgroundColor: colors.background,
+        borderBottomWidth: 1,
+        borderBottomColor: isDark ? "#2F2F2F" : "#D1D5DB",
+      },
       headerBackground: () => (
         <View
           style={{
             flex: 1,
             backgroundColor: colors.background,
             borderBottomWidth: 1,
-            borderBottomColor: colors.border,
+            borderBottomColor: isDark ? "#2F2F2F" : "#D1D5DB",
           }}
         />
       ),
@@ -107,7 +111,7 @@ export default function AddTrip() {
         </TouchableOpacity>
       ),
     });
-  }, [colors, menuVisible, navigation, router]);
+  }, [colors, isDark, menuVisible, navigation, router]);
 
   /* ---------------- Data Hooks ---------------- */
   const { user, loading: userLoading } = useUser();

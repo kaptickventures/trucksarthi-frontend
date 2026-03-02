@@ -139,14 +139,15 @@ export default function StackLayout() {
           <Stack.Screen name="document-details" options={{ title: "Document Details" }} />
           <Stack.Screen name="finance" options={{ title: "Finance Hub" }} />
           <Stack.Screen name="pl-reports" options={{ title: "P&L Reports" }} />
-          <Stack.Screen name="pl-client-report" options={{ title: "Client PL" }} />
-          <Stack.Screen name="pl-driver-report" options={{ title: "Driver PL" }} />
-          <Stack.Screen name="pl-truck-report" options={{ title: "Truck PL" }} />
-          <Stack.Screen name="pl-client-report-detail" options={{ title: "Client PL Detail", headerShown: false }} />
+          <Stack.Screen name="pl-client-report" options={{ title: "Client Khata Report" }} />
+          <Stack.Screen name="pl-driver-report" options={{ title: "Driver Khata Report" }} />
+          <Stack.Screen name="pl-truck-report" options={{ title: "Truck Report" }} />
+          <Stack.Screen name="pl-client-report-detail" options={{ title: "Client Khata Detail" }} />
           <Stack.Screen name="pl-driver-report-detail" options={{ title: "Driver PL Detail", headerShown: false }} />
           <Stack.Screen name="pl-truck-report-detail" options={{ title: "Truck PL Detail", headerShown: false }} />
           <Stack.Screen name="pl-report-detail" options={{ title: "PL Detail" }} />
           <Stack.Screen name="pl-misc-report" options={{ title: "Misc PL" }} />
+          <Stack.Screen name="pl-misc-report-detail" options={{ title: "Misc Report Detail" }} />
           <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
           <Stack.Screen name="transactions" options={{ title: "Transactions" }} />
           <Stack.Screen name="create-invoice" options={{ title: "Create Invoice" }} />
@@ -166,4 +167,8 @@ export default function StackLayout() {
     </BottomSheetModalProvider>
   );
 }
+
+
+
+
 

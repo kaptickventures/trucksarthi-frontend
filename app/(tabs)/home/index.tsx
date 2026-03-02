@@ -31,7 +31,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [menuVisible, setMenuVisible] = useState(false);
   const [recentTripsVisibleCount, setRecentTripsVisibleCount] = useState(5);
-  const { colors } = useThemeStore();
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
   const { t } = useTranslation();
 
 
@@ -177,14 +178,18 @@ export default function HomeScreen() {
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
       headerShadowVisible: true,
-      headerStyle: { backgroundColor: colors.background },
+      headerStyle: {
+        backgroundColor: colors.background,
+        borderBottomWidth: 1,
+        borderBottomColor: isDark ? "#2F2F2F" : "#D1D5DB",
+      },
       headerBackground: () => (
         <View
           style={{
             flex: 1,
             backgroundColor: colors.background,
             borderBottomWidth: 1,
-            borderBottomColor: colors.border,
+            borderBottomColor: isDark ? "#2F2F2F" : "#D1D5DB",
           }}
         />
       ),
@@ -229,7 +234,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       ),
     });
-  }, [colors, menuVisible, navigation, router]);
+  }, [colors, isDark, menuVisible, navigation, router]);
 
   if (loading && !user) {
     return (

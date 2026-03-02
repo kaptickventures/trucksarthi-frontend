@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StatusBar, Text, TouchableOpacity, View } from "react-native";
@@ -36,8 +35,8 @@ export default function PLMiscReportScreen() {
       const row = grouped.get(key)!;
       row.count += 1;
       if (String(tx.approvalStatus || "").toUpperCase() === "APPROVED") {
-        if (tx.direction === "INCOME") row.income += Number(tx.amount || 0);
-        if (tx.direction === "EXPENSE") row.expense += Number(tx.amount || 0);
+        if (String(tx.direction || "").toUpperCase() === "INCOME") row.income += Number(tx.amount || 0);
+        if (String(tx.direction || "").toUpperCase() === "EXPENSE") row.expense += Number(tx.amount || 0);
       }
     }
     return Array.from(grouped.values())
@@ -55,14 +54,23 @@ export default function PLMiscReportScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
         ListHeaderComponent={
-          <View className="mb-6 px-0">
+          <View className="mb-3 px-0">
             <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('miscPL')}</Text>
             <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewMiscPL')}</Text>
           </View>
         }
         ListEmptyComponent={<Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 60 }}>{loading ? "Loading..." : "No misc report data."}</Text>}
         renderItem={({ item }) => (
-          <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() =>
+              router.push({
+                pathname: "/(stack)/pl-misc-report-detail",
+                params: { category: item.category },
+              } as any)
+            }
+            style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}
+          >
             <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.category.replace(/_/g, " ")}</Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>{item.count} entries</Text>
             <View style={{ flexDirection: "row", marginTop: 10, gap: 8 }}>
@@ -84,7 +92,7 @@ export default function PLMiscReportScreen() {
             <Text style={{ color: item.net >= 0 ? "#16a34a" : "#dc2626", marginTop: 10, fontWeight: "700" }}>
               Net: {item.net >= 0 ? "+" : "-"}Rs {Math.abs(item.net).toLocaleString()}
             </Text>
-          </View>
+          </TouchableOpacity>
         )}
       />
     </View>
