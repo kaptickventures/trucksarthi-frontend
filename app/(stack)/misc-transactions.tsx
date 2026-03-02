@@ -18,6 +18,7 @@ import {
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import BottomSheet from "../../components/BottomSheet";
+import { Trash2 } from "lucide-react-native";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useFinance from "../../hooks/useFinance";
 import { formatDate, formatLabel } from "../../lib/utils";
@@ -29,7 +30,7 @@ export default function MiscTransactionsScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
-  const { loading, transactions, fetchTransactions, addTransaction } = useFinance();
+  const { loading, transactions, fetchTransactions, addTransaction, deleteTransaction } = useFinance();
 
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"ALL" | "EXPENSE" | "INCOME">("ALL");
@@ -85,6 +86,22 @@ export default function MiscTransactionsScreen() {
     setNotes("");
     setShowAdd(false);
     await load();
+  };
+
+  const confirmDelete = (id: string) => {
+    Alert.alert("Delete", "Delete this transaction?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteTransaction(id);
+            await load();
+          } catch {}
+        },
+      },
+    ]);
   };
 
   const categoryOptions = entryType === "EXPENSE" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
@@ -229,6 +246,11 @@ export default function MiscTransactionsScreen() {
                 <Text style={{ fontSize: 15, fontWeight: "800", color: isIncome ? colors.success : colors.destructive }}>
                   {isIncome ? "+" : "-"}Rs {Number(item.amount || 0).toLocaleString()}
                 </Text>
+              </View>
+              <View style={{ alignItems: "flex-end", marginTop: 8 }}>
+                <TouchableOpacity onPress={() => confirmDelete(String(item._id))} style={{ padding: 4 }}>
+                  <Trash2 size={14} color={colors.destructive} />
+                </TouchableOpacity>
               </View>
             </View>
           );

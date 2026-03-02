@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
+import { Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -24,7 +26,7 @@ export default function ClientPaymentsScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { clients, fetchClients } = useClients();
-  const { loading, paymentRows, paymentSummary, fetchPaymentLedger } = useClientLedger();
+  const { loading, paymentRows, paymentSummary, fetchPaymentLedger, deleteEntry } = useClientLedger();
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
@@ -62,6 +64,22 @@ export default function ClientPaymentsScreen() {
     () => clients.find((c) => c._id === selectedClientId),
     [clients, selectedClientId]
   );
+
+  const confirmDeletePayment = (paymentId: string) => {
+    Alert.alert("Delete Payment", "Delete this payment transaction?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteEntry(paymentId, selectedClientId || undefined);
+            await load();
+          } catch {}
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -167,7 +185,12 @@ export default function ClientPaymentsScreen() {
             </Text>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <Text style={{ fontWeight: "800", color: colors.success }}>+₹{Number(row.amountReceived || 0).toLocaleString()}</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{formatDate(row.date)}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{formatDate(row.date)}</Text>
+                <TouchableOpacity onPress={() => confirmDeletePayment(String(row.paymentId))} style={{ padding: 2 }}>
+                  <Trash2 size={14} color={colors.destructive} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ))}

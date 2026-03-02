@@ -60,9 +60,10 @@ export function useInvoices() {
     try {
       await API.delete(`/api/invoices/${id}`);
       await fetchInvoices();
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ deleteInvoice failed", error);
-      Alert.alert("Error", "Failed to delete invoice");
+      Alert.alert("Error", error.response?.data?.error || "Failed to delete invoice");
+      throw error;
     }
   };
 

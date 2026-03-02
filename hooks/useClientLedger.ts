@@ -129,6 +129,23 @@ export function useClientLedger() {
     }
   }, [fetchLedger]);
 
+  const deleteEntry = useCallback(async (entry_id: string, client_id?: string) => {
+    try {
+      await API.delete(`/api/ledger/entry/${entry_id}`);
+      setEntries((prev) => prev.filter((e) => String((e as any)._id) !== String(entry_id)));
+      if (client_id) {
+        await fetchLedger(client_id);
+      }
+    } catch (error: any) {
+      console.error("❌ deleteEntry failed", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.error || "Failed to delete entry"
+      );
+      throw error;
+    }
+  }, [fetchLedger]);
+
   return {
     entries,
     paymentRows,
@@ -139,5 +156,6 @@ export function useClientLedger() {
     fetchPaymentLedger,
     addPayment,
     updateEntry,
+    deleteEntry,
   };
 }

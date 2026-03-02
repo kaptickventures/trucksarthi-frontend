@@ -100,12 +100,24 @@ export default function useDriverFinance() {
     }
   };
 
+  const deleteLedgerEntry = async (id: string) => {
+    try {
+      await API.delete(`/api/driver-ledger/${id}`);
+      setEntries((prev) => prev.filter((e) => String((e as any)._id) !== String(id)));
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert("Error", error.response?.data?.error || "Failed to delete ledger entry");
+      throw error;
+    }
+  };
+
   return {
     entries,
     loading,
     fetchDriverLedger,
     fetchDriverSummary,
     addLedgerEntry,
-    updateEntryStatus
+    updateEntryStatus,
+    deleteLedgerEntry
   };
 }

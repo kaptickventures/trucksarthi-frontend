@@ -105,6 +105,20 @@ export default function useFinance() {
     }
   };
 
+  const deleteTransaction = async (id: string) => {
+    try {
+      setLoading(true);
+      await API.delete(`/api/finance/transaction/${id}`);
+      setTransactions((prev) => prev.filter((t: any) => String((t as any)._id) !== String(id)));
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert("Error", error.response?.data?.error || "Failed to delete transaction");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     transactions,
@@ -113,6 +127,7 @@ export default function useFinance() {
     fetchSummary,
     addRunningExpense,
     addMaintenanceExpense,
-    addTransaction
+    addTransaction,
+    deleteTransaction
   };
 }

@@ -64,9 +64,10 @@ export default function useTrips(options: UseTripsOptions = {}) {
     try {
       await API.delete(`/api/trips/${tripId}`);
       setTrips((prev) => prev.filter((t) => t._id !== tripId));
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", "Failed to delete trip");
+      Alert.alert("Error", error.response?.data?.error || "Failed to delete trip");
+      throw error;
     }
   };
 

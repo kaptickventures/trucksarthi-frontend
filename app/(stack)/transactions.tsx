@@ -3,6 +3,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   FlatList,
   Modal,
   RefreshControl,
@@ -12,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { ArrowDownLeft, ArrowUpRight, Calendar, Filter } from "lucide-react-native";
+import { ArrowDownLeft, ArrowUpRight, Calendar, Filter, Trash2 } from "lucide-react-native";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import BottomSheet from "../../components/BottomSheet";
 import { Skeleton } from "../../components/Skeleton";
@@ -41,7 +42,7 @@ export default function TransactionsScreen() {
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
-  const { loading, transactions, fetchTransactions } = useFinance();
+  const { loading, transactions, fetchTransactions, deleteTransaction } = useFinance();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTag, setActiveTag] = useState<TagFilter>("ALL");
   const [filters, setFilters] = useState({
@@ -115,6 +116,22 @@ export default function TransactionsScreen() {
     });
   }, [transactions, activeTag]);
 
+  const confirmDelete = (id: string) => {
+    Alert.alert("Delete", "Delete this transaction?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteTransaction(id);
+            await loadData();
+          } catch {}
+        },
+      },
+    ]);
+  };
+
   const renderItem = ({ item }: { item: any }) => {
     const isIncome = item.direction === "INCOME";
     const iconColor = isIncome ? "#16a34a" : "#dc2626";
@@ -171,6 +188,12 @@ export default function TransactionsScreen() {
           <Text style={{ fontSize: 9, color: colors.mutedForeground, marginTop: 1 }}>
             {item.paymentMode || "CASH"}
           </Text>
+          <TouchableOpacity
+            onPress={() => confirmDelete(String(item._id))}
+            style={{ marginTop: 6, padding: 4 }}
+          >
+            <Trash2 size={14} color={colors.destructive} />
+          </TouchableOpacity>
         </View>
       </View>
     );

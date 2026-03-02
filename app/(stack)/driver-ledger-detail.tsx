@@ -15,6 +15,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Trash2 } from "lucide-react-native";
+import BottomSheet from "../../components/BottomSheet";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import useDrivers from "../../hooks/useDriver";
@@ -26,8 +28,6 @@ import { useTranslation } from "../../context/LanguageContext";
 type TabType = "ALL" | "TO_DRIVER" | "DRIVER_SPENDS";
 type QuickType = "ADVANCE" | "EXPENSE";
 
-import BottomSheet from "../../components/BottomSheet";
-
 export default function DriverLedgerDetailScreen() {
   const router = useRouter();
   const { driverId } = useLocalSearchParams<{ driverId?: string | string[] }>();
@@ -36,7 +36,7 @@ export default function DriverLedgerDetailScreen() {
   const { t } = useTranslation();
   const isDark = theme === "dark";
   const { drivers, fetchDrivers, loading: driversLoading } = useDrivers();
-  const { entries, loading, fetchDriverLedger, addLedgerEntry } = useDriverFinance();
+  const { entries, loading, fetchDriverLedger, addLedgerEntry, deleteLedgerEntry } = useDriverFinance();
 
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("ALL");
@@ -128,6 +128,22 @@ export default function DriverLedgerDetailScreen() {
     await load();
   };
 
+  const confirmDelete = (entryId: string) => {
+    Alert.alert("Delete", "Delete this ledger entry?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteLedgerEntry(entryId);
+            await load();
+          } catch {}
+        },
+      },
+    ]);
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -212,6 +228,11 @@ export default function DriverLedgerDetailScreen() {
                   <Text style={{ color: isToDriver ? colors.success : colors.destructive, fontWeight: "800" }}>
                     {isToDriver ? "+" : "-"}Rs {entry.amount.toLocaleString()}
                   </Text>
+                </View>
+                <View style={{ alignItems: "flex-end", marginTop: 6 }}>
+                  <TouchableOpacity onPress={() => confirmDelete(String(entry._id))} style={{ padding: 4 }}>
+                    <Trash2 size={14} color={colors.destructive} />
+                  </TouchableOpacity>
                 </View>
               </View>
             );

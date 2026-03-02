@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -34,7 +35,7 @@ export default function RunningExpensesDashboardScreen() {
   const isDark = theme === "dark";
 
   const { trucks, fetchTrucks } = useTrucks();
-  const { transactions, fetchTransactions, addRunningExpense, loading: financeLoading } = useFinance();
+  const { transactions, fetchTransactions, addRunningExpense, deleteTransaction, loading: financeLoading } = useFinance();
   const [refreshing, setRefreshing] = useState(false);
 
   // Modal State
@@ -140,6 +141,22 @@ export default function RunningExpensesDashboardScreen() {
   const openAddModal = (cat: string) => {
     setExpenseCategory(cat);
     setShowAdd(true);
+  };
+
+  const confirmDelete = (id: string) => {
+    Alert.alert("Delete", "Delete this running expense?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteTransaction(id);
+            await loadData();
+          } catch {}
+        },
+      },
+    ]);
   };
 
   return (
@@ -290,6 +307,11 @@ export default function RunningExpensesDashboardScreen() {
                 <Text style={{ fontSize: 16, fontWeight: "800", color: colors.destructive }}>
                   -Rs {Number(item.amount || 0).toLocaleString()}
                 </Text>
+              </View>
+              <View style={{ alignItems: "flex-end", marginTop: 8 }}>
+                <TouchableOpacity onPress={() => confirmDelete(String(item._id))} style={{ padding: 4 }}>
+                  <Trash2 size={14} color={colors.destructive} />
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           );

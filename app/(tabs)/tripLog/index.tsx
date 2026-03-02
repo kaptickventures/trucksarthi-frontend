@@ -498,7 +498,16 @@ export default function TripLog() {
                         <TouchableOpacity onPress={() => {
                           Alert.alert(t("delete"), t("deleteTripQuestion"), [
                             { text: t("cancel"), style: "cancel" },
-                            { text: t("delete"), style: "destructive", onPress: async () => { await deleteTrip(trip._id); fetchTrips(); } },
+                            {
+                              text: t("delete"),
+                              style: "destructive",
+                              onPress: async () => {
+                                try {
+                                  await deleteTrip(trip._id);
+                                  await fetchTrips();
+                                } catch {}
+                              },
+                            },
                           ]);
                         }} style={{ padding: 6 }}>
                           <Trash2 size={18} color="#ef4444" />
@@ -522,7 +531,12 @@ export default function TripLog() {
         clients={clients}
         locations={locations}
         onSave={async (id, data) => { await updateTrip(id, data); fetchTrips(); }}
-        onDelete={async (id) => { await deleteTrip(id); fetchTrips(); }}
+        onDelete={async (id) => {
+          try {
+            await deleteTrip(id);
+            await fetchTrips();
+          } catch {}
+        }}
       />
     </View >
   );

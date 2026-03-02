@@ -4,7 +4,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { ArrowDownLeft, Banknote, Building2, Edit, FileText, MapPin, Plus, Share2, X } from "lucide-react-native";
+import { ArrowDownLeft, Banknote, Building2, Edit, FileText, MapPin, Plus, Share2, Trash2, X } from "lucide-react-native";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -90,6 +90,7 @@ export default function ClientLedgerDetailScreen() {
     entries,
     fetchLedger,
     addPayment,
+    deleteEntry,
   } = useClientLedger();
 
   /* ---------------- STATE ---------------- */
@@ -145,7 +146,7 @@ export default function ClientLedgerDetailScreen() {
   const { clients, loading: clientsLoading, fetchClients, updateClient } =
     useClients();
 
-  const { invoices, fetchInvoices, createInvoice } =
+  const { invoices, fetchInvoices, createInvoice, deleteInvoice } =
     useInvoices();
 
   const { trips, fetchTrips } = useTrips({ autoFetch: false });
@@ -596,6 +597,40 @@ export default function ClientLedgerDetailScreen() {
     setShowPaymentForm(true);
   };
 
+  const handleDeleteInvoice = (invoiceId: string) => {
+    Alert.alert("Delete Invoice", "Delete this invoice? Its trips will move back to Unbilled.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          if (!id) return;
+          try {
+            await deleteInvoice(invoiceId);
+            await Promise.all([fetchInvoices(), fetchTrips(), fetchLedger(id)]);
+          } catch {}
+        },
+      },
+    ]);
+  };
+
+  const handleDeletePaymentEntry = (entryId: string) => {
+    Alert.alert("Delete Payment", "Delete this payment transaction?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          if (!id) return;
+          try {
+            await deleteEntry(entryId, id);
+            await Promise.all([fetchInvoices(), fetchTrips(), fetchLedger(id)]);
+          } catch {}
+        },
+      },
+    ]);
+  };
+
   // Edit Client Modal Handlers
   const panResponder = useRef(
     PanResponder.create({
@@ -916,6 +951,9 @@ export default function ClientLedgerDetailScreen() {
                     <TouchableOpacity onPress={() => generateInvoicePDF(invoice)} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
                       <Share2 size={16} color={colors.foreground} />
                     </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteInvoice(getId(invoice))} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
+                      <Trash2 size={16} color={colors.destructive} />
+                    </TouchableOpacity>
                     {invoice.status !== 'paid' && (
                       <TouchableOpacity onPress={() => handleSettleInvoice(invoice)} className="px-4 py-2 rounded-full" style={{ backgroundColor: colors.primary }}>
                         <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-xs">Settle</Text>
@@ -951,6 +989,9 @@ export default function ClientLedgerDetailScreen() {
                     </Text>
                   </View>
                   <Text className="font-bold" style={{ color: "#16a34a" }}>₹{Number(entry.amount).toLocaleString()}</Text>
+                  <TouchableOpacity onPress={() => handleDeletePaymentEntry(getId(entry))} style={{ padding: 4, marginTop: 4 }}>
+                    <Trash2 size={14} color={colors.destructive} />
+                  </TouchableOpacity>
                 </View>
               </View>
             ))}
