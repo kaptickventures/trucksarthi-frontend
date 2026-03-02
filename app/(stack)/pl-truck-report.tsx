@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react-native";
 import useTrucks from "../../hooks/useTruck";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
-import { useTranslation } from "../../context/LanguageContext";
 
 const toRefId = (value: any) =>
   typeof value === "string" ? value : value?._id ? String(value._id) : "";
@@ -14,7 +14,6 @@ const toRefId = (value: any) =>
 export default function PLTruckReportScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
-  const { t } = useTranslation();
   const isDark = theme === "dark";
   const { trucks, fetchTrucks } = useTrucks();
   const { transactions, fetchTransactions, loading } = useFinance();
@@ -37,39 +36,38 @@ export default function PLTruckReportScreen() {
         const items = (transactions || []).filter((tx: any) => toRefId(tx.truckId) === truckId);
         const approved = items.filter((tx: any) => String(tx.approvalStatus || "").toUpperCase() === "APPROVED");
         const income = approved
-          .filter((tx: any) => tx.direction === "INCOME")
+          .filter((tx: any) => String(tx.direction || "").toUpperCase() === "INCOME")
           .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
         const expense = approved
-          .filter((tx: any) => tx.direction === "EXPENSE")
+          .filter((tx: any) => String(tx.direction || "").toUpperCase() === "EXPENSE")
           .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
         return {
           id: truckId,
           name: truck.registration_number || "Unknown Truck",
           income,
           expense,
-          net: income - expense,
+          balance: income - expense,
           count: items.length,
         };
       })
       .filter((r) => r.count > 0)
-      .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+      .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
   }, [trucks, transactions]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <View style={{ paddingHorizontal: 20, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color={colors.foreground} /></TouchableOpacity>
+        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Truck Report</Text>
+        <View style={{ width: 24 }} />
+      </View>
 
       <FlatList
         data={rows}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120, gap: 10 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
-        ListHeaderComponent={
-          <View className="mb-6 px-0 mt-5">
-            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('truckPL')}</Text>
-            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewTruckPL')}</Text>
-          </View>
-        }
         ListEmptyComponent={<Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 60 }}>{loading ? "Loading..." : "No truck report data."}</Text>}
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -77,10 +75,10 @@ export default function PLTruckReportScreen() {
             onPress={() =>
               router.push({
                 pathname: "/(stack)/pl-truck-report-detail",
-                params: { entityId: item.id },
+                params: { truckId: item.id },
               } as any)
             }
-            style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}
+            style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14 }}
           >
             <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.name}</Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>{item.count} entries</Text>
@@ -100,12 +98,12 @@ export default function PLTruckReportScreen() {
                 <Text style={{ color: colors.foreground, fontWeight: "700" }}>Rs {item.expense.toLocaleString()}</Text>
               </View>
             </View>
-            <Text style={{ color: item.net >= 0 ? "#16a34a" : "#dc2626", marginTop: 10, fontWeight: "700" }}>
-              Net: {item.net >= 0 ? "+" : "-"}Rs {Math.abs(item.net).toLocaleString()}
+            <Text style={{ color: item.balance >= 0 ? "#16a34a" : "#dc2626", marginTop: 10, fontWeight: "700" }}>
+              Total Balance: {item.balance >= 0 ? "+" : "-"}Rs {Math.abs(item.balance).toLocaleString()}
             </Text>
           </TouchableOpacity>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }

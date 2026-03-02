@@ -131,7 +131,7 @@ export default function NotificationsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <View className="mb-6 px-0 mt-5">
+        <View className="mb-6 px-0">
           <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('notifications')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Stay updated with your fleet activity</Text>
         </View>

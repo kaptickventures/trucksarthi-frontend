@@ -321,7 +321,7 @@ export default function DocumentDetails() {
                 keyExtractor={item => item._id}
                 contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
                 ListHeaderComponent={
-                    <View className="mb-6 px-0 mt-5 flex-row justify-between items-center">
+                    <View className="mb-6 px-0 flex-row justify-between items-center">
                         <View>
                             <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
                             <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage vehicle documents and expiry</Text>

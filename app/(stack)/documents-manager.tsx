@@ -99,7 +99,7 @@ export default function DocumentManager() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={{ paddingTop: 20, paddingBottom: 16 }}>
-            <View className="mb-6 px-0 mt-5">
+            <View className="mb-6 px-0">
               <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
               <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your fleet documents</Text>
             </View>

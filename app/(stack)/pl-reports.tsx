@@ -46,7 +46,7 @@ export default function PLReportsScreen() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
-        <View style={{ marginBottom: 20, marginTop: 5 }}>
+        <View style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 30, fontWeight: "900", color: colors.foreground }}>
             {t('pLReports')}
           </Text>

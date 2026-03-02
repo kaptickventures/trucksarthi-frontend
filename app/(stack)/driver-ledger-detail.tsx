@@ -136,7 +136,7 @@ export default function DriverLedgerDetailScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View className="mb-6 px-0 mt-5">
+        <View className="mb-6 px-0">
           <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{driver?.driver_name || driver?.name || "Driver"} {t('khata')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Track and manage driver ledger entries</Text>
         </View>
@@ -230,7 +230,7 @@ export default function DriverLedgerDetailScreen() {
         subtitle={driver?.driver_name || "Driver"}
       >
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "800", marginBottom: 10, letterSpacing: 0.5 }}>ENTRY TYPE</Text>
+          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>ENTRY TYPE</Text>
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
             {([
               { id: "ADVANCE", label: "Advance" },
@@ -242,15 +242,15 @@ export default function DriverLedgerDetailScreen() {
                 style={{
                   flex: 1,
                   height: 52,
-                  borderRadius: 16,
+                  borderRadius: 20,
                   borderWidth: 1,
-                  borderColor: quickType === type.id ? colors.primary : colors.border,
-                  backgroundColor: quickType === type.id ? colors.primary : colors.card,
+                  borderColor: quickType === type.id ? colors.primary : colors.border + '30',
+                  backgroundColor: quickType === type.id ? colors.primary : (isDark ? colors.card : colors.secondary + '40'),
                   justifyContent: "center",
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: quickType === type.id ? "white" : colors.foreground, fontSize: 14, fontWeight: "700" }}>
+                <Text style={{ color: quickType === type.id ? "white" : colors.foreground, fontSize: 13, fontWeight: "800", textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   {type.label}
                 </Text>
               </TouchableOpacity>
@@ -260,21 +260,17 @@ export default function DriverLedgerDetailScreen() {
           <Field label="Amount">
             <TextInput
               placeholder="0"
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={colors.mutedForeground + '60'}
               keyboardType="numeric"
               value={amount}
               onChangeText={setAmount}
+              className="rounded-2xl p-4 text-3xl font-black text-center"
               style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 20,
+                backgroundColor: isDark ? colors.card : colors.secondary + '40',
                 color: colors.foreground,
-                padding: 18,
-                fontSize: 32,
-                fontWeight: "900",
-                marginBottom: 4,
-                textAlign: "center",
-                backgroundColor: isDark ? colors.card : colors.secondary + "10"
+                borderWidth: 1,
+                borderColor: colors.border + '30',
+                height: 80,
               }}
             />
           </Field>
@@ -282,18 +278,15 @@ export default function DriverLedgerDetailScreen() {
           <Field label="Purpose">
             <TextInput
               placeholder="Trip diesel, advance, settlement..."
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={colors.mutedForeground + '60'}
               value={purpose}
               onChangeText={setPurpose}
+              className="rounded-2xl p-4 text-base font-bold"
               style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 16,
+                backgroundColor: isDark ? colors.card : colors.secondary + '40',
                 color: colors.foreground,
-                backgroundColor: isDark ? colors.card : colors.secondary + "10",
-                padding: 16,
-                fontSize: 15,
-                fontWeight: "600"
+                borderWidth: 1,
+                borderColor: colors.border + '30',
               }}
             />
           </Field>
@@ -306,16 +299,16 @@ export default function DriverLedgerDetailScreen() {
                   onPress={() => setPaymentMode(mode)}
                   style={{
                     flex: 1,
-                    height: 48,
-                    borderRadius: 14,
+                    height: 52,
+                    borderRadius: 20,
                     borderWidth: 1,
-                    borderColor: paymentMode === mode ? colors.primary : colors.border,
-                    backgroundColor: paymentMode === mode ? colors.primary : colors.card,
+                    borderColor: paymentMode === mode ? colors.primary : colors.border + '30',
+                    backgroundColor: paymentMode === mode ? colors.primary : (isDark ? colors.card : colors.secondary + '40'),
                     justifyContent: "center",
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontSize: 12, fontWeight: "800" }}>
+                  <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontSize: 12, fontWeight: "800", textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {mode}
                   </Text>
                 </TouchableOpacity>
@@ -323,18 +316,22 @@ export default function DriverLedgerDetailScreen() {
             </View>
           </Field>
 
-          <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
-            <TouchableOpacity
-              onPress={() => setShowAdd(false)}
-              style={{ flex: 1, height: 60, borderRadius: 20, backgroundColor: colors.muted, alignItems: "center", justifyContent: "center" }}
-            >
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16 }}>Cancel</Text>
-            </TouchableOpacity>
+          <View style={{ gap: 4, marginTop: 12 }}>
             <TouchableOpacity
               onPress={submitQuickAdd}
-              style={{ flex: 2, height: 60, borderRadius: 20, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }}
+              style={{ backgroundColor: colors.primary }}
+              className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
             >
-              <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }}>{loading ? "Saving..." : "Save Entry"}</Text>
+              <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">
+                {loading ? "SAVING..." : "SAVE ENTRY"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setShowAdd(false)}
+              className="py-4 items-center"
+            >
+              <Text style={{ color: colors.mutedForeground }} className="font-bold">Discard</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -358,8 +355,10 @@ function input(colors: any) {
 function Field({ label, children }: { label: string; children: any }) {
   const { colors } = useThemeStore();
   return (
-    <View style={{ marginBottom: 16 }}>
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "800", marginBottom: 8, letterSpacing: 0.5 }}>{label.toUpperCase()}</Text>
+    <View style={{ marginBottom: 20 }}>
+      <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>
+        {label}
+      </Text>
       {children}
     </View>
   );

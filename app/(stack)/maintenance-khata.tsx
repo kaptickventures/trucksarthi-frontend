@@ -55,7 +55,7 @@ export default function MaintenanceKhataScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View className="mb-6 px-0 mt-5">
+        <View className="mb-6 px-0">
           <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('maintenanceKhata')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Track truck repair and service history</Text>
         </View>

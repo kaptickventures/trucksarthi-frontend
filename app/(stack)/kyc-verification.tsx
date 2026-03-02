@@ -234,7 +234,7 @@ export default function KYCVerification() {
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
             <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={60} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
-                <View className="mb-6 px-0 mt-5">
+                <View className="mb-6 px-0">
                     <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('kycVerification')}</Text>
                     <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Complete your identity verification</Text>
                 </View>

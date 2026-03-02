@@ -55,7 +55,7 @@ export default function PLMiscReportScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
         ListHeaderComponent={
-          <View className="mb-6 px-0 mt-5">
+          <View className="mb-6 px-0">
             <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('miscPL')}</Text>
             <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewMiscPL')}</Text>
           </View>

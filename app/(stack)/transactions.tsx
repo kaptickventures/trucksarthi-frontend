@@ -45,8 +45,8 @@ export default function TransactionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTag, setActiveTag] = useState<TagFilter>("ALL");
   const [filters, setFilters] = useState({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-    endDate: new Date(),
+    startDate: null as Date | null,
+    endDate: null as Date | null,
     direction: "",
   });
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -55,8 +55,8 @@ export default function TransactionsScreen() {
   const loadData = useCallback(async () => {
     setRefreshing(true);
     await fetchTransactions({
-      startDate: filters.startDate.toISOString(),
-      endDate: filters.endDate.toISOString(),
+      startDate: filters.startDate ? filters.startDate.toISOString() : undefined,
+      endDate: filters.endDate ? filters.endDate.toISOString() : undefined,
       direction: filters.direction,
     });
     setRefreshing(false);
@@ -82,7 +82,7 @@ export default function TransactionsScreen() {
       .filter((item: any) => {
         const sourceModule = String(item?.sourceModule || "").toUpperCase();
         const category = String(item?.category || "").toUpperCase();
-        // Exclude driver-side spend entries from the global view — only show owner-to-driver payments
+        // Keep only owner-to-driver entries from driver khata in this global list.
         if (sourceModule === "DRIVER_KHATA" && category !== "OWNER_TO_DRIVER") return false;
         return true;
       })
@@ -188,7 +188,7 @@ export default function TransactionsScreen() {
         contentContainerStyle={{ padding: 20, paddingBottom: 110 }}
         ListHeaderComponent={
           <View style={{ paddingBottom: 16 }}>
-            <View className="flex-row justify-between items-start mb-6 mt-5">
+            <View className="flex-row justify-between items-start mb-6">
               <View>
                 <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('transactions')}</Text>
                 <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Financial history</Text>
@@ -353,7 +353,7 @@ export default function TransactionsScreen() {
 
       {showDatePicker && (
         <DateTimePicker
-          value={showDatePicker === "start" ? filters.startDate : filters.endDate}
+          value={(showDatePicker === "start" ? filters.startDate : filters.endDate) || new Date()}
           mode="date"
           display="default"
           onChange={onDateChange}

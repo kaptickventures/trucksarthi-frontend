@@ -1,8 +1,12 @@
 // app/(tabs)/home/_layout.tsx
 import React from "react";
 import NativeStack from "expo-router/stack";
+import { View } from "react-native";
+import { useThemeStore } from "../../../hooks/useThemeStore";
 
 export default function HomeStack() {
+  const { colors } = useThemeStore();
+
   return (
     <NativeStack
       screenOptions={{
@@ -10,6 +14,19 @@ export default function HomeStack() {
         autoHideHomeIndicator: true,
         headerTransparent: false,
         headerShadowVisible: false,
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerBackground: () => (
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: colors.background,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
+            }}
+          />
+        ),
       }}
     >
       <NativeStack.Screen

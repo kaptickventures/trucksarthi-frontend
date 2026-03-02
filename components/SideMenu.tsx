@@ -45,7 +45,6 @@ export default function SideMenu({
     { title: t('drivers'), icon: "person-add-outline", route: "/(stack)/drivers-manager" as const },
     { title: t('clients'), icon: "people-outline", route: "/(stack)/clients-manager" as const },
     { title: t('locations'), icon: "location-outline", route: "/(stack)/locations-manager" as const },
-    { title: t('kycVerifications'), icon: "shield-checkmark-outline", route: "/(stack)/kyc-verification" as const },
   ] as const;
 
   const FINANCE_LINKS = [

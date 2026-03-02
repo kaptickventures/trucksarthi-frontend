@@ -293,7 +293,7 @@ export default function Profile() {
           />
         }
       >
-        <View className="mb-6 px-6 mt-5">
+        <View className="mb-6 px-6">
           <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('myProfile')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your account and business details</Text>
         </View>

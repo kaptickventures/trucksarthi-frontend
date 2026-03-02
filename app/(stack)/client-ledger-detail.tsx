@@ -968,7 +968,7 @@ export default function ClientLedgerDetailScreen() {
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
             {/* DATE PICKER */}
             <View className="mb-6">
-              <Text className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5 ml-1">Date</Text>
+              <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Date</Text>
               <TouchableOpacity
                 onPress={() => setShowDatePicker(true)}
                 className="flex-row items-center rounded-2xl px-4 py-4"
@@ -984,7 +984,7 @@ export default function ClientLedgerDetailScreen() {
 
             {/* AMOUNT */}
             <View className="mb-6">
-              <Text className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5 ml-1">Amount</Text>
+              <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Amount</Text>
               <View className="flex-row items-center rounded-2xl px-5 py-4" style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', borderWidth: 1, borderColor: colors.border + '30' }}>
                 <Banknote size={24} color="#16a34a" />
                 <TextInput
@@ -1001,7 +1001,7 @@ export default function ClientLedgerDetailScreen() {
 
             {/* REMARKS */}
             <View className="mb-6">
-              <Text className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5 ml-1">Remarks *</Text>
+              <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Remarks *</Text>
               <TextInput
                 placeholder="Payment details / Settlement notes"
                 value={paymentRemarks}
@@ -1022,7 +1022,7 @@ export default function ClientLedgerDetailScreen() {
             </View>
 
             <View className="mb-8">
-              <Text className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5 ml-1">Payment Mode</Text>
+              <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Payment Mode</Text>
               <View className="flex-row gap-2">
                 {PAYMENT_MODES.map((mode) => {
                   const selected = paymentMode === mode;
@@ -1033,32 +1033,34 @@ export default function ClientLedgerDetailScreen() {
                       style={{
                         flex: 1,
                         paddingVertical: 14,
-                        borderRadius: 16,
+                        borderRadius: 20,
                         borderWidth: 1,
                         alignItems: "center",
-                        backgroundColor: selected ? colors.primary : colors.card,
-                        borderColor: selected ? colors.primary : colors.border,
+                        backgroundColor: selected ? colors.primary : (isDark ? colors.card : colors.secondary + '40'),
+                        borderColor: selected ? colors.primary : colors.border + '30',
                       }}
                     >
-                      <Text style={{ color: selected ? "white" : colors.foreground, fontWeight: "700", fontSize: 13 }}>{mode}</Text>
+                      <Text style={{ color: selected ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{mode}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
             </View>
 
-            <View style={{ flexDirection: "row", gap: 12 }}>
-              <TouchableOpacity
-                onPress={() => setShowPaymentForm(false)}
-                style={{ flex: 1, padding: 18, borderRadius: 22, backgroundColor: colors.muted, alignItems: "center" }}
-              >
-                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16 }}>Cancel</Text>
-              </TouchableOpacity>
+            <View style={{ gap: 4, marginTop: 12 }}>
               <TouchableOpacity
                 onPress={handleAddPayment}
-                style={{ flex: 2, padding: 18, borderRadius: 22, backgroundColor: colors.primary, alignItems: "center" }}
+                style={{ backgroundColor: colors.primary }}
+                className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
               >
-                <Text style={{ color: "white", fontWeight: "900", fontSize: 17 }}>Save Payment</Text>
+                <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE PAYMENT</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setShowPaymentForm(false)}
+                className="py-4 items-center"
+              >
+                <Text style={{ color: colors.mutedForeground }} className="font-bold">Discard</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -1133,13 +1135,22 @@ export default function ClientLedgerDetailScreen() {
                 />
               </View>
 
-              <TouchableOpacity
-                onPress={handleUpdateClient}
-                className="py-5 rounded-[22px] mt-6 items-center shadow-lg shadow-green-500/20"
-                style={{ backgroundColor: colors.primary }}
-              >
-                <Text style={{ color: "white", fontWeight: '900' }} className="text-lg">{t('saveUpdates')}</Text>
-              </TouchableOpacity>
+              <View style={{ gap: 4, marginTop: 12 }}>
+                <TouchableOpacity
+                  onPress={handleUpdateClient}
+                  className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">{t('saveUpdates').toUpperCase()}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={closeEditModal}
+                  className="py-4 items-center"
+                >
+                  <Text style={{ color: colors.mutedForeground }} className="font-bold">Discard</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </ScrollView>
         </BottomSheet>

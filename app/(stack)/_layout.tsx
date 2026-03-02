@@ -142,9 +142,9 @@ export default function StackLayout() {
           <Stack.Screen name="pl-client-report" options={{ title: "Client PL" }} />
           <Stack.Screen name="pl-driver-report" options={{ title: "Driver PL" }} />
           <Stack.Screen name="pl-truck-report" options={{ title: "Truck PL" }} />
-          <Stack.Screen name="pl-client-report-detail" options={{ title: "Client PL Detail" }} />
-          <Stack.Screen name="pl-driver-report-detail" options={{ title: "Driver PL Detail" }} />
-          <Stack.Screen name="pl-truck-report-detail" options={{ title: "Truck PL Detail" }} />
+          <Stack.Screen name="pl-client-report-detail" options={{ title: "Client PL Detail", headerShown: false }} />
+          <Stack.Screen name="pl-driver-report-detail" options={{ title: "Driver PL Detail", headerShown: false }} />
+          <Stack.Screen name="pl-truck-report-detail" options={{ title: "Truck PL Detail", headerShown: false }} />
           <Stack.Screen name="pl-report-detail" options={{ title: "PL Detail" }} />
           <Stack.Screen name="pl-misc-report" options={{ title: "Misc PL" }} />
           <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
@@ -166,3 +166,4 @@ export default function StackLayout() {
     </BottomSheetModalProvider>
   );
 }
+

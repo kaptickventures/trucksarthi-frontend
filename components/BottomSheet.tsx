@@ -99,8 +99,8 @@ export default function BottomSheet({
                         backgroundColor: colors.background,
                         width: "100%",
                         maxHeight: maxHeight as DimensionValue,
-                        borderTopLeftRadius: 36,
-                        borderTopRightRadius: 36,
+                        borderTopLeftRadius: 42,
+                        borderTopRightRadius: 42,
                         paddingBottom: Math.max(insets.bottom, 20),
                         transform: [{ translateY }],
                         // Ensure it stays at the bottom
@@ -136,8 +136,8 @@ export default function BottomSheet({
                                     {title && (
                                         <Text style={{
                                             color: colors.foreground,
-                                            fontSize: 22,
-                                            fontWeight: "800",
+                                            fontSize: 24,
+                                            fontWeight: "900",
                                             letterSpacing: -0.5
                                         }}>
                                             {title}
@@ -146,9 +146,12 @@ export default function BottomSheet({
                                     {subtitle && (
                                         <Text style={{
                                             color: colors.mutedForeground,
-                                            fontSize: 13,
+                                            fontSize: 11,
                                             marginTop: 2,
-                                            fontWeight: "500"
+                                            fontWeight: "800",
+                                            textTransform: "uppercase",
+                                            letterSpacing: 1,
+                                            opacity: 0.6
                                         }}>
                                             {subtitle}
                                         </Text>

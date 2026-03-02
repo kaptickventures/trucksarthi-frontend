@@ -176,6 +176,7 @@ export default function HomeScreen() {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
+      headerShadowVisible: true,
       headerStyle: { backgroundColor: colors.background },
       headerBackground: () => (
         <View

@@ -628,7 +628,7 @@ export default function ClientProfile() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <View className="mb-6 px-0 mt-5">
+        <View className="mb-6 px-0">
           <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('clientProfile')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewManageClientDetails')}</Text>
         </View>

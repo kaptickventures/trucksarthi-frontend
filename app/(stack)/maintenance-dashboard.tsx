@@ -122,7 +122,7 @@ export default function MaintenanceDashboardScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View className="mb-6 px-0 mt-5">
+        <View className="mb-6 px-0">
           <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{selectedTruck?.registration_number || "Truck"} {t('maintenance')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('manageMaintenanceSubtitle')}</Text>
         </View>
@@ -243,7 +243,7 @@ export default function MaintenanceDashboardScreen() {
       >
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
           {/* Category selector */}
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 10, letterSpacing: 0.5, marginLeft: 4 }}>CATEGORY</Text>
+          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>CATEGORY</Text>
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
             {MAINTENANCE_ACTIONS.map((action) => (
               <TouchableOpacity
@@ -252,42 +252,39 @@ export default function MaintenanceDashboardScreen() {
                 style={{
                   flex: 1,
                   paddingVertical: 14,
-                  borderRadius: 16,
+                  borderRadius: 20,
                   borderWidth: 1,
-                  borderColor: entryType === action.value ? colors.primary : colors.border,
-                  backgroundColor: entryType === action.value ? colors.primary : colors.card,
+                  borderColor: entryType === action.value ? colors.primary : colors.border + '30',
+                  backgroundColor: entryType === action.value ? colors.primary : (isDark ? colors.card : colors.secondary + '40'),
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: entryType === action.value ? "white" : colors.foreground, fontWeight: "700", fontSize: 12 }}>{action.label}</Text>
+                <Text style={{ color: entryType === action.value ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{action.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
           {/* Amount */}
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 10, letterSpacing: 0.5, marginLeft: 4 }}>AMOUNT (₹)</Text>
+          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>AMOUNT (₹)</Text>
           <TextInput
             placeholder="0"
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={colors.mutedForeground + '60'}
             keyboardType="numeric"
             value={amount}
             onChangeText={setAmount}
+            className="rounded-2xl p-4 text-3xl font-black text-center"
             style={{
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 20,
+              backgroundColor: isDark ? colors.card : colors.secondary + '40',
               color: colors.foreground,
-              padding: 18,
-              fontSize: 32,
-              fontWeight: "900",
-              marginBottom: 20,
-              textAlign: "center",
-              backgroundColor: isDark ? colors.card : colors.secondary + "10"
+              borderWidth: 1,
+              borderColor: colors.border + '30',
+              height: 80,
+              marginBottom: 20
             }}
           />
 
           {/* Payment Mode chips */}
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 10, letterSpacing: 0.5, marginLeft: 4 }}>PAYMENT MODE</Text>
+          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>PAYMENT MODE</Text>
           <View style={{ flexDirection: "row", gap: 8, marginBottom: 20 }}>
             {["CASH", "BANK", "UPI"].map((mode) => (
               <TouchableOpacity
@@ -296,51 +293,52 @@ export default function MaintenanceDashboardScreen() {
                 style={{
                   flex: 1,
                   paddingVertical: 14,
-                  borderRadius: 16,
+                  borderRadius: 20,
                   borderWidth: 1,
-                  borderColor: paymentMode === mode ? colors.primary : colors.border,
-                  backgroundColor: paymentMode === mode ? colors.primary : colors.card,
+                  borderColor: paymentMode === mode ? colors.primary : colors.border + '30',
+                  backgroundColor: paymentMode === mode ? colors.primary : (isDark ? colors.card : colors.secondary + '40'),
                   alignItems: "center"
                 }}
               >
-                <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontWeight: "700", fontSize: 12 }}>{mode}</Text>
+                <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{mode}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
+          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>WORK DETAILS / NOTES</Text>
           <TextInput
             placeholder="Work details / Notes"
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={colors.mutedForeground + '60'}
             value={notes}
             onChangeText={setNotes}
             multiline
             numberOfLines={3}
+            className="rounded-2xl p-4 text-base font-bold"
             style={{
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 20,
+              backgroundColor: isDark ? colors.card : colors.secondary + '40',
               color: colors.foreground,
-              padding: 16,
-              fontSize: 15,
+              borderWidth: 1,
+              borderColor: colors.border + '30',
               marginBottom: 28,
               textAlignVertical: "top",
-              minHeight: 100,
-              backgroundColor: isDark ? colors.card : colors.secondary + "10"
+              minHeight: 100
             }}
           />
 
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <TouchableOpacity
-              onPress={() => setShowAdd(false)}
-              style={{ flex: 1, padding: 18, borderRadius: 20, backgroundColor: colors.muted, alignItems: "center" }}
-            >
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16 }}>Cancel</Text>
-            </TouchableOpacity>
+          <View style={{ gap: 4, marginTop: 12 }}>
             <TouchableOpacity
               onPress={onSave}
-              style={{ flex: 2, padding: 18, borderRadius: 20, backgroundColor: colors.primary, alignItems: "center" }}
+              style={{ backgroundColor: colors.primary }}
+              className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
             >
-              <Text style={{ color: "white", fontWeight: "900", fontSize: 17 }}>{financeLoading ? "Saving..." : "Save Record"}</Text>
+              <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE RECORD</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setShowAdd(false)}
+              className="py-4 items-center"
+            >
+              <Text style={{ color: colors.mutedForeground }} className="font-bold">Discard</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

@@ -310,6 +310,7 @@ export default function TripLog() {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
+      headerShadowVisible: true,
       headerStyle: { backgroundColor: colors.background },
       headerBackground: () => (
         <View
@@ -366,7 +367,7 @@ export default function TripLog() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <View className="mb-6 px-5 mt-5">
+        <View className="mb-6 px-5">
           <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('tripLog')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t("trackManageHistory")}</Text>
         </View>
