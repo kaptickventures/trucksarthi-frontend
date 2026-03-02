@@ -21,11 +21,11 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTruckDocuments from "../../hooks/useTruckDocuments";
 import { formatDate as globalFormatDate, getFileUrl } from "../../lib/utils";
+import { useTranslation } from "../../context/LanguageContext";
 
 const DEFAULT_DOCUMENT_TYPES = ["PUCC", "INSURANCE", "RC", "PERMIT"] as const;
 
@@ -33,6 +33,7 @@ export default function DocumentDetails() {
     const { truckId } = useLocalSearchParams<{ truckId: string }>();
     const router = useRouter();
     const { theme, colors } = useThemeStore();
+    const { t } = useTranslation();
     const isDark = theme === "dark";
     const { documents, loading, uploadDocument, deleteDocument } = useTruckDocuments(truckId);
 
@@ -311,45 +312,36 @@ export default function DocumentDetails() {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-            {/* HEADER */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16 }}>
-                <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
-                    <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-                </TouchableOpacity>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: colors.foreground }}>Documents</Text>
-                <View style={{ flex: 1 }} />
-                <TouchableOpacity
-                    onPress={() => setModalVisible(true)}
-                    style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center' }}
-                >
-                    <Plus size={16} color={colors.primaryForeground} />
-                    <Text style={{ color: colors.primaryForeground, fontWeight: '600', marginLeft: 4 }}>Add</Text>
-                </TouchableOpacity>
-            </View>
-
-            <View style={{ flex: 1 }}>
-                {loading && !documents.length ? (
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                        <ActivityIndicator size="large" color={colors.primary} />
+            <FlatList
+                data={mergedDocuments}
+                renderItem={renderDocumentItem}
+                keyExtractor={item => item._id}
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+                ListHeaderComponent={
+                    <View className="mb-6 px-0 mt-5 flex-row justify-between items-center">
+                        <View>
+                            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
+                            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage vehicle documents and expiry</Text>
+                        </View>
+                        <TouchableOpacity
+                            onPress={() => setModalVisible(true)}
+                            style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}
+                        >
+                            <Plus size={16} color={colors.primaryForeground} />
+                            <Text style={{ color: colors.primaryForeground, fontWeight: '600', marginLeft: 4 }}>Add</Text>
+                        </TouchableOpacity>
                     </View>
-                ) : (
-                    <FlatList
-                        data={mergedDocuments}
-                        renderItem={renderDocumentItem}
-                        keyExtractor={item => item._id}
-                        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
-                        ListEmptyComponent={
-                            <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 80 }}>
-                                <FileText size={48} color={colors.mutedForeground} />
-                                <Text style={{ marginTop: 16, fontSize: 16, color: colors.mutedForeground, fontWeight: '500' }}>No documents found</Text>
-                            </View>
-                        }
-                    />
-                )}
-            </View>
+                }
+                ListEmptyComponent={
+                    <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 80 }}>
+                        <FileText size={48} color={colors.mutedForeground} />
+                        <Text style={{ marginTop: 16, fontSize: 16, color: colors.mutedForeground, fontWeight: '500' }}>No documents found</Text>
+                    </View>
+                }
+            />
 
             {/* ADD MODAL */}
             <Modal visible={modalVisible} transparent animationType="slide">
@@ -438,7 +430,6 @@ export default function DocumentDetails() {
                     )}
                 </View>
             </Modal>
-
-        </SafeAreaView>
+        </View>
     );
 }

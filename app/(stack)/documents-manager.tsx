@@ -11,15 +11,16 @@ import {
   View,
   StatusBar
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function DocumentManager() {
   const router = useRouter();
   const { theme, colors } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const { trucks, loading, fetchTrucks } = useTrucks();
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,72 +88,78 @@ export default function DocumentManager() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 }}>
-        {/* Search Bar */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: colors.card,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: 12,
-            paddingHorizontal: 12,
-            paddingVertical: 12, // Increased padding
-          }}
-        >
-          <Ionicons name="search" size={20} color={colors.mutedForeground} />
-          <TextInput
-            style={{
-              flex: 1,
-              marginLeft: 10,
-              fontSize: 16,
-              color: colors.foreground,
-            }}
-            placeholder="Search by truck number..."
-            placeholderTextColor={colors.mutedForeground}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      <FlatList
+        data={filteredTrucks}
+        renderItem={renderItem}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={{ paddingTop: 20, paddingBottom: 16 }}>
+            <View className="mb-6 px-0 mt-5">
+              <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
+              <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your fleet documents</Text>
+            </View>
 
-      {loading && filteredTrucks.length === 0 ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : (
-        <FlatList
-          data={filteredTrucks}
-          renderItem={renderItem}
-          keyExtractor={(item) => item._id}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading}
-              onRefresh={fetchTrucks}
-              tintColor={colors.primary}
-            />
-          }
-          ListEmptyComponent={
-            <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 100 }}>
+            {/* Search Bar */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 12,
+              }}
+            >
+              <Ionicons name="search" size={20} color={colors.mutedForeground} />
+              <TextInput
+                style={{
+                  flex: 1,
+                  marginLeft: 10,
+                  fontSize: 16,
+                  color: colors.foreground,
+                }}
+                placeholder="Search by truck number..."
+                placeholderTextColor={colors.mutedForeground}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery("")}>
+                  <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={fetchTrucks}
+            tintColor={colors.primary}
+          />
+        }
+        ListEmptyComponent={
+          loading ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 50 }}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : (
+            <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 50 }}>
               <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: colors.muted + '20', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                 <Folder size={40} color={colors.mutedForeground} />
               </View>
               <Text style={{ fontSize: 16, fontWeight: '600', color: colors.mutedForeground }}>No trucks found</Text>
             </View>
-          }
-        />
-      )}
-    </SafeAreaView>
+          )
+        }
+      />
+    </View>
   );
 }

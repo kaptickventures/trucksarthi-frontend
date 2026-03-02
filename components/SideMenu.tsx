@@ -45,11 +45,12 @@ export default function SideMenu({
     { title: t('drivers'), icon: "person-add-outline", route: "/(stack)/drivers-manager" as const },
     { title: t('clients'), icon: "people-outline", route: "/(stack)/clients-manager" as const },
     { title: t('locations'), icon: "location-outline", route: "/(stack)/locations-manager" as const },
+    { title: t('kycVerifications'), icon: "shield-checkmark-outline", route: "/(stack)/kyc-verification" as const },
   ] as const;
 
   const FINANCE_LINKS = [
-    { title: "P&L Reports", icon: "stats-chart-outline", route: "/(stack)/pl-reports" as const },
-    { title: "All Transactions", icon: "list-outline", route: "/(stack)/transactions" as const },
+    { title: t('pLReports'), icon: "stats-chart-outline", route: "/(stack)/pl-reports" as const },
+    { title: t('allTransactions'), icon: "list-outline", route: "/(stack)/transactions" as const },
   ] as const;
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
@@ -67,7 +68,7 @@ export default function SideMenu({
     Animated.timing(slideAnim, {
       toValue: isVisible ? 0 : -SCREEN_WIDTH,
       duration: 240,
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start();
   }, [isVisible, slideAnim]);
 
@@ -127,7 +128,7 @@ export default function SideMenu({
           backgroundColor: colors.background,
           zIndex: 9999,
           paddingHorizontal: 24,
-          paddingTop: 12,
+          paddingTop: topOffset > 0 ? 12 : Math.max(insets.top, 12),
           paddingBottom: Math.max(insets.bottom, 20),
         }}
       >
@@ -159,8 +160,8 @@ export default function SideMenu({
                   <Text className="text-xl font-semibold" style={{ color: colors.foreground }}>
                     {loading ? t('loading') : user?.name || "Guest"}
                   </Text>
-                  <Text className="text-sm" style={{ color: colors.mutedForeground }}>
-                    {user?.email || user?.phone || ""}
+                  <Text className="text-sm font-medium" style={{ color: colors.primary }}>
+                    {loading ? "" : user?.phone || user?.email || ""}
                   </Text>
                 </View>
               </View>
@@ -168,7 +169,7 @@ export default function SideMenu({
           </View>
 
           {/* SCROLLABLE MENU ITEMS */}
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
             {userRole === "driver" ? (
               <>
                 <TouchableOpacity
@@ -186,7 +187,7 @@ export default function SideMenu({
                 {/* FINANCE SECTION */}
                 <View className="mt-8 mb-6">
                   <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                    Finance
+                    {t('financeHub')}
                   </Text>
                   {FINANCE_LINKS.map((item, idx) => (
                     <TouchableOpacity
@@ -205,7 +206,7 @@ export default function SideMenu({
                 {/* MANAGER SECTION */}
                 <View className="mb-6">
                   <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                    Manager
+                    {t('manager')}
                   </Text>
                   {MANAGER_LINKS.map((item, idx) => (
                     <TouchableOpacity
@@ -227,30 +228,29 @@ export default function SideMenu({
                 >
                   <Ionicons name="settings-outline" size={24} color={colors.foreground} />
                   <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                    Settings
+                    {t('settings')}
                   </Text>
                 </TouchableOpacity>
               </>
             )}
-          </ScrollView>
 
-          {/* Logout pinned at bottom */}
-          <TouchableOpacity
-            onPress={handleLogout}
-            className="flex-row items-center py-4 mt-2"
-            style={{ borderTopWidth: 1, borderTopColor: colors.border }}
-          >
-            <Ionicons name="log-out-outline" size={26} color="#ef4444" />
-            <Text
-              className="ml-4 text-lg font-medium"
-              style={{ color: "#ef4444" }}
+            {/* Logout as part of the scrollable list */}
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="flex-row items-center py-4 mt-8"
+              style={{ borderTopWidth: 1, borderTopColor: colors.border }}
             >
-              {t('logout')}
-            </Text>
-          </TouchableOpacity>
+              <Ionicons name="log-out-outline" size={26} color="#ef4444" />
+              <Text
+                className="ml-4 text-lg font-medium"
+                style={{ color: "#ef4444" }}
+              >
+                {t('logout')}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </Animated.View>
     </>
   );
 }
-

@@ -15,22 +15,25 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import useDrivers from "../../hooks/useDriver";
 import useDriverFinance, { TransactionNature } from "../../hooks/useDriverFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { formatDate } from "../../lib/utils";
+import { useTranslation } from "../../context/LanguageContext";
 
 type TabType = "ALL" | "TO_DRIVER" | "DRIVER_SPENDS";
 type QuickType = "ADVANCE" | "EXPENSE";
+
+import BottomSheet from "../../components/BottomSheet";
 
 export default function DriverLedgerDetailScreen() {
   const router = useRouter();
   const { driverId } = useLocalSearchParams<{ driverId?: string | string[] }>();
   const id = Array.isArray(driverId) ? driverId[0] : driverId;
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const { drivers, fetchDrivers, loading: driversLoading } = useDrivers();
   const { entries, loading, fetchDriverLedger, addLedgerEntry } = useDriverFinance();
@@ -42,7 +45,6 @@ export default function DriverLedgerDetailScreen() {
   const [amount, setAmount] = useState("");
   const [purpose, setPurpose] = useState("");
   const [paymentMode, setPaymentMode] = useState("CASH");
-  const [notes, setNotes] = useState("");
 
   const driver = useMemo(() => (drivers || []).find((d) => d._id === id), [drivers, id]);
 
@@ -76,7 +78,7 @@ export default function DriverLedgerDetailScreen() {
           amount: Number(entry?.amount || 0),
         };
       })
-      .sort((a: any, b: any) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+      .sort((a: any, b: any) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
   }, [entries, id]);
 
   const filtered = useMemo(() => {
@@ -108,7 +110,7 @@ export default function DriverLedgerDetailScreen() {
     }
 
     const transactionNature: TransactionNature = quickType === "ADVANCE" ? "received_by_driver" : "paid_by_driver";
-    const remark = `${quickType} | ${purpose || "General"} | ${paymentMode}${notes ? ` | ${notes}` : ""}`;
+    const remark = `${quickType} | ${purpose || "General"} | ${paymentMode}`;
 
     await addLedgerEntry({
       driver_id: id,
@@ -123,43 +125,31 @@ export default function DriverLedgerDetailScreen() {
     setAmount("");
     setPurpose("");
     setPaymentMode("CASH");
-    setNotes("");
     await load();
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <View
-        style={{
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Driver Khata</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 12 }}>
+        <View className="mb-6 px-0 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{driver?.driver_name || driver?.name || "Driver"} {t('khata')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Track and manage driver ledger entries</Text>
+        </View>
+
+        <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}>
           <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
             {driver?.driver_name || driver?.name || "Driver"}
           </Text>
-          <Text style={{ color: colors.mutedForeground, marginTop: 2 }}>
+          <Text style={{ color: colors.mutedForeground, marginTop: 2, fontSize: 13 }}>
             {driver?.contact_number || driver?.phone || "-"}
           </Text>
-          <Text style={{ color: totals.balance >= 0 ? colors.success : colors.destructive, marginTop: 8, fontWeight: "800" }}>
-            {totals.balance >= 0 ? "+" : "-"}Rs {Math.abs(totals.balance).toLocaleString()}
+          <Text style={{ color: totals.balance >= 0 ? colors.success : colors.destructive, marginTop: 8, fontWeight: "800", fontSize: 18 }}>
+            Net Balance: {totals.balance >= 0 ? "+" : "-"}Rs {Math.abs(totals.balance).toLocaleString()}
           </Text>
         </View>
 
@@ -187,14 +177,14 @@ export default function DriverLedgerDetailScreen() {
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: activeTab === tab.id ? "white" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+              <Text style={{ color: activeTab === tab.id ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>
                 {tab.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14 }}>
+        <View style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.border }}>
           {showInitialSkeleton && (
             <View>
               {[1, 2, 3].map((item) => (
@@ -206,7 +196,7 @@ export default function DriverLedgerDetailScreen() {
           {!showInitialSkeleton && filtered.map((entry: any) => {
             const isToDriver = entry.type === "TO_DRIVER";
             return (
-              <View key={entry._id} style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 10 }}>
+              <View key={entry._id} style={{ borderTopWidth: entry === filtered[0] ? 0 : 1, borderTopColor: colors.border, paddingTop: entry === filtered[0] ? 0 : 10, marginTop: entry === filtered[0] ? 0 : 10 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <Text style={{ color: colors.foreground, fontWeight: "700" }}>
@@ -227,140 +217,129 @@ export default function DriverLedgerDetailScreen() {
             );
           })}
 
-          {!showInitialSkeleton && filtered.length === 0 && <Text style={{ color: colors.mutedForeground }}>No ledger entries found.</Text>}
+          {!showInitialSkeleton && filtered.length === 0 && <Text style={{ color: colors.mutedForeground, textAlign: 'center', padding: 10 }}>No ledger entries found.</Text>}
         </View>
       </ScrollView>
 
       <FinanceFAB onPress={() => setShowAdd(true)} />
 
-      <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => setShowAdd(false)}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" }}>
-          <Pressable style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setShowAdd(false)} />
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
-            <View
+      <BottomSheet
+        visible={showAdd}
+        onClose={() => setShowAdd(false)}
+        title="Add Ledger Entry"
+        subtitle={driver?.driver_name || "Driver"}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "800", marginBottom: 10, letterSpacing: 0.5 }}>ENTRY TYPE</Text>
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
+            {([
+              { id: "ADVANCE", label: "Advance" },
+              { id: "EXPENSE", label: "Expense" },
+            ] as { id: QuickType; label: string }[]).map((type) => (
+              <TouchableOpacity
+                key={type.id}
+                onPress={() => setQuickType(type.id)}
+                style={{
+                  flex: 1,
+                  height: 52,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: quickType === type.id ? colors.primary : colors.border,
+                  backgroundColor: quickType === type.id ? colors.primary : colors.card,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: quickType === type.id ? "white" : colors.foreground, fontSize: 14, fontWeight: "700" }}>
+                  {type.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Field label="Amount">
+            <TextInput
+              placeholder="0"
+              placeholderTextColor={colors.mutedForeground}
+              keyboardType="numeric"
+              value={amount}
+              onChangeText={setAmount}
               style={{
-                maxHeight: "88%",
-                backgroundColor: colors.background,
-                borderTopLeftRadius: 28,
-                borderTopRightRadius: 28,
-                borderTopWidth: 1,
+                borderWidth: 1,
                 borderColor: colors.border,
+                borderRadius: 20,
+                color: colors.foreground,
+                padding: 18,
+                fontSize: 32,
+                fontWeight: "900",
+                marginBottom: 4,
+                textAlign: "center",
+                backgroundColor: isDark ? colors.card : colors.secondary + "10"
               }}
-            >
-              <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 18 }}>
-                  <View
-                    style={{
-                      width: 42,
-                      height: 4,
-                      borderRadius: 4,
-                      alignSelf: "center",
-                      marginBottom: 14,
-                      backgroundColor: colors.mutedForeground,
-                      opacity: 0.35,
-                    }}
-                  />
+            />
+          </Field>
 
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                    <View>
-                      <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 20 }}>Add Entry</Text>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>Driver khata transaction</Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => setShowAdd(false)}
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 17,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: colors.card,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                      }}
-                    >
-                      <Ionicons name="close" size={18} color={colors.foreground} />
-                    </TouchableOpacity>
-                  </View>
+          <Field label="Purpose">
+            <TextInput
+              placeholder="Trip diesel, advance, settlement..."
+              placeholderTextColor={colors.mutedForeground}
+              value={purpose}
+              onChangeText={setPurpose}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 16,
+                color: colors.foreground,
+                backgroundColor: isDark ? colors.card : colors.secondary + "10",
+                padding: 16,
+                fontSize: 15,
+                fontWeight: "600"
+              }}
+            />
+          </Field>
 
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "800", marginBottom: 8 }}>ENTRY TYPE</Text>
-                  <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-                    {([
-                      { id: "ADVANCE", label: "Advance" },
-                      { id: "EXPENSE", label: "Expense" },
-                    ] as { id: QuickType; label: string }[]).map((type) => (
-                      <TouchableOpacity
-                        key={type.id}
-                        onPress={() => setQuickType(type.id)}
-                        style={{
-                          flex: 1,
-                          height: 40,
-                          borderRadius: 12,
-                          borderWidth: 1,
-                          borderColor: quickType === type.id ? colors.primary : colors.border,
-                          backgroundColor: quickType === type.id ? colors.primary : colors.card,
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Text style={{ color: quickType === type.id ? "white" : colors.foreground, fontSize: 12, fontWeight: "700" }}>
-                          {type.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  <Field label="Amount">
-                    <TextInput placeholder="Enter amount" placeholderTextColor={colors.mutedForeground} keyboardType="numeric" value={amount} onChangeText={setAmount} style={input(colors)} />
-                  </Field>
-                  <Field label="Purpose">
-                    <TextInput placeholder="Trip diesel, advance, settlement..." placeholderTextColor={colors.mutedForeground} value={purpose} onChangeText={setPurpose} style={input(colors)} />
-                  </Field>
-                  <Field label="Payment Mode">
-                    <View style={{ flexDirection: "row", gap: 8 }}>
-                      {["CASH", "UPI", "BANK"].map((mode) => (
-                        <TouchableOpacity
-                          key={mode}
-                          onPress={() => setPaymentMode(mode)}
-                          style={{
-                            flex: 1,
-                            height: 40,
-                            borderRadius: 12,
-                            borderWidth: 1,
-                            borderColor: paymentMode === mode ? colors.primary : colors.border,
-                            backgroundColor: paymentMode === mode ? colors.primary : colors.card,
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontSize: 11, fontWeight: "800" }}>
-                            {mode}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </Field>
-                  <Field label="Notes">
-                    <TextInput placeholder="Optional notes" placeholderTextColor={colors.mutedForeground} value={notes} onChangeText={setNotes} style={[input(colors), { minHeight: 82, textAlignVertical: "top" }]} multiline />
-                  </Field>
-
-                  <TouchableOpacity
-                    onPress={submitQuickAdd}
-                    style={{ height: 46, borderRadius: 12, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", marginTop: 2 }}
-                  >
-                    <Text style={{ color: "white", textAlign: "center", fontWeight: "800", fontSize: 15 }}>{loading ? "Saving..." : "Save Entry"}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setShowAdd(false)}
-                    style={{ height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 8, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
-                  >
-                    <Text style={{ color: colors.foreground, textAlign: "center", fontWeight: "700" }}>Cancel</Text>
-                  </TouchableOpacity>
-              </ScrollView>
+          <Field label="Payment Mode">
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              {["CASH", "UPI", "BANK"].map((mode) => (
+                <TouchableOpacity
+                  key={mode}
+                  onPress={() => setPaymentMode(mode)}
+                  style={{
+                    flex: 1,
+                    height: 48,
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: paymentMode === mode ? colors.primary : colors.border,
+                    backgroundColor: paymentMode === mode ? colors.primary : colors.card,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontSize: 12, fontWeight: "800" }}>
+                    {mode}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-    </SafeAreaView>
+          </Field>
+
+          <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+            <TouchableOpacity
+              onPress={() => setShowAdd(false)}
+              style={{ flex: 1, height: 60, borderRadius: 20, backgroundColor: colors.muted, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16 }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={submitQuickAdd}
+              style={{ flex: 2, height: 60, borderRadius: 20, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }}>{loading ? "Saving..." : "Save Entry"}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </BottomSheet>
+    </View>
   );
 }
 
@@ -379,8 +358,8 @@ function input(colors: any) {
 function Field({ label, children }: { label: string; children: any }) {
   const { colors } = useThemeStore();
   return (
-    <View style={{ marginBottom: 10 }}>
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "800", marginBottom: 6 }}>{label.toUpperCase()}</Text>
+    <View style={{ marginBottom: 16 }}>
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "800", marginBottom: 8, letterSpacing: 0.5 }}>{label.toUpperCase()}</Text>
       {children}
     </View>
   );
@@ -390,9 +369,9 @@ function SummaryCard({ label, value, tone }: { label: string; value: number; ton
   const { colors } = useThemeStore();
   const color = tone === "green" ? colors.success : colors.destructive;
   return (
-    <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 10 }}>
+    <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>{label}</Text>
-      <Text style={{ color, fontWeight: "800", fontSize: 13 }}>Rs {Number(value || 0).toLocaleString()}</Text>
+      <Text style={{ color, fontWeight: "800", fontSize: 14 }}>Rs {Number(value || 0).toLocaleString()}</Text>
     </View>
   );
 }

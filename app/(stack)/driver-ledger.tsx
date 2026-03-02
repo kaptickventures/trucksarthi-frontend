@@ -9,15 +9,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import API from "../api/axiosInstance";
 import useDrivers from "../../hooks/useDriver";
 import { Skeleton } from "../../components/Skeleton";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function DriverLedgerScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const { drivers, fetchDrivers, loading } = useDrivers();
   const [refreshing, setRefreshing] = useState(false);
@@ -57,28 +58,17 @@ export default function DriverLedgerScreen() {
   }, [load]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <View
-        style={{
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Driver Khata</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80, paddingTop: 4 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
+        <View className="mb-6 px-0 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('driverKhata')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage balances and transactions for all drivers</Text>
+        </View>
+
         {showInitialSkeleton && (
           <View>
             {[1, 2, 3, 4].map((item) => (
@@ -114,7 +104,6 @@ export default function DriverLedgerScreen() {
                 borderColor: colors.border,
               }}
             >
-              {/* Top row: name + balance */}
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                 <View style={{ flex: 1, marginRight: 12 }}>
                   <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3 }}>
@@ -135,7 +124,6 @@ export default function DriverLedgerScreen() {
                 </View>
               </View>
 
-              {/* Bottom row: phone + chevron */}
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Ionicons name="call-outline" size={13} color={colors.mutedForeground} />
@@ -152,6 +140,6 @@ export default function DriverLedgerScreen() {
           );
         })}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

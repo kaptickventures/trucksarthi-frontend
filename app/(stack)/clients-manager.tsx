@@ -7,7 +7,6 @@ import {
   Alert,
   Animated,
   Linking,
-  PanResponder,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -15,7 +14,6 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import ClientFormModal from "../../components/ClientModal";
 import { Skeleton } from "../../components/Skeleton";
 import useClients from "../../hooks/useClient";
@@ -72,7 +70,6 @@ export default function ClientsManager() {
   });
 
   const translateY = useRef(new Animated.Value(0)).current;
-  const SCROLL_THRESHOLD = 40;
 
   useFocusEffect(
     useCallback(() => {
@@ -187,16 +184,20 @@ export default function ClientsManager() {
   }
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
-        className="flex-1 px-5 pt-2"
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
+        <View className="mb-6 px-0 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('clients')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your business clients</Text>
+        </View>
+
         {clients.length === 0 ? (
           <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
             {t("noClientsFound")}
@@ -210,7 +211,7 @@ export default function ClientsManager() {
                 router.push({
                   pathname: "/client-profile",
                   params: { clientId: client._id }
-                })
+                } as any)
               }
               className="border rounded-2xl p-4 mb-3 shadow-sm"
               style={{ backgroundColor: colors.card, borderColor: colors.border }}
@@ -291,10 +292,6 @@ export default function ClientsManager() {
         onSubmit={handleSubmit}
         onClose={() => setModalVisible(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
-
-
-
-

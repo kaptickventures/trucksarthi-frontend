@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Skeleton } from "../../components/Skeleton";
 import TruckFormModal from "../../components/TruckModal";
@@ -182,16 +181,20 @@ export default function TrucksManager() {
   }
 
   return (
-    <SafeAreaView style={{ backgroundColor: colors.background }} className="flex-1">
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
-        className="flex-1 px-5 pt-2"
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
+        <View className="mb-6 px-0 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('trucks')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your fleet vehicles</Text>
+        </View>
+
         {trucks.length === 0 ? (
           <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
             {t("noTrucksFound")}
@@ -205,7 +208,7 @@ export default function TrucksManager() {
                 router.push({
                   pathname: "/(stack)/trucks-profile",
                   params: { truck_id: truck._id },
-                })
+                } as any)
               }
               className="border rounded-2xl p-4 mb-3 shadow-sm"
               style={{ backgroundColor: colors.card, borderColor: colors.border }}
@@ -254,7 +257,7 @@ export default function TrucksManager() {
           shadowOffset: { width: 0, height: 2 },
         }}
       >
-        <Plus color={colors.primaryForeground} size={28} />
+        <Plus color="#FFFFFF" size={28} />
       </TouchableOpacity>
 
       <TruckFormModal
@@ -265,9 +268,6 @@ export default function TrucksManager() {
         onSubmit={handleSubmit}
         onClose={closeModal}
       />
-    </SafeAreaView>
+    </View>
   );
 }
-
-
-

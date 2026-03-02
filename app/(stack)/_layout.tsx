@@ -5,6 +5,7 @@ import {
   Platform,
   StatusBar,
   TouchableOpacity,
+  View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
@@ -12,9 +13,11 @@ import { useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { getUserRole } from "../../hooks/useAuth";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function StackLayout() {
   const { theme, colors } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -54,11 +57,27 @@ export default function StackLayout() {
         <Stack
           screenOptions={{
             headerShadowVisible: false,
+            headerTitle: "Trucksarthi",
             headerTitleAlign: "center",
+            headerTitleStyle: {
+              color: foregroundColor,
+              fontWeight: "800",
+              fontSize: 22,
+            },
             headerTintColor: foregroundColor,
             animation: "slide_from_right",
             contentStyle: { backgroundColor },
             headerStyle: { backgroundColor },
+            headerBackground: () => (
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: backgroundColor,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                }}
+              />
+            ),
 
             ...(Platform.OS === "ios" && {
               headerBlurEffect: "systemMaterial",
@@ -94,14 +113,13 @@ export default function StackLayout() {
           <Stack.Screen
             name="profile"
             options={{
-              title: "Profile",
-              headerShown: false,
+              title: t('myProfile'),
               contentStyle: { backgroundColor },
             }}
           />
           <Stack.Screen
             name="settings"
-            options={{ title: "Trucksarthi" }}
+            options={{ title: "Settings" }}
           />
           <Stack.Screen name="clients-manager" options={{ title: "Clients" }} />
           <Stack.Screen name="trucks-manager" options={{ title: "Trucks" }} />
@@ -110,34 +128,39 @@ export default function StackLayout() {
             name="locations-manager"
             options={{ title: "Locations" }}
           />
-          <Stack.Screen name="client-profile" options={{ title: "Client Profile", headerShown: false }} />
-          <Stack.Screen name="driver-profile" options={{ title: "Driver Profile", headerShown: false }} />
-          <Stack.Screen name="trucks-profile" options={{ title: "Truck Profile", headerShown: false }} />
+          <Stack.Screen name="client-profile" options={{ title: "Client Profile" }} />
+          <Stack.Screen name="driver-profile" options={{ title: "Driver Profile" }} />
+          <Stack.Screen name="trucks-profile" options={{ title: "Truck Profile" }} />
           <Stack.Screen name="helpCenter" options={{ title: "Help Center" }} />
-          <Stack.Screen name="kyc-verification" options={{ title: "KYC Verification", headerShown: false }} />
+          <Stack.Screen name="kyc-verification" options={{ title: t('kycVerifications') }} />
 
           <Stack.Screen name="basic-details" options={{ title: "Trucksarthi" }} />
           <Stack.Screen name="documents-manager" options={{ title: "Documents" }} />
-          <Stack.Screen name="document-details" options={{ title: "Document Details", headerShown: false }} />
+          <Stack.Screen name="document-details" options={{ title: "Document Details" }} />
           <Stack.Screen name="finance" options={{ title: "Finance Hub" }} />
-          <Stack.Screen name="pl-reports" options={{ title: "P&L Reports", headerShown: false }} />
-          <Stack.Screen name="pl-client-report" options={{ title: "Client Khata Report", headerShown: false }} />
-          <Stack.Screen name="pl-driver-report" options={{ title: "Driver Khata Report", headerShown: false }} />
-          <Stack.Screen name="pl-truck-report" options={{ title: "Truck Report", headerShown: false }} />
-          <Stack.Screen name="pl-report-detail" options={{ title: "P&L Detail", headerShown: false }} />
-          <Stack.Screen name="pl-misc-report" options={{ title: "Misc Report", headerShown: false }} />
-          <Stack.Screen name="transactions" options={{ title: "Transactions", headerShown: false }} />
-          <Stack.Screen name="expense-manager" options={{ title: "Expense Manager", headerShown: false }} />
-          <Stack.Screen name="running-expenses" options={{ title: "Running Expenses", headerShown: false }} />
-          <Stack.Screen name="running-expenses-dashboard" options={{ title: "Truck Running", headerShown: false }} />
-          <Stack.Screen name="maintenance-khata" options={{ title: "Maintenance Khata", headerShown: false }} />
-          <Stack.Screen name="maintenance-dashboard" options={{ title: "Truck Maintenance", headerShown: false }} />
-          <Stack.Screen name="driver-ledger" options={{ title: "Driver Khata", headerShown: false }} />
-          <Stack.Screen name="driver-ledger-detail" options={{ title: "Driver Khata", headerShown: false }} />
-          <Stack.Screen name="client-ledger" options={{ title: "Client Khata", headerShown: false }} />
-          <Stack.Screen name="client-ledger-detail" options={{ title: "Client Khata", headerShown: false }} />
-          <Stack.Screen name="client-payments" options={{ title: "Client Payments", headerShown: false }} />
-          <Stack.Screen name="misc-transactions" options={{ title: "Misc Transactions", headerShown: false }} />
+          <Stack.Screen name="pl-reports" options={{ title: "P&L Reports" }} />
+          <Stack.Screen name="pl-client-report" options={{ title: "Client PL" }} />
+          <Stack.Screen name="pl-driver-report" options={{ title: "Driver PL" }} />
+          <Stack.Screen name="pl-truck-report" options={{ title: "Truck PL" }} />
+          <Stack.Screen name="pl-client-report-detail" options={{ title: "Client PL Detail" }} />
+          <Stack.Screen name="pl-driver-report-detail" options={{ title: "Driver PL Detail" }} />
+          <Stack.Screen name="pl-truck-report-detail" options={{ title: "Truck PL Detail" }} />
+          <Stack.Screen name="pl-report-detail" options={{ title: "PL Detail" }} />
+          <Stack.Screen name="pl-misc-report" options={{ title: "Misc PL" }} />
+          <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
+          <Stack.Screen name="transactions" options={{ title: "Transactions" }} />
+          <Stack.Screen name="create-invoice" options={{ title: "Create Invoice" }} />
+          <Stack.Screen name="expense-manager" options={{ title: "Expense Manager" }} />
+          <Stack.Screen name="running-expenses" options={{ title: "Running Expenses" }} />
+          <Stack.Screen name="running-expenses-dashboard" options={{ title: "Truck Running" }} />
+          <Stack.Screen name="maintenance-khata" options={{ title: "Maintenance Khata" }} />
+          <Stack.Screen name="maintenance-dashboard" options={{ title: "Truck Maintenance" }} />
+          <Stack.Screen name="driver-ledger" options={{ title: "Driver Khata" }} />
+          <Stack.Screen name="driver-ledger-detail" options={{ title: "Driver Khata" }} />
+          <Stack.Screen name="client-ledger" options={{ title: "Client Khata" }} />
+          <Stack.Screen name="client-ledger-detail" options={{ title: "Client Khata" }} />
+          <Stack.Screen name="client-payments" options={{ title: "Client Payments" }} />
+          <Stack.Screen name="misc-transactions" options={{ title: "Misc Transactions" }} />
         </Stack>
       </GestureHandlerRootView>
     </BottomSheetModalProvider>

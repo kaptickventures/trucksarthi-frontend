@@ -14,14 +14,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
 import useClients from "../../hooks/useClient";
 import useDrivers from "../../hooks/useDriver";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
 import { formatDate } from "../../lib/utils";
+import { useTranslation } from "../../context/LanguageContext";
 
 type EntityType = "client" | "driver" | "truck";
 
@@ -50,6 +49,7 @@ const entityConfig: Record<EntityType, { label: string; key: "clientId" | "drive
 export default function PLReportDetailScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
 
   const { entityType: rawType, entityId: rawId } = useLocalSearchParams<{
@@ -246,32 +246,32 @@ export default function PLReportDetailScreen() {
 
   if (!config || !entityId) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
           <Text style={{ color: colors.mutedForeground }}>Invalid report entity.</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <View style={{ paddingHorizontal: 20, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>{config.label} P&L Detail</Text>
-        <TouchableOpacity onPress={handleDownload} disabled={downloading}>
-          <Download size={20} color={downloading ? colors.mutedForeground : colors.foreground} />
-        </TouchableOpacity>
-      </View>
-
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
       >
+        <View className="mb-6 px-0 mt-5 flex-row justify-between items-center">
+          <View>
+            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('pLDetail')}</Text>
+            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewPLDetailSubtitle')}</Text>
+          </View>
+          <TouchableOpacity onPress={handleDownload} disabled={downloading}>
+            <Download size={22} color={downloading ? colors.mutedForeground : colors.foreground} />
+          </TouchableOpacity>
+        </View>
+
         <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16 }}>{entityName}</Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>
@@ -335,7 +335,7 @@ export default function PLReportDetailScreen() {
           ) : null}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -1,34 +1,33 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { StatusBar, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ScrollView } from "react-native-gesture-handler";
+import { StatusBar, Text, TouchableOpacity, View, ScrollView } from "react-native";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useTranslation } from "../../context/LanguageContext";
 
-const sections = [
+const getSections = (t: any) => [
   {
-    title: "Client Khata Report",
+    title: t('clientPL'),
     description: "List report by client",
     icon: "business-outline",
     color: "#10b981",
     route: "/(stack)/pl-client-report",
   },
   {
-    title: "Driver Khata Report",
+    title: t('driverPL'),
     description: "List report by driver",
     icon: "people-outline",
     color: "#f59e0b",
     route: "/(stack)/pl-driver-report",
   },
   {
-    title: "Truck Report",
+    title: t('truckPL'),
     description: "List report by truck",
     icon: "car-outline",
     color: "#3b82f6",
     route: "/(stack)/pl-truck-report",
   },
   {
-    title: "Misc Transactions Report",
+    title: t('miscPL'),
     description: "List report by misc categories",
     icon: "apps-outline",
     color: "#f97316",
@@ -39,34 +38,17 @@ const sections = [
 export default function PLReportsScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <View
-        style={{
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>
-          P&L Reports
-        </Text>
-        <View style={{ width: 24 }} />
-      </View>
-
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
-        <View style={{ marginBottom: 20 }}>
+        <View style={{ marginBottom: 20, marginTop: 5 }}>
           <Text style={{ fontSize: 30, fontWeight: "900", color: colors.foreground }}>
-            Reports Hub
+            {t('pLReports')}
           </Text>
           <Text style={{ fontSize: 13, color: colors.mutedForeground, marginTop: 4 }}>
             Open individual list reports
@@ -74,7 +56,7 @@ export default function PLReportsScreen() {
         </View>
 
         <View style={{ gap: 10 }}>
-          {sections.map((item) => (
+          {getSections(t).map((item) => (
             <TouchableOpacity
               key={item.route}
               onPress={() => router.push(item.route as any)}
@@ -112,6 +94,6 @@ export default function PLReportsScreen() {
           ))}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

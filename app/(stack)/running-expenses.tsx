@@ -2,15 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Skeleton } from "../../components/Skeleton";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function RunningExpensesScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const { trucks, loading: trucksLoading, fetchTrucks } = useTrucks();
   const { transactions, loading: financeLoading, fetchTransactions } = useFinance();
@@ -73,34 +74,22 @@ export default function RunningExpensesScreen() {
   const showInitialSkeleton = loading && !refreshing && (trucks || []).length === 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Running Expenses</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80, paddingTop: 4 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
+        <View className="mb-6 px-0 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('runningExpenses')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Track fuel and trip costs</Text>
+        </View>
+
         {showInitialSkeleton && (
           <View>
             {[1, 2, 3, 4].map((item) => (
-              <Skeleton key={item} width="100%" height={126} borderRadius={16} style={{ marginBottom: 12 }} />
+              <Skeleton key={item} className="w-full h-32 rounded-2xl mb-3" />
             ))}
           </View>
         )}
@@ -195,6 +184,6 @@ export default function RunningExpensesScreen() {
           );
         })}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

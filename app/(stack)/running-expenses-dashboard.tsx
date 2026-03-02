@@ -15,13 +15,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
+import BottomSheet from "../../components/BottomSheet";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
 import { formatDate, formatLabel } from "../../lib/utils";
+import { useTranslation } from "../../context/LanguageContext";
 
 const RUNNING_ACTIONS = ["FUEL", "FASTAG", "CHALLAN"] as const;
 
@@ -29,6 +30,7 @@ export default function RunningExpensesDashboardScreen() {
   const router = useRouter();
   const { truckId } = useLocalSearchParams<{ truckId?: string }>();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
 
   const { trucks, fetchTrucks } = useTrucks();
@@ -38,7 +40,7 @@ export default function RunningExpensesDashboardScreen() {
   // Modal State
   const [showAdd, setShowAdd] = useState(false);
   const [expenseCategory, setExpenseCategory] = useState<string>("FUEL");
-  const [activeCategoryFilter, setActiveCategoryFilter] = useState<(typeof RUNNING_ACTIONS)[number]>("FUEL");
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<(typeof RUNNING_ACTIONS)[number] | "ALL">("ALL");
   const [amount, setAmount] = useState("");
   const [litres, setLitres] = useState("");
   const [kmReading, setKmReading] = useState("");
@@ -82,7 +84,7 @@ export default function RunningExpensesDashboardScreen() {
   }, [transactions, truckId]);
 
   const filteredTruckRows = useMemo(
-    () => truckRows.filter((t: any) => String(t?.transactionSubtype || t?.category || "") === activeCategoryFilter),
+    () => activeCategoryFilter === "ALL" ? truckRows : truckRows.filter((t: any) => String(t?.transactionSubtype || t?.category || "") === activeCategoryFilter),
     [truckRows, activeCategoryFilter]
   );
 
@@ -141,24 +143,18 @@ export default function RunningExpensesDashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-
-      {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700" }}>
-          {selectedTruck?.registration_number || "Truck"} Running
-        </Text>
-        <View style={{ width: 24 }} />
-      </View>
 
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
+        <View className="mb-6 px-0 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{selectedTruck?.registration_number || "Truck"} {t('runningExpenses')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage running expenses for this truck</Text>
+        </View>
+
         {/* Summary Info Header */}
         <View
           style={{
@@ -194,6 +190,19 @@ export default function RunningExpensesDashboardScreen() {
 
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
           {RUNNING_ACTIONS.map((type) => (
+            <View key={`card-${type}`} style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>
+                {type === "FASTAG" ? "FASTAG" : type}
+              </Text>
+              <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "800" }}>
+                Rs {totalsByType[type].toLocaleString()}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+          {(["ALL", ...RUNNING_ACTIONS] as const).map((type) => (
             <TouchableOpacity
               key={type}
               onPress={() => setActiveCategoryFilter(type)}
@@ -207,29 +216,16 @@ export default function RunningExpensesDashboardScreen() {
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: activeCategoryFilter === type ? "white" : colors.foreground, fontWeight: "700", fontSize: 12 }}>
+              <Text style={{ color: activeCategoryFilter === type ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>
                 {type === "FASTAG" ? "Fastag" : formatLabel(type)}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
-          {RUNNING_ACTIONS.map((type) => (
-            <View key={`card-${type}`} style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>
-                {type === "FASTAG" ? "FASTAG" : type}
-              </Text>
-              <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "800" }}>
-                Rs {totalsByType[type].toLocaleString()}
-              </Text>
-            </View>
-          ))}
-        </View>
-
         {/* Ledger Entries */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.mutedForeground, marginBottom: 12, marginLeft: 4 }}>
-          {formatLabel(activeCategoryFilter).toUpperCase()} HISTORY
+          {activeCategoryFilter === "ALL" ? "TRANSACTION" : formatLabel(activeCategoryFilter).toUpperCase()} HISTORY
         </Text>
 
         {showInitialSkeleton && (
@@ -242,7 +238,7 @@ export default function RunningExpensesDashboardScreen() {
 
         {filteredTruckRows.length === 0 && !financeLoading && (
           <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 30, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ color: colors.mutedForeground }}>No {formatLabel(activeCategoryFilter).toLowerCase()} expenses found for this month.</Text>
+            <Text style={{ color: colors.mutedForeground }}>No {activeCategoryFilter === "ALL" ? "running" : formatLabel(activeCategoryFilter).toLowerCase()} expenses found for this month.</Text>
           </View>
         )}
 
@@ -300,136 +296,164 @@ export default function RunningExpensesDashboardScreen() {
         })}
       </ScrollView>
 
-      <FinanceFAB onPress={() => openAddModal(activeCategoryFilter)} />
+      <FinanceFAB onPress={() => openAddModal(activeCategoryFilter === "ALL" ? "FUEL" : activeCategoryFilter)} />
 
       {/* Add Expense Modal */}
-      <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => setShowAdd(false)}>
-        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.45)" }}>
-          <Pressable style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }} onPress={() => setShowAdd(false)} />
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
-            <View
-              style={{
-                maxHeight: "88%",
-                backgroundColor: colors.background,
-                paddingTop: 12,
-                paddingHorizontal: 20,
-                paddingBottom: 32,
-                borderTopLeftRadius: 24,
-                borderTopRightRadius: 24,
-              }}
-            >
-              <ScrollView keyboardShouldPersistTaps="handled">
-              {/* Drag handle */}
-              <View style={{ alignItems: "center", marginBottom: 16 }}>
-                <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+      <BottomSheet
+        visible={showAdd}
+        onClose={() => setShowAdd(false)}
+        title="Add Running Expense"
+        subtitle={selectedTruck?.registration_number || "Vehicle"}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          {/* Category selector */}
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 10, letterSpacing: 0.5 }}>CATEGORY</Text>
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 20 }}>
+            {RUNNING_ACTIONS.map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                onPress={() => setExpenseCategory(cat)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: expenseCategory === cat ? colors.primary : colors.border,
+                  backgroundColor: expenseCategory === cat ? colors.primary : colors.card,
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: expenseCategory === cat ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>
+                  {cat === "FASTAG" ? "Fastag" : formatLabel(cat)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Amount */}
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 10, letterSpacing: 0.5 }}>AMOUNT (₹)</Text>
+          <TextInput
+            placeholder="0"
+            placeholderTextColor={colors.mutedForeground}
+            keyboardType="numeric"
+            value={amount}
+            onChangeText={setAmount}
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 20,
+              color: colors.foreground,
+              padding: 16,
+              fontSize: 32,
+              fontWeight: "900",
+              marginBottom: 20,
+              textAlign: "center",
+              backgroundColor: isDark ? colors.card : colors.secondary + "10"
+            }}
+          />
+
+          {/* Fuel specific fields */}
+          {expenseCategory === "FUEL" && (
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>LITRES</Text>
+                <TextInput
+                  placeholder="0.00"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="numeric"
+                  value={litres}
+                  onChangeText={setLitres}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 16,
+                    color: colors.foreground,
+                    padding: 14,
+                    fontSize: 16,
+                    fontWeight: "700",
+                    backgroundColor: isDark ? colors.card : colors.secondary + "10"
+                  }}
+                />
               </View>
-
-              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18, marginBottom: 16 }}>Add Running Expense</Text>
-
-              {/* Truck Info Chip */}
-              <View style={{ alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: colors.primary + "20", marginBottom: 20 }}>
-                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>{selectedTruck?.registration_number || "-"}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>KM READING</Text>
+                <TextInput
+                  placeholder="0"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="numeric"
+                  value={kmReading}
+                  onChangeText={setKmReading}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 16,
+                    color: colors.foreground,
+                    padding: 14,
+                    fontSize: 16,
+                    fontWeight: "700",
+                    backgroundColor: isDark ? colors.card : colors.secondary + "10"
+                  }}
+                />
               </View>
-
-              {/* Category selector */}
-              <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>CATEGORY</Text>
-              <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
-                {RUNNING_ACTIONS.map((cat) => (
-                  <TouchableOpacity
-                    key={cat}
-                    onPress={() => setExpenseCategory(cat)}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 10,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: expenseCategory === cat ? colors.primary : colors.border,
-                      backgroundColor: expenseCategory === cat ? colors.primary : "transparent",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ color: expenseCategory === cat ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>
-                      {cat === "FASTAG" ? "Fastag" : formatLabel(cat)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Amount */}
-              <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>AMOUNT (₹)</Text>
-              <TextInput
-                placeholder="0"
-                placeholderTextColor={colors.mutedForeground}
-                keyboardType="numeric"
-                value={amount}
-                onChangeText={setAmount}
-                style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, color: colors.foreground, padding: 14, fontSize: 24, fontWeight: "800", marginBottom: 16, textAlign: "center" }}
-              />
-
-              {/* Fuel specific fields */}
-              {expenseCategory === "FUEL" && (
-                <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>LITRES</Text>
-                    <TextInput
-                      placeholder="0.00"
-                      placeholderTextColor={colors.mutedForeground}
-                      keyboardType="numeric"
-                      value={litres}
-                      onChangeText={setLitres}
-                      style={inputStyle(colors)}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>KM READING</Text>
-                    <TextInput
-                      placeholder="0"
-                      placeholderTextColor={colors.mutedForeground}
-                      keyboardType="numeric"
-                      value={kmReading}
-                      onChangeText={setKmReading}
-                      style={inputStyle(colors)}
-                    />
-                  </View>
-                </View>
-              )}
-
-              {/* Payment Mode chips */}
-              <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>PAYMENT MODE</Text>
-              <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
-                {["CASH", "BANK", "UPI"].map((mode) => (
-                  <TouchableOpacity
-                    key={mode}
-                    onPress={() => setPaymentMode(mode)}
-                    style={{ flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: paymentMode === mode ? colors.primary : colors.border, backgroundColor: paymentMode === mode ? colors.primary : "transparent", alignItems: "center" }}
-                  >
-                    <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>{mode}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <TextInput
-                placeholder="Remarks (optional)"
-                placeholderTextColor={colors.mutedForeground}
-                value={notes}
-                onChangeText={setNotes}
-                style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, color: colors.foreground, padding: 12, fontSize: 14, marginBottom: 20 }}
-              />
-
-              <View style={{ flexDirection: "row", gap: 10 }}>
-                <TouchableOpacity onPress={() => setShowAdd(false)} style={{ flex: 1, padding: 14, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: "center" }}>
-                  <Text style={{ color: colors.foreground, fontWeight: "700" }}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={onSave} style={{ flex: 2, padding: 14, borderRadius: 12, backgroundColor: colors.primary, alignItems: "center" }}>
-                  <Text style={{ color: "white", fontWeight: "800", fontSize: 15 }}>{financeLoading ? "Saving..." : "Save Expense"}</Text>
-                </TouchableOpacity>
-              </View>
-              </ScrollView>
             </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-    </SafeAreaView>
+          )}
+
+          {/* Payment Mode chips */}
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 10, letterSpacing: 0.5 }}>PAYMENT MODE</Text>
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 20 }}>
+            {["CASH", "BANK", "UPI"].map((mode) => (
+              <TouchableOpacity
+                key={mode}
+                onPress={() => setPaymentMode(mode)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: paymentMode === mode ? colors.primary : colors.border,
+                  backgroundColor: paymentMode === mode ? colors.primary : colors.card,
+                  alignItems: "center"
+                }}
+              >
+                <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>{mode}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TextInput
+            placeholder="Remarks (optional)"
+            placeholderTextColor={colors.mutedForeground}
+            value={notes}
+            onChangeText={setNotes}
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 16,
+              color: colors.foreground,
+              padding: 16,
+              fontSize: 15,
+              marginBottom: 28,
+              backgroundColor: isDark ? colors.card : colors.secondary + "10"
+            }}
+          />
+
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <TouchableOpacity
+              onPress={() => setShowAdd(false)}
+              style={{ flex: 1, padding: 18, borderRadius: 20, backgroundColor: colors.muted, alignItems: "center" }}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 16 }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onSave}
+              style={{ flex: 2, padding: 18, borderRadius: 20, backgroundColor: colors.primary, alignItems: "center" }}
+            >
+              <Text style={{ color: "white", fontWeight: "900", fontSize: 17 }}>{financeLoading ? "Saving..." : "Save Expense"}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </BottomSheet>
+    </View>
   );
 }
 

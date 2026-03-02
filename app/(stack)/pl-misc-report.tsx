@@ -2,14 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StatusBar, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react-native";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function PLMiscReportScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const { transactions, fetchTransactions, loading } = useFinance();
   const [refreshing, setRefreshing] = useState(false);
@@ -19,7 +20,7 @@ export default function PLMiscReportScreen() {
     await fetchTransactions();
     setRefreshing(false);
   }, [fetchTransactions]);
-  
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -45,22 +46,23 @@ export default function PLMiscReportScreen() {
   }, [transactions]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <View style={{ paddingHorizontal: 20, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color={colors.foreground} /></TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Misc Report</Text>
-        <View style={{ width: 24 }} />
-      </View>
 
       <FlatList
         data={rows}
         keyExtractor={(item) => item.category}
-        contentContainerStyle={{ padding: 20, paddingBottom: 120, gap: 10 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
+        ListHeaderComponent={
+          <View className="mb-6 px-0 mt-5">
+            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('miscPL')}</Text>
+            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewMiscPL')}</Text>
+          </View>
+        }
         ListEmptyComponent={<Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 60 }}>{loading ? "Loading..." : "No misc report data."}</Text>}
         renderItem={({ item }) => (
-          <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14 }}>
+          <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
             <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.category.replace(/_/g, " ")}</Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>{item.count} entries</Text>
             <View style={{ flexDirection: "row", marginTop: 10, gap: 8 }}>
@@ -85,6 +87,6 @@ export default function PLMiscReportScreen() {
           </View>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }

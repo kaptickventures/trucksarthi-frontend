@@ -1,4 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { Edit3, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
@@ -10,7 +12,6 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import LocationFormModal from "../../components/LocationModal";
 import { Skeleton } from "../../components/Skeleton";
 import useLocations from "../../hooks/useLocation";
@@ -20,6 +21,10 @@ import { useTranslation } from "../../context/LanguageContext";
 
 export default function LocationsManager() {
   const { user, loading: userLoading } = useUser();
+  const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
+  const isDark = theme === "dark";
+  const router = useRouter();
 
   const {
     locations,
@@ -31,10 +36,6 @@ export default function LocationsManager() {
   } = useLocations();
 
   const loading = userLoading || locationsLoading;
-
-  const { theme, colors } = useThemeStore();
-  const { t } = useTranslation();
-  const isDark = theme === "dark";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     location_name: "",
@@ -42,7 +43,6 @@ export default function LocationsManager() {
   });
 
   const [modalVisible, setModalVisible] = useState(false);
-  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -117,7 +117,7 @@ export default function LocationsManager() {
 
   if (loading && !user) {
     return (
-      <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <View className="px-5 pt-2">
           {[1, 2, 3, 4, 5].map(i => (
             <View key={i} className="border rounded-2xl p-5 mb-4 shadow-sm" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
@@ -135,22 +135,24 @@ export default function LocationsManager() {
             </View>
           ))}
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      {/* List */}
       <ScrollView
-        className="flex-1 px-5 pt-2"
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
+        <View className="mb-6 px-0 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('locations')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your start and end locations</Text>
+        </View>
         {locations.length === 0 ? (
           <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
             {t("noLocationsFound")}
@@ -218,10 +220,6 @@ export default function LocationsManager() {
         onSubmit={handleSubmit}
         onClose={closeModal}
       />
-    </SafeAreaView>
+    </View>
   );
 }
-
-
-
-

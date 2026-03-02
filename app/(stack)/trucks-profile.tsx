@@ -15,7 +15,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Platform,
   RefreshControl,
   ScrollView,
@@ -26,11 +25,12 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import BottomSheet from "../../components/BottomSheet";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
 import { formatDate as globalFormatDate } from "../../lib/utils";
+import { useTranslation } from "../../context/LanguageContext";
 
 /* ---------------- HELPERS ---------------- */
 
@@ -149,6 +149,8 @@ const DateItem = ({ label, date }: any) => {
 export default function TruckProfile() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
+  const { t } = useTranslation();
 
   const { truck_id } = useLocalSearchParams<{ truck_id?: string | string[] }>();
   const id = useMemo(() => Array.isArray(truck_id) ? truck_id[0] : truck_id, [truck_id]);
@@ -228,23 +230,23 @@ export default function TruckProfile() {
     if (!truck) return [];
     return [
       {
-        label: "Insurance Expiry",
+        label: t('insuranceExpiry'),
         date: truck.insurance_upto || toIsoDate(truck.rc_details?.vehicle_insurance_upto),
       },
       {
-        label: "Fitness Expiry",
+        label: t('fitnessExpiry'),
         date: truck.fitness_upto || toIsoDate(truck.rc_details?.rc_expiry_date),
       },
       {
-        label: "Permit Expiry",
+        label: t('permitExpiry'),
         date: truck.permit_upto || toIsoDate(truck.rc_details?.permit_valid_upto),
       },
       {
-        label: "PUCC Expiry",
+        label: t('puccExpiry'),
         date: truck.pollution_upto || toIsoDate(truck.rc_details?.pucc_upto),
       },
     ].filter((item) => normalizeDisplayValue(item.date));
-  }, [truck]);
+  }, [truck, t]);
   const moreDetailsEntries = useMemo(() => {
     if (!truck) return [];
 
@@ -325,8 +327,6 @@ export default function TruckProfile() {
     }
   }, [fetchTrucks]);
 
-
-
   const handleUpdateTruck = async () => {
     if (!id) return;
     try {
@@ -387,40 +387,39 @@ export default function TruckProfile() {
   if (!truck) {
     return (
       <View style={{ backgroundColor: colors.background }} className="flex-1 items-center justify-center">
-        <Text style={{ color: colors.mutedForeground }}>Truck not found</Text>
+        <Text style={{ color: colors.mutedForeground }}>{t('truckNotFound')}</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={theme === "dark" ? "light-content" : "dark-content"} />
-
-      <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center' }}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: '700', color: colors.foreground, marginLeft: 16 }}>Truck Profile</Text>
-        <View style={{ flex: 1 }} />
-        <View className="flex-row items-center gap-4">
-          <TouchableOpacity onPress={() => setShowShareModal(true)}>
-            <Share2 size={20} color={colors.foreground} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowEditModal(true)}>
-            <Pencil size={20} color={colors.foreground} />
-          </TouchableOpacity>
-        </View>
-      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
+        <View className="mb-6 px-0 mt-5 flex-row justify-between items-center">
+          <View>
+            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('truckProfile')}</Text>
+            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewManageTruckDetails')}</Text>
+          </View>
+          <View className="flex-row items-center gap-4">
+            <TouchableOpacity onPress={() => setShowShareModal(true)}>
+              <Share2 size={20} color={colors.foreground} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowEditModal(true)}>
+              <Pencil size={20} color={colors.foreground} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* HERO CARD */}
-        <View style={{ padding: 24, backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 24, marginBottom: 24, borderWidth: 1, borderColor: colors.border }}>
+        <View style={{ padding: 24, backgroundColor: colors.card, borderRadius: 24, marginBottom: 24, borderWidth: 1, borderColor: colors.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
             <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
               <Truck size={32} color="white" />
@@ -428,7 +427,7 @@ export default function TruckProfile() {
             <View style={{ marginLeft: 16, flex: 1 }}>
               <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.foreground }} className="uppercase tracking-tight">{truck.registration_number}</Text>
               <Text style={{ fontSize: 14, fontWeight: "600", color: colors.mutedForeground, marginTop: 2 }}>
-                {normalizeDisplayValue(truck.registered_owner_name) || "Owner not available"}
+                {normalizeDisplayValue(truck.registered_owner_name) || t('ownerNotAvailable')}
               </Text>
             </View>
           </View>
@@ -436,7 +435,7 @@ export default function TruckProfile() {
           <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 12, opacity: 0.5 }} />
           <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
             {sectionOneItems.length === 0 ? (
-              <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>No basic details available.</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>{t('noBasicDetails')}</Text>
             ) : (
               sectionOneItems.map((item) => (
                 <DetailItem key={item.key} label={item.label} value={item.value as string} />
@@ -445,7 +444,7 @@ export default function TruckProfile() {
           </View>
         </View>
 
-        <View style={{ backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' }}>
+        <View style={{ backgroundColor: colors.card, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' }}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => setShowDates(!showDates)}
@@ -453,7 +452,7 @@ export default function TruckProfile() {
           >
             <View className="flex-row items-center">
               <Calendar size={20} color={colors.primary} />
-              <Text style={{ color: colors.foreground }} className="text-base font-bold ml-3">Important Dates</Text>
+              <Text style={{ color: colors.foreground }} className="text-base font-bold ml-3">{t('importantDates')}</Text>
             </View>
             {showDates ? <ChevronUp size={20} color={colors.mutedForeground} /> : <ChevronDown size={20} color={colors.mutedForeground} />}
           </TouchableOpacity>
@@ -461,7 +460,7 @@ export default function TruckProfile() {
             <View className="px-5 pb-4">
               {importantDateItems.length === 0 ? (
                 <Text style={{ color: colors.mutedForeground, fontSize: 13, paddingTop: 12 }}>
-                  No important dates available.
+                  {t('noImportantDates')}
                 </Text>
               ) : (
                 importantDateItems.map((item) => (
@@ -472,7 +471,7 @@ export default function TruckProfile() {
           )}
         </View>
 
-        <View style={{ backgroundColor: colors.card, marginHorizontal: 20, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
+        <View style={{ backgroundColor: colors.card, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => setShowOtherDetails(!showOtherDetails)}
@@ -480,7 +479,7 @@ export default function TruckProfile() {
           >
             <View className="flex-row items-center">
               <FileText size={20} color={colors.primary} />
-              <Text style={{ color: colors.foreground }} className="text-base font-bold ml-3">Other Details</Text>
+              <Text style={{ color: colors.foreground }} className="text-base font-bold ml-3">{t('otherDetails')}</Text>
             </View>
             {showOtherDetails ? <ChevronUp size={20} color={colors.mutedForeground} /> : <ChevronDown size={20} color={colors.mutedForeground} />}
           </TouchableOpacity>
@@ -488,7 +487,7 @@ export default function TruckProfile() {
             <View style={{ paddingHorizontal: 20, paddingVertical: 8 }}>
               {moreDetailsEntries.length === 0 ? (
                 <Text style={{ color: colors.mutedForeground, fontSize: 13, paddingVertical: 12 }}>
-                  No additional details available.
+                  {t('noAdditionalDetails')}
                 </Text>
               ) : (
                 moreDetailsEntries.map((item) => (
@@ -504,109 +503,100 @@ export default function TruckProfile() {
       </ScrollView>
 
       {/* EDIT MODAL */}
-      <Modal visible={showEditModal} transparent animationType="slide">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: colors.background, padding: 24, borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '80%' }}>
-            <View style={{ width: 40, height: 5, backgroundColor: colors.border, alignSelf: 'center', borderRadius: 3, marginBottom: 24 }} />
-            <View className="flex-row justify-between items-center mb-6">
-              <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.foreground }}>Edit Truck</Text>
-              <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                <X size={24} color={colors.foreground} />
-              </TouchableOpacity>
+      <BottomSheet
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title={t('editTruck')}
+        subtitle="Update vehicle information"
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <View style={{ gap: 16 }}>
+            <View>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('plateNumber')}</Text>
+              <TextInput value={editForm.registration_number} onChangeText={t => setEditForm(p => ({ ...p, registration_number: t }))} style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }} />
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('brandMake')}</Text>
+              <TextInput value={editForm.make} onChangeText={t => setEditForm(p => ({ ...p, make: t }))} style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }} />
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('ownerName')}</Text>
+              <TextInput value={editForm.registered_owner_name} onChangeText={t => setEditForm(p => ({ ...p, registered_owner_name: t }))} style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }} />
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={{ gap: 16 }}>
-                <View>
-                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8 }}>Plate Number</Text>
-                  <TextInput value={editForm.registration_number} onChangeText={t => setEditForm(p => ({ ...p, registration_number: t }))} style={{ backgroundColor: colors.card, color: colors.foreground, padding: 16, borderRadius: 16, fontSize: 16, borderWidth: 1, borderColor: colors.border }} />
+            {[
+              { label: t('insuranceExpiry'), key: "insurance_upto" },
+              { label: t('fitnessExpiry'), key: "fitness_upto" },
+              { label: t('permitExpiry'), key: "permit_upto" },
+              { label: t('puccExpiry'), key: "pollution_upto" },
+            ].map(f => (
+              <TouchableOpacity key={f.key} activeOpacity={0.7} onPress={() => { setDateField(f.key); setIsPickerVisible(true); }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{f.label}</Text>
+                <View style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", padding: 16, borderRadius: 20, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: "center" }}>
+                  <Text style={{ color: (editForm as any)[f.key] ? colors.foreground : colors.mutedForeground, fontWeight: "600" }}>{(editForm as any)[f.key] ? globalFormatDate((editForm as any)[f.key]) : "Select Date"}</Text>
+                  <Calendar size={18} color={colors.primary} />
                 </View>
-                <View>
-                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8 }}>Brand / Make</Text>
-                  <TextInput value={editForm.make} onChangeText={t => setEditForm(p => ({ ...p, make: t }))} style={{ backgroundColor: colors.card, color: colors.foreground, padding: 16, borderRadius: 16, fontSize: 16, borderWidth: 1, borderColor: colors.border }} />
-                </View>
-                <View>
-                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8 }}>Owner Name</Text>
-                  <TextInput value={editForm.registered_owner_name} onChangeText={t => setEditForm(p => ({ ...p, registered_owner_name: t }))} style={{ backgroundColor: colors.card, color: colors.foreground, padding: 16, borderRadius: 16, fontSize: 16, borderWidth: 1, borderColor: colors.border }} />
-                </View>
-
-                {[
-                  { label: "Insurance Expiry", key: "insurance_upto" },
-                  { label: "Fitness Expiry", key: "fitness_upto" },
-                  { label: "Permit Expiry", key: "permit_upto" },
-                  { label: "PUCC Expiry", key: "pollution_upto" },
-                ].map(f => (
-                  <TouchableOpacity key={f.key} activeOpacity={0.7} onPress={() => { setDateField(f.key); setIsPickerVisible(true); }}>
-                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8 }}>{f.label}</Text>
-                    <View style={{ backgroundColor: colors.card, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ color: (editForm as any)[f.key] ? colors.foreground : colors.mutedForeground }}>{(editForm as any)[f.key] ? globalFormatDate((editForm as any)[f.key]) : "Select Date"}</Text>
-                      <Calendar size={18} color={colors.primary} />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity onPress={handleUpdateTruck} style={{ backgroundColor: colors.primary, padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 24 }}>
-              <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Update Details</Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
           </View>
-        </View>
 
-        {isPickerVisible && (
-          <DateTimePicker value={(editForm as any)[dateField!] ? new Date((editForm as any)[dateField!]) : new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onDateChange} />
-        )}
-      </Modal>
+          <TouchableOpacity onPress={handleUpdateTruck} style={{ backgroundColor: colors.primary, padding: 18, borderRadius: 22, alignItems: 'center', marginTop: 32 }}>
+            <Text style={{ color: "white", fontWeight: '900', fontSize: 16 }}>{t('updateDetails')}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </BottomSheet>
 
       {/* SHARE MODAL */}
-      <Modal visible={showShareModal} transparent animationType="slide">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: colors.background, padding: 24, borderTopLeftRadius: 32, borderTopRightRadius: 32 }}>
-            <View style={{ width: 40, height: 5, backgroundColor: colors.border, alignSelf: 'center', borderRadius: 3, marginBottom: 24 }} />
-            <View className="flex-row justify-between items-center mb-6">
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.foreground }}>Select details to share</Text>
-              <TouchableOpacity onPress={() => setShowShareModal(false)}>
-                <X size={24} color={colors.foreground} />
+      <BottomSheet
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={t('selectDetailsShare')}
+      >
+        <View style={{ marginBottom: 20 }}>
+          <View className="flex-row flex-wrap gap-2 mb-8">
+            {[
+              { label: "Number", key: "registration_number" },
+              { label: "Make/Model", key: "make_model" },
+              { label: "Owner", key: "registered_owner_name" },
+              { label: "Chassis", key: "chassis_number" },
+              { label: "Engine", key: "engine_number" },
+              { label: "Norms", key: "fuel_norms" },
+              { label: "Weight", key: "unladen_weight" },
+              { label: "Vehicle Age", key: "vehicle_age" },
+              { label: "Fitness Date", key: "fitness_upto" },
+              { label: "Insurance Date", key: "insurance_upto" },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.key}
+                onPress={() => setSelectedTags(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  backgroundColor: selectedTags[item.key] ? colors.primary : colors.card,
+                  borderColor: selectedTags[item.key] ? colors.primary : colors.border
+                }}
+              >
+                <Text style={{ color: selectedTags[item.key] ? "white" : colors.mutedForeground, fontSize: 12, fontWeight: "800" }}>
+                  {item.label}
+                </Text>
               </TouchableOpacity>
-            </View>
-
-            <View className="flex-row flex-wrap gap-2 mb-8">
-              {[
-                { label: "Number", key: "registration_number" },
-                { label: "Make/Model", key: "make_model" },
-                { label: "Owner", key: "registered_owner_name" },
-                { label: "Chassis", key: "chassis_number" },
-                { label: "Engine", key: "engine_number" },
-                { label: "Norms", key: "fuel_norms" },
-                { label: "Weight", key: "unladen_weight" },
-                { label: "Vehicle Age", key: "vehicle_age" },
-                { label: "Fitness Date", key: "fitness_upto" },
-                { label: "Insurance Date", key: "insurance_upto" },
-              ].map((item) => (
-                <TouchableOpacity
-                  key={item.key}
-                  onPress={() => setSelectedTags(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
-                  className={`px-4 py-2 rounded-full border ${selectedTags[item.key] ? 'bg-primary border-primary' : 'bg-transparent border-border'}`}
-                >
-                  <Text style={{ color: selectedTags[item.key] ? colors.primaryForeground : colors.mutedForeground }} className="text-xs font-bold">
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              onPress={handleShareDetails}
-              style={{ backgroundColor: colors.primary }}
-              className="py-4 rounded-2xl items-center mb-4"
-            >
-              <Text className="text-white font-bold text-base">Share Selected Details</Text>
-            </TouchableOpacity>
+            ))}
           </View>
+
+          <TouchableOpacity
+            onPress={handleShareDetails}
+            style={{ backgroundColor: colors.primary, padding: 18, borderRadius: 22, alignItems: 'center' }}
+          >
+            <Text className="text-white font-black text-base">{t('shareSelectedDetails')}</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </SafeAreaView>
+      </BottomSheet>
+
+      {isPickerVisible && (
+        <DateTimePicker value={(editForm as any)[dateField!] ? new Date((editForm as any)[dateField!]) : new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onDateChange} />
+      )}
+    </View>
   );
 }
-
-

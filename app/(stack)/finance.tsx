@@ -1,15 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { PieChart, ArrowDownLeft, ArrowUpRight } from "lucide-react-native";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState, useCallback, useEffect } from "react";
 import { RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { Skeleton } from "../../components/Skeleton";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useFinance from "../../hooks/useFinance";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function FinanceScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const { summary: metrics, fetchSummary, loading } = useFinance();
   const [refreshing, setRefreshing] = useState(false);
@@ -39,38 +41,24 @@ export default function FinanceScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen
-        options={{
-          headerTitle: "Trucksarthi",
-          headerTitleAlign: "center",
-          headerStyle: { backgroundColor: colors.background },
-          headerTitleStyle: { color: colors.foreground, fontWeight: "800", fontSize: 22 },
-          headerTintColor: colors.foreground,
-          headerRight: () => (
-            <TouchableOpacity onPress={() => router.push("/(stack)/notifications" as any)} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
-              <Ionicons name="notifications-outline" size={24} color={colors.foreground} />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <View style={{ marginBottom: 24, paddingHorizontal: 4, marginTop: 8 }}>
-          <Text style={{ fontSize: 30, fontWeight: "900", color: colors.foreground }}>Finance Hub</Text>
+        <View className="mb-6 px-0 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('financeHub')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('manageFinanceSubtitle')}</Text>
         </View>
 
         {showInitialSkeleton ? (
           <>
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
-              <Skeleton style={{ flex: 1, height: 96, borderRadius: 16 }} />
-              <Skeleton style={{ flex: 1, height: 96, borderRadius: 16 }} />
+              <Skeleton height={96} style={{ flex: 1, borderRadius: 16 }} />
+              <Skeleton height={96} style={{ flex: 1, borderRadius: 16 }} />
             </View>
-            <Skeleton width="100%" height={108} borderRadius={20} style={{ marginBottom: 24 }} />
+            <Skeleton height={200} style={{ width: '100%', borderRadius: 16 }} />
           </>
         ) : (
           <>

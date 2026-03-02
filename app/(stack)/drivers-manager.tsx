@@ -9,13 +9,11 @@ import {
   Linking,
   RefreshControl,
   ScrollView,
-  Share,
   StatusBar,
   Text,
   TouchableOpacity,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import DriverFormModal from "../../components/DriverModal";
 import { Skeleton } from "../../components/Skeleton";
@@ -77,30 +75,8 @@ export default function DriversManager() {
   useFocusEffect(
     useCallback(() => {
       fetchDrivers();
-    }, [])
+    }, [fetchDrivers])
   );
-
-  /* ---------------- IMAGE PICKER ---------------- */
-  const pickImage = async (field: keyof typeof formData) => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(t("requiredFields"), "Allow gallery access to upload images.");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-      allowsEditing: true,
-    });
-
-    if (!result.canceled) {
-      setFormData({
-        ...formData,
-        [field]: result.assets[0] as any, // Store the whole asset
-      });
-    }
-  };
 
   /* ---------------- MODAL GESTURE ---------------- */
   const openModal = (editing = false, data?: any) => {
@@ -218,16 +194,20 @@ export default function DriversManager() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={theme === "dark" ? "light-content" : "dark-content"} />
 
       <ScrollView
-        className="flex-1 px-5 pt-2"
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
+        <View className="mb-6 px-0 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('drivers')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your fleet drivers</Text>
+        </View>
+
         {(drivers || []).length === 0 ? (
           <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>
             {t("noDriversFound")}
@@ -245,7 +225,7 @@ export default function DriversManager() {
                     params: {
                       driver_id: driver._id,
                     },
-                  })
+                  } as any)
                 }
                 className="border rounded-2xl p-4 mb-3 shadow-sm"
                 style={{ backgroundColor: colors.card, borderColor: colors.border }}
@@ -311,7 +291,7 @@ export default function DriversManager() {
           shadowOffset: { width: 0, height: 2 },
         }}
       >
-        <Plus color={colors.primaryForeground} size={28} />
+        <Plus color="#FFFFFF" size={28} />
       </TouchableOpacity>
 
       <DriverFormModal
@@ -323,11 +303,6 @@ export default function DriversManager() {
         onSubmit={handleSubmit}
         onClose={closeModal}
       />
-    </SafeAreaView>
+    </View>
   );
 }
-
-
-
-
-

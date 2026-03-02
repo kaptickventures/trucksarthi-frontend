@@ -12,12 +12,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowDownLeft, ArrowUpRight, Calendar, Filter } from "lucide-react-native";
 import FinanceFAB from "../../components/finance/FinanceFAB";
+import BottomSheet from "../../components/BottomSheet";
 import { Skeleton } from "../../components/Skeleton";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useTranslation } from "../../context/LanguageContext";
 import { formatDate, formatLabel } from "../../lib/utils";
 
 const TAG_FILTERS = [
@@ -38,6 +39,7 @@ const TYPE_PILL_HEIGHT = 36;
 export default function TransactionsScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const { loading, transactions, fetchTransactions } = useFinance();
   const [refreshing, setRefreshing] = useState(false);
@@ -76,17 +78,29 @@ export default function TransactionsScreen() {
   };
 
   const filteredTransactions = useMemo(() => {
-    const base = (transactions || []).filter((item: any) => {
-      const sourceModule = String(item?.sourceModule || "").toUpperCase();
-      const category = String(item?.category || "").toUpperCase();
-      // Exclude driver-side spend entries from the global view — only show owner-to-driver payments
-      if (sourceModule === "DRIVER_KHATA" && category !== "OWNER_TO_DRIVER") return false;
-      return true;
+    const base = (transactions || [])
+      .filter((item: any) => {
+        const sourceModule = String(item?.sourceModule || "").toUpperCase();
+        const category = String(item?.category || "").toUpperCase();
+        // Exclude driver-side spend entries from the global view — only show owner-to-driver payments
+        if (sourceModule === "DRIVER_KHATA" && category !== "OWNER_TO_DRIVER") return false;
+        return true;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let currentBalance = 0;
+    const withBalance = base.map((item) => {
+      const isIncome = item.direction === "INCOME";
+      if (isIncome) currentBalance += Number(item.amount || 0);
+      else currentBalance -= Number(item.amount || 0);
+      return { ...item, runningBalance: currentBalance };
     });
 
-    if (activeTag === "ALL") return base;
+    const sorted = withBalance.reverse();
 
-    return base.filter((item: any) => {
+    if (activeTag === "ALL") return sorted;
+
+    return sorted.filter((item: any) => {
       const category = String(item?.category || "").toUpperCase();
       const subtype = String(item?.transactionSubtype || "").toUpperCase();
       const sourceModule = String(item?.sourceModule || "").toUpperCase();
@@ -147,199 +161,195 @@ export default function TransactionsScreen() {
             )}
           </View>
         </View>
-        <Text style={{ fontSize: 16, fontWeight: "bold", color: iconColor }}>
-          {isIncome ? "+" : "-"}Rs {Number(item.amount || 0).toLocaleString()}
-        </Text>
+        <View style={{ alignItems: "flex-end" }}>
+          <Text style={{ fontSize: 16, fontWeight: "bold", color: iconColor }}>
+            {isIncome ? "+" : "-"}Rs {Number(item.amount || 0).toLocaleString()}
+          </Text>
+          <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginTop: 2 }}>
+            Bal: Rs {Number(item.runningBalance || 0).toLocaleString()}
+          </Text>
+          <Text style={{ fontSize: 9, color: colors.mutedForeground, marginTop: 1 }}>
+            {item.paymentMode || "CASH"}
+          </Text>
+        </View>
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <View
-        style={{
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "600", color: colors.foreground }}>Transactions</Text>
-        <TouchableOpacity onPress={() => setShowFilterModal(true)}>
-          <Filter size={24} color={colors.foreground} />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, gap: 8 }}
-        style={{ flexGrow: 0 }}
-      >
-        {(TAG_FILTERS as unknown as string[]).map((item) => (
-          <TouchableOpacity
-            key={item}
-            onPress={() => setActiveTag(item as TagFilter)}
-            style={{
-              paddingHorizontal: 16,
-              height: TAG_PILL_HEIGHT,
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: activeTag === item ? colors.primary : colors.border,
-              backgroundColor: activeTag === item ? colors.primary : "transparent",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Text
-              numberOfLines={1}
-              style={{
-                color: activeTag === item ? "white" : colors.foreground,
-                fontWeight: "700",
-                fontSize: 12,
-                textAlign: "center",
-              }}
-            >
-              {formatLabel(item)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {loading && !transactions.length ? (
-        <View style={{ flex: 1, padding: 20 }}>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} width="100%" height={70} borderRadius={12} style={{ marginBottom: 12 }} />
-          ))}
-        </View>
-      ) : (
-        <FlatList
-          style={{ flex: 1 }}
-          data={filteredTransactions}
-          renderItem={renderItem}
-          keyExtractor={(item: any) => item._id}
-          contentContainerStyle={{ padding: 20, paddingBottom: 110 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
-          ListEmptyComponent={
-            <View style={{ alignItems: "center", marginTop: 50 }}>
-              <Text style={{ color: colors.mutedForeground }}>No transactions found.</Text>
-            </View>
-          }
-        />
-      )}
-
-      <Modal visible={showFilterModal} animationType="slide" transparent>
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-          <View
-            style={{
-              backgroundColor: colors.background,
-              padding: 20,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-            }}
-          >
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 20 }}>
-              <Text style={{ fontSize: 18, fontWeight: "bold", color: colors.foreground }}>Filter Transactions</Text>
-              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Ionicons name="close" size={24} color={colors.foreground} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Date Range</Text>
-            <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+      <FlatList
+        style={{ flex: 1 }}
+        data={filteredTransactions}
+        renderItem={renderItem}
+        keyExtractor={(item: any) => item._id}
+        contentContainerStyle={{ padding: 20, paddingBottom: 110 }}
+        ListHeaderComponent={
+          <View style={{ paddingBottom: 16 }}>
+            <View className="flex-row justify-between items-start mb-6 mt-5">
+              <View>
+                <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('transactions')}</Text>
+                <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Financial history</Text>
+              </View>
               <TouchableOpacity
-                onPress={() => setShowDatePicker("start")}
-                style={{
-                  flex: 1,
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                }}
+                onPress={() => setShowFilterModal(true)}
+                className="w-10 h-10 rounded-full items-center justify-center border"
+                style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
               >
-                <Calendar size={16} color={colors.mutedForeground} />
-                <Text style={{ color: colors.foreground }}>{formatDate(filters.startDate)}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowDatePicker("end")}
-                style={{
-                  flex: 1,
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Calendar size={16} color={colors.mutedForeground} />
-                <Text style={{ color: colors.foreground }}>{formatDate(filters.endDate)}</Text>
+                <Filter size={20} color={colors.foreground} />
               </TouchableOpacity>
             </View>
 
-            <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Type</Text>
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 24 }}>
-              {["ALL", "INCOME", "EXPENSE"].map((type) => (
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={TAG_FILTERS as any}
+              keyExtractor={(item) => item}
+              contentContainerStyle={{ gap: 8 }}
+              renderItem={({ item }) => (
                 <TouchableOpacity
-                  key={type}
-                  onPress={() =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      direction: type === "ALL" ? "" : type,
-                    }))
-                  }
+                  onPress={() => setActiveTag(item as TagFilter)}
                   style={{
-                    flex: 1,
-                    height: TYPE_PILL_HEIGHT,
-                    borderRadius: 20,
-                    backgroundColor:
-                      filters.direction === type || (type === "ALL" && !filters.direction)
-                        ? colors.primary
-                        : colors.card,
+                    paddingHorizontal: 16,
+                    height: TAG_PILL_HEIGHT,
+                    borderRadius: 16,
                     borderWidth: 1,
-                    borderColor: colors.border,
+                    borderColor: activeTag === item ? colors.primary : colors.border,
+                    backgroundColor: activeTag === item ? colors.primary : "transparent",
                     justifyContent: "center",
                     alignItems: "center",
                   }}
                 >
                   <Text
+                    numberOfLines={1}
                     style={{
-                      fontWeight: "600",
+                      color: activeTag === item ? "white" : colors.foreground,
+                      fontWeight: "700",
+                      fontSize: 12,
                       textAlign: "center",
-                      color:
-                        filters.direction === type || (type === "ALL" && !filters.direction)
-                          ? "white"
-                          : colors.foreground,
                     }}
                   >
-                    {type}
+                    {formatLabel(item)}
                   </Text>
                 </TouchableOpacity>
+              )}
+            />
+          </View>
+        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
+        ListEmptyComponent={
+          loading && !transactions.length ? (
+            <View style={{ flex: 1, padding: 20 }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} width="100%" height={70} borderRadius={12} style={{ marginBottom: 12 }} />
               ))}
             </View>
+          ) : (
+            <View style={{ alignItems: "center", marginTop: 50 }}>
+              <Text style={{ color: colors.mutedForeground }}>No transactions found.</Text>
+            </View>
+          )
+        }
+      />
 
+      <BottomSheet
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        title="Filter Transactions"
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Date Range</Text>
+          <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
             <TouchableOpacity
-              onPress={() => {
-                setShowFilterModal(false);
-                loadData();
+              onPress={() => setShowDatePicker("start")}
+              style={{
+                flex: 1,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 8,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                backgroundColor: isDark ? colors.card : colors.secondary + '10'
               }}
-              style={{ backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: "center" }}
             >
-              <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>Apply Filters</Text>
+              <Calendar size={16} color={colors.mutedForeground} />
+              <Text style={{ color: colors.foreground }}>{formatDate(filters.startDate)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowDatePicker("end")}
+              style={{
+                flex: 1,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 8,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                backgroundColor: isDark ? colors.card : colors.secondary + '10'
+              }}
+            >
+              <Calendar size={16} color={colors.mutedForeground} />
+              <Text style={{ color: colors.foreground }}>{formatDate(filters.endDate)}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+
+          <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Type</Text>
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 24 }}>
+            {["ALL", "INCOME", "EXPENSE"].map((type) => (
+              <TouchableOpacity
+                key={type}
+                onPress={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    direction: type === "ALL" ? "" : type,
+                  }))
+                }
+                style={{
+                  flex: 1,
+                  height: TYPE_PILL_HEIGHT,
+                  borderRadius: 20,
+                  backgroundColor:
+                    filters.direction === type || (type === "ALL" && !filters.direction)
+                      ? colors.primary
+                      : (isDark ? colors.card : colors.secondary + '10'),
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontWeight: "600",
+                    textAlign: "center",
+                    color:
+                      filters.direction === type || (type === "ALL" && !filters.direction)
+                        ? "white"
+                        : colors.foreground,
+                  }}
+                >
+                  {type}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            onPress={() => {
+              setShowFilterModal(false);
+              loadData();
+            }}
+            style={{ backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: "center" }}
+          >
+            <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>Apply Filters</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </BottomSheet>
 
       {showDatePicker && (
         <DateTimePicker
@@ -351,6 +361,6 @@ export default function TransactionsScreen() {
       )}
 
       <FinanceFAB onPress={() => router.push("/(stack)/misc-transactions" as any)} />
-    </SafeAreaView>
+    </View>
   );
 }

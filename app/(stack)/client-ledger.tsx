@@ -9,10 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import useClients from "../../hooks/useClient";
 import { useClientLedger } from "../../hooks/useClientLedger";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useTranslation } from "../../context/LanguageContext";
 
 type ClientRow = {
   clientId: string;
@@ -25,6 +25,7 @@ type ClientRow = {
 export default function ClientLedgerScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const { clients, fetchClients } = useClients();
   const { fetchSummary } = useClientLedger();
@@ -74,11 +75,9 @@ export default function ClientLedgerScreen() {
       if (isMounted) {
         setRows(
           next.sort((a, b) => {
-            // Primary sort: Unbilled amount (descending)
             if (b.unbilled !== a.unbilled) {
               return b.unbilled - a.unbilled;
             }
-            // Secondary sort: Client name (ascending) for deterministic order
             return a.clientName.localeCompare(b.clientName);
           })
         );
@@ -103,30 +102,18 @@ export default function ClientLedgerScreen() {
   }, [load]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <View
-        style={{
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Client Khata</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
       <ScrollView
-        style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
+        <View className="mb-6 px-0 mt-5">
+          <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('clientKhata')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('manageFinanceSubtitle')}</Text>
+        </View>
+
         {rows.length === 0 && (
           <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 40 }}>No clients found.</Text>
         )}
@@ -154,7 +141,6 @@ export default function ClientLedgerScreen() {
                 borderColor: colors.border,
               }}
             >
-              {/* Top row: name + outstanding badge */}
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                 <View style={{ flex: 1, marginRight: 12 }}>
                   <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3 }}>
@@ -176,29 +162,27 @@ export default function ClientLedgerScreen() {
                       color: hasOutstanding ? "#dc2626" : "#16a34a",
                     }}
                   >
-                    {hasOutstanding ? `-Rs ${row.unbilled.toLocaleString()} due` : "Settled"}
+                    {hasOutstanding ? `-Rs ${row.unbilled.toLocaleString()} ${t('due') || 'due'}` : t('settled')}
                   </Text>
                 </View>
               </View>
 
-              {/* Stats row */}
               <View style={{ flexDirection: "row", gap: 16, marginBottom: 10 }}>
                 <View>
-                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>BILLED</Text>
+                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('billed').toUpperCase()}</Text>
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
                     Rs {row.billed.toLocaleString()}
                   </Text>
                 </View>
                 <View style={{ width: 1, backgroundColor: colors.border }} />
                 <View>
-                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>RECEIVED</Text>
+                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('settled').toUpperCase()}</Text>
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}>
                     Rs {row.settled.toLocaleString()}
                   </Text>
                 </View>
               </View>
 
-              {/* Bottom row: status + CTA */}
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View
                   style={{
@@ -215,11 +199,11 @@ export default function ClientLedgerScreen() {
                       color: isSettled ? "#16a34a" : hasOutstanding ? "#9a3412" : colors.mutedForeground,
                     }}
                   >
-                    {isSettled ? "✓ SETTLED" : hasOutstanding ? "PENDING" : "NO ACTIVITY"}
+                    {isSettled ? `✓ ${t('settled').toUpperCase()}` : hasOutstanding ? t('pending').toUpperCase() : t('noActivity').toUpperCase()}
                   </Text>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>View Khata</Text>
+                  <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>{t('viewKhata')}</Text>
                   <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
                 </View>
               </View>
@@ -227,6 +211,6 @@ export default function ClientLedgerScreen() {
           );
         })}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

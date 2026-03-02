@@ -9,18 +9,21 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import "../../global.css";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
 import { useKYC } from "../../hooks/useKYC";
+import { useTranslation } from "../../context/LanguageContext";
 
 export default function KYCVerification() {
     const router = useRouter();
     const params = useLocalSearchParams<{ tab?: "pan" | "gstin" | "bank" }>();
-    const { colors } = useThemeStore();
+    const { colors, theme } = useThemeStore();
+    const { t } = useTranslation();
+    const isDark = theme === "dark";
     const { user, refreshUser, updateUser } = useUser();
     const { verifyPAN, verifyGSTIN, verifyBank, loading: kycLoading } = useKYC();
 
@@ -227,266 +230,263 @@ export default function KYCVerification() {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <View style={{ flex: 1 }}>
-                {/* Header */}
-                <View style={{ paddingHorizontal: 24, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                    <TouchableOpacity onPress={() => router.back()}>
-                        <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-                    </TouchableOpacity>
-                    <Text style={{ fontSize: 20, fontWeight: '700', color: colors.foreground }}>KYC Verification</Text>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={60} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
+                <View className="mb-6 px-0 mt-5">
+                    <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('kycVerification')}</Text>
+                    <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Complete your identity verification</Text>
                 </View>
 
-                <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={60} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
-                    {!isKycCompleteNow && (
-                        <View style={{ backgroundColor: colors.primary + '10', padding: 20, borderRadius: 16, marginBottom: 24, flexDirection: 'row', gap: 15, alignItems: 'center' }}>
-                            <ShieldCheck size={32} color={colors.primary} />
-                            <View style={{ flex: 1 }}>
-                                <Text style={{ color: colors.foreground, fontWeight: 'bold', fontSize: 16 }}>Complete Your KYC</Text>
-                                <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>Verify your identity to unlock all features and ensure secure payouts.</Text>
-                            </View>
+                {!isKycCompleteNow && (
+                    <View style={{ backgroundColor: colors.primary + '10', padding: 20, borderRadius: 16, marginBottom: 24, flexDirection: 'row', gap: 15, alignItems: 'center' }}>
+                        <ShieldCheck size={32} color={colors.primary} />
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ color: colors.foreground, fontWeight: 'bold', fontSize: 16 }}>Complete Your KYC</Text>
+                            <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>Verify your identity to unlock all features and ensure secure payouts.</Text>
                         </View>
-                    )}
-
-                    {/* Tabs */}
-                    <View style={{ flexDirection: 'row', backgroundColor: colors.card, padding: 4, borderRadius: 12, marginBottom: 24 }}>
-                        <TouchableOpacity
-                            onPress={() => setActiveTab('pan')}
-                            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'pan' ? colors.background : 'transparent' }}
-                        >
-                            <Text style={{ fontWeight: 'bold', color: activeTab === 'pan' ? colors.primary : colors.mutedForeground }}>PAN</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => setActiveTab('gstin')}
-                            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'gstin' ? colors.background : 'transparent' }}
-                        >
-                            <Text style={{ fontWeight: 'bold', color: activeTab === 'gstin' ? colors.primary : colors.mutedForeground }}>GSTIN</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => setActiveTab('bank')}
-                            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'bank' ? colors.background : 'transparent' }}
-                        >
-                            <Text style={{ fontWeight: 'bold', color: activeTab === 'bank' ? colors.primary : colors.mutedForeground }}>Bank</Text>
-                        </TouchableOpacity>
                     </View>
+                )}
 
-                    {/* PAN Section */}
-                    {activeTab === 'pan' && (
-                        <View>
-                            <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                    <CreditCard size={24} color={colors.primary} />
-                                    {isPanVerifiedNow ? (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                            <CheckCircle size={14} color="#16a34a" />
-                                            <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
-                                        </View>
-                                    ) : isVerifying ? (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                            <Loader2 size={14} color="#f59e0b" />
-                                            <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verifying...</Text>
-                                        </View>
-                                    ) : (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                            <XCircle size={14} color="#dc2626" />
-                                            <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
-                                        </View>
-                                    )}
-                                </View>
+                {/* Tabs */}
+                <View style={{ flexDirection: 'row', backgroundColor: colors.card, padding: 4, borderRadius: 12, marginBottom: 24 }}>
+                    <TouchableOpacity
+                        onPress={() => setActiveTab('pan')}
+                        style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'pan' ? colors.background : 'transparent' }}
+                    >
+                        <Text style={{ fontWeight: 'bold', color: activeTab === 'pan' ? colors.primary : colors.mutedForeground }}>PAN</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => setActiveTab('gstin')}
+                        style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'gstin' ? colors.background : 'transparent' }}
+                    >
+                        <Text style={{ fontWeight: 'bold', color: activeTab === 'gstin' ? colors.primary : colors.mutedForeground }}>GSTIN</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => setActiveTab('bank')}
+                        style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'bank' ? colors.background : 'transparent' }}
+                    >
+                        <Text style={{ fontWeight: 'bold', color: activeTab === 'bank' ? colors.primary : colors.mutedForeground }}>Bank</Text>
+                    </TouchableOpacity>
+                </View>
 
-                                <View style={{ gap: 16 }}>
-                                    <View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-                                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>PAN Number</Text>
-                                            {isPanVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
-                                        </View>
-                                        <TextInput
-                                            value={pan}
-                                            onChangeText={setPan}
-                                            placeholder={user?.pan_number || "ABCDE1234F"}
-                                            placeholderTextColor={colors.mutedForeground}
-                                            autoCapitalize="characters"
-                                            maxLength={10}
-                                            style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
-                                        />
-                                        <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 6, fontStyle: 'italic' }}>Name will be auto-fetched from PAN verification</Text>
+                {/* PAN Section */}
+                {activeTab === 'pan' && (
+                    <View>
+                        <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                <CreditCard size={24} color={colors.primary} />
+                                {isPanVerifiedNow ? (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <CheckCircle size={14} color="#16a34a" />
+                                        <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
                                     </View>
-                                </View>
-
-                                {!isPanVerifiedNow && (
-                                    <TouchableOpacity
-                                        onPress={handleVerifyPAN}
-                                        disabled={isVerifying}
-                                        style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10, opacity: isVerifying ? 0.7 : 1 }}
-                                    >
-                                        {isVerifying ? (
-                                            <>
-                                                <ActivityIndicator color={colors.primaryForeground} />
-                                                <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16, marginLeft: 8 }}>Verifying...</Text>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <ShieldCheck size={20} color={colors.primaryForeground} />
-                                                <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Verify PAN Card</Text>
-                                            </>
-                                        )}
-                                    </TouchableOpacity>
+                                ) : isVerifying ? (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <Loader2 size={14} color="#f59e0b" />
+                                        <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verifying...</Text>
+                                    </View>
+                                ) : (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <XCircle size={14} color="#dc2626" />
+                                        <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
+                                    </View>
                                 )}
                             </View>
 
-                            {isPanVerifiedNow && user.kyc_data?.pan_details && (
-                                <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
-                                    <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Details:</Text>
-                                    <VerifiedValue label="Registered Name" value={user.kyc_data.pan_details.registered_name} />
-                                    <VerifiedValue label="Type" value={user.kyc_data.pan_details.type} />
+                            <View style={{ gap: 16 }}>
+                                <View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>PAN Number</Text>
+                                        {isPanVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
+                                    </View>
+                                    <TextInput
+                                        value={pan}
+                                        onChangeText={setPan}
+                                        placeholder={user?.pan_number || "ABCDE1234F"}
+                                        placeholderTextColor={colors.mutedForeground}
+                                        autoCapitalize="characters"
+                                        maxLength={10}
+                                        style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                                    />
+                                    <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 6, fontStyle: 'italic' }}>Name will be auto-fetched from PAN verification</Text>
                                 </View>
+                            </View>
+
+                            {!isPanVerifiedNow && (
+                                <TouchableOpacity
+                                    onPress={handleVerifyPAN}
+                                    disabled={isVerifying}
+                                    style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10, opacity: isVerifying ? 0.7 : 1 }}
+                                >
+                                    {isVerifying ? (
+                                        <>
+                                            <ActivityIndicator color={colors.primaryForeground} />
+                                            <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16, marginLeft: 8 }}>Verifying...</Text>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ShieldCheck size={20} color={colors.primaryForeground} />
+                                            <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Verify PAN Card</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
                             )}
                         </View>
-                    )}
 
-                    {/* GSTIN Section */}
-                    {activeTab === 'gstin' && (
-                        <View>
-                            <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                    <Building2 size={24} color={colors.primary} />
-                                    {isGstinVerifiedNow ? (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                            <CheckCircle size={14} color="#16a34a" />
-                                            <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
-                                        </View>
-                                    ) : (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                            <XCircle size={14} color="#dc2626" />
-                                            <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
-                                        </View>
-                                    )}
-                                </View>
+                        {isPanVerifiedNow && user.kyc_data?.pan_details && (
+                            <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
+                                <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Details:</Text>
+                                <VerifiedValue label="Registered Name" value={user.kyc_data.pan_details.registered_name} />
+                                <VerifiedValue label="Type" value={user.kyc_data.pan_details.type} />
+                            </View>
+                        )}
+                    </View>
+                )}
 
-                                <View style={{ gap: 16 }}>
-                                    <View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-                                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>GSTIN</Text>
-                                            {isGstinVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
-                                        </View>
-                                        <TextInput
-                                            value={gstin}
-                                            onChangeText={setGstin}
-                                            placeholder={user?.gstin || "29AAICP2912R1ZR"}
-                                            placeholderTextColor={colors.mutedForeground}
-                                            autoCapitalize="characters"
-                                            style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
-                                        />
+                {/* GSTIN Section */}
+                {activeTab === 'gstin' && (
+                    <View>
+                        <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                <Building2 size={24} color={colors.primary} />
+                                {isGstinVerifiedNow ? (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <CheckCircle size={14} color="#16a34a" />
+                                        <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
                                     </View>
-                                </View>
-
-                                {!isGstinVerifiedNow && (
-                                    <TouchableOpacity
-                                        onPress={handleVerifyGSTIN}
-                                        disabled={kycLoading}
-                                        style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10 }}
-                                    >
-                                        {kycLoading ? <ActivityIndicator color={colors.primaryForeground} /> : (
-                                            <>
-                                                <ShieldCheck size={20} color={colors.primaryForeground} />
-                                                <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Verify GSTIN</Text>
-                                            </>
-                                        )}
-                                    </TouchableOpacity>
+                                ) : (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <XCircle size={14} color="#dc2626" />
+                                        <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
+                                    </View>
                                 )}
                             </View>
 
-                            {isGstinVerifiedNow && user.kyc_data?.gstin_details && (
-                                <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
-                                    <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Business Details:</Text>
-                                    <VerifiedValue label="Legal Name" value={user.kyc_data.gstin_details.legal_name_of_business} />
-                                    <VerifiedValue label="Trade Name" value={user.kyc_data.gstin_details.trade_name_of_business} />
-                                    <VerifiedValue label="Taxpayer Type" value={user.kyc_data.gstin_details.taxpayer_type} />
-                                    <VerifiedValue label="Status" value={user.kyc_data.gstin_details.gst_in_status} />
-                                    <VerifiedValue label="Principal Address" value={user.kyc_data.gstin_details.principal_place_address} />
+                            <View style={{ gap: 16 }}>
+                                <View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>GSTIN</Text>
+                                        {isGstinVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
+                                    </View>
+                                    <TextInput
+                                        value={gstin}
+                                        onChangeText={setGstin}
+                                        placeholder={user?.gstin || "29AAICP2912R1ZR"}
+                                        placeholderTextColor={colors.mutedForeground}
+                                        autoCapitalize="characters"
+                                        style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                                    />
                                 </View>
+                            </View>
+
+                            {!isGstinVerifiedNow && (
+                                <TouchableOpacity
+                                    onPress={handleVerifyGSTIN}
+                                    disabled={kycLoading}
+                                    style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10 }}
+                                >
+                                    {kycLoading ? <ActivityIndicator color={colors.primaryForeground} /> : (
+                                        <>
+                                            <ShieldCheck size={20} color={colors.primaryForeground} />
+                                            <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Verify GSTIN</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
                             )}
                         </View>
-                    )}
 
-                    {/* Bank Section */}
-                    {activeTab === 'bank' && (
-                        <View>
-                            <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                    <Building2 size={24} color={colors.primary} />
-                                    {isBankVerifiedNow ? (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                            <CheckCircle size={14} color="#16a34a" />
-                                            <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
-                                        </View>
-                                    ) : (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                            <XCircle size={14} color="#dc2626" />
-                                            <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
-                                        </View>
-                                    )}
-                                </View>
+                        {isGstinVerifiedNow && user.kyc_data?.gstin_details && (
+                            <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
+                                <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Business Details:</Text>
+                                <VerifiedValue label="Legal Name" value={user.kyc_data.gstin_details.legal_name_of_business} />
+                                <VerifiedValue label="Trade Name" value={user.kyc_data.gstin_details.trade_name_of_business} />
+                                <VerifiedValue label="Taxpayer Type" value={user.kyc_data.gstin_details.taxpayer_type} />
+                                <VerifiedValue label="Status" value={user.kyc_data.gstin_details.gst_in_status} />
+                                <VerifiedValue label="Principal Address" value={user.kyc_data.gstin_details.principal_place_address} />
+                            </View>
+                        )}
+                    </View>
+                )}
 
-                                <View style={{ gap: 16 }}>
-                                    <View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-                                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>Account Number</Text>
-                                            {isBankVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
-                                        </View>
-                                        <TextInput
-                                            value={bankAccount}
-                                            onChangeText={setBankAccount}
-                                            placeholder={user?.account_number || "Enter Account Number"}
-                                            placeholderTextColor={colors.mutedForeground}
-                                            keyboardType="numeric"
-                                            style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
-                                        />
+                {/* Bank Section */}
+                {activeTab === 'bank' && (
+                    <View>
+                        <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                <Building2 size={24} color={colors.primary} />
+                                {isBankVerifiedNow ? (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <CheckCircle size={14} color="#16a34a" />
+                                        <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
                                     </View>
-                                    <View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
-                                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>IFSC Code</Text>
-                                            {isBankVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
-                                        </View>
-                                        <TextInput
-                                            value={ifsc}
-                                            onChangeText={setIfsc}
-                                            placeholder={user?.ifsc_code || "HDFC0001234"}
-                                            placeholderTextColor={colors.mutedForeground}
-                                            autoCapitalize="characters"
-                                            style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
-                                        />
+                                ) : (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <XCircle size={14} color="#dc2626" />
+                                        <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
                                     </View>
-                                </View>
-
-                                {!isBankVerifiedNow && (
-                                    <TouchableOpacity
-                                        onPress={handleVerifyBank}
-                                        disabled={isVerifying}
-                                        style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10, opacity: isVerifying ? 0.7 : 1 }}
-                                    >
-                                        {isVerifying ? <ActivityIndicator color={colors.primaryForeground} /> : (
-                                            <>
-                                                <ShieldCheck size={20} color={colors.primaryForeground} />
-                                                <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Verify Bank Account</Text>
-                                            </>
-                                        )}
-                                    </TouchableOpacity>
                                 )}
                             </View>
 
-                            {isBankVerifiedNow && user.kyc_data?.bank_details && (
-                                <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
-                                    <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Bank Details:</Text>
-                                    <VerifiedValue label="Beneficiary" value={user.kyc_data.bank_details.name_at_bank} />
-                                    <VerifiedValue label="Bank" value={user.kyc_data.bank_details.bank_name} />
-                                    <VerifiedValue label="Status" value={user.kyc_data.bank_details.account_status} />
+                            <View style={{ gap: 16 }}>
+                                <View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>Account Number</Text>
+                                        {isBankVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
+                                    </View>
+                                    <TextInput
+                                        value={bankAccount}
+                                        onChangeText={setBankAccount}
+                                        placeholder={user?.account_number || "Enter Account Number"}
+                                        placeholderTextColor={colors.mutedForeground}
+                                        keyboardType="numeric"
+                                        style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                                    />
                                 </View>
+                                <View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>IFSC Code</Text>
+                                        {isBankVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
+                                    </View>
+                                    <TextInput
+                                        value={ifsc}
+                                        onChangeText={setIfsc}
+                                        placeholder={user?.ifsc_code || "HDFC0001234"}
+                                        placeholderTextColor={colors.mutedForeground}
+                                        autoCapitalize="characters"
+                                        style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                                    />
+                                </View>
+                            </View>
+
+                            {!isBankVerifiedNow && (
+                                <TouchableOpacity
+                                    onPress={handleVerifyBank}
+                                    disabled={isVerifying}
+                                    style={{ backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 24, flexDirection: 'row', justifyContent: 'center', gap: 10, opacity: isVerifying ? 0.7 : 1 }}
+                                >
+                                    {isVerifying ? <ActivityIndicator color={colors.primaryForeground} /> : (
+                                        <>
+                                            <ShieldCheck size={20} color={colors.primaryForeground} />
+                                            <Text style={{ color: colors.primaryForeground, fontWeight: 'bold', fontSize: 16 }}>Verify Bank Account</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
                             )}
                         </View>
-                    )}
-                </KeyboardAwareScrollView>
-            </View>
-        </SafeAreaView>
+
+                        {isBankVerifiedNow && user.kyc_data?.bank_details && (
+                            <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
+                                <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Bank Details:</Text>
+                                <VerifiedValue label="Beneficiary" value={user.kyc_data.bank_details.name_at_bank} />
+                                <VerifiedValue label="Bank" value={user.kyc_data.bank_details.bank_name} />
+                                <VerifiedValue label="Status" value={user.kyc_data.bank_details.account_status} />
+                            </View>
+                        )}
+                    </View>
+                )}
+            </KeyboardAwareScrollView>
+        </View>
     );
 }

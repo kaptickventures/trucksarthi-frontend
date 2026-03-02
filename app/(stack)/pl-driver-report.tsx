@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StatusBar, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react-native";
 import useDrivers from "../../hooks/useDriver";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import { useTranslation } from "../../context/LanguageContext";
 
 const toRefId = (value: any) =>
   typeof value === "string" ? value : value?._id ? String(value._id) : "";
@@ -14,6 +14,7 @@ const toRefId = (value: any) =>
 export default function PLDriverReportScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const { t } = useTranslation();
   const isDark = theme === "dark";
   const { drivers, fetchDrivers } = useDrivers();
   const { transactions, fetchTransactions, loading } = useFinance();
@@ -24,7 +25,7 @@ export default function PLDriverReportScreen() {
     await Promise.all([fetchDrivers(), fetchTransactions()]);
     setRefreshing(false);
   }, [fetchDrivers, fetchTransactions]);
-  
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -55,30 +56,31 @@ export default function PLDriverReportScreen() {
   }, [drivers, transactions]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <View style={{ paddingHorizontal: 20, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color={colors.foreground} /></TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>Driver Khata Report</Text>
-        <View style={{ width: 24 }} />
-      </View>
 
       <FlatList
         data={rows}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 20, paddingBottom: 120, gap: 10 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
+        ListHeaderComponent={
+          <View className="mb-6 px-0 mt-5">
+            <Text className="text-3xl font-black" style={{ color: colors.foreground }}>{t('driverPL')}</Text>
+            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewDriverPL')}</Text>
+          </View>
+        }
         ListEmptyComponent={<Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 60 }}>{loading ? "Loading..." : "No driver report data."}</Text>}
         renderItem={({ item }) => (
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() =>
               router.push({
-                pathname: "/(stack)/pl-report-detail",
-                params: { entityType: "driver", entityId: item.id },
+                pathname: "/(stack)/pl-driver-report-detail",
+                params: { entityId: item.id },
               } as any)
             }
-            style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14 }}
+            style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}
           >
             <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.name}</Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>{item.count} entries</Text>
@@ -104,6 +106,6 @@ export default function PLDriverReportScreen() {
           </TouchableOpacity>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }

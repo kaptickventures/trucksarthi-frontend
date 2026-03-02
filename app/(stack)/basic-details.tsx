@@ -27,7 +27,6 @@ import {
     StatusBar
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useUser } from "../../hooks/useUser";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { formatDate, getFileUrl } from "../../lib/utils";
@@ -156,7 +155,7 @@ export default function BasicDetailsScreen() {
     const isEmailPlaceholder = currentEmail.includes("@trucksarthi.com") && user?.phone && currentEmail.startsWith(user?.phone);
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
             <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -340,7 +339,7 @@ export default function BasicDetailsScreen() {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
     );
 }
 

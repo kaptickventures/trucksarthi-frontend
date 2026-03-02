@@ -37,7 +37,9 @@ export default function DashboardScreen() {
                 paddingHorizontal: 16,
                 paddingVertical: 12,
                 paddingTop: insets.top + 12,
-                backgroundColor: colors.background
+                backgroundColor: colors.background,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border
             }}>
                 <TouchableOpacity onPress={() => setMenuVisible(true)}>
                     <Ionicons name="menu" size={28} color={colors.foreground} />

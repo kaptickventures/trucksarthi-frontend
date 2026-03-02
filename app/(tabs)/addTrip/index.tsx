@@ -18,6 +18,7 @@ import {
   StyleSheet,
   RefreshControl
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../../../hooks/useThemeStore";
 import { Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Plus, Navigation } from 'lucide-react-native';
 
@@ -46,6 +47,7 @@ export default function AddTrip() {
   const navigation = useNavigation();
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const insets = useSafeAreaInsets();
   const [menuVisible, setMenuVisible] = useState(false);
   const { t } = useTranslation();
   const isDark = theme === "dark";
@@ -56,7 +58,17 @@ export default function AddTrip() {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
-      headerStyle: { backgroundColor: colors.background, elevation: 0, shadowOpacity: 0 },
+      headerStyle: { backgroundColor: colors.background },
+      headerBackground: () => (
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: colors.background,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        />
+      ),
       headerTitleStyle: { color: colors.foreground, fontWeight: "800", fontSize: 22 },
       headerTintColor: colors.foreground,
       headerLeft: () => (
@@ -475,8 +487,6 @@ export default function AddTrip() {
         onChange={(d) => setFormData({ ...formData, date: d })}
       />
 
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
-
       {/* Creation Modals */}
       <ClientFormModal visible={isClientModalVisible} editing={false} formData={clientFormData} setFormData={setClientFormData} onSubmit={async () => {
         if (!clientFormData.client_name || !clientFormData.contact_number) return Alert.alert("Missing Fields", "Name and contact required.");
@@ -486,18 +496,24 @@ export default function AddTrip() {
         fetchClients();
       }} onClose={() => setIsClientModalVisible(false)} />
 
-      <DriverFormModal visible={isDriverModalVisible} editing={false} formData={driverFormData} setFormData={setDriverFormData} onSubmit={async () => {
-        if (!driverFormData.driver_name || !driverFormData.contact_number) return Alert.alert("Missing Fields", "Name and contact required.");
-        try {
-          const res = await addDriver(driverFormData);
-          setFormData(p => ({ ...p, driver_id: res._id }));
-          setIsDriverModalVisible(false);
-          fetchDrivers();
-        } catch (err: any) {
-          const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || "Failed to add driver";
-          Alert.alert("Error", msg);
-        }
-      }} onClose={() => setIsDriverModalVisible(false)} />
+      <DriverFormModal
+        visible={isDriverModalVisible}
+        editing={false}
+        formData={driverFormData}
+        setFormData={setDriverFormData}
+        trucks={trucks}
+        onSubmit={async () => {
+          if (!driverFormData.driver_name || !driverFormData.contact_number) return Alert.alert("Missing Fields", "Name and contact required.");
+          try {
+            const res = await addDriver(driverFormData);
+            setFormData(p => ({ ...p, driver_id: res._id }));
+            setIsDriverModalVisible(false);
+            fetchDrivers();
+          } catch (err: any) {
+            const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || "Failed to add driver";
+            Alert.alert("Error", msg);
+          }
+        }} onClose={() => setIsDriverModalVisible(false)} />
 
       <TruckFormModal visible={isTruckModalVisible} editing={false} formData={truckFormData} setFormData={setTruckFormData} onSubmit={async () => {
         if (!truckFormData.registration_number || !truckFormData.registered_owner_name) return Alert.alert("Missing Fields", "Registration and owner required.");
@@ -516,6 +532,7 @@ export default function AddTrip() {
         fetchLocations();
       }} onClose={() => setIsLocationModalVisible(false)} />
 
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={insets.top + 56} />
     </View>
   );
 }
