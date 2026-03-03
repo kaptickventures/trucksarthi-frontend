@@ -169,17 +169,17 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const [notificationRes, meRes] = await Promise.all([
-        API.get("/api/notifications/my", { params: { limit: 50 } }),
-        API.get("/api/auth/me"),
-      ]);
+      const notificationRes = await API.get("/api/notifications/my", { params: { limit: 50 } });
 
       const serverNotifications = notificationRes.data?.notifications || [];
-      const me = meRes.data || {};
-      const assignedTruckId =
-        typeof me.assigned_truck_id === "object"
-          ? me.assigned_truck_id?._id
-          : me.assigned_truck_id;
+      const latestPairedTrip = [...(trips || [])]
+        .filter((trip) => normalizeId((trip as any)?.driver) === String(user?._id))
+        .sort((a: any, b: any) => {
+          const aTime = new Date(a?.trip_date || a?.createdAt || 0).getTime();
+          const bTime = new Date(b?.trip_date || b?.createdAt || 0).getTime();
+          return bTime - aTime;
+        })[0];
+      const assignedTruckId = normalizeId((latestPairedTrip as any)?.truck);
 
       if (!assignedTruckId) {
         setNotifications(serverNotifications);
@@ -205,7 +205,7 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
       console.error("Failed to fetch notifications", error);
       setNotifications([]);
     }
-  }, [buildAssignedTruckDocReminders]);
+  }, [buildAssignedTruckDocReminders, trips, user?._id]);
 
   const refreshAll = useCallback(async () => {
     setRefreshing(true);

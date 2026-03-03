@@ -167,8 +167,10 @@ export default function RunningExpensesDashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View className="mb-3 px-0">
-          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{selectedTruck?.registration_number || "Truck"} {t('runningExpenses')}</Text>
-          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage running expenses for this truck</Text>
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('runningExpenses')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>
+            {selectedTruck?.registration_number || "Truck"}
+          </Text>
         </View>
 
         {/* Summary Info Header */}

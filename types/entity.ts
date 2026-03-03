@@ -263,6 +263,7 @@ export interface Location {
 
   location_name: string;
   complete_address?: string;
+  place_id?: string;
 
   latitude?: number;
   longitude?: number;

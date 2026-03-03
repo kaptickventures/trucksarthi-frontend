@@ -519,7 +519,7 @@ export default function TripLog() {
           )
         }
       </ScrollView >
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
       <EditTripModal
         visible={isEditVisible}
         onClose={() => setEditVisible(false)}

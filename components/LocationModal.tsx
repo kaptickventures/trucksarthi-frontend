@@ -1,6 +1,7 @@
 import { X } from "lucide-react-native";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+    ActivityIndicator,
     Animated,
     KeyboardAvoidingView,
     Modal,
@@ -13,12 +14,15 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../hooks/useThemeStore";
+import { LocationSuggestion } from "../hooks/useLocation";
 
 type LocationFormData = {
     location_name: string;
     complete_address: string;
+    place_id?: string;
+    latitude?: number;
+    longitude?: number;
 };
 
 type Props = {
@@ -26,6 +30,7 @@ type Props = {
     editing: boolean;
     formData: LocationFormData;
     setFormData: (data: LocationFormData) => void;
+    searchLocations?: (query: string) => Promise<LocationSuggestion[]>;
     onSubmit: () => void;
     onClose: () => void;
 };
@@ -35,14 +40,16 @@ export default function LocationFormModal({
     editing,
     formData,
     setFormData,
+    searchLocations,
     onSubmit,
     onClose,
 }: Props) {
     const { colors, theme } = useThemeStore();
     const isDark = theme === "dark";
     const translateY = useRef(new Animated.Value(0)).current;
-    const insets = useSafeAreaInsets();
     const SCROLL_THRESHOLD = 40;
+    const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
+    const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
     const closeModal = () => {
         Animated.timing(translateY, {
@@ -73,6 +80,40 @@ export default function LocationFormModal({
             },
         })
     ).current;
+
+    useEffect(() => {
+        let mounted = true;
+        const query = String(formData.complete_address || "").trim();
+        if (!visible || editing || !searchLocations || query.length < 2) {
+            setSuggestions([]);
+            return;
+        }
+        setLoadingSuggestions(true);
+        const timer = setTimeout(async () => {
+            try {
+                const results = await searchLocations(query);
+                if (mounted) setSuggestions(results.slice(0, 5));
+            } finally {
+                if (mounted) setLoadingSuggestions(false);
+            }
+        }, 300);
+        return () => {
+            mounted = false;
+            clearTimeout(timer);
+        };
+    }, [formData.complete_address, visible, editing, searchLocations]);
+
+    const onPickSuggestion = (item: LocationSuggestion) => {
+        setSuggestions([]);
+        setFormData({
+            ...formData,
+            place_id: item.place_id,
+            location_name: formData.location_name || item.location_name || "",
+            complete_address: item.complete_address || formData.complete_address,
+            latitude: item.latitude,
+            longitude: item.longitude,
+        });
+    };
 
     return (
         <Modal visible={visible} transparent animationType="fade">
@@ -144,13 +185,59 @@ export default function LocationFormModal({
                                             borderColor: isDark ? colors.border : colors.border + '30'
                                         }}
                                         value={formData.complete_address}
-                                        onChangeText={(val) => setFormData({ ...formData, complete_address: val })}
+                                        onChangeText={(val) =>
+                                            setFormData({
+                                                ...formData,
+                                                complete_address: val,
+                                                place_id: undefined,
+                                                latitude: undefined,
+                                                longitude: undefined,
+                                            })
+                                        }
                                         placeholder="Street, Landmark, City..."
                                         placeholderTextColor={colors.mutedForeground + '60'}
                                         multiline
                                         numberOfLines={4}
                                         textAlignVertical="top"
                                     />
+                                    {loadingSuggestions && (
+                                        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8, gap: 8 }}>
+                                            <ActivityIndicator size="small" color={colors.primary} />
+                                            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Searching places...</Text>
+                                        </View>
+                                    )}
+                                    {suggestions.length > 0 && (
+                                        <View
+                                            style={{
+                                                marginTop: 10,
+                                                borderRadius: 14,
+                                                borderWidth: 1,
+                                                borderColor: colors.border,
+                                                backgroundColor: colors.card,
+                                                overflow: "hidden",
+                                            }}
+                                        >
+                                            {suggestions.map((item) => (
+                                                <TouchableOpacity
+                                                    key={item.place_id}
+                                                    onPress={() => onPickSuggestion(item)}
+                                                    style={{
+                                                        paddingHorizontal: 14,
+                                                        paddingVertical: 12,
+                                                        borderBottomWidth: 1,
+                                                        borderBottomColor: colors.border + "33",
+                                                    }}
+                                                >
+                                                    <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
+                                                        {item.location_name}
+                                                    </Text>
+                                                    <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>
+                                                        {item.complete_address}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
                                 </View>
 
                                 <TouchableOpacity

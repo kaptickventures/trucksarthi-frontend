@@ -33,6 +33,7 @@ export default function LocationsManager() {
     addLocation,
     updateLocation,
     deleteLocation,
+    searchLocations,
   } = useLocations();
 
   const loading = userLoading || locationsLoading;
@@ -40,6 +41,9 @@ export default function LocationsManager() {
   const [formData, setFormData] = useState({
     location_name: "",
     complete_address: "",
+    place_id: "",
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
   });
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -68,10 +72,19 @@ export default function LocationsManager() {
       setFormData({
         location_name: data.location_name,
         complete_address: data.complete_address || "",
+        place_id: data.place_id || "",
+        latitude: data.latitude,
+        longitude: data.longitude,
       });
     } else {
       setEditingId(null);
-      setFormData({ location_name: "", complete_address: "" });
+      setFormData({
+        location_name: "",
+        complete_address: "",
+        place_id: "",
+        latitude: undefined,
+        longitude: undefined,
+      });
     }
     setModalVisible(true);
   };
@@ -217,6 +230,7 @@ export default function LocationsManager() {
         editing={!!editingId}
         formData={formData}
         setFormData={setFormData}
+        searchLocations={searchLocations}
         onSubmit={handleSubmit}
         onClose={closeModal}
       />

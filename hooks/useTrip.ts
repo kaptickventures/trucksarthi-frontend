@@ -77,7 +77,12 @@ export default function useTrips(options: UseTripsOptions = {}) {
   );
 
   const totalTrips = trips.length;
-  const recentTrips = trips.slice(0, 3);
+  const recentTrips = [...trips]
+    .sort((a, b) => {
+      const aTime = new Date((a as any).trip_date || (a as any).createdAt || 0).getTime();
+      const bTime = new Date((b as any).trip_date || (b as any).createdAt || 0).getTime();
+      return bTime - aTime;
+    });
 
   return {
     trips,

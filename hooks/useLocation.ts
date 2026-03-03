@@ -4,6 +4,14 @@ import API from "../app/api/axiosInstance";
 
 import { Location } from "../types/entity";
 
+export type LocationSuggestion = {
+  place_id: string;
+  location_name: string;
+  complete_address?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
 export default function useLocations() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,9 +65,22 @@ export default function useLocations() {
     }
   };
 
+  const searchLocations = async (query: string): Promise<LocationSuggestion[]> => {
+    try {
+      if (!query || query.trim().length < 2) return [];
+      const res = await API.get(`/api/locations/autocomplete`, {
+        params: { query: query.trim() },
+      });
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (error: any) {
+      console.error("Autocomplete error:", error.response?.data || error);
+      return [];
+    }
+  };
+
   useEffect(() => {
     fetchLocations();
   }, [fetchLocations]);
 
-  return { locations, loading, fetchLocations, addLocation, updateLocation, deleteLocation };
+  return { locations, loading, fetchLocations, addLocation, updateLocation, deleteLocation, searchLocations };
 }

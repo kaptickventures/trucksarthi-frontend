@@ -53,7 +53,6 @@ export default function useDrivers() {
       const payload = {
         name,
         phoneNumber,
-        assigned_truck_id: data.assigned_truck_id || null,
         // Keep legacy keys too for cross-backend compatibility.
         driver_name: name,
         contact_number: phoneNumber,

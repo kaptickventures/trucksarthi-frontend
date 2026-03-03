@@ -135,22 +135,90 @@ export default function HomeScreen() {
     return toShortId(sId);
   };
 
-  // Filter expiring documents (next 30 days)
-  const expiringDocs = documents.filter(doc => {
-    if (!doc.expiry_date || doc.status === 'expired') return false;
-    const expiry = new Date(doc.expiry_date);
+  const parseExpiryDate = (value: any): Date | null => {
+    if (!value) return null;
+    const direct = new Date(value);
+    if (!Number.isNaN(direct.getTime())) return direct;
+    if (typeof value !== "string") return null;
+
+    const normalized = value.trim();
+    const parts = normalized.split(/[-/]/);
+    if (parts.length === 3) {
+      // Supports DD-MM-YYYY / DD/MM/YYYY fallback
+      const [p1, p2, p3] = parts.map((p) => Number(p));
+      if (p1 > 0 && p2 > 0 && p3 > 999) {
+        const d = new Date(p3, p2 - 1, p1);
+        if (!Number.isNaN(d.getTime())) return d;
+      }
+    }
+    return null;
+  };
+
+  const isWithinReminderWindow = (expiry: Date): boolean => {
     const today = new Date();
-    const diffTime = expiry.getTime() - today.getTime();
+    const expiryStart = new Date(expiry.getFullYear(), expiry.getMonth(), expiry.getDate());
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffTime = expiryStart.getTime() - todayStart.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays >= 0 && diffDays <= 30;
-  });
+  };
+
+  type HomeReminder = {
+    key: string;
+    label: string;
+    truck: any;
+    expiry: Date;
+  };
+
+  // Uploaded truck-document reminders
+  const docReminders: HomeReminder[] = documents
+    .map((doc) => {
+      const rawExpiry = (doc as any).expiry_date ?? (doc as any).expiryDate;
+      const expiry = parseExpiryDate(rawExpiry);
+      if (!expiry || !isWithinReminderWindow(expiry)) return null;
+      return {
+        key: `doc-${doc._id}`,
+        label: `${doc.document_type} Expiring`,
+        truck: doc.truck,
+        expiry,
+      } as HomeReminder;
+    })
+    .filter(Boolean) as HomeReminder[];
+
+  // Truck-level reminders from API expiry fields (works even without uploaded docs)
+  const truckFieldReminders = useMemo(() => {
+    const fields: Array<{ key: string; label: string; read: (truck: any) => any }> = [
+      { key: "insurance", label: "Insurance Expiring", read: (truck) => truck.insurance_upto || truck?.rc_details?.vehicle_insurance_upto },
+      { key: "fitness", label: "Fitness Expiring", read: (truck) => truck.fitness_upto || truck?.rc_details?.rc_expiry_date },
+      { key: "permit", label: "Permit Expiring", read: (truck) => truck.permit_upto || truck?.rc_details?.permit_valid_upto },
+      { key: "pucc", label: "PUCC Expiring", read: (truck) => truck.pollution_upto || truck?.rc_details?.pucc_upto },
+    ];
+
+    const reminders: HomeReminder[] = [];
+    for (const truck of trucks || []) {
+      for (const field of fields) {
+        const expiry = parseExpiryDate(field.read(truck));
+        if (!expiry || !isWithinReminderWindow(expiry)) continue;
+        reminders.push({
+          key: `truck-${truck._id}-${field.key}`,
+          label: field.label,
+          truck,
+          expiry,
+        });
+      }
+    }
+    return reminders;
+  }, [trucks]);
+
   const latestReminderDocs = useMemo(
     () =>
-      [...expiringDocs]
-        .sort((a: any, b: any) => new Date(b.expiry_date || 0).getTime() - new Date(a.expiry_date || 0).getTime())
+      [...docReminders, ...truckFieldReminders]
+        .sort((a, b) => a.expiry.getTime() - b.expiry.getTime())
         .slice(0, 5),
-    [expiringDocs]
+    [docReminders, truckFieldReminders]
   );
+
+  const totalReminderCount = docReminders.length + truckFieldReminders.length;
 
   useEffect(() => {
     setRecentTripsVisibleCount(5);
@@ -361,30 +429,29 @@ export default function HomeScreen() {
         <View style={{ backgroundColor: colors.card }} className="rounded-2xl p-4 mb-6">
           <View className="flex-row justify-between items-center mb-3">
             <Text style={{ color: colors.foreground }} className="font-semibold text-lg">{t('reminders')}</Text>
-            <TouchableOpacity onPress={() => router.push("/(stack)/notifications" as any)}>
-              <Text className="text-muted-foreground text-sm">{t('viewAll')} →</Text>
-            </TouchableOpacity>
+            {totalReminderCount > 5 && (
+              <TouchableOpacity onPress={() => router.push("/(stack)/notifications" as any)}>
+                <Text className="text-muted-foreground text-sm">{t('viewAll')} →</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {latestReminderDocs.length > 0 ? (
-            latestReminderDocs.map((doc) => {
-              const getId = (obj: any): string =>
-                typeof obj === "object" ? obj?._id : obj;
-              const truckId = getId(doc.truck);
-              const dateStr = doc.expiry_date ? formatDate(doc.expiry_date) : "No Date";
+            latestReminderDocs.map((item) => {
+              const dateStr = formatDate(item.expiry);
 
               return (
                 <View
-                  key={doc._id}
+                  key={item.key}
                   style={{ backgroundColor: colors.secondary }}
                   className="flex-row justify-between items-center p-3 rounded-xl mb-2"
                 >
                   <View className="flex-1">
                     <Text style={{ color: colors.secondaryForeground }} className="font-medium text-sm">
-                      {doc.document_type} Expiring
+                      {item.label}
                     </Text>
                     <Text className="text-muted-foreground text-[10px] mt-1">
-                      Truck: {getTruckName(doc.truck)}
+                      Truck: {getTruckName(item.truck)}
                     </Text>
                   </View>
                   <View className="items-end">
@@ -467,14 +534,14 @@ export default function HomeScreen() {
               className="mt-2 p-2 rounded-lg items-center"
             >
               <Text style={{ color: colors.secondaryForeground }} className="text-xs font-semibold">
-                {recentTripsVisibleCount < 10 ? "Load 5 more" : "Show all"}
+                {recentTripsVisibleCount < 10 ? "Load 5 more" : "View all"}
               </Text>
             </TouchableOpacity>
           )}
         </View>
       </ScrollView>
 
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
     </>
   );
 }

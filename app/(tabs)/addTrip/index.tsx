@@ -116,7 +116,7 @@ export default function AddTrip() {
   const { trucks, addTruck, fetchTrucks } = useTrucks();
   const { drivers, addDriver, fetchDrivers } = useDrivers();
   const { clients, addClient, fetchClients } = useClients();
-  const { locations, addLocation, fetchLocations } = useLocations();
+  const { locations, addLocation, fetchLocations, searchLocations } = useLocations();
   const { addTrip } = useTrips();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -183,7 +183,13 @@ export default function AddTrip() {
   const [clientFormData, setClientFormData] = useState({ client_name: "", contact_person_name: "", contact_number: "", alternate_contact_number: "", email_address: "", office_address: "" });
   const [driverFormData, setDriverFormData] = useState({ driver_name: "", contact_number: "", identity_card_url: "", license_card_url: "" });
   const [truckFormData, setTruckFormData] = useState({ registration_number: "", chassis_number: "", engine_number: "", registered_owner_name: "", container_dimension: "", loading_capacity: "" });
-  const [locationFormData, setLocationFormData] = useState({ location_name: "", complete_address: "" });
+  const [locationFormData, setLocationFormData] = useState({
+    location_name: "",
+    complete_address: "",
+    place_id: "",
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
+  });
 
   const handleSave = async () => {
     const { truck_id, driver_id, client_id, start_location_id, end_location_id, cost_of_trip } = formData;
@@ -504,7 +510,6 @@ export default function AddTrip() {
         editing={false}
         formData={driverFormData}
         setFormData={setDriverFormData}
-        trucks={trucks}
         onSubmit={async () => {
           if (!driverFormData.driver_name || !driverFormData.contact_number) return Alert.alert("Missing Fields", "Name and contact required.");
           try {
@@ -526,7 +531,7 @@ export default function AddTrip() {
         fetchTrucks();
       }} onClose={() => setIsTruckModalVisible(false)} />
 
-      <LocationFormModal visible={isLocationModalVisible} editing={false} formData={locationFormData} setFormData={setLocationFormData} onSubmit={async () => {
+      <LocationFormModal visible={isLocationModalVisible} editing={false} formData={locationFormData} setFormData={setLocationFormData} searchLocations={searchLocations} onSubmit={async () => {
         if (!locationFormData.location_name || !locationFormData.complete_address) return Alert.alert("Missing Fields", "Name and address required.");
         const res = await addLocation(locationFormData);
         if (!formData.start_location_id) setFormData(p => ({ ...p, start_location_id: res._id }));
@@ -535,7 +540,7 @@ export default function AddTrip() {
         fetchLocations();
       }} onClose={() => setIsLocationModalVisible(false)} />
 
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
     </View>
   );
 }
