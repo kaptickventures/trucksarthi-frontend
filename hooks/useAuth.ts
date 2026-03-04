@@ -35,13 +35,12 @@ export async function loginWithEmail(email: string, pass: string) {
   }
 }
 
-
 export async function requestEmailOtp(email: string) {
   try {
     await API.post("/api/auth/send-otp", { email });
     return true;
   } catch (err: any) {
-    console.error("❌ Send OTP error:", err.response?.data || err.message);
+    console.error("Send OTP error:", err.response?.data || err.message);
     throw err.response?.data?.error || err.response?.data?.message || err.message || "Failed to send OTP";
   }
 }
@@ -55,18 +54,17 @@ export async function verifyEmailOtp(email: string, otp: string) {
     }
     return { token, user };
   } catch (err: any) {
-    console.error("❌ Email OTP login error:", err.response?.data || err.message);
+    console.error("Email OTP login error:", err.response?.data || err.message);
     throw err.response?.data?.error || err.response?.data?.message || err.message || "OTP login failed";
   }
 }
 
-// Deprecated or unused phone OTP function (renaming/keeping for safety but not using)
 export async function sendPhoneOtp(phone: string, userType?: string) {
   try {
     await API.post("/api/auth/request-phone-otp", { phone, userType });
     return true;
   } catch (err: any) {
-    console.error("❌ Send OTP error:", err.response?.data || err.message);
+    console.error("Send OTP error:", err.response?.data || err.message);
     throw err.response?.data?.error || err.response?.data?.message || err.message || "Failed to send OTP";
   }
 }
@@ -80,21 +78,21 @@ export async function loginWithPhone(phone: string, otp: string, userType?: stri
     }
     return { token, user };
   } catch (err: any) {
-    console.error("❌ Phone login error:", err.response?.data || err.message);
+    console.error("Phone login error:", err.response?.data || err.message);
     throw err.response?.data?.error || err.response?.data?.message || err.message || "Phone login failed";
   }
 }
 
 export async function registerUser(name: string, email: string, pass: string) {
   try {
-    const res = await API.post("/api/auth/", { name, email, password: pass, userType: 'fleet_owner' });
+    const res = await API.post("/api/auth/", { name, email, password: pass, userType: "fleet_owner" });
     const { token, user } = res.data;
     if (token) {
       await AsyncStorage.setItem("userToken", token);
     }
     return { token, user };
   } catch (err: any) {
-    console.error("❌ Registration error:", err.response?.data || err.message);
+    console.error("Registration error:", err.response?.data || err.message);
     throw err.response?.data?.error || err.message || "Registration failed";
   }
 }
@@ -113,17 +111,23 @@ export async function getCurrentUser() {
 }
 
 export async function postLoginFlow(router: any) {
+  const resetAndReplace = (path: string) => {
+    if (typeof router?.dismissAll === "function") {
+      router.dismissAll();
+    }
+    router.replace(path);
+  };
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      router.replace("/auth/login");
+      resetAndReplace("/auth/login");
       return;
     }
 
-    // Role-based routing
     const userRole = getUserRole(user);
     if (userRole === "driver") {
-      router.replace("/(driver)/(tabs)/home" as any);
+      resetAndReplace("/(driver)/(tabs)/home" as any);
       return;
     }
 
@@ -131,12 +135,12 @@ export async function postLoginFlow(router: any) {
     const completed = res.data?.profileCompleted;
 
     if (completed) {
-      router.replace("/(tabs)/home");
+      resetAndReplace("/(tabs)/home");
     } else {
-      router.replace("/basic-details");
+      resetAndReplace("/basic-details");
     }
   } catch (err) {
-    console.error("❌ postLoginFlow error:", err);
-    router.replace("/basic-details");
+    console.error("postLoginFlow error:", err);
+    resetAndReplace("/basic-details");
   }
 }

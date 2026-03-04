@@ -541,7 +541,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
     </>
   );
 }
