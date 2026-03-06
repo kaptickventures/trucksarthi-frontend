@@ -125,12 +125,6 @@ export async function postLoginFlow(router: any) {
       return;
     }
 
-    const userRole = getUserRole(user);
-    if (userRole === "driver") {
-      resetAndReplace("/(driver)/(tabs)/home" as any);
-      return;
-    }
-
     const res = await API.get(`/api/users/check-profile/${user._id}`);
     const completed = res.data?.profileCompleted;
 

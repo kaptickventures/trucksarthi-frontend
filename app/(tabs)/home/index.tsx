@@ -187,11 +187,12 @@ export default function HomeScreen() {
 
   // Truck-level reminders from API expiry fields (works even without uploaded docs)
   const truckFieldReminders = useMemo(() => {
-    const fields: Array<{ key: string; label: string; read: (truck: any) => any }> = [
+    const fields: { key: string; label: string; read: (truck: any) => any }[] = [
       { key: "insurance", label: "Insurance Expiring", read: (truck) => truck.insurance_upto || truck?.rc_details?.vehicle_insurance_upto },
       { key: "fitness", label: "Fitness Expiring", read: (truck) => truck.fitness_upto || truck?.rc_details?.rc_expiry_date },
       { key: "permit", label: "Permit Expiring", read: (truck) => truck.permit_upto || truck?.rc_details?.permit_valid_upto },
       { key: "pucc", label: "PUCC Expiring", read: (truck) => truck.pollution_upto || truck?.rc_details?.pucc_upto },
+      { key: "road_tax", label: "Road Tax Expiring", read: (truck) => truck.road_tax_upto || truck?.rc_details?.vehicle_tax_upto },
     ];
 
     const reminders: HomeReminder[] = [];

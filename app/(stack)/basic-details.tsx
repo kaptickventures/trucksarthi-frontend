@@ -17,6 +17,7 @@ import {
     ActivityIndicator,
     Alert,
     Image,
+    Keyboard,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -101,6 +102,11 @@ export default function BasicDetailsScreen() {
     const handleDateChange = (event: any, selectedDate?: Date) => {
         setShowDatePicker(false);
         if (selectedDate) setDob(selectedDate);
+    };
+
+    const handleOpenDatePicker = () => {
+        Keyboard.dismiss();
+        setShowDatePicker(true);
     };
 
     const validate = () => {
@@ -241,7 +247,7 @@ export default function BasicDetailsScreen() {
                                 <Text style={{ fontSize: 12, fontWeight: '800', color: colors.mutedForeground, marginBottom: 8, marginLeft: 4 }}>DATE OF BIRTH</Text>
                                 <TouchableOpacity
                                     activeOpacity={0.7}
-                                    onPress={() => setShowDatePicker(true)}
+                                    onPress={handleOpenDatePicker}
                                     style={{
                                         flexDirection: 'row',
                                         alignItems: 'center',
@@ -260,6 +266,18 @@ export default function BasicDetailsScreen() {
                                     </Text>
                                     <ChevronRight size={18} color={colors.border} />
                                 </TouchableOpacity>
+
+                                {showDatePicker && (
+                                    <View style={{ marginTop: 8 }}>
+                                        <DateTimePicker
+                                            value={dob || new Date(new Date().setFullYear(new Date().getFullYear() - 20))}
+                                            mode="date"
+                                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                            onChange={handleDateChange}
+                                            maximumDate={new Date()}
+                                        />
+                                    </View>
+                                )}
                             </View>
 
                             <CustomInput
@@ -294,16 +312,6 @@ export default function BasicDetailsScreen() {
                                 multiline
                                 height={100}
                             />
-
-                            {showDatePicker && (
-                                <DateTimePicker
-                                    value={dob || new Date(new Date().setFullYear(new Date().getFullYear() - 20))}
-                                    mode="date"
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    onChange={handleDateChange}
-                                    maximumDate={new Date()}
-                                />
-                            )}
 
                             {/* Action Button */}
                             <TouchableOpacity

@@ -1,11 +1,9 @@
-import { LinearGradient } from "expo-linear-gradient";
-import { Link, useRouter } from "expo-router";
-import { ChevronLeft, Smartphone, ShieldCheck, Lock } from "lucide-react-native";
-import { useState, useRef } from "react";
+import { useRouter } from "expo-router";
+import { ChevronLeft, Smartphone, Lock } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -20,19 +18,39 @@ import { loginWithPhone, postLoginFlow, sendPhoneOtp } from "../../hooks/useAuth
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useAuth as useAuthContext } from "../../context/AuthContext";
 
-const { width } = Dimensions.get("window");
+const RESEND_SECONDS = 60;
 
 export default function LoginPhone() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const { refreshUser } = useAuthContext();
   const isDark = theme === "dark";
+  const canGoBack = typeof router.canGoBack === "function" ? router.canGoBack() : false;
 
   const [phoneNumber, setPhoneNumber] = useState("+91");
   const [code, setCode] = useState("");
-  const [userType, setUserType] = useState<"fleet_owner" | "driver">("fleet_owner");
+  const userType: "fleet_owner" = "fleet_owner";
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+
+  useEffect(() => {
+    if (!otpSent || secondsLeft <= 0) return;
+
+    const interval = setInterval(() => {
+      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [otpSent, secondsLeft]);
+
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const secs = (seconds % 60).toString().padStart(2, "0");
+    return `${mins}:${secs}`;
+  };
 
   // Formatting phone number
   const formatPhone = (text: string) => {
@@ -50,6 +68,7 @@ export default function LoginPhone() {
       setLoading(true);
       await sendPhoneOtp(phoneNumber, userType);
       setOtpSent(true);
+      setSecondsLeft(RESEND_SECONDS);
     } catch (error: any) {
       Alert.alert("Error", error || "Failed to send OTP. Please try again.");
     } finally {
@@ -84,12 +103,14 @@ export default function LoginPhone() {
         >
           {/* Header */}
           <View style={{ padding: 24, flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ padding: 8, marginLeft: -8 }}
-            >
-              <ChevronLeft size={28} color={colors.foreground} />
-            </TouchableOpacity>
+            {canGoBack ? (
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={{ padding: 8, marginLeft: -8 }}
+              >
+                <ChevronLeft size={28} color={colors.foreground} />
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           <View style={{ paddingHorizontal: 32, flex: 1, justifyContent: 'center' }}>
@@ -111,58 +132,6 @@ export default function LoginPhone() {
 
             {!otpSent ? (
               <View style={{ gap: 20 }}>
-                {/* Role Switcher */}
-                <View style={{
-                  flexDirection: 'row',
-                  backgroundColor: isDark ? colors.card : '#F0F2F5',
-                  borderRadius: 16,
-                  padding: 4,
-                  marginBottom: 8
-                }}>
-                  <TouchableOpacity
-                    onPress={() => setUserType('fleet_owner')}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 12,
-                      alignItems: 'center',
-                      borderRadius: 12,
-                      backgroundColor: userType === 'fleet_owner' ? (isDark ? colors.foreground : 'white') : 'transparent',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: userType === 'fleet_owner' ? 0.1 : 0,
-                      shadowRadius: 4,
-                      elevation: userType === 'fleet_owner' ? 2 : 0
-                    }}
-                  >
-                    <Text style={{
-                      fontSize: 14,
-                      fontWeight: '700',
-                      color: userType === 'fleet_owner' ? (isDark ? colors.background : colors.foreground) : colors.mutedForeground
-                    }}>Fleet Owner</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setUserType('driver')}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 12,
-                      alignItems: 'center',
-                      borderRadius: 12,
-                      backgroundColor: userType === 'driver' ? (isDark ? colors.foreground : 'white') : 'transparent',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: userType === 'driver' ? 0.1 : 0,
-                      shadowRadius: 4,
-                      elevation: userType === 'driver' ? 2 : 0
-                    }}
-                  >
-                    <Text style={{
-                      fontSize: 14,
-                      fontWeight: '700',
-                      color: userType === 'driver' ? (isDark ? colors.background : colors.foreground) : colors.mutedForeground
-                    }}>Driver</Text>
-                  </TouchableOpacity>
-                </View>
-
                 <View>
                   <Text style={{ fontSize: 14, fontWeight: '600', color: colors.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
                     Phone Number
@@ -187,8 +156,8 @@ export default function LoginPhone() {
                         flex: 1,
                         paddingVertical: 16,
                         paddingHorizontal: 12,
-                        fontSize: 18,
-                        fontWeight: '600',
+                        fontSize: 20,
+                        fontWeight: '800',
                         color: colors.foreground
                       }}
                     />
@@ -273,9 +242,26 @@ export default function LoginPhone() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  onPress={handleSendOTP}
+                  disabled={loading || secondsLeft > 0}
+                  style={{ alignSelf: "center", paddingVertical: 6 }}
+                >
+                  <Text
+                    style={{
+                      color: secondsLeft > 0 ? colors.mutedForeground : colors.primary,
+                      fontWeight: "600",
+                      fontSize: 14,
+                    }}
+                  >
+                    {secondsLeft > 0 ? `Resend OTP in ${formatTimer(secondsLeft)}` : "Resend OTP"}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   onPress={() => {
                     setOtpSent(false);
                     setCode("");
+                    setSecondsLeft(0);
                   }}
                   style={{ alignSelf: 'center' }}
                 >
@@ -292,14 +278,6 @@ export default function LoginPhone() {
               <View style={{ height: 1.5, flex: 1, backgroundColor: isDark ? colors.border : '#E9ECEF' }} />
             </View>
 
-            <TouchableOpacity
-              onPress={() => router.push("/auth/login-email")}
-              style={{ marginTop: 24, paddingVertical: 12, alignItems: 'center' }}
-            >
-              <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>
-                Try <Text style={{ color: colors.primary, fontWeight: '700' }}>Email Login</Text> instead
-              </Text>
-            </TouchableOpacity>
           </View>
 
           <View style={{ padding: 32, alignItems: 'center' }}>

@@ -29,36 +29,92 @@ export default function NotificationsScreen() {
   const { documents, loading: docsLoading, fetchDocuments } = useTruckDocuments();
   const { trucks, fetchTrucks } = useTrucks();
 
-  const allNotifications = useMemo(() => {
-    const reminders = documents.filter(doc => {
-      if (!doc.expiry_date || doc.status === 'expired') return false;
-      const expiry = new Date(doc.expiry_date);
-      const today = new Date();
-      const diffTime = expiry.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays >= 0 && diffDays <= 30;
-    }).map(doc => {
-      const truckId = typeof doc.truck === "object" ? doc.truck?._id : doc.truck;
-      const truck = trucks.find(t => String(t._id) === String(truckId));
-      const truckName = truck?.registration_number || (typeof doc.truck === "object" ? doc.truck?.registration_number : 'N/A');
-      const expiry = new Date(doc.expiry_date);
-      const today = new Date();
-      const diffTime = expiry.getTime() - today.getTime();
-      const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const parseExpiryDate = (value: any): Date | null => {
+    if (!value) return null;
+    const direct = new Date(value);
+    if (!Number.isNaN(direct.getTime())) return direct;
+    if (typeof value !== "string") return null;
 
-      return {
-        _id: `reminder-${doc._id}`,
-        title: `${doc.document_type} Expiring`,
-        message: `Your ${doc.document_type} for truck ${truckName} is expiring on ${formatDate(doc.expiry_date)}.`,
-        type: "DOC_EXPIRY",
-        status: "REMINDER",
-        scheduled_at: new Date().toISOString(),
-        is_reminder: true,
-        daysLeft
-      };
+    const normalized = value.trim();
+    const parts = normalized.split(/[-/]/);
+    if (parts.length === 3) {
+      const [p1, p2, p3] = parts.map((p) => Number(p));
+      if (p1 > 0 && p2 > 0 && p3 > 999) {
+        const d = new Date(p3, p2 - 1, p1);
+        if (!Number.isNaN(d.getTime())) return d;
+      }
+    }
+    return null;
+  };
+
+  const getDaysLeft = (expiry: Date) => {
+    const today = new Date();
+    const expiryStart = new Date(expiry.getFullYear(), expiry.getMonth(), expiry.getDate());
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffTime = expiryStart.getTime() - todayStart.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const allNotifications = useMemo(() => {
+    const reminders = documents
+      .filter((doc) => {
+        if (!doc.expiry_date || doc.status === "expired") return false;
+        const expiry = parseExpiryDate(doc.expiry_date);
+        if (!expiry) return false;
+        const daysLeft = getDaysLeft(expiry);
+        return daysLeft >= 0 && daysLeft <= 30;
+      })
+      .map((doc) => {
+        const truckId = typeof doc.truck === "object" ? doc.truck?._id : doc.truck;
+        const truck = trucks.find((t) => String(t._id) === String(truckId));
+        const truckName = truck?.registration_number || (typeof doc.truck === "object" ? doc.truck?.registration_number : "N/A");
+        const expiry = parseExpiryDate(doc.expiry_date);
+        const daysLeft = expiry ? getDaysLeft(expiry) : undefined;
+
+        return {
+          _id: `reminder-${doc._id}`,
+          title: `${doc.document_type} Expiring`,
+          message: `Your ${doc.document_type} for truck ${truckName} is expiring on ${formatDate(doc.expiry_date)}.`,
+          type: "DOC_EXPIRY",
+          status: "REMINDER",
+          scheduled_at: new Date().toISOString(),
+          is_reminder: true,
+          daysLeft,
+        };
+      });
+
+    const truckFieldConfig: { key: string; label: string; read: (truck: any) => any }[] = [
+      { key: "insurance", label: "Insurance", read: (truck) => truck.insurance_upto || truck?.rc_details?.vehicle_insurance_upto },
+      { key: "fitness", label: "Fitness", read: (truck) => truck.fitness_upto || truck?.rc_details?.rc_expiry_date },
+      { key: "permit", label: "Permit", read: (truck) => truck.permit_upto || truck?.rc_details?.permit_valid_upto },
+      { key: "pucc", label: "PUCC", read: (truck) => truck.pollution_upto || truck?.rc_details?.pucc_upto },
+      { key: "road_tax", label: "Road Tax", read: (truck) => truck.road_tax_upto || truck?.rc_details?.vehicle_tax_upto },
+    ];
+
+    const truckFieldReminders = (trucks || []).flatMap((truck) => {
+      const truckName = truck?.registration_number || "N/A";
+      return truckFieldConfig
+        .map((field) => {
+          const rawExpiry = field.read(truck);
+          const expiry = parseExpiryDate(rawExpiry);
+          if (!expiry) return null;
+          const daysLeft = getDaysLeft(expiry);
+          if (daysLeft < 0 || daysLeft > 30) return null;
+          return {
+            _id: `truck-reminder-${truck._id}-${field.key}`,
+            title: `${field.label} Expiring`,
+            message: `Your ${field.label} for truck ${truckName} is expiring on ${formatDate(expiry)}.`,
+            type: "DOC_EXPIRY",
+            status: "REMINDER",
+            scheduled_at: new Date().toISOString(),
+            is_reminder: true,
+            daysLeft,
+          };
+        })
+        .filter(Boolean);
     });
 
-    const combined = [...reminders, ...notifications];
+    const combined = [...reminders, ...truckFieldReminders, ...notifications];
     return combined.sort((a, b) => {
       const dateA = new Date(a.scheduled_at || 0).getTime();
       const dateB = new Date(b.scheduled_at || 0).getTime();

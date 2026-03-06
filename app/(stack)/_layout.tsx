@@ -11,7 +11,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
 
 import { useAuth } from "../../context/AuthContext";
-import { getUserRole } from "../../hooks/useAuth";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
 
@@ -25,21 +24,10 @@ export default function StackLayout() {
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/auth/login" as any);
-      return;
-    }
-
-    const userRole = getUserRole(user);
-    if (
-      !loading &&
-      user &&
-      userRole === "driver"
-    ) {
-      router.replace("/(driver)/(tabs)/home" as any);
     }
   }, [user, loading, router]);
 
-  const userRole = getUserRole(user);
-  if (loading || !user || userRole === "driver") {
+  if (loading || !user) {
     return null;
   }
 
