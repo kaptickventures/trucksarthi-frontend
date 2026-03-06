@@ -10,12 +10,9 @@ export default function AddTripStack() {
   return (
     <NativeStack
       screenOptions={{
-        headerBlurEffect: "systemMaterial",
-        autoHideHomeIndicator: true,
-        headerTransparent: false,
         headerShadowVisible: false,
         headerStyle: {
-          backgroundColor: colors.background,
+          backgroundColor: 'transparent',
         },
         headerBackground: () => (
           <View
@@ -32,8 +29,8 @@ export default function AddTripStack() {
       <NativeStack.Screen
         name="index" // This means app/(tabs)/home/index.tsx
         options={{
-            headerTitle: "Trucksarthi",
-            headerTitleAlign: "center",
+          headerTitle: "Trucksarthi",
+          headerTitleAlign: "center",
         }}
       />
     </NativeStack>

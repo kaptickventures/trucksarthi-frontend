@@ -14,7 +14,7 @@ export default function Index() {
       if (user) {
         postLoginFlow(router);
       } else {
-        router.replace("/auth/login");
+        router.replace("/auth/login" as any);
       }
     }
   }, [user, loading, router]);

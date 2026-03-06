@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { Edit3, Plus, Trash2 } from "lucide-react-native";
+import { Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -30,7 +30,6 @@ export default function ClientsManager() {
     loading: clientsLoading,
     fetchClients,
     addClient,
-    updateClient,
     deleteClient,
   } = useClients();
 
@@ -39,7 +38,6 @@ export default function ClientsManager() {
   const { theme, colors } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -77,28 +75,15 @@ export default function ClientsManager() {
     }, [fetchClients])
   );
 
-  const openModal = (editing = false, data?: any) => {
-    if (editing && data) {
-      setEditingId(data._id);
-      setFormData({
-        client_name: data.client_name || "",
-        contact_person_name: data.contact_person_name || "",
-        contact_number: data.contact_number || "",
-        alternate_contact_number: data.alternate_contact_number || "",
-        email_address: data.email_address || "",
-        office_address: data.office_address || "",
-      });
-    } else {
-      setEditingId(null);
-      setFormData({
-        client_name: "",
-        contact_person_name: "",
-        contact_number: "",
-        alternate_contact_number: "",
-        email_address: "",
-        office_address: "",
-      });
-    }
+  const openModal = () => {
+    setFormData({
+      client_name: "",
+      contact_person_name: "",
+      contact_number: "",
+      alternate_contact_number: "",
+      email_address: "",
+      office_address: "",
+    });
     setModalVisible(true);
   };
 
@@ -129,13 +114,8 @@ export default function ClientsManager() {
     }
 
     try {
-      if (editingId) {
-        await updateClient(editingId, { ...formData, email_address: email });
-        Alert.alert(t("success"), `Client ${t("updatedSuccessfully")}`);
-      } else {
-        await addClient({ ...formData, email_address: email });
-        Alert.alert(t("success"), `Client ${t("addedSuccessfully")}`);
-      }
+      await addClient({ ...formData, email_address: email });
+      Alert.alert(t("success"), `Client ${t("addedSuccessfully")}`);
       closeModal();
       fetchClients();
     } catch {
@@ -209,7 +189,7 @@ export default function ClientsManager() {
               activeOpacity={0.85}
               onPress={() =>
                 router.push({
-                  pathname: "/client-profile",
+                  pathname: "/(stack)/client-profile",
                   params: { clientId: client._id }
                 } as any)
               }
@@ -226,13 +206,7 @@ export default function ClientsManager() {
                   </Text>
                 </View>
                 <View className="flex-row gap-2">
-                  <TouchableOpacity
-                    onPress={(e) => { e.stopPropagation(); openModal(true, client); }}
-                    className="w-10 h-10 rounded-full items-center justify-center border"
-                    style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
-                  >
-                    <Edit3 size={16} color={colors.foreground} />
-                  </TouchableOpacity>
+
 
                   <TouchableOpacity
                     onPress={(e) => { e.stopPropagation(); Linking.openURL(`https://wa.me/91${client.contact_number}`); }}
@@ -261,7 +235,7 @@ export default function ClientsManager() {
 
       {/* Floating Add Button */}
       <TouchableOpacity
-        onPress={() => openModal(false)}
+        onPress={() => openModal()}
         activeOpacity={0.8}
         style={{
           position: 'absolute',
@@ -286,7 +260,7 @@ export default function ClientsManager() {
 
       <ClientFormModal
         visible={modalVisible}
-        editing={!!editingId}
+        editing={false}
         formData={formData}
         setFormData={setFormData}
         onSubmit={handleSubmit}

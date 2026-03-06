@@ -95,10 +95,10 @@ export default function DocumentManager() {
         data={filteredTrucks}
         renderItem={renderItem}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <View style={{ paddingTop: 6, paddingBottom: 16 }}>
+          <View style={{ paddingBottom: 16 }}>
             <View className="mb-3 px-0">
               <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
               <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your fleet documents</Text>

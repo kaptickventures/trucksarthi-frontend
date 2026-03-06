@@ -81,7 +81,7 @@ export default function LoginGoogle() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => router.replace("/auth/login-phone")}
+            onPress={() => router.replace("/auth/login" as any)}
             style={{ marginTop: 24 }}
           >
             <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 14 }}>

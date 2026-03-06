@@ -1,16 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { FlatList, RefreshControl, StatusBar, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowDownLeft } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
+import {
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import useClients from "../../hooks/useClient";
-import useFinance from "../../hooks/useFinance";
+import { useClientLedger } from "../../hooks/useClientLedger";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
 
-const toRefId = (value: any) =>
-  typeof value === "string" ? value : value?._id ? String(value._id) : "";
+type ClientRow = {
+  clientId: string;
+  clientName: string;
+  billed: number;
+  settled: number;
+  unbilled: number;
+};
 
 export default function PLClientReportScreen() {
   const router = useRouter();
@@ -18,87 +28,181 @@ export default function PLClientReportScreen() {
   const { t } = useTranslation();
   const isDark = theme === "dark";
   const { clients, fetchClients } = useClients();
-  const { transactions, fetchTransactions, loading } = useFinance();
-  const [refreshing, setRefreshing] = useState(false);
+  const { fetchSummary } = useClientLedger();
 
-  const loadData = useCallback(async () => {
-    setRefreshing(true);
-    await Promise.all([fetchClients(), fetchTransactions()]);
-    setRefreshing(false);
-  }, [fetchClients, fetchTransactions]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [rows, setRows] = useState<ClientRow[]>([]);
+  const [isBuilding, setIsBuilding] = useState(true);
+
+  const load = useCallback(async () => {
+    await fetchClients();
+  }, [fetchClients]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    load();
+  }, [load]);
 
-  const rows = useMemo(() => {
-    return (clients || [])
-      .map((client: any) => {
-        const clientId = String(client._id);
-        const items = (transactions || []).filter((tx: any) => toRefId(tx.clientId) === clientId);
-        const approved = items.filter((tx: any) => String(tx.approvalStatus || "").toUpperCase() === "APPROVED");
-        const fromClient = approved
-          .filter((tx: any) => String(tx.direction || "").toUpperCase() === "INCOME")
-          .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
+  useEffect(() => {
+    let isMounted = true;
+    const run = async () => {
+      setIsBuilding(true);
+      const next: ClientRow[] = [];
+      await Promise.all(
+        (clients || []).map(async (client: any) => {
+          try {
+            const summary = await fetchSummary(client._id);
+            const billed = Number(summary?.total_debits || 0);
+            const settled = Number(summary?.total_credits || 0);
+            const unbilled = Math.max(0, billed - settled);
+            next.push({
+              clientId: String(client._id),
+              clientName: client.client_name,
+              billed,
+              settled,
+              unbilled,
+            });
+          } catch {
+            next.push({
+              clientId: String(client._id),
+              clientName: client.client_name,
+              billed: 0,
+              settled: 0,
+              unbilled: 0,
+            });
+          }
+        })
+      );
+      if (isMounted) {
+        setRows(
+          next.sort((a, b) => {
+            if (b.unbilled !== a.unbilled) return b.unbilled - a.unbilled;
+            return a.clientName.localeCompare(b.clientName);
+          })
+        );
+        setIsBuilding(false);
+      }
+    };
 
-        return {
-          id: clientId,
-          name: client.client_name || "Unknown Client",
-          fromClient,
-          balance: fromClient,
-          count: items.length,
-        };
-      })
-      .filter((r) => r.count > 0)
-      .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
-  }, [clients, transactions]);
+    if (clients === undefined) return;
+    if (clients.length > 0) run();
+    else {
+      setRows([]);
+      setIsBuilding(false);
+    }
+    return () => { isMounted = false; };
+  }, [clients, fetchSummary]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <FlatList
-        data={rows}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 20, paddingBottom: 120, gap: 10 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
-        ListHeaderComponent={
-          <View className="mb-3 px-0">
-            <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('clientPL')}</Text>
-            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Client profit and loss overview</Text>
-          </View>
-        }
-        ListEmptyComponent={<Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 60 }}>{loading ? "Loading..." : "No client report data."}</Text>}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() =>
-              router.push({
-                pathname: "/(stack)/pl-client-report-detail",
-                params: { clientId: item.id },
-              } as any)
-            }
-            style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14 }}
-          >
-            <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.name}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>{item.count} entries</Text>
-            <View style={{ marginTop: 10 }}>
-              <View style={{ borderRadius: 10, padding: 10, backgroundColor: isDark ? "#064e3b" : "#dcfce7" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 3 }}>
-                  <ArrowDownLeft size={14} color="#16a34a" />
-                  <Text style={{ marginLeft: 4, color: "#166534", fontWeight: "700", fontSize: 10 }}>FROM CLIENT</Text>
-                </View>
-                <Text style={{ color: colors.foreground, fontWeight: "700" }}>Rs {item.fromClient.toLocaleString()}</Text>
-              </View>
-            </View>
-            <Text style={{ color: item.balance >= 0 ? "#16a34a" : "#dc2626", marginTop: 10, fontWeight: "700" }}>
-              Total Balance: {item.balance >= 0 ? "+" : "-"}Rs {Math.abs(item.balance).toLocaleString()}
-            </Text>
-          </TouchableOpacity>
+      <ScrollView
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
+        <View className="mb-3">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('clientPL')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Client billing and payment summary</Text>
+        </View>
+
+        {!isBuilding && rows.length === 0 && (
+          <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 40 }}>No clients found.</Text>
         )}
-      />
-    </SafeAreaView>
+
+        {rows.map((row) => {
+          const hasOutstanding = row.unbilled > 0;
+          const isSettled = row.billed > 0 && row.unbilled === 0;
+
+          return (
+            <TouchableOpacity
+              key={row.clientId}
+              activeOpacity={0.85}
+              onPress={() =>
+                router.push({
+                  pathname: "/(stack)/pl-client-report-detail",
+                  params: { clientId: row.clientId },
+                } as any)
+              }
+              style={{
+                backgroundColor: colors.card,
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3 }}>
+                    {row.clientName}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 20,
+                    backgroundColor: hasOutstanding ? "#fee2e2" : "#dcfce7",
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "800", color: hasOutstanding ? "#dc2626" : "#16a34a" }}>
+                    {hasOutstanding ? `-Rs ${row.unbilled.toLocaleString()} ${t('due') || 'due'}` : t('settled')}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: "row", gap: 16, marginBottom: 10 }}>
+                <View>
+                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('billed').toUpperCase()}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
+                    Rs {row.billed.toLocaleString()}
+                  </Text>
+                </View>
+                <View style={{ width: 1, backgroundColor: colors.border }} />
+                <View>
+                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('settled').toUpperCase()}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}>
+                    Rs {row.settled.toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 6,
+                    backgroundColor: isSettled ? "#dcfce7" : hasOutstanding ? "#fff7ed" : colors.border + "40",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "700",
+                      color: isSettled ? "#16a34a" : hasOutstanding ? "#9a3412" : colors.mutedForeground,
+                    }}
+                  >
+                    {isSettled ? `✓ ${t('settled').toUpperCase()}` : hasOutstanding ? t('pending').toUpperCase() : t('noActivity').toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>View Report</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
-
 

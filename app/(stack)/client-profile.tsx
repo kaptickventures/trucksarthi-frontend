@@ -4,7 +4,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { ArrowDownLeft, Banknote, Building2, Edit, FileText, MapPin, Plus, Share2, X } from "lucide-react-native";
+import { ArrowDownLeft, Banknote, Building2, Calendar, Edit, FileText, MapPin, Plus, Share2, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -17,7 +17,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import BottomSheet from "../../components/BottomSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -34,6 +34,7 @@ import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
 import { formatDate } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
+import API from "../../app/api/axiosInstance";
 
 export default function ClientProfile() {
   const router = useRouter();
@@ -89,6 +90,8 @@ export default function ClientProfile() {
     alternate_contact_number: "",
     email_address: "",
     office_address: "",
+    gstin: "",
+    gstin_details: undefined as any,
   });
   const translateX = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
@@ -532,6 +535,46 @@ export default function ClientProfile() {
     setShowPaymentForm(true);
   };
 
+  const openEditModal = () => {
+    if (client) {
+      setEditFormData({
+        client_name: client.client_name || "",
+        contact_person_name: client.contact_person_name || "",
+        contact_number: client.contact_number || "",
+        alternate_contact_number: client.alternate_contact_number || "",
+        email_address: client.email_address || "",
+        office_address: client.office_address || "",
+        gstin: client.gstin || "",
+        gstin_details: client.gstin_details || undefined,
+      });
+      setShowEditModal(true);
+    }
+  };
+
+  const [verifyingGstin, setVerifyingGstin] = useState(false);
+
+  const verifyGSTIN = async () => {
+    if (!editFormData.gstin) return;
+    setVerifyingGstin(true);
+    try {
+      const res = await API.post("/api/kyc/gstin", { gstin: editFormData.gstin });
+      if (res.data?.verified && res.data?.data) {
+        const details = res.data.data;
+        setEditFormData((prev: any) => ({
+          ...prev,
+          client_name: details.trade_name_of_business || details.legal_name_of_business || prev.client_name,
+          office_address: details.principal_place_address || prev.office_address,
+          gstin_details: details
+        }));
+        Alert.alert("Success", "GSTIN details fetched and applied!");
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e.response?.data?.message || "Failed to verify GSTIN");
+    } finally {
+      setVerifyingGstin(false);
+    }
+  };
+
   const closeEditModal = () => {
     setShowEditModal(false);
   };
@@ -645,7 +688,7 @@ export default function ClientProfile() {
                 {client.client_name}
               </Text>
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                {client.contact_person_name || "—"}
+                {client.contact_person_name || "—"} {client.gstin ? ` • ${client.gstin}` : ""}
               </Text>
             </View>
 
@@ -767,6 +810,31 @@ export default function ClientProfile() {
                   keyboardType="email-address"
                   placeholderTextColor={colors.mutedForeground}
                 />
+              </View>
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>GSTIN Number</Text>
+              <View className="flex-row gap-2">
+                <View className="flex-1">
+                  <TextInput
+                    style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                    value={editFormData.gstin}
+                    onChangeText={(t) => setEditFormData(prev => ({ ...prev, gstin: t }))}
+                    placeholder="e.g. 29ABCDE1234F1Z5"
+                    placeholderTextColor={colors.mutedForeground}
+                    autoCapitalize="characters"
+                  />
+                </View>
+                <TouchableOpacity
+                  onPress={verifyGSTIN}
+                  disabled={verifyingGstin || !editFormData.gstin}
+                  style={{ backgroundColor: editFormData.gstin ? colors.primary : colors.muted }}
+                  className="w-20 rounded-2xl items-center justify-center border border-border/50"
+                >
+                  <Text style={{ color: editFormData.gstin ? "white" : colors.mutedForeground }} className="font-bold text-[10px] uppercase tracking-widest text-center px-1">
+                    {verifyingGstin ? "Verifying..." : "Verify\n& Fill"}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
             <View>

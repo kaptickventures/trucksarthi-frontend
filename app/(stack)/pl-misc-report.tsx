@@ -1,10 +1,10 @@
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FlatList, RefreshControl, StatusBar, Text, TouchableOpacity, View } from "react-native";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react-native";
+import { RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
+import { Skeleton } from "../../components/Skeleton";
 
 export default function PLMiscReportScreen() {
   const router = useRouter();
@@ -16,8 +16,11 @@ export default function PLMiscReportScreen() {
 
   const loadData = useCallback(async () => {
     setRefreshing(true);
-    await fetchTransactions();
-    setRefreshing(false);
+    try {
+      await fetchTransactions({ sourceModule: "MISC" });
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchTransactions]);
 
   useEffect(() => {
@@ -44,24 +47,40 @@ export default function PLMiscReportScreen() {
       .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
   }, [transactions]);
 
+  const showInitialSkeleton = loading && !refreshing && rows.length === 0;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <FlatList
-        data={rows}
-        keyExtractor={(item) => item.category}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
+      <ScrollView
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
-        ListHeaderComponent={
-          <View className="mb-3 px-0">
-            <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('miscPL')}</Text>
-            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewMiscPL')}</Text>
+      >
+        <View className="mb-3">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>
+            {t("miscPL") || "Misc P&L"}
+          </Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>
+            {t("viewMiscPL") || "View misc category-wise reports"}
+          </Text>
+        </View>
+
+        {showInitialSkeleton && (
+          <View>
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} width="100%" height={120} borderRadius={16} style={{ marginBottom: 12 }} />
+            ))}
           </View>
-        }
-        ListEmptyComponent={<Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 60 }}>{loading ? "Loading..." : "No misc report data."}</Text>}
-        renderItem={({ item }) => (
+        )}
+
+        {!loading && rows.length === 0 && (
+          <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 40 }}>No misc reports to render.</Text>
+        )}
+
+        {rows.map((item) => (
           <TouchableOpacity
+            key={item.category}
             activeOpacity={0.85}
             onPress={() =>
               router.push({
@@ -69,32 +88,41 @@ export default function PLMiscReportScreen() {
                 params: { category: item.category },
               } as any)
             }
-            style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: 14,
+              marginBottom: 12
+            }}
           >
-            <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.category.replace(/_/g, " ")}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>{item.count} entries</Text>
-            <View style={{ flexDirection: "row", marginTop: 10, gap: 8 }}>
-              <View style={{ flex: 1, borderRadius: 10, padding: 8, backgroundColor: isDark ? "#064e3b" : "#dcfce7" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 3 }}>
-                  <ArrowDownLeft size={14} color="#16a34a" />
-                  <Text style={{ marginLeft: 4, color: "#166534", fontWeight: "700", fontSize: 10 }}>INCOME</Text>
-                </View>
-                <Text style={{ color: colors.foreground, fontWeight: "700" }}>Rs {item.income.toLocaleString()}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: "800" }}>{item.category.replace(/_/g, " ")}</Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>{item.count} {t('entries') || 'entries'}</Text>
               </View>
-              <View style={{ flex: 1, borderRadius: 10, padding: 8, backgroundColor: isDark ? "#7f1d1d" : "#fee2e2" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 3 }}>
-                  <ArrowUpRight size={14} color="#dc2626" />
-                  <Text style={{ marginLeft: 4, color: "#991b1b", fontWeight: "700", fontSize: 10 }}>EXPENSE</Text>
-                </View>
-                <Text style={{ color: colors.foreground, fontWeight: "700" }}>Rs {item.expense.toLocaleString()}</Text>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: item.net >= 0 ? colors.success + '20' : colors.destructive + '20' }}>
+                <Text style={{ fontSize: 13, fontWeight: "800", color: item.net >= 0 ? colors.success : colors.destructive }}>
+                  {item.net >= 0 ? "+" : "-"}Rs {Math.abs(item.net).toLocaleString()}
+                </Text>
               </View>
             </View>
-            <Text style={{ color: item.net >= 0 ? "#16a34a" : "#dc2626", marginTop: 10, fontWeight: "700" }}>
-              Net: {item.net >= 0 ? "+" : "-"}Rs {Math.abs(item.net).toLocaleString()}
-            </Text>
+
+            <View style={{ flexDirection: "row", gap: 16, marginTop: 4 }}>
+              <View>
+                <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('income')?.toUpperCase() || 'INCOME'}</Text>
+                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>Rs {item.income.toLocaleString()}</Text>
+              </View>
+              <View style={{ width: 1, height: 20, backgroundColor: colors.border, alignSelf: 'center' }} />
+              <View>
+                <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('expense')?.toUpperCase() || 'EXPENSE'}</Text>
+                <Text style={{ color: colors.destructive, fontWeight: "700", fontSize: 13 }}>Rs {item.expense.toLocaleString()}</Text>
+              </View>
+            </View>
           </TouchableOpacity>
-        )}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
 }

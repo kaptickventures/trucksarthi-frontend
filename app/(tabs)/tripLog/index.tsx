@@ -308,11 +308,9 @@ export default function TripLog() {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
-      headerShadowVisible: true,
+      headerShadowVisible: false,
       headerStyle: {
-        backgroundColor: colors.background,
-        borderBottomWidth: 1,
-        borderBottomColor: isDark ? "#2F2F2F" : "#D1D5DB",
+        backgroundColor: "transparent",
       },
       headerBackground: () => (
         <View
@@ -320,7 +318,7 @@ export default function TripLog() {
             flex: 1,
             backgroundColor: colors.background,
             borderBottomWidth: 1,
-            borderBottomColor: isDark ? "#2F2F2F" : "#D1D5DB",
+            borderBottomColor: colors.border,
           }}
         />
       ),
@@ -364,17 +362,17 @@ export default function TripLog() {
   return (
     <View className="flex-1 bg-background" style={{ backgroundColor: colors.background }}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <View className="mb-3 px-5">
+        <View className="mb-3">
           <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('tripLog')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t("trackManageHistory")}</Text>
         </View>
 
-        <View style={{ marginHorizontal: 12, marginTop: 12, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <View style={{ marginTop: 12, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <TouchableOpacity
             onPress={toggleFilters}
             style={{
@@ -431,7 +429,7 @@ export default function TripLog() {
         />
 
         <View
-          className="mx-3 mt-1 mb-6 p-4 rounded-2xl shadow-sm border"
+          className="mt-1 mb-6 p-4 rounded-2xl shadow-sm border"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -453,7 +451,7 @@ export default function TripLog() {
             sortedTrips.map((trip) => {
               const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
               return (
-                <View key={trip._id} style={{ marginHorizontal: 12, marginBottom: 12 }}>
+                <View key={trip._id} style={{ marginBottom: 12 }}>
                   <View
                     className="border rounded-2xl p-3 shadow-sm"
                     style={{ backgroundColor: colors.card, borderColor: colors.border }}
@@ -503,7 +501,7 @@ export default function TripLog() {
                                 try {
                                   await deleteTrip(trip._id);
                                   await fetchTrips();
-                                } catch {}
+                                } catch { }
                               },
                             },
                           ]);
@@ -533,7 +531,7 @@ export default function TripLog() {
           try {
             await deleteTrip(id);
             await fetchTrips();
-          } catch {}
+          } catch { }
         }}
       />
     </View >

@@ -1,4 +1,4 @@
-import { X } from "lucide-react-native";
+import { MapPin, Search, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
@@ -50,6 +50,7 @@ export default function LocationFormModal({
     const SCROLL_THRESHOLD = 40;
     const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
     const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     const closeModal = () => {
         Animated.timing(translateY, {
@@ -84,7 +85,8 @@ export default function LocationFormModal({
     useEffect(() => {
         let mounted = true;
         const query = String(formData.complete_address || "").trim();
-        if (!visible || editing || !searchLocations || query.length < 2) {
+        // Removed 'editing' check so search works during edit too
+        if (!visible || !searchLocations || query.length < 3 || (formData.place_id && !isSearchFocused)) {
             setSuggestions([]);
             return;
         }
@@ -96,15 +98,16 @@ export default function LocationFormModal({
             } finally {
                 if (mounted) setLoadingSuggestions(false);
             }
-        }, 300);
+        }, 400);
         return () => {
             mounted = false;
             clearTimeout(timer);
         };
-    }, [formData.complete_address, visible, editing, searchLocations]);
+    }, [formData.complete_address, visible, searchLocations, isSearchFocused]);
 
     const onPickSuggestion = (item: LocationSuggestion) => {
         setSuggestions([]);
+        setIsSearchFocused(false);
         setFormData({
             ...formData,
             place_id: item.place_id,
@@ -123,7 +126,7 @@ export default function LocationFormModal({
                     className="absolute bottom-0 w-full rounded-t-[42px]"
                     style={{
                         backgroundColor: colors.background,
-                        height: "80%",
+                        height: "85%",
                         paddingHorizontal: 24,
                         paddingTop: 12,
                         transform: [{ translateY }],
@@ -134,19 +137,23 @@ export default function LocationFormModal({
                         className="flex-1"
                     >
                         {/* Grab Handle */}
-                        <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-6 opacity-40" />
+                        <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-4 opacity-40" />
 
                         {/* Header */}
-                        <View className="flex-row justify-between items-center mb-8 px-2">
+                        <View className="flex-row justify-between items-center mb-6 px-2">
                             <View>
                                 <Text style={{ color: colors.foreground }} className="text-2xl font-black tracking-tight">
                                     {editing ? "Edit Point" : "Add Location"}
                                 </Text>
-                                <Text className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-widest">
+                                <Text className="text-muted-foreground text-[10px] font-black mt-1 uppercase tracking-[2px] opacity-60">
                                     Network Access Point
                                 </Text>
                             </View>
-                            <TouchableOpacity onPress={closeModal} className="w-10 h-10 bg-muted rounded-full items-center justify-center">
+                            <TouchableOpacity
+                                onPress={closeModal}
+                                className="w-10 h-10 rounded-full items-center justify-center"
+                                style={{ backgroundColor: colors.muted + '40' }}
+                            >
                                 <X size={22} color={colors.foreground} />
                             </TouchableOpacity>
                         </View>
@@ -154,7 +161,7 @@ export default function LocationFormModal({
                         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
                             <View className="gap-6 pb-12">
                                 <View>
-                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-3 ml-1">
                                         Location Alias <Text style={{ color: colors.destructive }}>*</Text>
                                     </Text>
                                     <TextInput
@@ -167,86 +174,121 @@ export default function LocationFormModal({
                                         }}
                                         value={formData.location_name}
                                         onChangeText={(val) => setFormData({ ...formData, location_name: val })}
-                                        placeholder="e.g. Warehouse 1, Pune Main"
+                                        placeholder="e.g. Pune Hub, Warehouse A"
                                         placeholderTextColor={colors.mutedForeground + '60'}
                                     />
                                 </View>
 
                                 <View>
-                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
-                                        Full Postal Address
+                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-3 ml-1">
+                                        Search Address
                                     </Text>
-                                    <TextInput
-                                        className="rounded-2xl p-4 text-base font-bold min-h-[120px]"
+                                    <View
                                         style={{
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
                                             backgroundColor: isDark ? colors.card : colors.secondary + '40',
-                                            color: colors.foreground,
-                                            borderWidth: 1,
-                                            borderColor: isDark ? colors.border : colors.border + '30'
+                                            borderRadius: 20,
+                                            borderWidth: 2,
+                                            borderColor: isSearchFocused ? colors.primary : (isDark ? colors.border : colors.border + '30'),
+                                            paddingHorizontal: 16,
                                         }}
-                                        value={formData.complete_address}
-                                        onChangeText={(val) =>
-                                            setFormData({
-                                                ...formData,
-                                                complete_address: val,
-                                                place_id: undefined,
-                                                latitude: undefined,
-                                                longitude: undefined,
-                                            })
-                                        }
-                                        placeholder="Street, Landmark, City..."
-                                        placeholderTextColor={colors.mutedForeground + '60'}
-                                        multiline
-                                        numberOfLines={4}
-                                        textAlignVertical="top"
-                                    />
-                                    {loadingSuggestions && (
-                                        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8, gap: 8 }}>
-                                            <ActivityIndicator size="small" color={colors.primary} />
-                                            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Searching places...</Text>
-                                        </View>
-                                    )}
+                                    >
+                                        <Search size={20} color={isSearchFocused ? colors.primary : colors.mutedForeground} />
+                                        <TextInput
+                                            className="flex-1 p-4 text-base font-bold"
+                                            style={{ color: colors.foreground }}
+                                            value={formData.complete_address}
+                                            onFocus={() => setIsSearchFocused(true)}
+                                            onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                                            onChangeText={(val) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    complete_address: val,
+                                                    place_id: undefined,
+                                                    latitude: undefined,
+                                                    longitude: undefined,
+                                                })
+                                            }
+                                            placeholder="City, Street or Landmark"
+                                            placeholderTextColor={colors.mutedForeground + '60'}
+                                            multiline={false}
+                                        />
+                                        {loadingSuggestions && <ActivityIndicator size="small" color={colors.primary} />}
+                                    </View>
+
                                     {suggestions.length > 0 && (
-                                        <View
+                                        <Animated.View
                                             style={{
-                                                marginTop: 10,
-                                                borderRadius: 14,
+                                                marginTop: 12,
+                                                borderRadius: 24,
                                                 borderWidth: 1,
                                                 borderColor: colors.border,
                                                 backgroundColor: colors.card,
                                                 overflow: "hidden",
+                                                shadowColor: "#000",
+                                                shadowOffset: { width: 0, height: 10 },
+                                                shadowOpacity: 0.1,
+                                                shadowRadius: 20,
+                                                elevation: 10,
                                             }}
                                         >
-                                            {suggestions.map((item) => (
+                                            {suggestions.map((item, index) => (
                                                 <TouchableOpacity
-                                                    key={item.place_id}
+                                                    key={item.place_id || index}
                                                     onPress={() => onPickSuggestion(item)}
                                                     style={{
-                                                        paddingHorizontal: 14,
-                                                        paddingVertical: 12,
-                                                        borderBottomWidth: 1,
+                                                        flexDirection: 'row',
+                                                        alignItems: 'center',
+                                                        paddingHorizontal: 16,
+                                                        paddingVertical: 16,
+                                                        borderBottomWidth: index === suggestions.length - 1 ? 0 : 1,
                                                         borderBottomColor: colors.border + "33",
                                                     }}
                                                 >
-                                                    <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
-                                                        {item.location_name}
-                                                    </Text>
-                                                    <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>
-                                                        {item.complete_address}
-                                                    </Text>
+                                                    <View
+                                                        style={{
+                                                            width: 40,
+                                                            height: 40,
+                                                            borderRadius: 12,
+                                                            backgroundColor: colors.primary + '15',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            marginRight: 14
+                                                        }}
+                                                    >
+                                                        <MapPin size={20} color={colors.primary} />
+                                                    </View>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }} numberOfLines={1}>
+                                                            {item.location_name}
+                                                        </Text>
+                                                        <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }} numberOfLines={2}>
+                                                            {item.complete_address}
+                                                        </Text>
+                                                    </View>
                                                 </TouchableOpacity>
                                             ))}
-                                        </View>
+                                        </Animated.View>
                                     )}
                                 </View>
 
                                 <TouchableOpacity
                                     onPress={onSubmit}
-                                    style={{ backgroundColor: colors.primary }}
-                                    className="py-5 rounded-[22px] mt-6 shadow-lg shadow-green-500/20"
+                                    style={{
+                                        backgroundColor: colors.primary,
+                                        paddingVertical: 18,
+                                        borderRadius: 24,
+                                        marginTop: 20,
+                                        shadowColor: colors.primary,
+                                        shadowOffset: { width: 0, height: 8 },
+                                        shadowOpacity: 0.3,
+                                        shadowRadius: 12,
+                                        elevation: 8,
+                                    }}
                                 >
                                     <Text style={{ color: colors.primaryForeground }} className="text-center font-black text-lg">
-                                        {editing ? "Update Record" : "Save Location"}
+                                        {editing ? "Update details" : "Register point"}
                                     </Text>
                                 </TouchableOpacity>
                             </View>

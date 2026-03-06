@@ -1,5 +1,5 @@
 import { X, UserPlus } from "lucide-react-native";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   Animated,
   KeyboardAvoidingView,
@@ -13,10 +13,12 @@ import {
   TouchableOpacity,
   View,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../hooks/useThemeStore";
 import * as Contacts from 'expo-contacts';
+import API from "../app/api/axiosInstance";
 
 type ClientFormData = {
   client_name: string;
@@ -25,6 +27,8 @@ type ClientFormData = {
   alternate_contact_number: string;
   email_address: string;
   office_address: string;
+  gstin?: string;
+  gstin_details?: any;
 };
 
 type Props = {
@@ -49,6 +53,29 @@ export default function ClientFormModal({
   const translateY = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const SCROLL_THRESHOLD = 40;
+  const [verifying, setVerifying] = useState(false);
+
+  const verifyGSTIN = async () => {
+    if (!formData.gstin) return;
+    setVerifying(true);
+    try {
+      const res = await API.post("/api/kyc/gstin", { gstin: formData.gstin });
+      if (res.data?.verified && res.data?.data) {
+        const details = res.data.data;
+        setFormData((prev: any) => ({
+          ...prev,
+          client_name: details.trade_name_of_business || details.legal_name_of_business || prev.client_name,
+          office_address: details.principal_place_address || prev.office_address,
+          gstin_details: details
+        }));
+        Alert.alert("Success", "GSTIN details fetched and applied!");
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e.response?.data?.message || "Failed to verify GSTIN");
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const closeModal = () => {
     Animated.timing(translateY, {
@@ -137,7 +164,7 @@ export default function ClientFormModal({
             backgroundColor: colors.background,
             height: "90%",
             paddingHorizontal: 24,
-            paddingTop: insets.top + 20,
+            paddingTop: 12,
             transform: [{ translateY }],
           }}
         >
@@ -146,10 +173,10 @@ export default function ClientFormModal({
             className="flex-1"
           >
             {/* Grab Handle */}
-            <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-6 opacity-40" />
+            <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-4 opacity-40" />
 
             {/* Header */}
-            <View className="flex-row justify-between items-center mb-8">
+            <View className="flex-row justify-between items-center mb-6">
               <View>
                 <Text style={{ color: colors.foreground }} className="text-2xl font-bold tracking-tight">
                   {editing ? "Edit Client" : "Add New Client"}
@@ -261,6 +288,42 @@ export default function ClientFormModal({
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
+              </View>
+
+              <View className="mb-5">
+                <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+                  GSTIN Number
+                </Text>
+                <View className="flex-row gap-2">
+                  <View className="flex-1">
+                    <TextInput
+                      className="rounded-2xl p-4 text-base font-bold"
+                      style={{
+                        backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                        color: colors.foreground,
+                        borderWidth: 1,
+                        borderColor: colors.border
+                      }}
+                      value={formData.gstin}
+                      onChangeText={(val) => setFormData({ ...formData, gstin: val })}
+                      placeholder="e.g. 29ABCDE1234F1Z5"
+                      placeholderTextColor={colors.mutedForeground + '80'}
+                      autoCapitalize="characters"
+                    />
+                  </View>
+                  <TouchableOpacity
+                    onPress={verifyGSTIN}
+                    disabled={verifying || !formData.gstin}
+                    style={{ backgroundColor: formData.gstin ? colors.primary : colors.muted }}
+                    className="w-20 rounded-2xl items-center justify-center border border-border/50"
+                  >
+                    {verifying ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <Text style={{ color: formData.gstin ? "white" : colors.mutedForeground }} className="font-bold text-[10px] uppercase tracking-widest text-center px-1">Verify{"\n"}& Fill</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Editing Mode Extras */}

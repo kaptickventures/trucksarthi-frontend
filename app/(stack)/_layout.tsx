@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack, useRouter } from "expo-router";
 import {
-  Platform,
   StatusBar,
   TouchableOpacity,
   View,
@@ -55,7 +54,7 @@ export default function StackLayout() {
             headerTintColor: foregroundColor,
             animation: "slide_from_right",
             contentStyle: { backgroundColor },
-            headerStyle: { backgroundColor },
+            headerStyle: { backgroundColor: "transparent" },
             headerBackground: () => (
               <View
                 style={{
@@ -66,10 +65,6 @@ export default function StackLayout() {
                 }}
               />
             ),
-
-            ...(Platform.OS === "ios" && {
-              headerBlurEffect: "systemMaterial",
-            }),
 
             headerLeft: () => (
               <TouchableOpacity
@@ -131,8 +126,8 @@ export default function StackLayout() {
           <Stack.Screen name="pl-driver-report" options={{ title: "Driver Khata Report" }} />
           <Stack.Screen name="pl-truck-report" options={{ title: "Truck Report" }} />
           <Stack.Screen name="pl-client-report-detail" options={{ title: "Client Khata Detail" }} />
-          <Stack.Screen name="pl-driver-report-detail" options={{ title: "Driver PL Detail", headerShown: false }} />
-          <Stack.Screen name="pl-truck-report-detail" options={{ title: "Truck PL Detail", headerShown: false }} />
+          <Stack.Screen name="pl-driver-report-detail" options={{ title: "Driver PL Detail" }} />
+          <Stack.Screen name="pl-truck-report-detail" options={{ title: "Truck PL Detail" }} />
           <Stack.Screen name="pl-report-detail" options={{ title: "PL Detail" }} />
           <Stack.Screen name="pl-misc-report" options={{ title: "Misc PL" }} />
           <Stack.Screen name="pl-misc-report-detail" options={{ title: "Misc Report Detail" }} />

@@ -46,11 +46,11 @@ export default function PLReportsScreen() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
-        <View style={{ marginBottom: 20 }}>
-          <Text style={{ fontSize: 30, fontWeight: "900", color: colors.foreground }}>
-            {t('pLReports')}
+        <View className="mb-3">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>
+            {t("pLReports")}
           </Text>
-          <Text style={{ fontSize: 13, color: colors.mutedForeground, marginTop: 4 }}>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>
             Open individual list reports
           </Text>
         </View>

@@ -39,8 +39,32 @@ export default function DriverLedgerScreen() {
       await Promise.all(
         (drivers || []).map(async (d) => {
           try {
-            const res = await API.get(`/api/driver-ledger/driver/${d._id}/balance`);
-            next[d._id] = Number(res.data?.balance || 0);
+            let data: any = [];
+            try {
+              const res = await API.get(`/api/driver-ledger/driver/${d._id}`);
+              data = res.data;
+            } catch {
+              const res = await API.get(`/api/driver-ledger?driver_id=${d._id}`);
+              data = res.data;
+            }
+            const rows = Array.isArray(data) ? data : data?.entries || data?.data || [];
+            const normalized = rows.map((entry: any) => {
+              const nature = String(entry.transaction_nature || "").toUpperCase();
+              const direction = String(entry.direction || "").toUpperCase();
+              const category = String(entry.category || entry.transactionSubtype || entry.title || "").toUpperCase();
+              const isToDriver =
+                nature === "RECEIVED_BY_DRIVER" ||
+                direction === "TO" ||
+                category.includes("OWNER_TO_DRIVER") ||
+                category.includes("SALARY");
+              return {
+                isToDriver,
+                amount: Number(entry.amount || 0),
+              };
+            });
+            const toDriver = normalized.filter((r: any) => r.isToDriver).reduce((sum: number, r: any) => sum + r.amount, 0);
+            const driverSpends = normalized.filter((r: any) => !r.isToDriver).reduce((sum: number, r: any) => sum + r.amount, 0);
+            next[d._id] = toDriver - driverSpends;
           } catch {
             next[d._id] = 0;
           }
@@ -61,7 +85,7 @@ export default function DriverLedgerScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View className="mb-3 px-0">

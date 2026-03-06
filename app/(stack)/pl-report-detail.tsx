@@ -72,7 +72,13 @@ export default function PLReportDetailScreen() {
     if (!entityType || !entityId) return;
     setRefreshing(true);
     try {
-      await Promise.all([fetchTransactions(), fetchClients(), fetchDrivers(), fetchTrucks()]);
+      const filterKey = config.key;
+      await Promise.all([
+        fetchTransactions({ [filterKey]: entityId }),
+        fetchClients(),
+        fetchDrivers(),
+        fetchTrucks()
+      ]);
     } finally {
       setRefreshing(false);
     }
@@ -112,11 +118,21 @@ export default function PLReportDetailScreen() {
 
   const summary = useMemo(() => {
     const income = approved
-      .filter((tx: any) => String(tx.direction || "").toUpperCase() === "INCOME")
+      .filter((tx: any) => {
+        if (entityType === "driver") {
+          return ["OWNER_TO_DRIVER", "SALARY"].includes(String(tx.category || "").toUpperCase());
+        }
+        return String(tx.direction || "").toUpperCase() === "INCOME";
+      })
       .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
 
     const expense = approved
-      .filter((tx: any) => String(tx.direction || "").toUpperCase() === "EXPENSE")
+      .filter((tx: any) => {
+        if (entityType === "driver") {
+          return !["OWNER_TO_DRIVER", "SALARY"].includes(String(tx.category || "").toUpperCase());
+        }
+        return String(tx.direction || "").toUpperCase() === "EXPENSE";
+      })
       .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
 
     return {
@@ -289,7 +305,9 @@ export default function PLReportDetailScreen() {
 
         <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14 }}>
           {filtered.map((tx: any) => {
-            const isIncome = String(tx.direction || "").toUpperCase() === "INCOME";
+            const isIncome = entityType === "driver"
+              ? ["OWNER_TO_DRIVER", "SALARY"].includes(String(tx.category || "").toUpperCase())
+              : String(tx.direction || "").toUpperCase() === "INCOME";
             const date = formatDate(tx.date || tx.createdAt);
 
             return (

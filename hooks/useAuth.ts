@@ -3,7 +3,8 @@ import API from "../app/api/axiosInstance";
 
 export type AppUserRole = "driver" | "fleet_owner";
 
-export function getUserRole(user: any): AppUserRole {
+export function getUserRole(user: any): AppUserRole | null {
+  if (!user) return null;
   const raw = user?.user_type ?? user?.userType ?? user?.role;
   if (typeof raw === "string") {
     const normalized = raw.toLowerCase().trim().replace(/\s+/g, "_");
@@ -112,20 +113,18 @@ export async function getCurrentUser() {
 
 export async function postLoginFlow(router: any) {
   const resetAndReplace = (path: string) => {
-    if (typeof router?.dismissAll === "function") {
-      router.dismissAll();
-    }
     router.replace(path);
   };
 
   try {
     const user = await getCurrentUser();
-    if (!user) {
+    if (!user || (!user._id && !user.id)) {
       resetAndReplace("/auth/login");
       return;
     }
 
-    const res = await API.get(`/api/users/check-profile/${user._id}`);
+    const userId = user._id || user.id;
+    const res = await API.get(`/api/users/check-profile/${userId}`);
     const completed = res.data?.profileCompleted;
 
     if (completed) {
@@ -135,6 +134,6 @@ export async function postLoginFlow(router: any) {
     }
   } catch (err) {
     console.error("postLoginFlow error:", err);
-    resetAndReplace("/basic-details");
+    resetAndReplace("/auth/login");
   }
 }

@@ -1,113 +1,169 @@
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { FlatList, RefreshControl, StatusBar, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
+import {
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import useDrivers from "../../hooks/useDriver";
-import useFinance from "../../hooks/useFinance";
+import API from "../api/axiosInstance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
-
-const toRefId = (value: any) =>
-  typeof value === "string" ? value : value?._id ? String(value._id) : "";
+import { Skeleton } from "../../components/Skeleton";
 
 export default function PLDriverReportScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
-  const { drivers, fetchDrivers } = useDrivers();
-  const { transactions, fetchTransactions, loading } = useFinance();
+  const { drivers, fetchDrivers, loading } = useDrivers();
   const [refreshing, setRefreshing] = useState(false);
+  const [balances, setBalances] = useState<Record<string, number>>({});
+  const showInitialSkeleton = loading && !refreshing && (drivers || []).length === 0;
 
-  const loadData = useCallback(async () => {
-    setRefreshing(true);
-    await Promise.all([fetchDrivers(), fetchTransactions()]);
-    setRefreshing(false);
-  }, [fetchDrivers, fetchTransactions]);
+  const load = useCallback(async () => {
+    await fetchDrivers();
+  }, [fetchDrivers]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    load();
+  }, [load]);
 
-  const rows = useMemo(() => {
-    return (drivers || [])
-      .map((driver: any) => {
-        const driverId = String(driver._id);
-        const items = (transactions || []).filter((tx: any) => toRefId(tx.driverId) === driverId);
-        const approved = items.filter((tx: any) => String(tx.approvalStatus || "").toUpperCase() === "APPROVED");
-        const toDriver = approved
-          .filter((tx: any) => String(tx.direction || "").toUpperCase() === "INCOME")
-          .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
-        const driverSpends = approved
-          .filter((tx: any) => String(tx.direction || "").toUpperCase() === "EXPENSE")
-          .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
-        return {
-          id: driverId,
-          name: driver.driver_name || driver.name || "Unknown Driver",
-          toDriver,
-          driverSpends,
-          balance: toDriver - driverSpends,
-          count: items.length,
-        };
-      })
-      .filter((r) => r.count > 0)
-      .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
-  }, [drivers, transactions]);
+  useEffect(() => {
+    const run = async () => {
+      const next: Record<string, number> = {};
+      await Promise.all(
+        (drivers || []).map(async (d) => {
+          try {
+            let data: any = [];
+            try {
+              const res = await API.get(`/api/driver-ledger/driver/${d._id}`);
+              data = res.data;
+            } catch {
+              const res = await API.get(`/api/driver-ledger?driver_id=${d._id}`);
+              data = res.data;
+            }
+            const rows = Array.isArray(data) ? data : data?.entries || data?.data || [];
+            const normalized = rows.map((entry: any) => {
+              const nature = String(entry.transaction_nature || "").toUpperCase();
+              const direction = String(entry.direction || "").toUpperCase();
+              const category = String(entry.category || entry.transactionSubtype || entry.title || "").toUpperCase();
+              const isToDriver =
+                nature === "RECEIVED_BY_DRIVER" ||
+                direction === "TO" ||
+                category.includes("OWNER_TO_DRIVER") ||
+                category.includes("SALARY");
+              return {
+                isToDriver,
+                amount: Number(entry.amount || 0),
+              };
+            });
+            const toDriver = normalized.filter((r: any) => r.isToDriver).reduce((sum: number, r: any) => sum + r.amount, 0);
+            const driverSpends = normalized.filter((r: any) => !r.isToDriver).reduce((sum: number, r: any) => sum + r.amount, 0);
+            next[d._id] = toDriver - driverSpends;
+          } catch {
+            next[d._id] = 0;
+          }
+        })
+      );
+      setBalances(next);
+    };
+    if (drivers?.length) run();
+  }, [drivers]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <ScrollView
+        contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
+        <View className="mb-3">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('driverPL')}</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Driver payout and spend summary</Text>
+        </View>
 
-      <FlatList
-        data={rows}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 20, paddingBottom: 120, gap: 10 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
-        ListHeaderComponent={
-          <View className="mb-3 px-0">
-            <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('driverPL')}</Text>
-            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Driver payout and spend summary</Text>
+        {showInitialSkeleton && (
+          <View>
+            {[1, 2, 3, 4].map((item) => (
+              <Skeleton key={item} width="100%" height={96} borderRadius={16} style={{ marginBottom: 12 }} />
+            ))}
           </View>
-        }
-        ListEmptyComponent={<Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 60 }}>{loading ? "Loading..." : "No driver report data."}</Text>}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() =>
-              router.push({
-                pathname: "/(stack)/pl-driver-report-detail",
-                params: { driverId: item.id },
-              } as any)
-            }
-            style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14 }}
-          >
-            <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.name}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>{item.count} entries</Text>
-            <View style={{ flexDirection: "row", marginTop: 10, gap: 8 }}>
-              <View style={{ flex: 1, borderRadius: 10, padding: 8, backgroundColor: isDark ? "#064e3b" : "#dcfce7" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 3 }}>
-                  <ArrowDownLeft size={14} color="#16a34a" />
-                  <Text style={{ marginLeft: 4, color: "#166534", fontWeight: "700", fontSize: 10 }}>TO DRIVER</Text>
-                </View>
-                <Text style={{ color: colors.foreground, fontWeight: "700" }}>Rs {item.toDriver.toLocaleString()}</Text>
-              </View>
-              <View style={{ flex: 1, borderRadius: 10, padding: 8, backgroundColor: isDark ? "#7f1d1d" : "#fee2e2" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 3 }}>
-                  <ArrowUpRight size={14} color="#dc2626" />
-                  <Text style={{ marginLeft: 4, color: "#991b1b", fontWeight: "700", fontSize: 10 }}>DRIVER SPENDS</Text>
-                </View>
-                <Text style={{ color: colors.foreground, fontWeight: "700" }}>Rs {item.driverSpends.toLocaleString()}</Text>
-              </View>
-            </View>
-            <Text style={{ color: item.balance >= 0 ? "#16a34a" : "#dc2626", marginTop: 10, fontWeight: "700" }}>
-              Total Balance: {item.balance >= 0 ? "+" : "-"}Rs {Math.abs(item.balance).toLocaleString()}
-            </Text>
-          </TouchableOpacity>
         )}
-      />
-    </SafeAreaView>
+
+        {!loading && (drivers || []).length === 0 && (
+          <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 40 }}>No drivers found.</Text>
+        )}
+
+        {(drivers || []).map((d) => {
+          const bal = Number(balances[d._id] || 0);
+          const isPositive = bal >= 0;
+
+          return (
+            <TouchableOpacity
+              key={d._id}
+              activeOpacity={0.85}
+              onPress={() =>
+                router.push({
+                  pathname: "/(stack)/pl-driver-report-detail",
+                  params: { driverId: d._id },
+                } as any)
+              }
+              style={{
+                backgroundColor: colors.card,
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3 }}>
+                    {d.driver_name || d.name || "Driver"}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 20,
+                    backgroundColor: isPositive ? "#dcfce7" : "#fee2e2",
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "800", color: isPositive ? "#16a34a" : "#dc2626" }}>
+                    {isPositive ? "+" : "-"}Rs {Math.abs(bal).toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons name="call-outline" size={13} color={colors.mutedForeground} />
+                  <Text style={{ fontSize: 13, color: colors.mutedForeground, fontWeight: "500" }}>
+                    {d.contact_number || d.phone || "—"}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>View Report</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
-
-

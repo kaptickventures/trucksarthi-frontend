@@ -24,6 +24,8 @@ import {
 } from "react-native";
 import BottomSheet from "../../components/BottomSheet";
 
+import DriverFormModal from "../../components/DriverModal";
+import { Skeleton } from "../../components/Skeleton";
 import useDrivers from "../../hooks/useDriver";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { getFileUrl } from "../../lib/utils";
@@ -36,11 +38,19 @@ export default function DriverProfile() {
   const { t } = useTranslation();
   const { driver_id } = useLocalSearchParams<{ driver_id: string }>();
 
-  const { drivers, loading: driverLoading, uploadLicense, uploadAadhaar, uploadProfilePicture, fetchDrivers } = useDrivers();
+  const { drivers, loading: driverLoading, uploadLicense, uploadAadhaar, uploadProfilePicture, fetchDrivers, deleteDriver, updateDriver } = useDrivers();
   const driver = useMemo(() => drivers.find(d => d._id === driver_id), [drivers, driver_id]);
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [editFormData, setEditFormData] = useState({
+    driver_name: "",
+    contact_number: "",
+    identity_card_url: "",
+    license_card_url: "",
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -98,6 +108,45 @@ export default function DriverProfile() {
     }
   };
 
+  const openEditModal = () => {
+    if (driver) {
+      setEditFormData({
+        driver_name: driver.driver_name || "",
+        contact_number: driver.contact_number || "",
+        identity_card_url: driver.identity_card_url || "",
+        license_card_url: driver.license_card_url || "",
+      });
+      setShowEditModal(true);
+    }
+  };
+
+  const handleUpdateDriver = async () => {
+    if (!driver_id) return;
+    try {
+      await updateDriver(driver_id, editFormData as any);
+      Alert.alert(t('success'), t('updatedSuccessfully'));
+      setShowEditModal(false);
+      fetchDrivers();
+    } catch (err) {
+      Alert.alert(t('error'), "Failed to update driver.");
+    }
+  };
+
+  const handleDeleteDriver = () => {
+    if (!driver_id) return;
+    Alert.alert(t("confirmDelete"), "Delete this driver?", [
+      { text: t("cancel"), style: "cancel" },
+      {
+        text: t("delete"),
+        style: "destructive",
+        onPress: async () => {
+          await deleteDriver(driver_id);
+          router.back();
+        },
+      },
+    ]);
+  };
+
   if (driverLoading || !driver) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }} className="items-center justify-center">
@@ -126,10 +175,10 @@ export default function DriverProfile() {
             <TouchableOpacity onPress={handleShare}>
               <Share2 size={22} color={colors.foreground} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => Alert.alert("Coming Soon", "Edit functionality is in the main list.")}>
+            <TouchableOpacity onPress={openEditModal}>
               <Pencil size={22} color={colors.foreground} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => Alert.alert("Coming Soon", "Delete functionality is in the main list.")}>
+            <TouchableOpacity onPress={handleDeleteDriver}>
               <Trash2 size={22} color={colors.destructive} />
             </TouchableOpacity>
           </View>
@@ -215,6 +264,15 @@ export default function DriverProfile() {
           />
         </View>
       </BottomSheet>
+
+      <DriverFormModal
+        visible={showEditModal}
+        editing={true}
+        formData={editFormData}
+        setFormData={setEditFormData as any}
+        onSubmit={handleUpdateDriver}
+        onClose={() => setShowEditModal(false)}
+      />
     </View>
   );
 }

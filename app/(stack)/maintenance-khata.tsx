@@ -52,7 +52,7 @@ export default function MaintenanceKhataScreen() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View className="mb-3 px-0">

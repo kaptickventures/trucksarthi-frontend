@@ -51,7 +51,7 @@ export default function AuthDebugScreen() {
     if (profileCompleted === true) return "/(tabs)/home";
     if (profileCompleted === false) return "/basic-details";
     return "waiting_profile_check";
-  }, [profileCompleted, role, user]);
+  }, [profileCompleted, user]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -67,7 +67,7 @@ export default function AuthDebugScreen() {
         <DebugRow label="Token" value={tokenInfo} color={colors.foreground} />
         <DebugRow label="user_type (raw)" value={String(user?.user_type ?? "null")} color={colors.foreground} />
         <DebugRow label="userType (raw)" value={String(user?.userType ?? "null")} color={colors.foreground} />
-        <DebugRow label="Normalized Role" value={role} color={colors.foreground} />
+        <DebugRow label="Normalized Role" value={String(role ?? "null")} color={colors.foreground} />
         <DebugRow
           label="Profile Completed"
           value={profileCompleted === null ? "n/a" : String(profileCompleted)}

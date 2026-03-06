@@ -20,6 +20,8 @@ export default function useFinance() {
       if (filters.sourceModule) params.append("sourceModule", filters.sourceModule);
       if (filters.direction) params.append("direction", filters.direction);
       if (filters.truckId) params.append("truckId", filters.truckId);
+      if (filters.clientId) params.append("clientId", filters.clientId);
+      if (filters.driverId) params.append("driverId", filters.driverId);
       
       const res = await API.get(`/api/finance/transactions?${params.toString()}`);
       setTransactions(res.data);

@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { Edit3, Plus, Trash2 } from "lucide-react-native";
+import { Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   Alert,
@@ -32,13 +32,11 @@ export default function TrucksManager() {
     loading: trucksLoading,
     fetchTrucks,
     addTruck,
-    updateTruck,
     deleteTruck,
   } = useTrucks();
 
   const loading = userLoading || trucksLoading;
 
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -74,38 +72,19 @@ export default function TrucksManager() {
   );
 
   /* ---------------- MODAL ---------------- */
-  const openModal = (editing = false, data?: any) => {
-    if (editing && data) {
-      setEditingId(data._id);
-      setFormData({
-        registration_number: data.registration_number || "",
-        chassis_number: data.chassis_number || "",
-        engine_number: data.engine_number || "",
-        registered_owner_name: data.registered_owner_name || "",
-        vehicle_class: data.vehicle_class || "",
-        fuel_norms: data.fuel_norms || "",
-        registration_date: data.registration_date || "",
-        container_dimension: data.container_dimension || "",
-        loading_capacity: data.loading_capacity
-          ? String(data.loading_capacity)
-          : "",
-        rc_details: data.rc_details || undefined,
-      });
-    } else {
-      setEditingId(null);
-      setFormData({
-        registration_number: "",
-        chassis_number: "",
-        engine_number: "",
-        registered_owner_name: "",
-        vehicle_class: "",
-        fuel_norms: "",
-        registration_date: "",
-        container_dimension: "",
-        loading_capacity: "",
-        rc_details: undefined,
-      });
-    }
+  const openModal = () => {
+    setFormData({
+      registration_number: "",
+      chassis_number: "",
+      engine_number: "",
+      registered_owner_name: "",
+      vehicle_class: "",
+      fuel_norms: "",
+      registration_date: "",
+      container_dimension: "",
+      loading_capacity: "",
+      rc_details: undefined,
+    });
     setModalVisible(true);
   };
 
@@ -121,19 +100,11 @@ export default function TrucksManager() {
     }
 
     try {
-      if (editingId) {
-        await updateTruck(editingId, {
-          ...formData,
-          loading_capacity: formData.loading_capacity ? Number(formData.loading_capacity) : undefined,
-        });
-        Alert.alert(t("success"), `Truck ${t("updatedSuccessfully")}`);
-      } else {
-        await addTruck({
-          ...formData,
-          loading_capacity: formData.loading_capacity ? Number(formData.loading_capacity) : undefined,
-        });
-        Alert.alert(t("success"), `Truck ${t("addedSuccessfully")}`);
-      }
+      await addTruck({
+        ...formData,
+        loading_capacity: formData.loading_capacity ? Number(formData.loading_capacity) : undefined,
+      });
+      Alert.alert(t("success"), `Truck ${t("addedSuccessfully")}`);
       closeModal();
       fetchTrucks();
     } catch {
@@ -223,13 +194,7 @@ export default function TrucksManager() {
                   </Text>
                 </View>
                 <View className="flex-row gap-2">
-                  <TouchableOpacity
-                    onPress={(e) => { e.stopPropagation(); openModal(true, truck); }}
-                    className="w-10 h-10 rounded-full items-center justify-center border"
-                    style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
-                  >
-                    <Edit3 size={16} color={colors.foreground} />
-                  </TouchableOpacity>
+
 
                   <TouchableOpacity
                     onPress={(e) => { e.stopPropagation(); handleDelete(truck._id); }}
@@ -246,7 +211,7 @@ export default function TrucksManager() {
 
       {/* Floating Add Button */}
       <TouchableOpacity
-        onPress={() => openModal(false)}
+        onPress={() => openModal()}
         className="absolute bottom-8 right-6 w-16 h-16 rounded-full justify-center items-center"
         style={{
           backgroundColor: colors.primary,
@@ -262,7 +227,7 @@ export default function TrucksManager() {
 
       <TruckFormModal
         visible={modalVisible}
-        editing={!!editingId}
+        editing={false}
         formData={formData}
         setFormData={setFormData}
         onSubmit={handleSubmit}

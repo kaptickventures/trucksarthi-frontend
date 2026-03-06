@@ -16,6 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Linking,
   ScrollView,
   StatusBar,
   Switch,
@@ -24,11 +25,11 @@ import {
   View,
 } from "react-native";
 
-import { logout } from "../../hooks/useAuth";
 import { useTranslation } from "../../context/LanguageContext";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
+import { useAuth } from "../../context/AuthContext";
 
 const BIOMETRIC_KEY = "@user_biometric_enabled";
 
@@ -37,6 +38,7 @@ export default function Settings() {
   const { mode, setMode, colors, theme } = useThemeStore();
   const { t, language, setLanguage } = useTranslation();
   const { user, updateUser } = useUser();
+  const { logout } = useAuth();
   const isDark = theme === "dark";
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
@@ -81,6 +83,9 @@ export default function Settings() {
 
   const handleLogout = async () => {
     await logout();
+    if (typeof router.dismissAll === "function") {
+      router.dismissAll();
+    }
     router.replace("/auth/login");
   };
 
@@ -92,7 +97,7 @@ export default function Settings() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
         <View className="mb-3 px-0">
           <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('settings')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Customize your app experience</Text>
@@ -237,7 +242,7 @@ export default function Settings() {
         <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>{t('desktop')}</Text>
 
         <TouchableOpacity
-          onPress={() => router.push("https://trucksarthi.com")}
+          onPress={() => Linking.openURL("https://trucksarthi.com")}
           className="flex-row items-center justify-between p-4 rounded-xl mb-8 border"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >

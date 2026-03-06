@@ -41,7 +41,7 @@ export default function useDriverFinance() {
   const fetchDriverSummary = async (driverId: string) => {
     try {
       const res = await API.get(
-        `/api/driver-ledger/driver/${driverId}/balance`
+        `/api/finance/driver-balance/${driverId}`
       );
 
       return {

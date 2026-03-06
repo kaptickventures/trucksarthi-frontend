@@ -283,7 +283,7 @@ export default function Profile() {
         keyboardShouldPersistTaps="handled"
         extraScrollHeight={140}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -293,13 +293,13 @@ export default function Profile() {
           />
         }
       >
-        <View className="mb-3 px-6">
+        <View className="mb-3">
           <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('myProfile')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your account and business details</Text>
         </View>
 
         {/* HEADER SECTION */}
-        <View style={{ paddingHorizontal: 24, marginBottom: 14 }}>
+        <View style={{ marginBottom: 14 }}>
           <View
             style={{
               flexDirection: 'row',
@@ -391,7 +391,7 @@ export default function Profile() {
 
         {/* KYC PRIORITY CARD */}
         {!isKycVerified && (
-          <View style={{ paddingHorizontal: 24, marginBottom: 12 }}>
+          <View style={{ marginBottom: 12 }}>
             <TouchableOpacity
               onPress={() => router.push("/kyc-verification" as any)}
               style={{
@@ -422,7 +422,7 @@ export default function Profile() {
         )}
 
         {/* TABS */}
-        <View style={{ flexDirection: 'row', paddingHorizontal: 24, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border }}>
           {[
             { id: 'personal', label: 'Personal', icon: <UserIcon size={16} color={activeTab === 'personal' ? colors.primary : colors.mutedForeground} /> },
             { id: 'company', label: 'Business', icon: <Briefcase size={16} color={activeTab === 'company' ? colors.primary : colors.mutedForeground} /> },

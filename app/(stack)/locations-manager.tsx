@@ -31,7 +31,6 @@ export default function LocationsManager() {
     loading: locationsLoading,
     fetchLocations,
     addLocation,
-    updateLocation,
     deleteLocation,
     searchLocations,
   } = useLocations();
@@ -229,7 +228,7 @@ export default function LocationsManager() {
         visible={modalVisible}
         editing={!!editingId}
         formData={formData}
-        setFormData={setFormData}
+        setFormData={setFormData as any}
         searchLocations={searchLocations}
         onSubmit={handleSubmit}
         onClose={closeModal}

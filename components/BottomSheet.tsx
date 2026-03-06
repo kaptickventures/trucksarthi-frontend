@@ -51,7 +51,7 @@ export default function BottomSheet({
         } else {
             translateY.setValue(SCREEN_HEIGHT);
         }
-    }, [visible, SCREEN_HEIGHT]);
+    }, [visible, SCREEN_HEIGHT, translateY]);
 
     const handleClose = () => {
         Animated.timing(translateY, {

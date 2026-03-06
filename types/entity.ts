@@ -225,13 +225,13 @@ export interface Client {
   alternate_contact_number?: string;
   office_address?: string;
   gstin?: string;
+  gstin_details?: any;
   createdAt?: ISODate;
   updatedAt?: ISODate;
 }
 
 // ===============================
 // 7. Client Ledger (Mongoose)
-// ===============================
 
 export type ClientLedgerEntryType = "debit" | "credit";
 

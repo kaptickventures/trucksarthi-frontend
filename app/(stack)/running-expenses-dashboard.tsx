@@ -163,7 +163,7 @@ export default function RunningExpensesDashboardScreen() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View className="mb-3 px-0">

@@ -14,11 +14,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
-import { logout, getUserRole } from "../hooks/useAuth";
+
 import { useThemeStore } from "../hooks/useThemeStore";
 import { useUser } from "../hooks/useUser";
 import { getFileUrl } from "../lib/utils";
 import { Bell } from "lucide-react-native";
+import { useAuth } from "../context/AuthContext";
 
 import { useTranslation } from "../context/LanguageContext";
 
@@ -37,8 +38,8 @@ export default function SideMenu({
   const insets = useSafeAreaInsets();
   const { colors } = useThemeStore();
   const { user, loading } = useUser();
+  const { logout } = useAuth();
   const { t } = useTranslation();
-  const userRole = getUserRole(user);
   const menuTopOffset = typeof topOffset === "number" ? topOffset : insets.top + 56;
 
   const MANAGER_LINKS = [
@@ -80,11 +81,11 @@ export default function SideMenu({
   const handleLogout = async () => {
     try {
       onClose();
-      setTimeout(async () => {
-        await logout();
+      await logout();
+      if (typeof router.dismissAll === "function") {
         router.dismissAll();
-        router.replace("/auth/login");
-      }, 150);
+      }
+      router.replace("/auth/login" as any);
     } catch (err) {
       console.log("Logout failed:", err);
     }
@@ -135,7 +136,7 @@ export default function SideMenu({
         <View style={{ flex: 1 }}>
           {/* STATIC PROFILE HEADER (Sticky) */}
           <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 24, marginBottom: 16 }}>
-            <TouchableOpacity onPress={() => navigate(userRole === "driver" ? "/(driver)/profile" : "/(stack)/profile")}>
+            <TouchableOpacity onPress={() => navigate("/(stack)/profile")}>
               <View className="flex-row items-center">
                 <View
                   className="w-16 h-16 rounded-full overflow-hidden items-center justify-center"
@@ -170,69 +171,53 @@ export default function SideMenu({
 
           {/* SCROLLABLE MENU ITEMS */}
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
-            {userRole === "driver" ? (
-              <>
+            {/* FINANCE SECTION */}
+            <View className="mt-8 mb-6">
+              <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
+                {t('financeHub')}
+              </Text>
+              {FINANCE_LINKS.map((item, idx) => (
                 <TouchableOpacity
-                  onPress={() => navigate("/(driver)/settings")}
+                  key={idx}
+                  onPress={() => navigate(item.route)}
                   className="flex-row items-center py-4"
                 >
-                  <Ionicons name="settings-outline" size={24} color={colors.foreground} />
+                  {renderIcon(item.icon)}
                   <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                    {t('settings')}
+                    {item.title}
                   </Text>
                 </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                {/* FINANCE SECTION */}
-                <View className="mt-8 mb-6">
-                  <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                    {t('financeHub')}
-                  </Text>
-                  {FINANCE_LINKS.map((item, idx) => (
-                    <TouchableOpacity
-                      key={idx}
-                      onPress={() => navigate(item.route)}
-                      className="flex-row items-center py-4"
-                    >
-                      {renderIcon(item.icon)}
-                      <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                        {item.title}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+              ))}
+            </View>
 
-                {/* MANAGER SECTION */}
-                <View className="mb-6">
-                  <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                    {t('manager')}
-                  </Text>
-                  {MANAGER_LINKS.map((item, idx) => (
-                    <TouchableOpacity
-                      key={idx}
-                      onPress={() => navigate(item.route)}
-                      className="flex-row items-center py-4"
-                    >
-                      {renderIcon(item.icon)}
-                      <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                        {item.title}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
+            {/* MANAGER SECTION */}
+            <View className="mb-6">
+              <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
+                {t('manager')}
+              </Text>
+              {MANAGER_LINKS.map((item, idx) => (
                 <TouchableOpacity
-                  onPress={() => navigate("/(stack)/settings")}
+                  key={idx}
+                  onPress={() => navigate(item.route)}
                   className="flex-row items-center py-4"
                 >
-                  <Ionicons name="settings-outline" size={24} color={colors.foreground} />
+                  {renderIcon(item.icon)}
                   <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                    {t('settings')}
+                    {item.title}
                   </Text>
                 </TouchableOpacity>
-              </>
-            )}
+              ))}
+            </View>
+
+            <TouchableOpacity
+              onPress={() => navigate("/(stack)/settings")}
+              className="flex-row items-center py-4"
+            >
+              <Ionicons name="settings-outline" size={24} color={colors.foreground} />
+              <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                {t('settings')}
+              </Text>
+            </TouchableOpacity>
 
             {/* Logout as part of the scrollable list */}
             <TouchableOpacity

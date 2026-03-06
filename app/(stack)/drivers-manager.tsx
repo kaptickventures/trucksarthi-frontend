@@ -1,7 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { Edit3, Plus, Share2, Trash2 } from "lucide-react-native";
+import { Plus, Share2, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -33,7 +33,6 @@ export default function DriversManager() {
     loading: driversLoading,
     fetchDrivers,
     addDriver,
-    updateDriver,
     deleteDriver,
     uploadLicense,
     uploadAadhaar,
@@ -41,7 +40,6 @@ export default function DriversManager() {
 
   const loading = userLoading || driversLoading;
 
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -76,24 +74,13 @@ export default function DriversManager() {
   );
 
   /* ---------------- MODAL GESTURE ---------------- */
-  const openModal = (editing = false, data?: any) => {
-    if (editing && data) {
-      setEditingId(data._id);
-      setFormData({
-        driver_name: data.driver_name || "",
-        contact_number: data.contact_number || "",
-        identity_card_url: data.identity_card_url || "",
-        license_card_url: data.license_card_url || "",
-      });
-    } else {
-      setEditingId(null);
-      setFormData({
-        driver_name: "",
-        contact_number: "",
-        identity_card_url: "",
-        license_card_url: "",
-      });
-    }
+  const openModal = () => {
+    setFormData({
+      driver_name: "",
+      contact_number: "",
+      identity_card_url: "",
+      license_card_url: "",
+    });
     setModalVisible(true);
   };
 
@@ -111,28 +98,23 @@ export default function DriversManager() {
     }
 
     try {
-      let driverId = editingId;
-      if (editingId) {
-        await updateDriver(editingId, formData);
-      } else {
-        const newDriver = await addDriver(formData);
-        driverId = newDriver._id;
-      }
+      const newDriver = await addDriver(formData);
+      const driverId = newDriver._id;
 
       // Handle image uploads if they are new (objects with uri)
       const uploadPromises = [];
       if (formData.license_card_url && typeof formData.license_card_url === 'object' && (formData.license_card_url as any).uri) {
-        uploadPromises.push(uploadLicense(driverId!, formData.license_card_url));
+        uploadPromises.push(uploadLicense(driverId, formData.license_card_url));
       }
       if (formData.identity_card_url && typeof formData.identity_card_url === 'object' && (formData.identity_card_url as any).uri) {
-        uploadPromises.push(uploadAadhaar(driverId!, formData.identity_card_url));
+        uploadPromises.push(uploadAadhaar(driverId, formData.identity_card_url));
       }
 
       if (uploadPromises.length > 0) {
         await Promise.all(uploadPromises);
       }
 
-      Alert.alert(t("success"), `Driver ${editingId ? t("updatedSuccessfully") : t("addedSuccessfully")}`);
+      Alert.alert(t("success"), `Driver ${t("addedSuccessfully")}`);
       closeModal();
       fetchDrivers();
     } catch (err) {
@@ -231,14 +213,6 @@ export default function DriversManager() {
                   </View>
                   <View className="flex-row gap-2">
                     <TouchableOpacity
-                      onPress={(e) => { e.stopPropagation(); openModal(true, driver); }}
-                      className="w-10 h-10 rounded-full items-center justify-center border"
-                      style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
-                    >
-                      <Edit3 size={16} color={colors.foreground} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
                       onPress={(e) => { e.stopPropagation(); Linking.openURL(`https://wa.me/91${driver.contact_number}`); }}
                       className="w-10 h-10 bg-[#25D366]/10 rounded-full items-center justify-center"
                     >
@@ -266,7 +240,7 @@ export default function DriversManager() {
 
       {/* Floating Add Button */}
       <TouchableOpacity
-        onPress={() => openModal(false)}
+        onPress={() => openModal()}
         className="absolute bottom-8 right-6 w-16 h-16 rounded-full justify-center items-center"
         style={{
           backgroundColor: colors.primary,
@@ -282,7 +256,7 @@ export default function DriversManager() {
 
       <DriverFormModal
         visible={modalVisible}
-        editing={!!editingId}
+        editing={false}
         formData={formData}
         setFormData={setFormData}
         onSubmit={handleSubmit}

@@ -368,10 +368,10 @@ export default function DocumentDetails() {
                 data={filteredDocuments}
                 renderItem={renderDocumentItem}
                 keyExtractor={item => item._id}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+                contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
                 ListHeaderComponent={
-                    <View className="mb-4">
-                        <View className="flex-row justify-between items-center mb-4">
+                    <View className="mb-3">
+                        <View className="flex-row justify-between items-center mb-3">
                             <View>
                                 <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
                                 <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage vehicle documents and expiry</Text>

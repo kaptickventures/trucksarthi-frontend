@@ -144,10 +144,10 @@ export default function DriverFormModal({
                         className="flex-1"
                     >
                         {/* Grab Handle */}
-                        <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-6 opacity-40" />
+                        <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-4 opacity-40" />
 
                         {/* Header */}
-                        <View className="flex-row justify-between items-center mb-8 px-2">
+                        <View className="flex-row justify-between items-center mb-6 px-2">
                             <View>
                                 <Text style={{ color: colors.foreground }} className="text-2xl font-black tracking-tight">
                                     {editing ? "Update Profile" : "Register Driver"}

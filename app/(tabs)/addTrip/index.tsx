@@ -56,11 +56,9 @@ export default function AddTrip() {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
-      headerShadowVisible: true,
+      headerShadowVisible: false,
       headerStyle: {
-        backgroundColor: colors.background,
-        borderBottomWidth: 1,
-        borderBottomColor: isDark ? "#2F2F2F" : "#D1D5DB",
+        backgroundColor: "transparent",
       },
       headerBackground: () => (
         <View
@@ -68,7 +66,7 @@ export default function AddTrip() {
             flex: 1,
             backgroundColor: colors.background,
             borderBottomWidth: 1,
-            borderBottomColor: isDark ? "#2F2F2F" : "#D1D5DB",
+            borderBottomColor: colors.border,
           }}
         />
       ),
@@ -531,7 +529,7 @@ export default function AddTrip() {
         fetchTrucks();
       }} onClose={() => setIsTruckModalVisible(false)} />
 
-      <LocationFormModal visible={isLocationModalVisible} editing={false} formData={locationFormData} setFormData={setLocationFormData} searchLocations={searchLocations} onSubmit={async () => {
+      <LocationFormModal visible={isLocationModalVisible} editing={false} formData={locationFormData} setFormData={(data) => setLocationFormData(data as any)} searchLocations={searchLocations} onSubmit={async () => {
         if (!locationFormData.location_name || !locationFormData.complete_address) return Alert.alert("Missing Fields", "Name and address required.");
         const res = await addLocation(locationFormData);
         if (!formData.start_location_id) setFormData(p => ({ ...p, start_location_id: res._id }));

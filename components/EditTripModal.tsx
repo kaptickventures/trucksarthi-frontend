@@ -1,4 +1,4 @@
-import { X } from "lucide-react-native";
+import { X, Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Navigation, Plus } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -11,14 +11,17 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  StyleSheet
 } from "react-native";
-import DropDownPicker from "react-native-dropdown-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 import { useThemeStore } from "../hooks/useThemeStore";
+import { SelectionModal } from "./SelectionModal";
+import { DatePickerModal } from "./DatePickerModal";
+import { formatDate } from "../lib/utils";
 
 /* ---------------- Types ---------------- */
-type DropdownKey = "truck" | "driver" | "client" | "start" | "end";
+type ModalKey = "truck" | "driver" | "client" | "start" | "end" | null;
 
 type FormKey =
   | "truck_id"
@@ -53,24 +56,16 @@ export default function EditTripModal({
   onSave,
   onDelete,
 }: Props) {
-  const { theme: themeName, colors: theme } = useThemeStore();
-  const isDark = themeName === "dark";
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
 
   const translateY = useRef(new Animated.Value(0)).current;
   const SCROLL_THRESHOLD = 40;
 
-  /* ---------------- Dropdown State ---------------- */
-  const [dropdowns, setDropdowns] = useState<Record<DropdownKey, boolean>>({
-    truck: false,
-    driver: false,
-    client: false,
-    start: false,
-    end: false,
-  });
-
-  const closeAllDropdowns = () =>
-    setDropdowns({ truck: false, driver: false, client: false, start: false, end: false });
+  /* ---------------- Modal State ---------------- */
+  const [activeModal, setActiveModal] = useState<ModalKey>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   /* ---------------- Form State ---------------- */
   const [form, setForm] = useState<Record<FormKey, string>>({
@@ -84,24 +79,19 @@ export default function EditTripModal({
     notes: "",
   });
 
-  const [rawTripDate, setRawTripDate] = useState<string>("");
-
-  const getDisplayDate = (raw: string) => {
-    try {
-      if (!raw) return "";
-      const d = new Date(raw);
-      return isNaN(d.getTime()) ? raw : d.toISOString().split("T")[0];
-    } catch {
-      return raw;
-    }
-  };
+  const [rawTripDate, setRawTripDate] = useState<Date>(new Date());
 
   const getId = (obj: any): string => (typeof obj === "object" ? obj?._id : obj);
 
   useEffect(() => {
     if (!trip) return;
 
-    setRawTripDate(String(trip.trip_date ?? ""));
+    try {
+      if (trip.trip_date) {
+        const d = new Date(trip.trip_date);
+        if (!isNaN(d.getTime())) setRawTripDate(d);
+      }
+    } catch { }
 
     setForm({
       truck_id: String(getId(trip.truck) ?? ""),
@@ -114,7 +104,6 @@ export default function EditTripModal({
       notes: trip.notes ?? "",
     });
 
-    closeAllDropdowns();
   }, [trip]);
 
   /* ---------------- Modal Pan Gestures ---------------- */
@@ -137,7 +126,6 @@ export default function EditTripModal({
   ).current;
 
   const closeModal = () => {
-    closeAllDropdowns();
     Animated.timing(translateY, {
       toValue: 800,
       duration: 200,
@@ -150,39 +138,20 @@ export default function EditTripModal({
 
   if (!trip) return null;
 
-  /* ---------------- Dropdown Config ---------------- */
-  const dropdownConfig = [
-    {
-      label: "Truck",
-      key: "truck_id" as FormKey,
-      openKey: "truck" as DropdownKey,
-      items: trucks.map((t) => ({ label: t.registration_number, value: t._id })),
-    },
-    {
-      label: "Driver",
-      key: "driver_id" as FormKey,
-      openKey: "driver" as DropdownKey,
-      items: drivers.map((d) => ({ label: d.driver_name, value: d._id })),
-    },
-    {
-      label: "Client",
-      key: "client_id" as FormKey,
-      openKey: "client" as DropdownKey,
-      items: clients.map((c) => ({ label: c.client_name, value: c._id })),
-    },
-    {
-      label: "Start Location",
-      key: "start_location_id" as FormKey,
-      openKey: "start" as DropdownKey,
-      items: locations.map((l) => ({ label: l.location_name, value: l._id })),
-    },
-    {
-      label: "End Location",
-      key: "end_location_id" as FormKey,
-      openKey: "end" as DropdownKey,
-      items: locations.map((l) => ({ label: l.location_name, value: l._id })),
-    },
-  ] as const;
+  /* ---------------- Entity Selectors ---------------- */
+  const getSelectedLabel = (type: 'truck' | 'driver' | 'client' | 'start' | 'end') => {
+    switch (type) {
+      case 'truck': return trucks.find(t => t._id === form.truck_id)?.registration_number;
+      case 'driver': {
+        const driver = drivers.find(d => d._id === form.driver_id);
+        return driver?.name || driver?.driver_name;
+      }
+      case 'client': return clients.find(c => c._id === form.client_id)?.client_name;
+      case 'start': return locations.find(l => l._id === form.start_location_id)?.location_name;
+      case 'end': return locations.find(l => l._id === form.end_location_id)?.location_name;
+      default: return "";
+    }
+  };
 
   /* ---------------- Action Handlers ---------------- */
   const handleSavePress = async () => {
@@ -199,7 +168,7 @@ export default function EditTripModal({
     }
 
     const payload = {
-      trip_date: rawTripDate,
+      trip_date: rawTripDate.toISOString(),
       truck: form.truck_id,
       driver: form.driver_id,
       client: form.client_id,
@@ -212,6 +181,7 @@ export default function EditTripModal({
 
     try {
       await onSave(trip._id, payload);
+      closeModal();
     } catch {
       Alert.alert("Error", "Failed to save trip");
     }
@@ -226,6 +196,7 @@ export default function EditTripModal({
         onPress: async () => {
           try {
             await onDelete(trip._id);
+            closeModal();
           } catch {
             Alert.alert("Error", "Failed to delete trip");
           }
@@ -234,155 +205,306 @@ export default function EditTripModal({
     ]);
   };
 
-  /* ---------------- UI ---------------- */
+  /* ---------------- UI Components ---------------- */
+  function InputLabel({ label, required }: { label: string; required?: boolean }) {
+    return (
+      <Text className="text-[12px] font-bold uppercase tracking-wider mb-2 mt-4 ml-1 opacity-60" style={{ color: colors.foreground }}>
+        {label} {required && <Text style={{ color: colors.destructive }}>*</Text>}
+      </Text>
+    );
+  }
+
   return (
     <Modal transparent visible={visible} animationType="fade">
-      <Pressable className="flex-1 bg-black/40" onPress={closeModal}>
+      <Pressable className="flex-1 bg-black/60" onPress={closeModal}>
         <Animated.View
           {...panResponder.panHandlers}
-          className="absolute bottom-0 w-full rounded-t-3xl"
+          className="absolute bottom-0 w-full rounded-t-[42px]"
           style={{
-            height: "100%",
-            paddingHorizontal: 20,
-            paddingTop: insets.top + 20,
-            backgroundColor: theme.background,
+            height: "90%",
+            paddingHorizontal: 24,
+            paddingTop: 12, // insets.top might not be needed depending on the layout, but let's stick to 12 as per our new design
+            backgroundColor: colors.background,
             transform: [{ translateY }],
           }}
         >
-          <View
-            className="w-14 h-1.5 rounded-full self-center mb-4 opacity-60"
-            style={{ backgroundColor: theme.muted }}
-          />
+          {/* Grab Handle */}
+          <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-4 opacity-40" />
 
           {/* Header */}
-          <View className="flex-row justify-between items-center mb-5">
-            <Text className="text-2xl font-semibold" style={{ color: theme.foreground }}>Edit Trip</Text>
-            <TouchableOpacity onPress={closeModal}>
-              <X size={28} color={theme.mutedForeground} />
+          <View className="flex-row justify-between items-center mb-6 px-2">
+            <View>
+              <Text style={{ color: colors.foreground }} className="text-2xl font-black tracking-tight">Edit Trip</Text>
+              <Text className="text-muted-foreground text-[10px] font-black mt-1 uppercase tracking-[2px] opacity-60">
+                Update journey
+              </Text>
+            </View>
+            <TouchableOpacity onPress={closeModal} className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: colors.muted + '40' }}>
+              <X size={22} color={colors.foreground} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Date (readonly) */}
-            <Text className="mb-1 font-medium" style={{ color: theme.mutedForeground }}>Trip Date</Text>
-            <TextInput
-              editable={false}
-              value={getDisplayDate(rawTripDate)}
-              className="border rounded-xl p-3 mb-4 opacity-90"
-              style={{
-                backgroundColor: theme.card,
-                borderColor: theme.border,
-                color: theme.foreground
-              }}
-            />
-
-            {/* Dropdowns */}
-            {dropdownConfig.map((d, i) => (
-              <View key={d.key} style={{ marginBottom: 20, zIndex: 5000 - i }}>
-                <Text className="mb-1 font-medium" style={{ color: theme.mutedForeground }}>{d.label}</Text>
-
-                <DropDownPicker
-                  open={dropdowns[d.openKey]}
-                  value={form[d.key]}
-                  items={d.items}
-                  setOpen={(open) => {
-                    closeAllDropdowns();
-                    setDropdowns((prev) => ({
-                      ...prev,
-                      [d.openKey]: typeof open === "function" ? open(prev[d.openKey]) : open,
-                    }));
-                  }}
-                  setValue={(cb) =>
-                    setForm((prev) => ({ ...prev, [d.key]: cb(prev[d.key]) }))
-                  }
-                  placeholder={`Select ${d.label}`}
-                  listMode="SCROLLVIEW"
-                  maxHeight={150}
-                  scrollViewProps={{ nestedScrollEnabled: true }}
-                  style={{
-                    height: 48,
-                    backgroundColor: theme.card,
-                    borderColor: theme.border,
-                  }}
-                  dropDownContainerStyle={{
-                    backgroundColor: theme.card,
-                    borderColor: theme.border,
-                  }}
-                  textStyle={{ color: theme.foreground }}
-                  placeholderStyle={{ color: theme.mutedForeground }}
-                />
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+            {/* Date Selector */}
+            <InputLabel label={"Trip Date"} required />
+            <TouchableOpacity
+              style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <View className="flex-row items-center flex-1">
+                <Calendar size={20} color={colors.primary} />
+                <Text className="ml-3 text-base font-bold" style={{ color: colors.foreground }}>{formatDate(rawTripDate.toISOString().split('T')[0])}</Text>
               </View>
-            ))}
+              <ChevronDown size={20} color={colors.mutedForeground} />
+            </TouchableOpacity>
 
-            {/* Cost */}
-            <Text className="mb-1 font-medium" style={{ color: theme.mutedForeground }}>Cost of Trip (₹)</Text>
-            <TextInput
-              keyboardType="numeric"
-              value={form.cost_of_trip}
-              onChangeText={(v: string) => setForm((p) => ({ ...p, cost_of_trip: v }))}
-              className="border rounded-xl p-3 mb-4"
-              style={{
-                backgroundColor: theme.card,
-                borderColor: theme.border,
-                color: theme.foreground
-              }}
-              placeholderTextColor={theme.mutedForeground}
-            />
+            {/* Client Selector */}
+            <InputLabel label={"Client"} required />
+            <TouchableOpacity
+              style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+              onPress={() => setActiveModal('client')}
+            >
+              <View className="flex-row items-center flex-1">
+                <User size={20} color={colors.primary} />
+                <Text
+                  numberOfLines={1}
+                  className="ml-3 text-base font-bold"
+                  style={{ color: getSelectedLabel('client') ? colors.foreground : colors.mutedForeground }}
+                >
+                  {getSelectedLabel('client') || "Select Client"}
+                </Text>
+              </View>
+              <ChevronDown size={20} color={colors.mutedForeground} />
+            </TouchableOpacity>
 
-            {/* Misc */}
-            <Text className="mb-1 font-medium" style={{ color: theme.mutedForeground }}>Miscellaneous Expense (₹)</Text>
-            <TextInput
-              keyboardType="numeric"
-              value={form.miscellaneous_expense}
-              onChangeText={(v: string) => setForm((p) => ({ ...p, miscellaneous_expense: v }))}
-              className="border rounded-xl p-3 mb-4"
-              style={{
-                backgroundColor: theme.card,
-                borderColor: theme.border,
-                color: theme.foreground
-              }}
-              placeholderTextColor={theme.mutedForeground}
-            />
+            <View className="flex-row gap-4">
+              {/* Origin */}
+              <View className="flex-1">
+                <InputLabel label={"Origin"} required />
+                <TouchableOpacity
+                  style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+                  onPress={() => setActiveModal('start')}
+                >
+                  <View className="flex-row items-center flex-1">
+                    <MapPin size={20} color={colors.primary} />
+                    <Text
+                      numberOfLines={1}
+                      className="ml-2 text-base font-bold"
+                      style={{ color: getSelectedLabel('start') ? colors.foreground : colors.mutedForeground }}
+                    >
+                      {getSelectedLabel('start') || "From"}
+                    </Text>
+                  </View>
+                  <ChevronDown size={20} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Destination */}
+              <View className="flex-1">
+                <InputLabel label={"Destination"} required />
+                <TouchableOpacity
+                  style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+                  onPress={() => setActiveModal('end')}
+                >
+                  <View className="flex-row items-center flex-1">
+                    <Navigation size={20} color={colors.primary} />
+                    <Text
+                      numberOfLines={1}
+                      className="ml-2 text-base font-bold"
+                      style={{ color: getSelectedLabel('end') ? colors.foreground : colors.mutedForeground }}
+                    >
+                      {getSelectedLabel('end') || "To"}
+                    </Text>
+                  </View>
+                  <ChevronDown size={20} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View className="flex-row gap-4">
+              {/* Truck */}
+              <View className="flex-1">
+                <InputLabel label={"Truck"} required />
+                <TouchableOpacity
+                  style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+                  onPress={() => setActiveModal('truck')}
+                >
+                  <View className="flex-row items-center flex-1">
+                    <Truck size={20} color={colors.primary} />
+                    <Text
+                      numberOfLines={1}
+                      className="ml-2 text-base font-bold"
+                      style={{ color: getSelectedLabel('truck') ? colors.foreground : colors.mutedForeground }}
+                    >
+                      {getSelectedLabel('truck') || "Truck"}
+                    </Text>
+                  </View>
+                  <ChevronDown size={20} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Driver */}
+              <View className="flex-1">
+                <InputLabel label={"Driver"} required />
+                <TouchableOpacity
+                  style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+                  onPress={() => setActiveModal('driver')}
+                >
+                  <View className="flex-row items-center flex-1">
+                    <User size={20} color={colors.primary} />
+                    <Text
+                      numberOfLines={1}
+                      className="ml-2 text-base font-bold"
+                      style={{ color: getSelectedLabel('driver') ? colors.foreground : colors.mutedForeground }}
+                    >
+                      {getSelectedLabel('driver') || "Driver"}
+                    </Text>
+                  </View>
+                  <ChevronDown size={20} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Pricing Row */}
+            <View className="flex-row gap-4">
+              <View className="flex-1">
+                <InputLabel label={"Freight Cost"} required />
+                <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+                  <IndianRupee size={18} color={colors.primary} />
+                  <TextInput
+                    placeholder="0.00"
+                    keyboardType="numeric"
+                    className="flex-1 ml-2 text-base font-bold"
+                    style={{ color: colors.foreground }}
+                    value={form.cost_of_trip}
+                    onChangeText={(t) => setForm({ ...form, cost_of_trip: t })}
+                    placeholderTextColor={colors.mutedForeground}
+                  />
+                </View>
+              </View>
+              <View className="flex-1">
+                <InputLabel label="Misc Expenses" />
+                <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+                  <IndianRupee size={18} color={colors.primary} />
+                  <TextInput
+                    placeholder="0.00"
+                    keyboardType="numeric"
+                    className="flex-1 ml-2 text-base font-bold"
+                    style={{ color: colors.foreground }}
+                    value={form.miscellaneous_expense}
+                    onChangeText={(t) => setForm({ ...form, miscellaneous_expense: t })}
+                    placeholderTextColor={colors.mutedForeground}
+                  />
+                </View>
+              </View>
+            </View>
 
             {/* Notes */}
-            <Text className="mb-1 font-medium" style={{ color: theme.mutedForeground }}>Notes</Text>
-            <TextInput
-              multiline
-              numberOfLines={3}
-              value={form.notes}
-              onChangeText={(v: string) => setForm((p) => ({ ...p, notes: v }))}
-              className="border rounded-xl p-3 mb-6"
-              style={{
-                backgroundColor: theme.card,
-                borderColor: theme.border,
-                color: theme.foreground
-              }}
-              placeholderTextColor={theme.mutedForeground}
-            />
+            <InputLabel label={"Trip Notes"} />
+            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF', height: 100, alignItems: 'flex-start', paddingTop: 16 }]}>
+              <View style={{ marginTop: 2 }}>
+                <FileText size={18} color={colors.primary} />
+              </View>
+              <TextInput
+                placeholder={"Any additional details..."}
+                multiline
+                numberOfLines={4}
+                className="flex-1 ml-2 text-base font-bold"
+                style={{ color: colors.foreground, textAlignVertical: 'top', marginTop: -4 }}
+                value={form.notes}
+                onChangeText={(t) => setForm({ ...form, notes: t })}
+                placeholderTextColor={colors.mutedForeground}
+              />
+            </View>
 
-            {/* Actions */}
-            <TouchableOpacity onPress={handleSavePress} className="bg-primary p-4 rounded-xl mb-3">
-              <Text className="text-center font-semibold" style={{ color: theme.primaryForeground }}>Save Changes</Text>
+            {/* Save Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={{ backgroundColor: colors.primary }}
+              className="mt-8 h-16 rounded-[22px] items-center justify-center shadow-lg shadow-primary/30"
+              onPress={handleSavePress}
+            >
+              <Text className="text-white text-lg font-black tracking-wide">SAVE CHANGES</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleDeletePress}
-              className="p-4 rounded-xl mb-3"
-              style={{ backgroundColor: theme.destructive }}
+              className="mt-4 p-4 rounded-xl mb-3 flex-row items-center justify-center"
+              style={{ backgroundColor: colors.destructive + '15' }}
             >
-              <Text className="text-center font-semibold" style={{ color: 'white' }}>Delete Trip</Text>
+              <Text className="text-center font-bold" style={{ color: colors.destructive }}>DELETE TRIP</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={closeModal}
-              className="border p-4 rounded-xl"
-              style={{ borderColor: theme.border }}
-            >
-              <Text className="text-center" style={{ color: theme.mutedForeground }}>Cancel</Text>
-            </TouchableOpacity>
           </ScrollView>
         </Animated.View>
       </Pressable>
+
+      {/* Select Modals */}
+      <SelectionModal
+        visible={activeModal === 'truck'}
+        onClose={() => setActiveModal(null)}
+        title="Select Truck"
+        items={trucks.map(t => ({ label: t.registration_number, value: t._id }))}
+        onSelect={(val) => setForm({ ...form, truck_id: val })}
+        selectedValue={form.truck_id}
+      />
+      <SelectionModal
+        visible={activeModal === 'driver'}
+        onClose={() => setActiveModal(null)}
+        title="Select Driver"
+        items={drivers.map(d => ({ label: d.driver_name || d.name || "Driver", value: d._id }))}
+        onSelect={(val) => setForm({ ...form, driver_id: val })}
+        selectedValue={form.driver_id}
+      />
+      <SelectionModal
+        visible={activeModal === 'client'}
+        onClose={() => setActiveModal(null)}
+        title="Select Client"
+        items={clients.map(c => ({ label: c.client_name, value: c._id }))}
+        onSelect={(val) => setForm({ ...form, client_id: val })}
+        selectedValue={form.client_id}
+      />
+      <SelectionModal
+        visible={activeModal === 'start'}
+        onClose={() => setActiveModal(null)}
+        title="Select Origin"
+        items={locations.map(l => ({ label: l.location_name, value: l._id }))}
+        onSelect={(val) => setForm({ ...form, start_location_id: val })}
+        selectedValue={form.start_location_id}
+      />
+      <SelectionModal
+        visible={activeModal === 'end'}
+        onClose={() => setActiveModal(null)}
+        title="Select Destination"
+        items={locations.map(l => ({ label: l.location_name, value: l._id }))}
+        onSelect={(val) => setForm({ ...form, end_location_id: val })}
+        selectedValue={form.end_location_id}
+      />
+
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        date={rawTripDate}
+        onChange={(d) => setRawTripDate(d)}
+      />
+
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  inputContainer: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    paddingHorizontal: 16,
+    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  }
+});

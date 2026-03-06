@@ -59,7 +59,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     onRefresh();
-  }, []);
+  }, [onRefresh]);
 
   const toShortId = (value: any): string => {
     if (!value) return "N/A";
@@ -244,11 +244,9 @@ export default function HomeScreen() {
     navigation.setOptions({
       headerTitle: "Trucksarthi",
       headerTitleAlign: "center",
-      headerShadowVisible: true,
+      headerShadowVisible: false,
       headerStyle: {
-        backgroundColor: colors.background,
-        borderBottomWidth: 1,
-        borderBottomColor: isDark ? "#2F2F2F" : "#D1D5DB",
+        backgroundColor: "transparent",
       },
       headerBackground: () => (
         <View
@@ -256,7 +254,7 @@ export default function HomeScreen() {
             flex: 1,
             backgroundColor: colors.background,
             borderBottomWidth: 1,
-            borderBottomColor: isDark ? "#2F2F2F" : "#D1D5DB",
+            borderBottomColor: colors.border,
           }}
         />
       ),
@@ -481,15 +479,16 @@ export default function HomeScreen() {
 
           {recentTrips.length > 0 ? (
             visibleRecentTrips.map((trip) => {
-              const getId = (obj: any): string =>
-                typeof obj === "object" ? obj?._id : obj;
+
               const tripId = trip?._id;
-              const truckId = getId(trip.truck);
-              const driverId = getId(trip.driver);
+
+
               const dateStr = trip.trip_date
                 ? formatDate(trip.trip_date)
                 : "No Date";
-              const cost = trip.cost_of_trip ?? 0;
+              const cost =
+                Number(trip.cost_of_trip || 0) +
+                Number(trip.miscellaneous_expense || 0);
 
               return (
                 <View
