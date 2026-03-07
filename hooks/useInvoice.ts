@@ -40,6 +40,8 @@ export function useInvoices() {
     client_id: string;
     tripIds: string[];
     due_date: string;
+    tax_type?: "none" | "igst" | "cgst_sgst";
+    tax_percentage?: 0 | 5 | 18;
   }) => {
     try {
       const res = await API.post(`/api/invoices`, data);

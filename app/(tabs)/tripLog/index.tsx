@@ -1,5 +1,6 @@
 
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   ActivityIndicator,
   Alert,
@@ -46,6 +47,12 @@ export default function TripLog() {
   const router = useRouter();
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setMenuVisible(false);
+    }, [])
+  );
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
 
@@ -253,9 +260,7 @@ export default function TripLog() {
   </style>
 </head>
 <body>
-  <div class="title">Trucksarthi</div>
-  <div class="subtitle">By Kaptick Labs</div>
-  <div class="divider"></div>
+  <div class="title">Trucksarthi</div>  <div class="divider"></div>
   <div class="section-title">Trip Report</div>
   <div class="generated">Generated on ${formatDate(new Date())}</div>
   ${dateRangeText ? `<div class="daterange">${dateRangeText}</div>` : ""}

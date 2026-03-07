@@ -108,6 +108,9 @@ export default function ClientLedgerDetailScreen() {
 
   const [selectedTrips, setSelectedTrips] = useState<string[]>([]);
   const [settlingInvoiceId, setSettlingInvoiceId] = useState<string | null>(null);
+  const [showInvoiceConfigForm, setShowInvoiceConfigForm] = useState(false);
+  const [invoiceTaxType, setInvoiceTaxType] = useState<"igst" | "cgst_sgst">("igst");
+  const [invoiceTaxPercentage, setInvoiceTaxPercentage] = useState<0 | 5 | 18>(0);
 
   // Edit Client Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -124,6 +127,11 @@ export default function ClientLedgerDetailScreen() {
   const translateY = useRef(new Animated.Value(0)).current;
   const SCROLL_THRESHOLD = 40;
   const PAYMENT_MODES = ["CASH", "BANK", "UPI"] as const;
+  const TAX_TYPES = [
+    { label: "IGST", value: "igst" },
+    { label: "CGST + SGST", value: "cgst_sgst" },
+  ] as const;
+  const TAX_PERCENTAGES = [0, 5, 18] as const;
 
   const { drivers } = useDrivers();
   const { trucks } = useTrucks();
@@ -232,9 +240,16 @@ export default function ClientLedgerDetailScreen() {
         0
       );
 
-      const taxRate = 0.05;
-      const tax = subtotal * taxRate;
-      const grandTotal = subtotal + tax;
+      const invoiceSubtotal = Number(invoice.subtotal_amount ?? subtotal);
+      const taxPercentage = Number(invoice.tax_percentage ?? 0);
+      const tax = Number(invoice.tax_amount ?? (invoiceSubtotal * taxPercentage) / 100);
+      const grandTotal = Number(invoice.total_amount ?? (invoiceSubtotal + tax));
+      const taxTypeLabel =
+        invoice.tax_type === "cgst_sgst"
+          ? "CGST + SGST"
+          : invoice.tax_type === "igst"
+            ? "IGST"
+            : "No Tax";
 
       const today = formatDate(new Date());
 
@@ -408,10 +423,10 @@ export default function ClientLedgerDetailScreen() {
   <div class="totals">
     <div>
       <span>Subtotal (${invoiceTrips.length} trips)</span>
-      <span>₹${subtotal.toLocaleString()}</span>
+      <span>₹${invoiceSubtotal.toLocaleString()}</span>
     </div>
     <div>
-      <span>Tax (5%)</span>
+      <span>Tax (${taxPercentage}%${taxPercentage > 0 ? ` - ${taxTypeLabel}` : ""})</span>
       <span>₹${tax.toLocaleString()}</span>
     </div>
     <div class="grand">
@@ -507,6 +522,19 @@ export default function ClientLedgerDetailScreen() {
       .reduce((sum, e) => sum + Number(e?.amount || 0), 0);
   }, [entries]);
 
+  const paymentCountsByInvoice = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (entries || []).forEach(e => {
+      if (e && e.entry_type === 'credit') {
+        const invId = getId((e as any).invoice || (e as any).invoice_id);
+        if (invId) {
+          counts[invId] = (counts[invId] || 0) + 1;
+        }
+      }
+    });
+    return counts;
+  }, [entries]);
+
   /* ---------------- ACTIONS ---------------- */
   // Update Payment Date helper
   const onPaymentDateChange = (event: any, selectedDate?: Date) => {
@@ -526,9 +554,12 @@ export default function ClientLedgerDetailScreen() {
       client_id: id,
       tripIds: selectedTrips,
       due_date: new Date().toISOString().split("T")[0],
+      tax_type: invoiceTaxPercentage === 0 ? "none" : invoiceTaxType,
+      tax_percentage: invoiceTaxPercentage,
     });
 
     setSelectedTrips([]);
+    setShowInvoiceConfigForm(false);
     fetchInvoices();
     fetchTrips();
     fetchLedger(id);
@@ -723,10 +754,6 @@ export default function ClientLedgerDetailScreen() {
     const requiredFields = [
       "client_name",
       "contact_number",
-      "contact_person_name",
-      "alternate_contact_number",
-      "email_address",
-      "office_address"
     ];
 
     const missingFields = requiredFields.filter(f => !editFormData[f as keyof typeof editFormData]);
@@ -824,12 +851,6 @@ export default function ClientLedgerDetailScreen() {
             <View>
               <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('clientKhata')}</Text>
               <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('billingSummary')}</Text>
-            </View>
-            <View className="items-end">
-              <Text className="text-xs font-bold uppercase opacity-50" style={{ color: colors.foreground }}>{t('totalOutstanding')}</Text>
-              <Text className="text-2xl font-black" style={{ color: colors.destructive }}>
-                ₹{(unbilledAmount + billedAmount).toLocaleString()}
-              </Text>
             </View>
           </View>
         </View>
@@ -937,7 +958,7 @@ export default function ClientLedgerDetailScreen() {
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-lg font-bold" style={{ color: colors.foreground }}>{t('pendingTrips')}</Text>
               {selectedTrips.length > 0 && (
-                <TouchableOpacity onPress={handleGenerateInvoice} className="px-4 py-2 rounded-lg" style={{ backgroundColor: colors.primary }}>
+                <TouchableOpacity onPress={() => setShowInvoiceConfigForm(true)} className="px-4 py-2 rounded-lg" style={{ backgroundColor: colors.primary }}>
                   <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-xs">{t('generateInvoice')} ({selectedTrips.length})</Text>
                 </TouchableOpacity>
               )}
@@ -1006,11 +1027,16 @@ export default function ClientLedgerDetailScreen() {
                   <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border + '4D' }}>
                     <View>
                       <Text className="font-bold text-lg" style={{ color: colors.foreground }}>
-                        ₹{(isPartiallyPaid ? remainingAmount : totalAmount).toLocaleString()}
+                        ₹{remainingAmount.toLocaleString()}
                       </Text>
-                      {isPartiallyPaid && (
+                      {remainingAmount < totalAmount && (
                         <Text className="text-[11px]" style={{ color: colors.mutedForeground }}>
-                          Balance due
+                          Balance due (Total: ₹{totalAmount.toLocaleString()})
+                        </Text>
+                      )}
+                      {remainingAmount === totalAmount && (
+                        <Text className="text-[11px]" style={{ color: colors.mutedForeground }}>
+                          Full balance pending
                         </Text>
                       )}
                     </View>
@@ -1054,9 +1080,9 @@ export default function ClientLedgerDetailScreen() {
                   </Text>
                 </View>
                 <View className="items-end" style={{ minWidth: 86, marginLeft: 6 }}>
-                  <View className="px-2 py-1 rounded-md mb-1" style={{ backgroundColor: (entry.payment_type || "PARTIAL") === "FULL" ? "#22c55e20" : "#f59e0b20" }}>
-                    <Text className="text-[10px] font-bold" style={{ color: (entry.payment_type || "PARTIAL") === "FULL" ? "#22c55e" : "#d97706" }}>
-                      {entry.payment_type || "PARTIAL"}
+                  <View className="px-2 py-1 rounded-md mb-1" style={{ backgroundColor: (entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "#f59e0b20" : "#22c55e20" }}>
+                    <Text className="text-[10px] font-bold" style={{ color: (entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "#d97706" : "#22c55e" }}>
+                      {(entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "PARTIAL" : "FULL"}
                     </Text>
                   </View>
                   <Text className="font-bold" style={{ color: "#16a34a" }}>₹{Number(entry.amount).toLocaleString()}</Text>
@@ -1070,6 +1096,105 @@ export default function ClientLedgerDetailScreen() {
         )}
 
 
+
+        <BottomSheet
+          visible={showInvoiceConfigForm}
+          onClose={() => setShowInvoiceConfigForm(false)}
+          title="Generate Invoice"
+          subtitle={`${selectedTrips.length} trip(s) selected`}
+        >
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+            <View className="mb-6">
+              <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Tax Percentage</Text>
+              <View className="flex-row gap-2">
+                {TAX_PERCENTAGES.map((percent) => {
+                  const selected = invoiceTaxPercentage === percent;
+                  return (
+                    <TouchableOpacity
+                      key={`tax-percent-${percent}`}
+                      onPress={() => setInvoiceTaxPercentage(percent)}
+                      className="px-4 py-2 rounded-full"
+                      style={{
+                        borderWidth: 1,
+                        borderColor: selected ? colors.primary : colors.border + "40",
+                        backgroundColor: selected ? colors.primary : (isDark ? colors.card : colors.secondary + "40"),
+                      }}
+                    >
+                      <Text style={{ color: selected ? colors.primaryForeground : colors.foreground, fontWeight: "800" }}>
+                        {percent}%
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View className="mb-6">
+              <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Tax Type</Text>
+              <View
+                className="flex-row gap-2"
+                style={{ opacity: invoiceTaxPercentage === 0 ? 0.6 : 1 }}
+              >
+                {TAX_TYPES.map((taxType) => {
+                  const selected = invoiceTaxType === taxType.value;
+                  const disabled = invoiceTaxPercentage === 0;
+                  return (
+                    <TouchableOpacity
+                      key={`tax-type-${taxType.value}`}
+                      onPress={() => !disabled && setInvoiceTaxType(taxType.value)}
+                      disabled={disabled}
+                      className="px-4 py-2 rounded-full"
+                      style={{
+                        borderWidth: 1,
+                        borderColor: selected ? colors.primary : colors.border + "40",
+                        backgroundColor: disabled
+                          ? colors.muted
+                          : selected
+                            ? colors.primary
+                            : (isDark ? colors.card : colors.secondary + "40"),
+                      }}
+                    >
+                      <Text style={{ color: selected && !disabled ? colors.primaryForeground : colors.foreground, fontWeight: "800" }}>
+                        {taxType.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {invoiceTaxPercentage === 0 && (
+                <Text className="text-xs mt-2 ml-1" style={{ color: colors.mutedForeground }}>
+                  Not required for 0%
+                </Text>
+              )}
+            </View>
+
+            <View className="mb-6 rounded-2xl p-4" style={{ borderWidth: 1, borderColor: colors.border + '30', backgroundColor: isDark ? colors.card : colors.secondary + '30' }}>
+              <Text className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: colors.mutedForeground }}>Payment Options</Text>
+              <Text className="text-sm mb-3" style={{ color: colors.mutedForeground }}>Reserved space for invoice payment options.</Text>
+              <View className="flex-row gap-2">
+                {PAYMENT_MODES.map((mode) => (
+                  <View
+                    key={`invoice-payment-${mode}`}
+                    className="px-3 py-2 rounded-xl"
+                    style={{ borderWidth: 1, borderColor: colors.border + '40', backgroundColor: colors.muted }}
+                  >
+                    <Text className="text-xs font-bold" style={{ color: colors.mutedForeground }}>{mode}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleGenerateInvoice}
+              style={{ backgroundColor: colors.primary }}
+              className="py-4 rounded-[18px]"
+            >
+              <Text style={{ color: colors.primaryForeground, fontWeight: "900", fontSize: 16 }} className="text-center">
+                CREATE INVOICE
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </BottomSheet>
 
         <BottomSheet
           visible={showPaymentForm}
@@ -1280,7 +1405,6 @@ export default function ClientLedgerDetailScreen() {
             </View>
           </ScrollView>
         </BottomSheet>
-
 
       </ScrollView>
     </SafeAreaView>

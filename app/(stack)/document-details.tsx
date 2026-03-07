@@ -405,7 +405,7 @@ export default function DocumentDetails() {
                                     marginLeft: 10,
                                     fontSize: 15,
                                     color: colors.foreground,
-                                    height: '100%',
+                                    paddingVertical: 0,
                                     includeFontPadding: false,
                                 }}
                                 placeholder="Search documents..."

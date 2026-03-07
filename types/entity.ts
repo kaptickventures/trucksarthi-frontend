@@ -295,6 +295,7 @@ export interface Trip {
 
   notes?: string;
   invoiced_status?: InvoicedStatus;
+  public_id?: string;
   createdAt?: ISODate;
   updatedAt?: ISODate;
 }
@@ -318,6 +319,10 @@ export interface Invoice {
   client: ObjectId | Client;
 
   invoice_number: string;
+  subtotal_amount?: number;
+  tax_type?: "none" | "igst" | "cgst_sgst";
+  tax_percentage?: number;
+  tax_amount?: number;
   total_amount: number;
 
   due_date?: ISODate;

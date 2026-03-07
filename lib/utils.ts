@@ -43,3 +43,15 @@ export function formatLabel(label: string | null | undefined): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 }
+
+export function formatPhoneNumber(phone: string | null | undefined): string {
+  if (!phone) return "N/A";
+  let cleaned = phone.replace(/[\s-]/g, "");
+  if (cleaned.startsWith("+91") && cleaned.length === 13) {
+    return `+91 ${cleaned.slice(3)}`;
+  }
+  if (cleaned.length === 10) {
+    return `+91 ${cleaned}`;
+  }
+  return phone;
+}

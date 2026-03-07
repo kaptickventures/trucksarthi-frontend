@@ -2,6 +2,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
 import { useLayoutEffect, useState, useCallback, useEffect, useMemo } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+
 import {
   ScrollView,
   Text,
@@ -60,6 +62,12 @@ export default function HomeScreen() {
   useEffect(() => {
     onRefresh();
   }, [onRefresh]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setMenuVisible(false);
+    }, [])
+  );
 
   const toShortId = (value: any): string => {
     if (!value) return "N/A";
@@ -160,7 +168,8 @@ export default function HomeScreen() {
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const diffTime = expiryStart.getTime() - todayStart.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays <= 30;
+    // Showing reminders for everything expired or expiring within 30 days
+    return diffDays <= 30;
   };
 
   type HomeReminder = {
@@ -176,9 +185,11 @@ export default function HomeScreen() {
       const rawExpiry = (doc as any).expiry_date ?? (doc as any).expiryDate;
       const expiry = parseExpiryDate(rawExpiry);
       if (!expiry || !isWithinReminderWindow(expiry)) return null;
+
+      const isExpired = expiry.getTime() < new Date().setHours(0, 0, 0, 0);
       return {
         key: `doc-${doc._id}`,
-        label: `${doc.document_type} Expiring`,
+        label: `${doc.document_type} ${isExpired ? 'Expired' : 'Expiring'}`,
         truck: doc.truck,
         expiry,
       } as HomeReminder;
@@ -187,29 +198,38 @@ export default function HomeScreen() {
 
   // Truck-level reminders from API expiry fields (works even without uploaded docs)
   const truckFieldReminders = useMemo(() => {
-    const fields: { key: string; label: string; read: (truck: any) => any }[] = [
-      { key: "insurance", label: "Insurance Expiring", read: (truck) => truck.insurance_upto || truck?.rc_details?.vehicle_insurance_upto },
-      { key: "fitness", label: "Fitness Expiring", read: (truck) => truck.fitness_upto || truck?.rc_details?.rc_expiry_date },
-      { key: "permit", label: "Permit Expiring", read: (truck) => truck.permit_upto || truck?.rc_details?.permit_valid_upto },
-      { key: "pucc", label: "PUCC Expiring", read: (truck) => truck.pollution_upto || truck?.rc_details?.pucc_upto },
-      { key: "road_tax", label: "Road Tax Expiring", read: (truck) => truck.road_tax_upto || truck?.rc_details?.vehicle_tax_upto },
+    const fields: { key: string; label: string; type: string; read: (truck: any) => any }[] = [
+      { key: "insurance", type: "INSURANCE", label: "Insurance", read: (truck) => truck.insurance_upto || truck?.rc_details?.vehicle_insurance_upto },
+      { key: "fitness", type: "FITNESS CERTIFICATE", label: "Fitness", read: (truck) => truck.fitness_upto || truck?.rc_details?.rc_expiry_date },
+      { key: "permit", type: "STATE PERMIT", label: "Permit", read: (truck) => truck.permit_upto || truck?.rc_details?.permit_valid_upto },
+      { key: "pucc", type: "PUCC", label: "PUCC", read: (truck) => truck.pollution_upto || truck?.rc_details?.pucc_upto },
+      { key: "road_tax", type: "ROAD TAX", label: "Road Tax", read: (truck) => truck.road_tax_upto || truck?.rc_details?.vehicle_tax_upto },
     ];
 
     const reminders: HomeReminder[] = [];
     for (const truck of trucks || []) {
       for (const field of fields) {
+        // Skip if there's already an uploaded document for this truck and type
+        const hasUploadedDoc = documents.some(d =>
+          (typeof d.truck === 'object' ? d.truck?._id === truck._id : d.truck === truck._id) &&
+          d.document_type?.toUpperCase().includes(field.type)
+        );
+        if (hasUploadedDoc) continue;
+
         const expiry = parseExpiryDate(field.read(truck));
         if (!expiry || !isWithinReminderWindow(expiry)) continue;
+
+        const isExpired = expiry.getTime() < new Date().setHours(0, 0, 0, 0);
         reminders.push({
           key: `truck-${truck._id}-${field.key}`,
-          label: field.label,
+          label: `${field.label} ${isExpired ? 'Expired' : 'Expiring'}`,
           truck,
           expiry,
         });
       }
     }
     return reminders;
-  }, [trucks]);
+  }, [trucks, documents]);
 
   const latestReminderDocs = useMemo(
     () =>
@@ -428,7 +448,7 @@ export default function HomeScreen() {
         <View style={{ backgroundColor: colors.card }} className="rounded-2xl p-4 mb-6">
           <View className="flex-row justify-between items-center mb-3">
             <Text style={{ color: colors.foreground }} className="font-semibold text-lg">{t('reminders')}</Text>
-            {totalReminderCount > 5 && (
+            {totalReminderCount > 0 && (
               <TouchableOpacity onPress={() => router.push("/(stack)/notifications" as any)}>
                 <Text className="text-muted-foreground text-sm">{t('viewAll')} →</Text>
               </TouchableOpacity>
@@ -539,6 +559,9 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Bottom Spacer */}
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />

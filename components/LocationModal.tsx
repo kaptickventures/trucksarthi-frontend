@@ -197,7 +197,7 @@ export default function LocationFormModal({
                                         <Search size={20} color={isSearchFocused ? colors.primary : colors.mutedForeground} />
                                         <TextInput
                                             className="flex-1 p-4 text-base font-bold"
-                                            style={{ color: colors.foreground }}
+                                            style={{ color: colors.foreground, minHeight: formData.complete_address.length > 30 ? 80 : 56, textAlignVertical: 'center' }}
                                             value={formData.complete_address}
                                             onFocus={() => setIsSearchFocused(true)}
                                             onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
@@ -212,7 +212,7 @@ export default function LocationFormModal({
                                             }
                                             placeholder="City, Street or Landmark"
                                             placeholderTextColor={colors.mutedForeground + '60'}
-                                            multiline={false}
+                                            multiline={true}
                                         />
                                         {loadingSuggestions && <ActivityIndicator size="small" color={colors.primary} />}
                                     </View>

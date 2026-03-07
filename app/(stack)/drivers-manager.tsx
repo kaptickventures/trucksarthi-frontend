@@ -21,6 +21,7 @@ import useDrivers from "../../hooks/useDriver";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
 import { useTranslation } from "../../context/LanguageContext";
+import { formatPhoneNumber } from "../../lib/utils";
 
 export default function DriversManager() {
   const router = useRouter();
@@ -213,7 +214,12 @@ export default function DriversManager() {
                   </View>
                   <View className="flex-row gap-2">
                     <TouchableOpacity
-                      onPress={(e) => { e.stopPropagation(); Linking.openURL(`https://wa.me/91${driver.contact_number}`); }}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        const cleaned = driver.contact_number.replace(/\D/g, "");
+                        const waNumber = cleaned.length === 12 && cleaned.startsWith("91") ? cleaned : `91${cleaned.slice(-10)}`;
+                        Linking.openURL(`https://wa.me/${waNumber}`);
+                      }}
                       className="w-10 h-10 bg-[#25D366]/10 rounded-full items-center justify-center"
                     >
                       <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
@@ -229,8 +235,9 @@ export default function DriversManager() {
                 </View>
 
                 <View className="gap-y-1">
-                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">Phone: {driver.contact_number}</Text>
-                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">License: {driver.license_card_url ? "Registered" : "Missing"}</Text>
+                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">Phone: <Text style={{ color: colors.mutedForeground }}>{formatPhoneNumber(driver.contact_number)}</Text></Text>
+                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">License: <Text style={{ color: driver.license_card_url ? "#22c55e" : "#ef4444" }}>{driver.license_card_url ? "Uploaded" : "Not Uploaded"}</Text></Text>
+                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">Aadhar: <Text style={{ color: driver.identity_card_url ? "#22c55e" : "#ef4444" }}>{driver.identity_card_url ? "Uploaded" : "Not Uploaded"}</Text></Text>
                 </View>
               </TouchableOpacity>
             );

@@ -17,7 +17,7 @@ import "../global.css";
 
 import { useThemeStore } from "../hooks/useThemeStore";
 import { useUser } from "../hooks/useUser";
-import { getFileUrl } from "../lib/utils";
+import { getFileUrl, formatPhoneNumber } from "../lib/utils";
 import { Bell } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 
@@ -130,12 +130,11 @@ export default function SideMenu({
           zIndex: 9999,
           paddingHorizontal: 24,
           paddingTop: 12,
-          paddingBottom: Math.max(insets.bottom, 20),
         }}
       >
         <View style={{ flex: 1 }}>
           {/* STATIC PROFILE HEADER (Sticky) */}
-          <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 24, marginBottom: 16 }}>
+          <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 24 }}>
             <TouchableOpacity onPress={() => navigate("/(stack)/profile")}>
               <View className="flex-row items-center">
                 <View
@@ -162,7 +161,7 @@ export default function SideMenu({
                     {loading ? t('loading') : user?.name || "Guest"}
                   </Text>
                   <Text className="text-sm font-medium" style={{ color: colors.primary }}>
-                    {loading ? "" : user?.phone || user?.email || ""}
+                    {loading ? "" : user?.phone ? formatPhoneNumber(user.phone) : user?.email || ""}
                   </Text>
                 </View>
               </View>
@@ -170,10 +169,10 @@ export default function SideMenu({
           </View>
 
           {/* SCROLLABLE MENU ITEMS */}
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 0 }}>
             {/* FINANCE SECTION */}
-            <View className="mt-8 mb-6">
-              <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
+            <View className="mb-6">
+              <Text className="text-base font-semibold mb-3 mt-4" style={{ color: colors.mutedForeground }}>
                 {t('financeHub')}
               </Text>
               {FINANCE_LINKS.map((item, idx) => (
@@ -222,7 +221,7 @@ export default function SideMenu({
             {/* Logout as part of the scrollable list */}
             <TouchableOpacity
               onPress={handleLogout}
-              className="flex-row items-center py-4 mt-8"
+              className="flex-row items-center py-4 mt-8 mb-20"
               style={{ borderTopWidth: 1, borderTopColor: colors.border }}
             >
               <Ionicons name="log-out-outline" size={26} color="#ef4444" />

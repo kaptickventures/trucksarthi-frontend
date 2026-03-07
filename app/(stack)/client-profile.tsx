@@ -32,7 +32,7 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrips, { Trip } from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
-import { formatDate } from "../../lib/utils";
+import { formatDate, formatPhoneNumber } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 import API from "../../app/api/axiosInstance";
 
@@ -201,9 +201,16 @@ export default function ClientProfile() {
         0
       );
 
-      const taxRate = 0.05;
-      const tax = subtotal * taxRate;
-      const grandTotal = subtotal + tax;
+      const invoiceSubtotal = Number(invoice.subtotal_amount ?? subtotal);
+      const taxPercentage = Number(invoice.tax_percentage ?? 0);
+      const tax = Number(invoice.tax_amount ?? (invoiceSubtotal * taxPercentage) / 100);
+      const grandTotal = Number(invoice.total_amount ?? (invoiceSubtotal + tax));
+      const taxTypeLabel =
+        invoice.tax_type === "cgst_sgst"
+          ? "CGST + SGST"
+          : invoice.tax_type === "igst"
+            ? "IGST"
+            : "No Tax";
 
       const today = formatDate(new Date());
 
@@ -374,10 +381,10 @@ export default function ClientProfile() {
   <div class="totals">
     <div>
       <span>Subtotal (${invoiceTrips.length} trips)</span>
-      <span>₹${subtotal.toLocaleString()}</span>
+      <span>₹${invoiceSubtotal.toLocaleString()}</span>
     </div>
     <div>
-      <span>Tax (5%)</span>
+      <span>Tax (${taxPercentage}%${taxPercentage > 0 ? ` - ${taxTypeLabel}` : ""})</span>
       <span>₹${tax.toLocaleString()}</span>
     </div>
     <div class="grand">
@@ -465,6 +472,8 @@ export default function ClientProfile() {
       client_id: id,
       tripIds: selectedTrips,
       due_date: new Date().toISOString().split("T")[0],
+      tax_type: "none",
+      tax_percentage: 0,
     });
 
     setSelectedTrips([]);
@@ -583,10 +592,6 @@ export default function ClientProfile() {
     const requiredFields = [
       "client_name",
       "contact_number",
-      "contact_person_name",
-      "alternate_contact_number",
-      "email_address",
-      "office_address"
     ];
 
     const missingFields = requiredFields.filter(f => !editFormData[f as keyof typeof editFormData]);
@@ -665,7 +670,7 @@ export default function ClientProfile() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 140 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -694,19 +699,13 @@ export default function ClientProfile() {
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <TouchableOpacity
-                onPress={() => client.contact_number && Linking.openURL(`tel:${client.contact_number}`)}
-                style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}
-              >
-                <Ionicons name="call-outline" size={15} color={colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity
                 onPress={() => client.email_address && Linking.openURL(`mailto:${client.email_address}`)}
                 style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}
               >
-                <Ionicons name="mail-outline" size={15} color={colors.primary} />
+                <Ionicons name="mail-outline" size={15} color={colors.mutedForeground} />
               </TouchableOpacity>
               <TouchableOpacity onPress={openEditModal} style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}>
-                <Edit size={16} color={colors.foreground} />
+                <Edit size={16} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
           </View>
@@ -726,12 +725,13 @@ export default function ClientProfile() {
 
             {/* WHATSAPP */}
             <TouchableOpacity
-              onPress={() =>
-                client.contact_number &&
-                Linking.openURL(
-                  `https://wa.me/91${client.contact_number}?text=Hello ${client.client_name}`
-                )
-              }
+              onPress={() => {
+                if (client.contact_number) {
+                  const cleaned = client.contact_number.replace(/\D/g, "");
+                  const waNumber = cleaned.length === 12 && cleaned.startsWith("91") ? cleaned : `91${cleaned.slice(-10)}`;
+                  Linking.openURL(`https://wa.me/${waNumber}?text=Hello ${client.client_name}`);
+                }
+              }}
               style={{ flex: 1, backgroundColor: '#25D366', paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -757,8 +757,6 @@ export default function ClientProfile() {
           </View>
         </View>
 
-        {/* ... (Existing Tabs and Content) ... */}
-        {/* I'll keep the rest of the tab logic as is since it wasn't shown in full but the scrollview now wraps it */}
       </ScrollView>
 
       {/* Edit Client Modal */}
@@ -781,7 +779,7 @@ export default function ClientProfile() {
               />
             </View>
             <View>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('contactPerson')} *</Text>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('contactPerson')}</Text>
               <TextInput
                 style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                 value={editFormData.contact_person_name}
@@ -801,19 +799,33 @@ export default function ClientProfile() {
                   placeholderTextColor={colors.mutedForeground}
                 />
               </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 16 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('email')} *</Text>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('alternateContact')}</Text>
+                <TextInput
+                  style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                  value={editFormData.alternate_contact_number}
+                  onChangeText={(t) => setEditFormData(prev => ({ ...prev, alternate_contact_number: t }))}
+                  keyboardType="phone-pad"
+                  placeholder="Secondary #"
+                  placeholderTextColor={colors.mutedForeground}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('email')}</Text>
                 <TextInput
                   style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                   value={editFormData.email_address}
                   onChangeText={(t) => setEditFormData(prev => ({ ...prev, email_address: t }))}
                   keyboardType="email-address"
+                  placeholder="email@example.com"
                   placeholderTextColor={colors.mutedForeground}
                 />
               </View>
             </View>
             <View>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>GSTIN Number</Text>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('gstinNumber')}</Text>
               <View className="flex-row gap-2">
                 <View className="flex-1">
                   <TextInput
@@ -838,7 +850,7 @@ export default function ClientProfile() {
               </View>
             </View>
             <View>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('officeAddress')} *</Text>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('officeAddress')}</Text>
               <TextInput
                 style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                 value={editFormData.office_address}
@@ -950,3 +962,4 @@ function SummaryCard({ label, value, green }: any) {
     </View>
   );
 }
+

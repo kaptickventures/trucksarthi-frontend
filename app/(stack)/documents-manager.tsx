@@ -114,7 +114,7 @@ export default function DocumentManager() {
                 borderColor: colors.border,
                 borderRadius: 12,
                 paddingHorizontal: 12,
-                paddingVertical: 12,
+                height: 50,
               }}
             >
               <Ionicons name="search" size={20} color={colors.mutedForeground} />
@@ -124,6 +124,8 @@ export default function DocumentManager() {
                   marginLeft: 10,
                   fontSize: 16,
                   color: colors.foreground,
+                  paddingVertical: 0,
+                  includeFontPadding: false,
                 }}
                 placeholder="Search by truck number..."
                 placeholderTextColor={colors.mutedForeground}

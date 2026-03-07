@@ -3,8 +3,10 @@ import { useNavigation, useRouter } from "expo-router";
 import {
   useEffect,
   useLayoutEffect,
-  useState
+  useState,
+  useCallback
 } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   ActivityIndicator,
   Alert,
@@ -46,9 +48,15 @@ export default function AddTrip() {
   const navigation = useNavigation();
   const router = useRouter();
   const { colors, theme } = useThemeStore();
-  const [menuVisible, setMenuVisible] = useState(false);
-  const { t } = useTranslation();
   const isDark = theme === "dark";
+  const { t } = useTranslation();
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setMenuVisible(false);
+    }, [])
+  );
 
 
   /* ---------------- Header ---------------- */

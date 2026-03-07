@@ -28,7 +28,7 @@ import DriverFormModal from "../../components/DriverModal";
 import { Skeleton } from "../../components/Skeleton";
 import useDrivers from "../../hooks/useDriver";
 import { useThemeStore } from "../../hooks/useThemeStore";
-import { getFileUrl } from "../../lib/utils";
+import { getFileUrl, formatPhoneNumber } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 
 export default function DriverProfile() {
@@ -161,7 +161,7 @@ export default function DriverProfile() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
@@ -206,7 +206,7 @@ export default function DriverProfile() {
             </View>
             <View style={{ marginLeft: 16, flex: 1 }}>
               <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.foreground }}>{driver.driver_name}</Text>
-              <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 2 }}>{driver.contact_number}</Text>
+              <Text style={{ fontSize: 14, color: colors.mutedForeground, marginTop: 2 }}>{formatPhoneNumber(driver.contact_number)}</Text>
             </View>
           </View>
 
@@ -224,12 +224,13 @@ export default function DriverProfile() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() =>
-                driver.contact_number &&
-                Linking.openURL(
-                  `https://wa.me/91${driver.contact_number}?text=Hello ${driver.driver_name}`
-                )
-              }
+              onPress={() => {
+                if (driver.contact_number) {
+                  const cleaned = driver.contact_number.replace(/\D/g, "");
+                  const waNumber = cleaned.length === 12 && cleaned.startsWith("91") ? cleaned : `91${cleaned.slice(-10)}`;
+                  Linking.openURL(`https://wa.me/${waNumber}?text=Hello ${driver.driver_name}`);
+                }
+              }}
               style={{ flex: 1, backgroundColor: '#25D366', paddingVertical: 12, borderRadius: 16, alignItems: 'center' }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

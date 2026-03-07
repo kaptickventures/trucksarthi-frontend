@@ -14,7 +14,7 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
 
 const PHONE = "9319595984";
-const EMAIL = "trucksarthi@gmail.com";
+const EMAIL = "support@trucksarthi.in";
 
 export default function HelpCenter() {
   const { colors, theme } = useThemeStore();

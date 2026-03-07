@@ -31,6 +31,7 @@ export default function LocationsManager() {
     loading: locationsLoading,
     fetchLocations,
     addLocation,
+    updateLocation,
     deleteLocation,
     searchLocations,
   } = useLocations();
@@ -201,7 +202,7 @@ export default function LocationsManager() {
               </View>
 
               <View className="gap-y-1">
-                <Text style={{ color: colors.mutedForeground }} className="text-sm font-medium">Address: {loc.complete_address}</Text>
+                <Text style={{ color: colors.mutedForeground }} className="text-sm font-medium">Address: {loc.complete_address || "Full address not added"}</Text>
               </View>
             </View>
           ))

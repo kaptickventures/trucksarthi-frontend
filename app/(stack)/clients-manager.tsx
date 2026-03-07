@@ -14,12 +14,13 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import ClientFormModal from "../../components/ClientModal";
+import ClientFormModal, { ClientFormData } from "../../components/ClientModal";
 import { Skeleton } from "../../components/Skeleton";
 import useClients from "../../hooks/useClient";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
 import { useTranslation } from "../../context/LanguageContext";
+import { formatPhoneNumber } from "../../lib/utils";
 
 export default function ClientsManager() {
   const router = useRouter();
@@ -55,16 +56,17 @@ export default function ClientsManager() {
   const REQUIRED_FIELDS = [
     "client_name",
     "contact_number",
-    "contact_person_name",
   ];
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ClientFormData>({
     client_name: "",
     contact_person_name: "",
     contact_number: "",
     alternate_contact_number: "",
     email_address: "",
     office_address: "",
+    gstin: undefined,
+    gstin_details: undefined
   });
 
   const translateY = useRef(new Animated.Value(0)).current;
@@ -83,6 +85,8 @@ export default function ClientsManager() {
       alternate_contact_number: "",
       email_address: "",
       office_address: "",
+      gstin: undefined,
+      gstin_details: undefined
     });
     setModalVisible(true);
   };
@@ -209,7 +213,12 @@ export default function ClientsManager() {
 
 
                   <TouchableOpacity
-                    onPress={(e) => { e.stopPropagation(); Linking.openURL(`https://wa.me/91${client.contact_number}`); }}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      const cleaned = client.contact_number.replace(/\D/g, "");
+                      const waNumber = cleaned.length === 12 && cleaned.startsWith("91") ? cleaned : `91${cleaned.slice(-10)}`;
+                      Linking.openURL(`https://wa.me/${waNumber}`);
+                    }}
                     className="w-10 h-10 bg-[#25D366]/10 rounded-full items-center justify-center"
                   >
                     <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
@@ -225,7 +234,7 @@ export default function ClientsManager() {
               </View>
 
               <View className="gap-y-1">
-                <Text style={{ color: colors.foreground }} className="text-sm font-medium">Phone: {client.contact_number}</Text>
+                <Text style={{ color: colors.foreground }} className="text-sm font-medium">Phone: <Text style={{ color: colors.mutedForeground }}>{formatPhoneNumber(client.contact_number)}</Text></Text>
                 <Text style={{ color: colors.foreground }} className="text-sm font-medium" numberOfLines={1}>Address: {client.office_address || "N/A"}</Text>
               </View>
             </TouchableOpacity>

@@ -156,7 +156,7 @@ export default function DriverLedgerDetailScreen() {
             {driver?.contact_number || driver?.phone || "-"}
           </Text>
           <Text style={{ color: totals.balance >= 0 ? colors.success : colors.destructive, marginTop: 8, fontWeight: "800", fontSize: 18 }}>
-            Net Balance: {totals.balance >= 0 ? "+" : "-"}Rs {Math.abs(totals.balance).toLocaleString()}
+            Net Balance: Rs {Math.abs(totals.balance).toLocaleString()}
           </Text>
         </View>
 
