@@ -2,6 +2,7 @@ import { X, UserPlus, Search, Building2, CheckCircle2, ChevronRight, ArrowLeft }
 import { useRef, useState, useEffect, useCallback } from "react";
 import {
   Animated,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   PanResponder,
@@ -52,10 +53,16 @@ export default function ClientFormModal({
   const isDark = theme === "dark";
   const translateY = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
+  const keyboardVerticalOffset = Platform.select({
+    ios: Math.max(insets.bottom, 12),
+    android: 0,
+    default: 0,
+  });
   const SCROLL_THRESHOLD = 40;
 
   const [step, setStep] = useState<'gstin' | 'form'>(editing ? 'form' : 'gstin');
   const [verifying, setVerifying] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // Reset step when modal becomes visible
@@ -66,19 +73,34 @@ export default function ClientFormModal({
     }
   }, [visible, editing]);
 
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const verifyGSTIN = async () => {
-    if (!formData.gstin) {
+    const normalizedGstin = (formData.gstin || "").trim().toUpperCase();
+    if (!normalizedGstin || normalizedGstin.length !== 15) {
       Alert.alert("Input Required", "Please enter a valid GSTIN number.");
       return;
     }
     setVerifying(true);
     try {
-      const res = await API.post("/api/kyc/gstin", { gstin: formData.gstin.trim().toUpperCase() });
-      const details = res.data;
+      const res = await API.post("/api/kyc/gstin", { gstin: normalizedGstin });
+      const verified = res.data?.verified === true || res.data?.valid === true;
+      const details = res.data?.data || res.data;
 
-      if (details.valid) {
+      if (verified && details) {
         setFormData((prev: ClientFormData) => ({
           ...prev,
+          gstin: normalizedGstin,
           client_name: details.trade_name_of_business || details.legal_name_of_business || prev.client_name,
           office_address: details.principal_place_address || prev.office_address,
           gstin_details: details
@@ -94,6 +116,21 @@ export default function ClientFormModal({
     } finally {
       setVerifying(false);
     }
+  };
+
+  const handleFormSubmit = () => {
+    const requiredFields: Array<keyof ClientFormData> = [
+      "client_name",
+      "contact_person_name",
+      "contact_number",
+    ];
+    const missingFields = requiredFields.filter((field) => !String(formData[field] || "").trim());
+    if (missingFields.length > 0) {
+      const labels = missingFields.map((f) => f.replaceAll("_", " ").toUpperCase());
+      Alert.alert("Missing Fields", `Please fill the following required fields:\n\n• ${labels.join("\n• ")}`);
+      return;
+    }
+    onSubmit();
   };
 
   const transitionTo = useCallback((nextStep: 'gstin' | 'form') => {
@@ -192,7 +229,7 @@ export default function ClientFormModal({
     <ScrollView
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ paddingBottom: 40 }}
+      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 24, 40) }}
     >
       <View className="items-center mb-8 mt-4">
         <View className="w-16 h-16 rounded-full bg-blue-500/10 items-center justify-center mb-4">
@@ -253,7 +290,11 @@ export default function ClientFormModal({
   );
 
   const renderForm = () => (
-    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 80, 100) }}
+    >
       {/* Header Info (if GSTIN was used) */}
       {!editing && formData.gstin_details && (
         <View className="bg-green-500/10 p-4 rounded-2xl mb-6 flex-row items-center border border-green-500/20">
@@ -315,6 +356,26 @@ export default function ClientFormModal({
         {/* Contact Number + Picker */}
         <View className="mb-5">
           <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+            Contact Person Name <Text style={{ color: colors.destructive }}>*</Text>
+          </Text>
+          <TextInput
+            className="rounded-2xl p-4 text-base font-bold"
+            style={{
+              backgroundColor: isDark ? colors.card : colors.secondary + '40',
+              color: colors.foreground,
+              borderWidth: 1,
+              borderColor: colors.border
+            }}
+            value={formData.contact_person_name}
+            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, contact_person_name: val }))}
+            placeholder="e.g. Rajesh Kumar"
+            placeholderTextColor={colors.mutedForeground + '80'}
+          />
+        </View>
+
+        {/* Contact Number + Picker */}
+        <View className="mb-5">
+          <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
             Primary Contact Number <Text style={{ color: colors.destructive }}>*</Text>
           </Text>
           <View className="flex-row gap-2">
@@ -346,7 +407,7 @@ export default function ClientFormModal({
       </View>
 
       <TouchableOpacity
-        onPress={onSubmit}
+        onPress={handleFormSubmit}
         style={{ backgroundColor: colors.primary }}
         className="py-5 rounded-[22px] mt-2 shadow-lg shadow-blue-500/20"
       >
@@ -365,7 +426,7 @@ export default function ClientFormModal({
           className="absolute bottom-0 w-full rounded-t-[32px]"
           style={{
             backgroundColor: colors.background,
-            height: step === 'gstin' ? '65%' : '92%',
+            height: step === 'gstin' ? (keyboardVisible ? '88%' : '65%') : '92%',
             paddingHorizontal: 24,
             paddingTop: 12,
             transform: [{ translateY }],
@@ -373,6 +434,7 @@ export default function ClientFormModal({
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={keyboardVerticalOffset}
             className="flex-1"
           >
             {/* Grab Handle */}

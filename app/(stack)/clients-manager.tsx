@@ -55,6 +55,7 @@ export default function ClientsManager() {
 
   const REQUIRED_FIELDS = [
     "client_name",
+    "contact_person_name",
     "contact_number",
   ];
 
@@ -118,13 +119,20 @@ export default function ClientsManager() {
     }
 
     try {
-      await addClient({ ...formData, email_address: email });
+      await addClient({
+        ...formData,
+        client_name: formData.client_name.trim(),
+        contact_person_name: formData.contact_person_name.trim(),
+        contact_number: formData.contact_number.trim(),
+        alternate_contact_number: formData.alternate_contact_number.trim(),
+        office_address: formData.office_address.trim(),
+        email_address: email,
+        gstin: formData.gstin?.trim().toUpperCase() || undefined,
+      });
       Alert.alert(t("success"), `Client ${t("addedSuccessfully")}`);
       closeModal();
       fetchClients();
-    } catch {
-      Alert.alert(t("error"), "Failed to save client.");
-    }
+    } catch {}
   };
 
   const handleDelete = (id: string) => {

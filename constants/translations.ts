@@ -253,6 +253,9 @@ export const translations = {
     selectFile: 'Select File',
     tapToUploadImage: 'Tap to upload image',
     uploadDocument: 'Upload Document',
+    noPendingTrips: 'No pending trips found',
+    noInvoicesFound: 'No invoices found for this client',
+    noPaymentsFound: 'No payment history found',
   },
   hi: {
     // Navigation
@@ -508,6 +511,9 @@ export const translations = {
     selectFile: 'फाइल चुनें',
     tapToUploadImage: 'इमेज अपलोड करने के लिए टैप करें',
     uploadDocument: 'दस्तावेज अपलोड करें',
+    noPendingTrips: 'कोई लंबित ट्रिप नहीं मिली',
+    noInvoicesFound: 'इस क्लाइंट के लिए कोई इनवॉइस नहीं मिला',
+    noPaymentsFound: 'कोई भुगतान इतिहास नहीं मिला',
   },
 };
 

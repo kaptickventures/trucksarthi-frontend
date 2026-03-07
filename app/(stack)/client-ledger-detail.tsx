@@ -22,6 +22,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomSheet from "../../components/BottomSheet";
@@ -964,134 +965,145 @@ export default function ClientLedgerDetailScreen() {
               )}
             </View>
 
-            {clientTrips.filter(t => normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced").map(trip => (
-              <TouchableOpacity
-                key={getId(trip)}
-                onPress={() => toggleTripSelection(getId(trip))}
-                className="p-4 rounded-2xl mb-3 border"
-                style={{
-                  backgroundColor: colors.card,
-                  borderColor: selectedTrips.includes(getId(trip)) ? colors.primary : colors.border + '80'
-                }}
-              >
-                <View className="flex-row justify-between items-start mb-2">
-                  <View>
-                    <Text className="font-bold" style={{ color: colors.foreground }}>Trip #{getId(trip).slice(-6)}</Text>
-                    <Text className="text-xs" style={{ color: colors.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : "N/A"}</Text>
+            {clientTrips.filter(t => normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced").length > 0 ? (
+              clientTrips.filter(t => normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced").map(trip => (
+                <TouchableOpacity
+                  key={getId(trip)}
+                  onPress={() => toggleTripSelection(getId(trip))}
+                  className="p-4 rounded-2xl mb-3 border"
+                  style={{
+                    backgroundColor: colors.card,
+                    borderColor: selectedTrips.includes(getId(trip)) ? colors.primary : colors.border + '80'
+                  }}
+                >
+                  <View className="flex-row justify-between items-start mb-2">
+                    <View>
+                      <Text className="font-bold" style={{ color: colors.foreground }}>Trip #{getId(trip).slice(-6)}</Text>
+                      <Text className="text-xs" style={{ color: colors.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : "N/A"}</Text>
+                    </View>
+                    <Text className="font-bold text-lg" style={{ color: colors.foreground }}>₹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
                   </View>
-                  <Text className="font-bold text-lg" style={{ color: colors.foreground }}>₹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
-                </View>
-                <View className="flex-row items-center gap-2">
-                  <MapPin size={14} color={colors.mutedForeground} />
-                  <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1}>
-                    {locationMap[getId(trip.start_location)]} → {locationMap[getId(trip.end_location)]}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+                  <View className="flex-row items-center gap-2">
+                    <MapPin size={14} color={colors.mutedForeground} />
+                    <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1}>
+                      {locationMap[getId(trip.start_location)]} → {locationMap[getId(trip.end_location)]}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <EmptyState message={t('noPendingTrips') || "No pending trips found"} />
+            )}
           </View>
         )}
 
         {activeTab === "billed" && (
           <View>
             <Text className="text-lg font-bold mb-4" style={{ color: colors.foreground }}>{t('billed')}</Text>
-            {clientInvoices.map(invoice => {
-              const invoiceId = getId(invoice);
-              const totalPaidForInvoice = (entries || [])
-                .filter((entry) => {
-                  if (!entry || entry.entry_type !== "credit") return false;
-                  const entryInvoiceId = getId((entry as any).invoice || (entry as any).invoice_id);
-                  return entryInvoiceId === invoiceId;
-                })
-                .reduce((sum, entry) => sum + Number(entry?.amount || 0), 0);
+            {clientInvoices.length > 0 ? (
+              clientInvoices.map(invoice => {
+                const invoiceId = getId(invoice);
+                const totalPaidForInvoice = (entries || [])
+                  .filter((entry) => {
+                    if (!entry || entry.entry_type !== "credit") return false;
+                    const entryInvoiceId = getId((entry as any).invoice || (entry as any).invoice_id);
+                    return entryInvoiceId === invoiceId;
+                  })
+                  .reduce((sum, entry) => sum + Number(entry?.amount || 0), 0);
 
-              const totalAmount = Number(invoice.total_amount || 0);
-              const remainingAmount = Math.max(0, totalAmount - totalPaidForInvoice);
-              const isPartiallyPaid = String(invoice.status || "").toLowerCase() === "partially_paid";
+                const totalAmount = Number(invoice.total_amount || 0);
+                const remainingAmount = Math.max(0, totalAmount - totalPaidForInvoice);
 
-              return (
-                <View key={invoiceId} className="p-4 rounded-2xl mb-3 border" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
-                  <View className="flex-row justify-between items-center mb-3">
-                    <View style={{ flex: 1, paddingRight: 10 }}>
-                      <Text className="font-bold" style={{ color: colors.foreground }} numberOfLines={1} ellipsizeMode="tail">
-                        Invoice #{invoice.invoice_number}
-                      </Text>
-                      <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1} ellipsizeMode="tail">
-                        Due: {invoice.due_date ? formatDate(invoice.due_date) : "N/A"}
-                      </Text>
-                    </View>
-                    <View className="px-2 py-1 rounded-md" style={{ backgroundColor: invoice.status === 'paid' ? '#22c55e20' : '#ef444420' }}>
-                      <Text className="font-bold text-[10px] uppercase" style={{ color: invoice.status === 'paid' ? '#22c55e' : '#ef4444' }}>{invoice.status}</Text>
-                    </View>
-                  </View>
-                  <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border + '4D' }}>
-                    <View>
-                      <Text className="font-bold text-lg" style={{ color: colors.foreground }}>
-                        ₹{remainingAmount.toLocaleString()}
-                      </Text>
-                      {remainingAmount < totalAmount && (
-                        <Text className="text-[11px]" style={{ color: colors.mutedForeground }}>
-                          Balance due (Total: ₹{totalAmount.toLocaleString()})
+                return (
+                  <View key={invoiceId} className="p-4 rounded-2xl mb-3 border" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
+                    <View className="flex-row justify-between items-center mb-3">
+                      <View style={{ flex: 1, paddingRight: 10 }}>
+                        <Text className="font-bold" style={{ color: colors.foreground }} numberOfLines={1} ellipsizeMode="tail">
+                          Invoice #{invoice.invoice_number}
                         </Text>
-                      )}
-                      {remainingAmount === totalAmount && (
-                        <Text className="text-[11px]" style={{ color: colors.mutedForeground }}>
-                          Full balance pending
+                        <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1} ellipsizeMode="tail">
+                          Due: {invoice.due_date ? formatDate(invoice.due_date) : "N/A"}
                         </Text>
-                      )}
+                      </View>
+                      <View className="px-2 py-1 rounded-md" style={{ backgroundColor: invoice.status === 'paid' ? '#22c55e20' : '#ef444420' }}>
+                        <Text className="font-bold text-[10px] uppercase" style={{ color: invoice.status === 'paid' ? '#22c55e' : '#ef4444' }}>{invoice.status}</Text>
+                      </View>
                     </View>
-                    <View className="flex-row gap-2">
-                      <TouchableOpacity onPress={() => generateInvoicePDF(invoice, "view")} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
-                        <Eye size={16} color={colors.foreground} />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => generateInvoicePDF(invoice, "share")} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
-                        <Share2 size={16} color={colors.foreground} />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDeleteInvoice(getId(invoice))} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
-                        <Trash2 size={16} color={colors.destructive} />
-                      </TouchableOpacity>
-                      {invoice.status !== 'paid' && (
-                        <TouchableOpacity onPress={() => handleSettleInvoice(invoice)} className="px-4 py-2 rounded-full" style={{ backgroundColor: colors.primary }}>
-                          <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-xs">Settle</Text>
+                    <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border + '4D' }}>
+                      <View>
+                        <Text className="font-bold text-lg" style={{ color: colors.foreground }}>
+                          ₹{remainingAmount.toLocaleString()}
+                        </Text>
+                        {remainingAmount < totalAmount && (
+                          <Text className="text-[11px]" style={{ color: colors.mutedForeground }}>
+                            Balance due (Total: ₹{totalAmount.toLocaleString()})
+                          </Text>
+                        )}
+                        {remainingAmount === totalAmount && (
+                          <Text className="text-[11px]" style={{ color: colors.mutedForeground }}>
+                            Full balance pending
+                          </Text>
+                        )}
+                      </View>
+                      <View className="flex-row gap-2">
+                        <TouchableOpacity onPress={() => generateInvoicePDF(invoice, "view")} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
+                          <Eye size={16} color={colors.foreground} />
                         </TouchableOpacity>
-                      )}
+                        <TouchableOpacity onPress={() => generateInvoicePDF(invoice, "share")} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
+                          <Share2 size={16} color={colors.foreground} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleDeleteInvoice(getId(invoice))} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
+                          <Trash2 size={16} color={colors.destructive} />
+                        </TouchableOpacity>
+                        {invoice.status !== 'paid' && (
+                          <TouchableOpacity onPress={() => handleSettleInvoice(invoice)} className="px-4 py-2 rounded-full" style={{ backgroundColor: colors.primary }}>
+                            <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-xs">Settle</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
                   </View>
-                </View>
-              )
-            })}
+                )
+              })
+            ) : (
+              <EmptyState message={t('noInvoicesFound') || "No invoices found for this client"} />
+            )}
           </View>
         )}
 
         {activeTab === "settled" && (
           <View>
             <Text className="text-lg font-bold mb-4" style={{ color: colors.foreground }}>{t('paymentHistory')}</Text>
-            {entries.filter(e => e.entry_type === 'credit').map(entry => (
-              <View key={getId(entry)} className="p-4 rounded-2xl mb-3 border flex-row items-start" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
-                <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#22c55e20' }}>
-                  <ArrowDownLeft size={20} color="#16a34a" />
-                </View>
-                <View className="flex-1" style={{ paddingRight: 10 }}>
-                  <Text className="font-bold" style={{ color: colors.foreground, flexShrink: 1 }}>
-                    {entry.remarks || "Payment Received"}
-                  </Text>
-                  <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1} ellipsizeMode="tail">
-                    {formatDate(entry.entry_date)} | {entry.payment_mode || "CASH"}
-                  </Text>
-                </View>
-                <View className="items-end" style={{ minWidth: 86, marginLeft: 6 }}>
-                  <View className="px-2 py-1 rounded-md mb-1" style={{ backgroundColor: (entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "#f59e0b20" : "#22c55e20" }}>
-                    <Text className="text-[10px] font-bold" style={{ color: (entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "#d97706" : "#22c55e" }}>
-                      {(entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "PARTIAL" : "FULL"}
+            {entries.filter(e => e.entry_type === 'credit').length > 0 ? (
+              entries.filter(e => e.entry_type === 'credit').map(entry => (
+                <View key={getId(entry)} className="p-4 rounded-2xl mb-3 border flex-row items-start" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#22c55e20' }}>
+                    <ArrowDownLeft size={20} color="#16a34a" />
+                  </View>
+                  <View className="flex-1" style={{ paddingRight: 10 }}>
+                    <Text className="font-bold" style={{ color: colors.foreground, flexShrink: 1 }}>
+                      {entry.remarks || "Payment Received"}
+                    </Text>
+                    <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1} ellipsizeMode="tail">
+                      {formatDate(entry.entry_date)} | {entry.payment_mode || "CASH"}
                     </Text>
                   </View>
-                  <Text className="font-bold" style={{ color: "#16a34a" }}>₹{Number(entry.amount).toLocaleString()}</Text>
-                  <TouchableOpacity onPress={() => handleDeletePaymentEntry(getId(entry))} style={{ padding: 4, marginTop: 4 }}>
-                    <Trash2 size={14} color={colors.destructive} />
-                  </TouchableOpacity>
+                  <View className="items-end" style={{ minWidth: 86, marginLeft: 6 }}>
+                    <View className="px-2 py-1 rounded-md mb-1" style={{ backgroundColor: (entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "#f59e0b20" : "#22c55e20" }}>
+                      <Text className="text-[10px] font-bold" style={{ color: (entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "#d97706" : "#22c55e" }}>
+                        {(entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "PARTIAL" : "FULL"}
+                      </Text>
+                    </View>
+                    <Text className="font-bold" style={{ color: "#16a34a" }}>₹{Number(entry.amount).toLocaleString()}</Text>
+                    <TouchableOpacity onPress={() => handleDeletePaymentEntry(getId(entry))} style={{ padding: 4, marginTop: 4 }}>
+                      <Trash2 size={14} color={colors.destructive} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))
+            ) : (
+              <EmptyState message={t('noPaymentsFound') || "No payment history found"} />
+            )}
           </View>
         )}
 
@@ -1417,6 +1429,21 @@ function SummaryCard({ label, value, green }: any) {
     <View style={{ backgroundColor: colors.card }} className="flex-1 p-4 rounded-2xl border border-border/50">
       <Text className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{label}</Text>
       <Text style={{ color: green ? colors.success : colors.foreground }} className="text-lg font-bold">₹{Number(value).toLocaleString()}</Text>
+    </View>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  const { colors } = useThemeStore();
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
+      <Image
+        source={require('../../assets/images/no-result-found.png')}
+        style={{ width: 200, height: 200, resizeMode: 'contain', opacity: 0.8 }}
+      />
+      <Text style={{ color: colors.mutedForeground, marginTop: 16, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>
+        {message}
+      </Text>
     </View>
   );
 }
