@@ -383,10 +383,21 @@ export default function ClientProfile() {
       <span>Subtotal (${invoiceTrips.length} trips)</span>
       <span>₹${invoiceSubtotal.toLocaleString()}</span>
     </div>
-    <div>
-      <span>Tax (${taxPercentage}%${taxPercentage > 0 ? ` - ${taxTypeLabel}` : ""})</span>
-      <span>₹${tax.toLocaleString()}</span>
-    </div>
+    ${taxPercentage > 0 ? (
+          invoice.tax_type === "cgst_sgst" ? `
+      <div>
+        <span>CGST (${taxPercentage / 2}%)</span>
+        <span>₹${(tax / 2).toLocaleString()}</span>
+      </div>
+      <div>
+        <span>SGST (${taxPercentage / 2}%)</span>
+        <span>₹${(tax / 2).toLocaleString()}</span>
+      </div>` : `
+      <div>
+        <span>IGST (${taxPercentage}%)</span>
+        <span>₹${tax.toLocaleString()}</span>
+      </div>`
+        ) : ""}
     <div class="grand">
       <span>Grand Total</span>
       <span>₹${grandTotal.toLocaleString()}</span>

@@ -472,7 +472,8 @@ export default function Profile() {
               <ProfileInput
                 label="Email Address"
                 value={formData.email}
-                editable={false}
+                editable={!user?.is_email_verified}
+                onChange={(v: string) => markChanged("email", v)}
                 icon={<Mail size={18} color={colors.mutedForeground} />}
                 labelAction={!user?.is_email_verified ? (sendingContactOtp && contactOtpType === "email" ? "Sending..." : "Verify") : undefined}
                 onLabelActionPress={!user?.is_email_verified ? () => handleRequestSecondaryOtp("email") : undefined}

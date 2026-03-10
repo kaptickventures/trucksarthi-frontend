@@ -21,6 +21,9 @@ import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
 import { formatDate, formatLabel } from "../../lib/utils";
+import useDrivers from "../../hooks/useDriver";
+import useClients from "../../hooks/useClient";
+import useTrucks from "../../hooks/useTruck";
 
 const TAG_FILTERS = [
   "ALL",
@@ -43,6 +46,34 @@ export default function TransactionsScreen() {
   const { t } = useTranslation();
   const isDark = theme === "dark";
   const { loading, transactions, fetchTransactions, deleteTransaction } = useFinance();
+
+  const { drivers } = useDrivers();
+  const { clients } = useClients();
+  const { trucks } = useTrucks();
+
+  const driverMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (drivers || []).forEach((d) => {
+      if (d && d._id) map[d._id] = d.name || d.driver_name || "Driver";
+    });
+    return map;
+  }, [drivers]);
+
+  const truckMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (trucks || []).forEach((t) => {
+      if (t && t._id) map[t._id] = t.registration_number;
+    });
+    return map;
+  }, [trucks]);
+
+  const clientMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (clients || []).forEach((c) => {
+      if (c && c._id) map[c._id] = c.client_name;
+    });
+    return map;
+  }, [clients]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTag, setActiveTag] = useState<TagFilter>("ALL");
   const [filters, setFilters] = useState({
@@ -126,7 +157,7 @@ export default function TransactionsScreen() {
           try {
             await deleteTransaction(id);
             await loadData();
-          } catch {}
+          } catch { }
         },
       },
     ]);
@@ -137,6 +168,10 @@ export default function TransactionsScreen() {
     const iconColor = isIncome ? "#16a34a" : "#dc2626";
     const bgColor = isIncome ? "#dcfce7" : "#fee2e2";
     const Icon = isIncome ? ArrowDownLeft : ArrowUpRight;
+
+    const partyName = item.driverId ? driverMap[String(item.driverId)] :
+      item.clientId ? clientMap[String(item.clientId)] :
+        item.truckId ? truckMap[String(item.truckId)] : "";
 
     return (
       <View
@@ -167,7 +202,7 @@ export default function TransactionsScreen() {
             {formatLabel(item.category)}
           </Text>
           <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-            {item.notes || formatLabel(item.sourceModule)}
+            {partyName ? `${partyName} • ` : ""}{item.notes || formatLabel(item.sourceModule)}
           </Text>
           <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
             <Text style={{ fontSize: 10, color: colors.mutedForeground }}>
