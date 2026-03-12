@@ -1,5 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { Edit3, Plus, Trash2 } from "lucide-react-native";
+import { Edit3, Plus, Trash2, Share2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   Alert,
@@ -8,7 +8,8 @@ import {
   StatusBar,
   Text,
   TouchableOpacity,
-  View
+  View,
+  Share
 } from "react-native";
 import LocationFormModal from "../../components/LocationModal";
 import { Skeleton } from "../../components/Skeleton";
@@ -50,8 +51,8 @@ export default function LocationsManager() {
     setRefreshing(true);
     try {
       await fetchLocations();
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     } finally {
       setRefreshing(false);
     }
@@ -106,7 +107,7 @@ export default function LocationsManager() {
       }
       fetchLocations();
       closeModal();
-    } catch (e) {
+    } catch {
       Alert.alert(t("error"), "Failed to save location.");
     }
   };
@@ -123,6 +124,30 @@ export default function LocationsManager() {
         },
       },
     ]);
+  };
+
+  const getGoogleMapsLink = (loc: any) => {
+    const lat = Number(loc?.latitude);
+    const lng = Number(loc?.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    }
+    const query = encodeURIComponent(String(loc?.complete_address || loc?.location_name || "").trim());
+    return query
+      ? `https://www.google.com/maps/search/?api=1&query=${query}`
+      : "https://www.google.com/maps";
+  };
+
+  const handleShareLocation = async (loc: any) => {
+    try {
+      const title = String(loc?.location_name || "").trim() || "Location";
+      const address = String(loc?.complete_address || "").trim() || "Address not available";
+      const mapsLink = getGoogleMapsLink(loc);
+      const message = `Location Title: ${title}\nLocation Address: ${address}\nGoogle Maps Link: ${mapsLink}`;
+      await Share.share({ message });
+    } catch {
+      Alert.alert(t("error"), "Failed to share location.");
+    }
   };
 
   if (loading && !user) {
@@ -182,6 +207,14 @@ export default function LocationsManager() {
                 </View>
                 <View className="flex-row gap-2">
                   <TouchableOpacity
+                    onPress={() => handleShareLocation(loc)}
+                    className="w-10 h-10 rounded-full items-center justify-center border"
+                    style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
+                  >
+                    <Share2 size={16} color={colors.foreground} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     onPress={() => openModal(true, loc)}
                     className="w-10 h-10 rounded-full items-center justify-center border"
                     style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
@@ -226,7 +259,7 @@ export default function LocationsManager() {
         visible={modalVisible}
         editing={!!editingId}
         formData={formData}
-        setFormData={setFormData as any}
+        setFormData={setFormData}
         searchLocations={searchLocations}
         onSubmit={handleSubmit}
         onClose={closeModal}

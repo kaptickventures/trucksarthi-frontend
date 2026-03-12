@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useNavigation, useRouter } from "expo-router";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -14,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { ArrowDownLeft, ArrowUpRight, Calendar, Filter, Trash2 } from "lucide-react-native";
-import FinanceFAB from "../../../components/finance/FinanceFAB";
+import SideMenu from "../../../components/SideMenu";
 import BottomSheet from "../../../components/BottomSheet";
 import { Skeleton } from "../../../components/Skeleton";
 import useFinance from "../../../hooks/useFinance";
@@ -41,10 +42,12 @@ const TAG_PILL_HEIGHT = 40;
 const TYPE_PILL_HEIGHT = 36;
 
 export default function TransactionsScreen() {
+  const navigation = useNavigation();
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
+  const [menuVisible, setMenuVisible] = useState(false);
   const { loading, transactions, fetchTransactions, deleteTransaction } = useFinance();
 
   const { drivers } = useDrivers();
@@ -83,6 +86,51 @@ export default function TransactionsScreen() {
   });
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<"start" | "end" | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      setMenuVisible(false);
+    }, [])
+  );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: "Trucksarthi",
+      headerTitleAlign: "center",
+      headerShadowVisible: false,
+      headerStyle: {
+        backgroundColor: "transparent",
+      },
+      headerBackground: () => (
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: colors.background,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        />
+      ),
+      headerTitleStyle: { color: colors.foreground, fontWeight: "800", fontSize: 22 },
+      headerTintColor: colors.foreground,
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => setMenuVisible((prev) => !prev)}
+          style={{ paddingHorizontal: 6, paddingVertical: 4 }}
+        >
+          <Ionicons name={menuVisible ? "close" : "menu"} size={24} color={colors.foreground} />
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => router.push("/(stack)/notifications" as any)}
+          style={{ paddingHorizontal: 6, paddingVertical: 4 }}
+        >
+          <Ionicons name="notifications-outline" size={24} color={colors.foreground} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, menuVisible, colors.background, colors.border, colors.foreground, router]);
 
   const loadData = useCallback(async () => {
     setRefreshing(true);
@@ -433,6 +481,8 @@ export default function TransactionsScreen() {
           </TouchableOpacity>
         </ScrollView>
       </BottomSheet>
+
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
     </View>
   );
 }

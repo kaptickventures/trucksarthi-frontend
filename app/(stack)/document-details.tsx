@@ -59,6 +59,7 @@ export default function DocumentDetails() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const truck = useMemo(() => trucks.find(t => t._id === truckId), [trucks, truckId]);
+    const truckNumber = truck?.registration_number || "Unknown Truck";
 
     // Helper
     const formatDate = (dateString?: string | Date) => globalFormatDate(dateString);
@@ -374,7 +375,9 @@ export default function DocumentDetails() {
                         <View className="flex-row justify-between items-center mb-3">
                             <View>
                                 <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
-                                <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage vehicle documents and expiry</Text>
+                                <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>
+                                    {`Truck: ${truckNumber} `}
+                                </Text>
                             </View>
                             <TouchableOpacity
                                 onPress={() => setModalVisible(true)}

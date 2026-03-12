@@ -63,7 +63,7 @@ export default function MaintenanceKhataScreen() {
         {showInitialSkeleton && (
           <View>
             {[1, 2, 3, 4].map((item) => (
-              <Skeleton key={item} className="w-full h-32 rounded-2xl mb-3" />
+              <Skeleton key={item} width="100%" height={128} borderRadius={16} style={{ marginBottom: 12 }} />
             ))}
           </View>
         )}
@@ -77,7 +77,6 @@ export default function MaintenanceKhataScreen() {
         {(trucks || []).map((truck: any) => {
           const truckId = String(truck._id);
           const totalExpense = lifetimeByTruck[truckId] || 0;
-          const hasActivity = totalExpense > 0;
 
           return (
             <TouchableOpacity

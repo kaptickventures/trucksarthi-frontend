@@ -17,11 +17,6 @@ export default function DailyKhataScreen() {
   const { transactions, loading: financeLoading, fetchTransactions } = useFinance();
   const [refreshing, setRefreshing] = useState(false);
 
-  const monthStart = useMemo(
-    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
-    []
-  );
-
   const loadData = useCallback(async () => {
     await Promise.all([
       fetchTrucks(),
@@ -30,7 +25,7 @@ export default function DailyKhataScreen() {
         sourceModule: "RUNNING_EXPENSE",
       }),
     ]);
-  }, [fetchTrucks, fetchTransactions, monthStart]);
+  }, [fetchTrucks, fetchTransactions]);
 
   useEffect(() => {
     loadData();
@@ -87,7 +82,7 @@ export default function DailyKhataScreen() {
         {showInitialSkeleton && (
           <View>
             {[1, 2, 3, 4].map((item) => (
-              <Skeleton key={item} className="w-full h-32 rounded-2xl mb-3" />
+              <Skeleton key={item} width="100%" height={128} borderRadius={16} style={{ marginBottom: 12 }} />
             ))}
           </View>
         )}
@@ -102,7 +97,6 @@ export default function DailyKhataScreen() {
           const truckId = String(truck._id);
           const monthlyExpense = monthlyByTruck.monthlyMap[truckId] || 0;
           const lastFuelAmount = monthlyByTruck.latestFuelByTruck[truckId]?.amount || 0;
-          const hasActivity = monthlyExpense > 0;
 
           return (
             <TouchableOpacity

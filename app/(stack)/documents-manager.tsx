@@ -37,38 +37,39 @@ export default function DocumentManager() {
         backgroundColor: colors.card,
         borderColor: colors.border,
         borderWidth: 1,
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: 18,
+        paddingVertical: 14,
+        paddingHorizontal: 14,
         marginBottom: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
+        shadowRadius: 4,
+        elevation: 2,
       }}
     >
       <View
         style={{
-          width: 50,
-          height: 50,
-          borderRadius: 25,
-          backgroundColor: colors.primary + '15', // 15% opacity
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: 16,
+          width: 52,
+          height: 52,
+          borderRadius: 14,
+          backgroundColor: colors.primary + "18",
+          alignItems: "center",
+          justifyContent: "center",
+          marginRight: 14,
         }}
       >
         <Folder size={24} color={colors.primary} />
       </View>
 
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 16, fontWeight: '700', color: colors.foreground }}>
+      <View style={{ flex: 1, justifyContent: "center", minHeight: 52 }}>
+        <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground }}>
           {item.registration_number}
         </Text>
-        <Text style={{ fontSize: 13, color: colors.mutedForeground, marginTop: 2 }}>
-          {item.make} {item.vehicle_model}
+        <Text style={{ fontSize: 13, color: colors.mutedForeground, marginTop: 3 }}>
+          {`${item.make || "Truck"} ${item.vehicle_model || ""}`.trim()} • Document details
         </Text>
       </View>
 
@@ -77,12 +78,13 @@ export default function DocumentManager() {
           width: 32,
           height: 32,
           borderRadius: 16,
-          backgroundColor: isDark ? '#333' : '#f0f0f0',
-          alignItems: 'center',
-          justifyContent: 'center',
+          backgroundColor: colors.primary + "14",
+          alignItems: "center",
+          justifyContent: "center",
+          marginLeft: 10,
         }}
       >
-        <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+        <Ionicons name="chevron-forward" size={18} color={colors.primary} />
       </View>
     </TouchableOpacity>
   );
