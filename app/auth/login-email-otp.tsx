@@ -81,7 +81,7 @@ export default function LoginEmailOTP() {
                     <View style={{ paddingHorizontal: 32, flex: 1, justifyContent: 'center' }}>
                         <View style={{ marginBottom: 40 }}>
                             <Image
-                                source={require("../../assets/images/TruckSarthi-Graphic.png")}
+                                source={require("../../assets/images/Trucksarthi-Graphic.png")}
                                 style={{ width: 170, height: 50, marginBottom: 24, tintColor: isDark ? colors.foreground : undefined }}
                                 resizeMode="contain"
                             />
@@ -244,3 +244,4 @@ export default function LoginEmailOTP() {
         </SafeAreaView>
     );
 }
+

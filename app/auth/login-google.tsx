@@ -35,7 +35,7 @@ export default function LoginGoogle() {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           {/* Logo */}
           <Image
-            source={require("../../assets/images/TruckSarthi-Graphic.png")}
+            source={require("../../assets/images/Trucksarthi-Graphic.png")}
             style={{ width: 180, height: 60, marginBottom: 40, tintColor: isDark ? colors.foreground : undefined }}
             resizeMode="contain"
           />
@@ -100,3 +100,4 @@ export default function LoginGoogle() {
     </SafeAreaView>
   );
 }
+
