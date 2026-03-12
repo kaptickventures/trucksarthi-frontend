@@ -214,6 +214,7 @@ export default function TruckProfile() {
       { key: "engine_number", label: "Engine No.", value: normalizeDisplayValue(truck.engine_number) },
       { key: "vehicle_class", label: "Vehicle Class", value: normalizeDisplayValue(truck.vehicle_class || truck.rc_details?.class) },
       { key: "fuel_norms", label: "Norms", value: normalizeDisplayValue(truck.fuel_norms || truck.rc_details?.norms_type) },
+      { key: "container_dimension", label: "Container Size", value: normalizeDisplayValue(truck.container_dimension) },
       {
         key: "registration_date",
         label: "Registration Date",

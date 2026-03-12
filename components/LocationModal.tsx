@@ -162,7 +162,7 @@ export default function LocationFormModal({
                             <View className="gap-6 pb-12">
                                 <View>
                                     <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-3 ml-1">
-                                        Location Alias <Text style={{ color: colors.destructive }}>*</Text>
+                                        Location Title <Text style={{ color: colors.destructive }}>*</Text>
                                     </Text>
                                     <TextInput
                                         className="rounded-2xl p-4 text-base font-bold"

@@ -27,7 +27,7 @@ import { useTranslation } from "../../context/LanguageContext";
 
 const RUNNING_ACTIONS = ["FUEL", "FASTAG", "CHALLAN"] as const;
 
-export default function RunningExpensesDashboardScreen() {
+export default function DailyKhataDashboardScreen() {
   const router = useRouter();
   const { truckId } = useLocalSearchParams<{ truckId?: string }>();
   const { colors, theme } = useThemeStore();
@@ -143,7 +143,7 @@ export default function RunningExpensesDashboardScreen() {
   };
 
   const confirmDelete = (id: string) => {
-    Alert.alert("Delete", "Delete this running expense?", [
+    Alert.alert("Delete", "Delete this daily khata entry?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -193,7 +193,7 @@ export default function RunningExpensesDashboardScreen() {
                 Rs {monthlyExpense.toLocaleString()}
               </Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
-                Total running costs
+                Total daily khata costs
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
@@ -256,7 +256,7 @@ export default function RunningExpensesDashboardScreen() {
 
         {filteredTruckRows.length === 0 && !financeLoading && (
           <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 30, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ color: colors.mutedForeground }}>No {activeCategoryFilter === "ALL" ? "running" : formatLabel(activeCategoryFilter).toLowerCase()} expenses found for this month.</Text>
+            <Text style={{ color: colors.mutedForeground }}>No {activeCategoryFilter === "ALL" ? "daily khata" : formatLabel(activeCategoryFilter).toLowerCase()} entries found for this month.</Text>
           </View>
         )}
 
@@ -341,7 +341,7 @@ export default function RunningExpensesDashboardScreen() {
       <BottomSheet
         visible={showAdd}
         onClose={() => setShowAdd(false)}
-        title="Add Running Expense"
+        title="Add Daily Khata"
         subtitle={selectedTruck?.registration_number || "Vehicle"}
       >
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>

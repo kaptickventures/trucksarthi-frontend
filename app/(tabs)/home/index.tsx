@@ -406,7 +406,7 @@ export default function HomeScreen() {
             { title: "Driver khata", icon: "person-outline", route: "/driver-ledger", iconBg: "#DBEAFE", iconColor: "#1D4ED8" },
             { title: "Client khata", icon: "people-outline", route: "/client-ledger", iconBg: "#DCFCE7", iconColor: "#166534" },
             { title: "Document Manager", icon: "document-text-outline", route: "/documents-manager", iconBg: "#FEF3C7", iconColor: "#92400E" },
-            { title: "Running expense", icon: "speedometer-outline", route: "/running-expenses", iconBg: "#FCE7F3", iconColor: "#9D174D" },
+            { title: "Daily khata", icon: "speedometer-outline", route: "/daily-khata", iconBg: "#FCE7F3", iconColor: "#9D174D" },
             { title: "Maintenance khata", icon: "build-outline", route: "/maintenance-khata", iconBg: "#EDE9FE", iconColor: "#5B21B6" },
             { title: "Misc transactions", icon: "swap-horizontal-outline", route: "/misc-transactions", iconBg: "#E0F2FE", iconColor: "#0C4A6E" },
           ].map((item, idx) => (

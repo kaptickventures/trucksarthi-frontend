@@ -59,8 +59,8 @@ export default function useFinance() {
   /* ---------------- ADD EXPENSES ---------------- */
   const addRunningExpense = async (data: any) => {
     if (!data?.truckId) {
-      Alert.alert("Truck Required", "Please select a truck before saving running expense.");
-      throw new Error("truckId is required for running expense");
+      Alert.alert("Truck Required", "Please select a truck before saving daily khata.");
+      throw new Error("truckId is required for daily khata");
     }
     try {
         setLoading(true);

@@ -135,8 +135,8 @@ export default function StackLayout() {
           <Stack.Screen name="transactions" options={{ title: "Transactions" }} />
           <Stack.Screen name="create-invoice" options={{ title: "Create Invoice" }} />
           <Stack.Screen name="expense-manager" options={{ title: "Expense Manager" }} />
-          <Stack.Screen name="running-expenses" options={{ title: "Running Expenses" }} />
-          <Stack.Screen name="running-expenses-dashboard" options={{ title: "Truck Running" }} />
+          <Stack.Screen name="daily-khata" options={{ title: "Daily Khata" }} />
+          <Stack.Screen name="daily-khata-dashboard" options={{ title: "Truck Running" }} />
           <Stack.Screen name="maintenance-khata" options={{ title: "Maintenance Khata" }} />
           <Stack.Screen name="maintenance-dashboard" options={{ title: "Truck Maintenance" }} />
           <Stack.Screen name="driver-ledger" options={{ title: "Driver Khata" }} />

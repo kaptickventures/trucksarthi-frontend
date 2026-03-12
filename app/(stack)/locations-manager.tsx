@@ -1,6 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
 import { Edit3, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
@@ -24,7 +22,6 @@ export default function LocationsManager() {
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
-  const router = useRouter();
 
   const {
     locations,
@@ -157,14 +154,14 @@ export default function LocationsManager() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
         <View className="mb-3 px-0">
           <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('locations')}</Text>
-          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your start and end locations</Text>
+          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Manage your business locations</Text>
         </View>
         {locations.length === 0 ? (
           <Text className="text-center mt-10" style={{ color: colors.mutedForeground }}>

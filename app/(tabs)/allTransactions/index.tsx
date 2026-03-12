@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
+  Modal,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -13,16 +14,16 @@ import {
   View,
 } from "react-native";
 import { ArrowDownLeft, ArrowUpRight, Calendar, Filter, Trash2 } from "lucide-react-native";
-import FinanceFAB from "../../components/finance/FinanceFAB";
-import BottomSheet from "../../components/BottomSheet";
-import { Skeleton } from "../../components/Skeleton";
-import useFinance from "../../hooks/useFinance";
-import { useThemeStore } from "../../hooks/useThemeStore";
-import { useTranslation } from "../../context/LanguageContext";
-import { formatDate, formatLabel } from "../../lib/utils";
-import useDrivers from "../../hooks/useDriver";
-import useClients from "../../hooks/useClient";
-import useTrucks from "../../hooks/useTruck";
+import FinanceFAB from "../../../components/finance/FinanceFAB";
+import BottomSheet from "../../../components/BottomSheet";
+import { Skeleton } from "../../../components/Skeleton";
+import useFinance from "../../../hooks/useFinance";
+import { useThemeStore } from "../../../hooks/useThemeStore";
+import { useTranslation } from "../../../context/LanguageContext";
+import { formatDate, formatLabel } from "../../../lib/utils";
+import useDrivers from "../../../hooks/useDriver";
+import useClients from "../../../hooks/useClient";
+import useTrucks from "../../../hooks/useTruck";
 
 const TAG_FILTERS = [
   "ALL",
@@ -35,7 +36,6 @@ const TAG_FILTERS = [
 ] as const;
 
 type TagFilter = (typeof TAG_FILTERS)[number];
-type DatePickerField = "startDate" | "endDate" | null;
 
 const TAG_PILL_HEIGHT = 40;
 const TYPE_PILL_HEIGHT = 36;
@@ -80,75 +80,42 @@ export default function TransactionsScreen() {
     startDate: null as Date | null,
     endDate: null as Date | null,
     direction: "",
-    sourceModule: "",
-    paymentMode: "",
   });
-  const [draftFilters, setDraftFilters] = useState(filters);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState<DatePickerField>(null);
+  const [showDatePicker, setShowDatePicker] = useState<"start" | "end" | null>(null);
 
-  const loadData = useCallback(async (activeFilters: typeof filters) => {
+  const loadData = useCallback(async () => {
     setRefreshing(true);
     await fetchTransactions({
-      startDate: activeFilters.startDate ? activeFilters.startDate.toISOString() : undefined,
-      endDate: activeFilters.endDate ? activeFilters.endDate.toISOString() : undefined,
-      direction: activeFilters.direction,
+      startDate: filters.startDate ? filters.startDate.toISOString() : undefined,
+      endDate: filters.endDate ? filters.endDate.toISOString() : undefined,
+      direction: filters.direction,
     });
     setRefreshing(false);
-  }, [fetchTransactions]);
+  }, [fetchTransactions, filters]);
 
   useEffect(() => {
-    loadData(filters);
+    loadData();
   }, [loadData]);
 
-  const sourceModuleOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          (transactions || [])
-            .map((item: any) => String(item?.sourceModule || "").toUpperCase())
-            .filter(Boolean)
-        )
-      ).sort(),
-    [transactions]
-  );
-
-  const paymentModeOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          (transactions || [])
-            .map((item: any) => String(item?.paymentMode || "").toUpperCase())
-            .filter(Boolean)
-        )
-      ).sort(),
-    [transactions]
-  );
+  const onDateChange = (_: any, selectedDate?: Date) => {
+    const type = showDatePicker;
+    setShowDatePicker(null);
+    if (selectedDate && type) {
+      setFilters((prev) => ({
+        ...prev,
+        [type === "start" ? "startDate" : "endDate"]: selectedDate,
+      }));
+    }
+  };
 
   const filteredTransactions = useMemo(() => {
     const base = (transactions || [])
       .filter((item: any) => {
         const sourceModule = String(item?.sourceModule || "").toUpperCase();
         const category = String(item?.category || "").toUpperCase();
-        const direction = String(item?.direction || "").toUpperCase();
-        const paymentMode = String(item?.paymentMode || "").toUpperCase();
-        const txDate = new Date(item?.date);
-
         // Keep only owner-to-driver entries from driver khata in this global list.
         if (sourceModule === "DRIVER_KHATA" && category !== "OWNER_TO_DRIVER") return false;
-        if (filters.direction && direction !== filters.direction) return false;
-        if (filters.sourceModule && sourceModule !== filters.sourceModule) return false;
-        if (filters.paymentMode && paymentMode !== filters.paymentMode) return false;
-        if (filters.startDate) {
-          const start = new Date(filters.startDate);
-          start.setHours(0, 0, 0, 0);
-          if (txDate < start) return false;
-        }
-        if (filters.endDate) {
-          const end = new Date(filters.endDate);
-          end.setHours(23, 59, 59, 999);
-          if (txDate > end) return false;
-        }
         return true;
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -178,7 +145,7 @@ export default function TransactionsScreen() {
       if (activeTag === "MAINTENANCE") return sourceModule === "MAINTENANCE";
       return true;
     });
-  }, [transactions, activeTag, filters]);
+  }, [transactions, activeTag]);
 
   const confirmDelete = (id: string) => {
     Alert.alert("Delete", "Delete this transaction?", [
@@ -189,7 +156,7 @@ export default function TransactionsScreen() {
         onPress: async () => {
           try {
             await deleteTransaction(id);
-            await loadData(filters);
+            await loadData();
           } catch { }
         },
       },
@@ -347,10 +314,7 @@ export default function TransactionsScreen() {
 
       <BottomSheet
         visible={showFilterModal}
-        onClose={() => {
-          setShowFilterModal(false);
-          setShowDatePicker(null);
-        }}
+        onClose={() => setShowFilterModal(false)}
         title="Filter Transactions"
       >
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
@@ -358,7 +322,7 @@ export default function TransactionsScreen() {
           <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
             <View style={{ flex: 1 }}>
               <TouchableOpacity
-                onPress={() => setShowDatePicker("startDate")}
+                onPress={() => setShowDatePicker("start")}
                 style={{
                   padding: 12,
                   borderWidth: 1,
@@ -367,29 +331,28 @@ export default function TransactionsScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 8,
-                  backgroundColor: isDark ? colors.card : colors.secondary + "10"
+                  backgroundColor: isDark ? colors.card : colors.secondary + '10'
                 }}
               >
                 <Calendar size={16} color={colors.mutedForeground} />
-                <Text style={{ color: colors.foreground }}>{formatDate(draftFilters.startDate)}</Text>
+                <Text style={{ color: colors.foreground }}>{formatDate(filters.startDate)}</Text>
               </TouchableOpacity>
-              {showDatePicker === "startDate" && (
+              {showDatePicker === "start" && (
                 <DateTimePicker
-                  value={draftFilters.startDate || new Date()}
+                  value={filters.startDate || new Date()}
                   mode="date"
                   display="default"
                   onChange={(_, selectedDate) => {
                     setShowDatePicker(null);
-                    if (selectedDate) {
-                      setDraftFilters((prev) => ({ ...prev, startDate: selectedDate }));
-                    }
+                    if (selectedDate) setFilters((prev) => ({ ...prev, startDate: selectedDate }));
                   }}
                 />
               )}
             </View>
+
             <View style={{ flex: 1 }}>
               <TouchableOpacity
-                onPress={() => setShowDatePicker("endDate")}
+                onPress={() => setShowDatePicker("end")}
                 style={{
                   padding: 12,
                   borderWidth: 1,
@@ -398,22 +361,20 @@ export default function TransactionsScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 8,
-                  backgroundColor: isDark ? colors.card : colors.secondary + "10"
+                  backgroundColor: isDark ? colors.card : colors.secondary + '10'
                 }}
               >
                 <Calendar size={16} color={colors.mutedForeground} />
-                <Text style={{ color: colors.foreground }}>{formatDate(draftFilters.endDate)}</Text>
+                <Text style={{ color: colors.foreground }}>{formatDate(filters.endDate)}</Text>
               </TouchableOpacity>
-              {showDatePicker === "endDate" && (
+              {showDatePicker === "end" && (
                 <DateTimePicker
-                  value={draftFilters.endDate || new Date()}
+                  value={filters.endDate || new Date()}
                   mode="date"
                   display="default"
                   onChange={(_, selectedDate) => {
                     setShowDatePicker(null);
-                    if (selectedDate) {
-                      setDraftFilters((prev) => ({ ...prev, endDate: selectedDate }));
-                    }
+                    if (selectedDate) setFilters((prev) => ({ ...prev, endDate: selectedDate }));
                   }}
                 />
               )}
@@ -425,22 +386,18 @@ export default function TransactionsScreen() {
             {["ALL", "INCOME", "EXPENSE"].map((type) => (
               <TouchableOpacity
                 key={type}
-                onPress={() => {
-                  if (type === "ALL") {
-                    setDraftFilters((prev) => ({ ...prev, direction: "" }));
-                    return;
-                  }
-                  setDraftFilters((prev) => ({
+                onPress={() =>
+                  setFilters((prev) => ({
                     ...prev,
-                    direction: prev.direction === type ? "" : type,
-                  }));
-                }}
+                    direction: type === "ALL" ? "" : type,
+                  }))
+                }
                 style={{
                   flex: 1,
                   height: TYPE_PILL_HEIGHT,
                   borderRadius: 20,
                   backgroundColor:
-                    draftFilters.direction === type || (type === "ALL" && !draftFilters.direction)
+                    filters.direction === type || (type === "ALL" && !filters.direction)
                       ? colors.primary
                       : (isDark ? colors.card : colors.secondary + '10'),
                   borderWidth: 1,
@@ -454,7 +411,7 @@ export default function TransactionsScreen() {
                     fontWeight: "600",
                     textAlign: "center",
                     color:
-                      draftFilters.direction === type || (type === "ALL" && !draftFilters.direction)
+                      filters.direction === type || (type === "ALL" && !filters.direction)
                         ? "white"
                         : colors.foreground,
                   }}
@@ -465,106 +422,18 @@ export default function TransactionsScreen() {
             ))}
           </View>
 
-          <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Source Module</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
-            {["ALL", ...sourceModuleOptions].map((module) => {
-              const active = module === "ALL" ? !draftFilters.sourceModule : draftFilters.sourceModule === module;
-              return (
-                <TouchableOpacity
-                  key={module}
-                  onPress={() =>
-                    setDraftFilters((prev) => ({
-                      ...prev,
-                      sourceModule: module === "ALL" ? "" : (prev.sourceModule === module ? "" : module),
-                    }))
-                  }
-                  style={{
-                    paddingHorizontal: 12,
-                    height: 34,
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    borderColor: active ? colors.primary : colors.border,
-                    backgroundColor: active ? colors.primary : (isDark ? colors.card : colors.secondary + "10"),
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ color: active ? "white" : colors.foreground, fontSize: 12, fontWeight: "700" }}>
-                    {module === "ALL" ? "All" : formatLabel(module)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Payment Mode</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-            {["ALL", ...paymentModeOptions].map((mode) => {
-              const active = mode === "ALL" ? !draftFilters.paymentMode : draftFilters.paymentMode === mode;
-              return (
-                <TouchableOpacity
-                  key={mode}
-                  onPress={() =>
-                    setDraftFilters((prev) => ({
-                      ...prev,
-                      paymentMode: mode === "ALL" ? "" : (prev.paymentMode === mode ? "" : mode),
-                    }))
-                  }
-                  style={{
-                    paddingHorizontal: 12,
-                    height: 34,
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    borderColor: active ? colors.primary : colors.border,
-                    backgroundColor: active ? colors.primary : (isDark ? colors.card : colors.secondary + "10"),
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ color: active ? "white" : colors.foreground, fontSize: 12, fontWeight: "700" }}>
-                    {mode === "ALL" ? "All" : formatLabel(mode)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <TouchableOpacity
-              onPress={() =>
-                setDraftFilters({
-                  startDate: null,
-                  endDate: null,
-                  direction: "",
-                  sourceModule: "",
-                  paymentMode: "",
-                })
-              }
-              style={{
-                flex: 1,
-                backgroundColor: isDark ? colors.card : colors.secondary + "15",
-                padding: 14,
-                borderRadius: 12,
-                alignItems: "center",
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>Reset</Text>
-            </TouchableOpacity>
-
           <TouchableOpacity
             onPress={() => {
-              setFilters(draftFilters);
               setShowFilterModal(false);
-              setShowDatePicker(null);
-              loadData(draftFilters);
+              loadData();
             }}
-              style={{ flex: 1, backgroundColor: colors.primary, padding: 14, borderRadius: 12, alignItems: "center" }}
+            style={{ backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: "center" }}
           >
-              <Text style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>Apply Filters</Text>
+            <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>Apply Filters</Text>
           </TouchableOpacity>
-          </View>
         </ScrollView>
       </BottomSheet>
     </View>
   );
 }
+

@@ -16,10 +16,10 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
-  KeyboardAvoidingView,
   StyleSheet,
   RefreshControl
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useThemeStore } from "../../../hooks/useThemeStore";
 import { Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Plus, Navigation } from 'lucide-react-native';
 
@@ -237,23 +237,22 @@ export default function AddTrip() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={100}
+      <KeyboardAwareScrollView
+        enableOnAndroid
+        extraScrollHeight={150} // increased to bring to middle
+        extraHeight={200}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
-        <ScrollView
-          contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
-            />
-          }
-        >
           {/* Header Title Section */}
           <View className="mb-3">
             <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('addNewTrip')}</Text>
@@ -445,8 +444,7 @@ export default function AddTrip() {
             </View>
           </TouchableOpacity>
 
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
 
       {/* Select Modals */}
       <SelectionModal
@@ -530,7 +528,7 @@ export default function AddTrip() {
         }} onClose={() => setIsDriverModalVisible(false)} />
 
       <TruckFormModal visible={isTruckModalVisible} editing={false} formData={truckFormData} setFormData={setTruckFormData} onSubmit={async () => {
-        if (!truckFormData.registration_number || !truckFormData.registered_owner_name) return Alert.alert("Missing Fields", "Registration and owner required.");
+        if (!truckFormData.registration_number || !truckFormData.container_dimension) return Alert.alert("Missing Fields", "Registration and container dimension required.");
         const res = await addTruck({ ...truckFormData, loading_capacity: truckFormData.loading_capacity ? Number(truckFormData.loading_capacity) : undefined });
         setFormData(p => ({ ...p, truck_id: res._id }));
         setIsTruckModalVisible(false);

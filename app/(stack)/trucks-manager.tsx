@@ -94,8 +94,8 @@ export default function TrucksManager() {
 
   /* ---------------- ACTIONS ---------------- */
   const handleSubmit = async () => {
-    if (!formData.registration_number || !formData.registered_owner_name) {
-      Alert.alert(t("missingFields"), "Please fill required fields.");
+    if (!formData.registration_number || !formData.container_dimension) {
+      Alert.alert(t("missingFields"), "Please fill required fields: Registration Number and Container Dimension.");
       return;
     }
 

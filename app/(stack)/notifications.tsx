@@ -14,13 +14,29 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import API from "../api/axiosInstance";
 import useTruckDocuments from "../../hooks/useTruckDocuments";
 import useTrucks from "../../hooks/useTruck";
-import { formatDate } from "../../lib/utils";
+import { formatDate, formatLabel } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
+
+type ReminderItem = {
+  _id: string;
+  title: string;
+  message: string;
+  type: string;
+  status: string;
+  scheduled_at: string;
+  is_reminder: true;
+  daysLeft?: number;
+  docLabel: string;
+  truckName: string;
+  expiryDate: Date;
+  isExpired: boolean;
+};
 
 export default function NotificationsScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<"notifications" | "reminders">("notifications");
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -55,8 +71,8 @@ export default function NotificationsScreen() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const allNotifications = useMemo(() => {
-    const reminders = documents
+  const reminders = useMemo<ReminderItem[]>(() => {
+    const uploadedDocReminders: ReminderItem[] = documents
       .filter((doc) => {
         if (!doc.expiry_date) return false;
         const expiry = parseExpiryDate(doc.expiry_date);
@@ -71,16 +87,21 @@ export default function NotificationsScreen() {
         const expiry = parseExpiryDate(doc.expiry_date);
         const daysLeft = expiry ? getDaysLeft(expiry) : undefined;
         const isExpired = daysLeft !== undefined && daysLeft < 0;
+        const docLabel = formatLabel(doc.document_type || "Document");
 
         return {
           _id: `reminder-${doc._id}`,
-          title: `${doc.document_type} ${isExpired ? 'Expired' : 'Expiring'}`,
-          message: `Your ${doc.document_type} for truck ${truckName} is ${isExpired ? 'already expired' : 'expiring'} on ${formatDate(doc.expiry_date)}.`,
+          title: `${docLabel} ${isExpired ? "Expired" : "Expiring"}`,
+          message: `Your ${docLabel} for truck ${truckName} is ${isExpired ? "already expired" : "expiring"} on ${formatDate(doc.expiry_date)}.`,
           type: "DOC_EXPIRY",
           status: "REMINDER",
           scheduled_at: new Date().toISOString(),
-          is_reminder: true,
+          is_reminder: true as const,
           daysLeft,
+          docLabel,
+          truckName,
+          expiryDate: expiry!,
+          isExpired,
         };
       });
 
@@ -92,7 +113,7 @@ export default function NotificationsScreen() {
       { key: "road_tax", type: "ROAD TAX", label: "Road Tax", read: (truck) => truck.road_tax_upto || truck?.rc_details?.vehicle_tax_upto },
     ];
 
-    const truckFieldReminders = (trucks || []).flatMap((truck) => {
+    const truckFieldReminders: ReminderItem[] = (trucks || []).flatMap((truck) => {
       const truckName = truck?.registration_number || "N/A";
       return truckFieldConfig
         .map((field) => {
@@ -110,25 +131,73 @@ export default function NotificationsScreen() {
           const isExpired = daysLeft < 0;
           return {
             _id: `truck-reminder-${truck._id}-${field.key}`,
-            title: `${field.label} ${isExpired ? 'Expired' : 'Expiring'}`,
-            message: `Your ${field.label} for truck ${truckName} is ${isExpired ? 'already expired' : 'expiring'} on ${formatDate(expiry)}.`,
+            title: `${field.label} ${isExpired ? "Expired" : "Expiring"}`,
+            message: `Your ${field.label} for truck ${truckName} is ${isExpired ? "already expired" : "expiring"} on ${formatDate(expiry)}.`,
             type: "DOC_EXPIRY",
             status: "REMINDER",
             scheduled_at: new Date().toISOString(),
-            is_reminder: true,
+            is_reminder: true as const,
             daysLeft,
+            docLabel: field.label,
+            truckName,
+            expiryDate: expiry,
+            isExpired,
           };
         })
-        .filter(Boolean);
+        .filter(Boolean) as ReminderItem[];
     });
 
-    const combined = [...reminders, ...truckFieldReminders, ...notifications];
-    return combined.sort((a, b) => {
+    return [...uploadedDocReminders, ...truckFieldReminders];
+  }, [documents, trucks]);
+
+  const groupedReminders = useMemo(() => {
+    const groups = new Map<string, ReminderItem[]>();
+    reminders.forEach((item) => {
+      const key = `${item.docLabel}__${item.isExpired ? "EXPIRED" : "EXPIRING"}`;
+      const existing = groups.get(key) || [];
+      existing.push(item);
+      groups.set(key, existing);
+    });
+
+    const grouped = Array.from(groups.entries()).map(([key, items]) => {
+      const first = items[0];
+      const truckNames = Array.from(new Set(items.map((i) => i.truckName))).sort();
+      const minDaysLeft = Math.min(...items.map((i) => i.daysLeft ?? 9999));
+      const nextExpiry = items
+        .map((i) => i.expiryDate)
+        .sort((a, b) => a.getTime() - b.getTime())[0];
+      const isExpired = first.isExpired;
+      const verb = isExpired ? "expired" : "expiring";
+      const plural = truckNames.length > 1 ? "trucks" : "truck";
+
+      return {
+        _id: `group-${key}`,
+        title: `${first.docLabel} ${isExpired ? "Expired" : "Expiring"}`,
+        message: `${first.docLabel} is ${verb} for ${truckNames.length} ${plural}: ${truckNames.join(", ")}.`,
+        type: "DOC_EXPIRY",
+        status: "REMINDER",
+        scheduled_at: nextExpiry.toISOString(),
+        is_reminder: true,
+        daysLeft: minDaysLeft,
+      };
+    });
+
+    return grouped.sort((a, b) => {
+      const dateA = new Date(a.scheduled_at || 0).getTime();
+      const dateB = new Date(b.scheduled_at || 0).getTime();
+      return dateA - dateB;
+    });
+  }, [reminders]);
+
+  const sortedNotifications = useMemo(() => {
+    return [...notifications].sort((a, b) => {
       const dateA = new Date(a.scheduled_at || 0).getTime();
       const dateB = new Date(b.scheduled_at || 0).getTime();
       return dateB - dateA;
     });
-  }, [documents, notifications, trucks]);
+  }, [notifications]);
+
+  const visibleItems = activeTab === "reminders" ? groupedReminders : sortedNotifications;
 
   const fetchNotifications = async () => {
     try {
@@ -201,11 +270,54 @@ export default function NotificationsScreen() {
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Stay updated with your fleet activity</Text>
         </View>
 
-        {loading ? (
+        <View
+          style={{
+            flexDirection: "row",
+            backgroundColor: colors.card,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: 4,
+            marginBottom: 14,
+          }}
+        >
+          {([
+            { key: "notifications", label: t("notifications") },
+            { key: "reminders", label: t("reminders") },
+          ] as const).map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                onPress={() => setActiveTab(tab.key)}
+                style={{
+                  flex: 1,
+                  borderRadius: 999,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  backgroundColor: isActive ? colors.primary : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    color: isActive ? colors.primaryForeground : colors.mutedForeground,
+                    fontWeight: "800",
+                    fontSize: 12,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {loading || docsLoading ? (
           <View className="flex-1 items-center justify-center mt-32">
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
-        ) : allNotifications.length === 0 ? (
+        ) : visibleItems.length === 0 ? (
           <View className="flex-1 items-center justify-center mt-32">
             <Ionicons
               name="notifications-off-outline"
@@ -213,11 +325,11 @@ export default function NotificationsScreen() {
               color={emptyIconColor}
             />
             <Text className="text-lg font-medium mt-4" style={{ color: colors.mutedForeground }}>
-              {t("noNotificationsFound")}
+              {activeTab === "reminders" ? "No reminders found" : t("noNotificationsFound")}
             </Text>
           </View>
         ) : (
-          allNotifications.map((n) => (
+          visibleItems.map((n) => (
             <TouchableOpacity
               key={n._id}
               className={`rounded-2xl p-4 mb-3 flex-row items-start border`}

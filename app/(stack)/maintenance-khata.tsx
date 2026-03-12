@@ -96,50 +96,26 @@ export default function MaintenanceKhataScreen() {
                 marginBottom: 12,
                 borderWidth: 1,
                 borderColor: colors.border,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center"
               }}
             >
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3 }}>
-                    {truck.registration_number || "Unknown Truck"}
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 20,
-                    backgroundColor: hasActivity ? "#fee2e2" : colors.border + "40",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "800",
-                      color: hasActivity ? "#dc2626" : colors.mutedForeground,
-                    }}
-                  >
-                    {hasActivity ? `-Rs ${totalExpense.toLocaleString()}` : "No spend"}
-                  </Text>
-                </View>
+              <View>
+                <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3, marginBottom: 6 }}>
+                  {truck.registration_number || "Unknown Truck"}
+                </Text>
+
+                <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 2 }}>
+                  TOTAL MAINTENANCE COST
+                </Text>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }}>
+                  Rs {totalExpense.toLocaleString()}
+                </Text>
               </View>
 
-              <View style={{ flexDirection: "row", gap: 16, marginBottom: 10 }}>
-                <View>
-                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>
-                    TOTAL REPAIR COST
-                  </Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
-                    Rs {totalExpense.toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>View Details</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
-                </View>
+              <View style={{ backgroundColor: colors.primary + '10', width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="chevron-forward" size={18} color={colors.primary} />
               </View>
             </TouchableOpacity>
           );

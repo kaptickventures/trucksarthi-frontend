@@ -162,11 +162,7 @@ export default function TruckFormModal({
 
     const allFields: { label: string; key: TruckInputFieldKey; placeholder: string; required?: boolean; numeric?: boolean }[] = [
         { label: "Registration Number", key: "registration_number", placeholder: "e.g. MH 12 AB 1234", required: true },
-        { label: "Registered Owner", key: "registered_owner_name", placeholder: "Full Owner Name", required: true },
-        { label: "Container Dimension", key: "container_dimension", placeholder: "e.g. 20ft / 32ft" },
-        { label: "Loading Capacity (Tons)", key: "loading_capacity", placeholder: "e.g. 10", numeric: true },
-        { label: "Chassis Number", key: "chassis_number", placeholder: "Optional" },
-        { label: "Engine Number", key: "engine_number", placeholder: "Optional" },
+        { label: "Container Dimension", key: "container_dimension", placeholder: "e.g. 20ft / 32ft", required: true },
     ];
 
     const fieldsToShow = showAllFields

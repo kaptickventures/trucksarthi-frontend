@@ -96,10 +96,10 @@ export default function TripLog() {
 
   // FILTER STATE
   const [filters, setFilters] = useState({
-    driver: "" as string | null,
-    client: "" as string | null,
-    truck: "" as string | null,
-    location: "" as string | null,
+    driver: [] as string[],
+    client: [] as string[],
+    truck: [] as string[],
+    location: [] as string[],
     startDate: null as Date | null,
     endDate: null as Date | null,
   });
@@ -165,20 +165,20 @@ export default function TripLog() {
   const sortedTrips = useMemo(() => {
     let filtered = [...(trips || [])];
 
-    if (filters.driver)
-      filtered = filtered.filter((t) => getId(t.driver) === filters.driver);
+    if (filters.driver.length)
+      filtered = filtered.filter((t) => filters.driver.includes(getId(t.driver)));
 
-    if (filters.client)
-      filtered = filtered.filter((t) => getId(t.client) === filters.client);
+    if (filters.client.length)
+      filtered = filtered.filter((t) => filters.client.includes(getId(t.client)));
 
-    if (filters.truck)
-      filtered = filtered.filter((t) => getId(t.truck) === filters.truck);
+    if (filters.truck.length)
+      filtered = filtered.filter((t) => filters.truck.includes(getId(t.truck)));
 
-    if (filters.location)
+    if (filters.location.length)
       filtered = filtered.filter(
         (t) =>
-          getId(t.start_location) === filters.location ||
-          getId(t.end_location) === filters.location
+          filters.location.includes(getId(t.start_location)) ||
+          filters.location.includes(getId(t.end_location))
       );
 
     if (filters.startDate)

@@ -1,6 +1,6 @@
 import { useRouter, Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
-import { Clock, Home, PlusCircle } from "lucide-react-native";
+import { Clock, Home, List, PlusCircle } from "lucide-react-native";
 import { Platform, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect } from "react";
@@ -51,6 +51,11 @@ export default function TabLayout() {
           <NativeTabs.Trigger name="tripLog">
             <Icon sf="clock.fill" selectedColor={activeTintColor} />
             <Label>Trip Log</Label>
+          </NativeTabs.Trigger>
+
+          <NativeTabs.Trigger name="allTransactions">
+            <Icon sf="list.bullet.rectangle.fill" selectedColor={activeTintColor} />
+            <Label>Transactions</Label>
           </NativeTabs.Trigger>
         </NativeTabs>
       </>
@@ -106,6 +111,14 @@ export default function TabLayout() {
           options={{
             title: "Trip Log",
             tabBarIcon: ({ color }) => <Clock size={22} color={color} />,
+          }}
+        />
+
+        <Tabs.Screen
+          name="allTransactions"
+          options={{
+            title: "Transactions",
+            tabBarIcon: ({ color }) => <List size={22} color={color} />,
           }}
         />
 
