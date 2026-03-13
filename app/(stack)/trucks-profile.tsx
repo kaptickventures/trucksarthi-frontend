@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Calendar,
@@ -15,7 +14,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   RefreshControl,
   ScrollView,
   Share,
@@ -155,14 +153,11 @@ export default function TruckProfile() {
   const { truck_id } = useLocalSearchParams<{ truck_id?: string | string[] }>();
   const id = useMemo(() => Array.isArray(truck_id) ? truck_id[0] : truck_id, [truck_id]);
 
-  const { trucks, loading: trucksLoading, updateTruck, updateImportantDates, fetchTrucks } = useTrucks();
+  const { trucks, loading: trucksLoading, updateTruck, fetchTrucks } = useTrucks();
 
   const [refreshing, setRefreshing] = useState(false);
   const [showDates, setShowDates] = useState(false);
   const [showOtherDetails, setShowOtherDetails] = useState(false);
-
-  const [dateField, setDateField] = useState<string | null>(null);
-  const [isPickerVisible, setIsPickerVisible] = useState(false);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -275,10 +270,16 @@ export default function TruckProfile() {
       "split_permanent_address",
     ]);
 
+    const excludedKeys = new Set([
+      "verification_id",
+      "reference_id",
+      "status",
+    ]);
+
     const detailsMap = new Map<string, string>();
     const addEntry = (key: string, raw: any) => {
       const val = normalizeDisplayValue(raw);
-      if (!val || primaryKeys.has(key)) return;
+      if (!val || primaryKeys.has(key) || excludedKeys.has(key)) return;
       detailsMap.set(key, val);
     };
 
@@ -287,7 +288,16 @@ export default function TruckProfile() {
       Object.entries(truck.rc_details).forEach(([key, value]) => addEntry(key, value));
     }
 
-    return Array.from(detailsMap.entries()).map(([key, value]) => ({ key, label: formatLabel(key), value }));
+    const entries = Array.from(detailsMap.entries()).map(([key, value]) => ({ key, label: formatLabel(key), value }));
+
+    // Ensure "status_as_on" (from RC) is shown last if present
+    const statusAsOnIndex = entries.findIndex(e => e.key === "status_as_on");
+    if (statusAsOnIndex > -1) {
+      const [statusAsOn] = entries.splice(statusAsOnIndex, 1);
+      entries.push(statusAsOn);
+    }
+
+    return entries;
   }, [truck]);
 
   useEffect(() => {
@@ -331,26 +341,14 @@ export default function TruckProfile() {
   const handleUpdateTruck = async () => {
     if (!id) return;
     try {
-      const { registration_date, fitness_upto, pollution_upto, road_tax_upto, insurance_upto, permit_upto, national_permit_upto, ...basicInfo } = editForm;
-      const dateUpdates = { registration_date: registration_date || null, fitness_upto: fitness_upto || null, pollution_upto: pollution_upto || null, road_tax_upto: road_tax_upto || null, insurance_upto: insurance_upto || null, permit_upto: permit_upto || null, national_permit_upto: national_permit_upto || null };
-
-      await Promise.all([
-        updateTruck(id, { ...basicInfo, unladen_weight: basicInfo.unladen_weight ? Number(basicInfo.unladen_weight) : undefined, loading_capacity: basicInfo.loading_capacity ? Number(basicInfo.loading_capacity) : undefined }),
-        updateImportantDates(id, dateUpdates)
-      ]);
+      await updateTruck(id, {
+        container_dimension: editForm.container_dimension?.trim() || undefined,
+      });
       setShowEditModal(false);
       Alert.alert("Success", "Truck details updated");
     } catch (e) {
       Alert.alert("Error", "Failed to update truck details");
     }
-  };
-
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setIsPickerVisible(false);
-    if (selectedDate && dateField) {
-      setEditForm(prev => ({ ...prev, [dateField]: selectedDate.toISOString().split("T")[0] }));
-    }
-    setDateField(null);
   };
 
   const handleShareDetails = async () => {
@@ -399,17 +397,17 @@ export default function TruckProfile() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 100 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <View className="mb-3 px-0 flex-row justify-between items-center">
-          <View>
+        <View className="mb-3 px-0 flex-row justify-between items-start">
+          <View style={{ flex: 1, marginRight: 12 }}>
             <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('truckProfile')}</Text>
             <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('viewManageTruckDetails')}</Text>
           </View>
-          <View className="flex-row items-center gap-4">
+          <View className="flex-row items-center gap-4" style={{ marginTop: 4 }}>
             <TouchableOpacity onPress={() => setShowShareModal(true)}>
               <Share2 size={20} color={colors.foreground} />
             </TouchableOpacity>
@@ -508,37 +506,22 @@ export default function TruckProfile() {
         visible={showEditModal}
         onClose={() => setShowEditModal(false)}
         title={t('editTruck')}
-        subtitle="Update vehicle information"
+        subtitle="Update container dimension"
       >
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
           <View style={{ gap: 16 }}>
             <View>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('plateNumber')}</Text>
-              <TextInput value={editForm.registration_number} onChangeText={t => setEditForm(p => ({ ...p, registration_number: t }))} style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }} />
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>
+                Container Dimension (Optional)
+              </Text>
+              <TextInput
+                value={editForm.container_dimension}
+                onChangeText={t => setEditForm(p => ({ ...p, container_dimension: t }))}
+                placeholder="e.g. 20ft / 32ft"
+                placeholderTextColor={colors.mutedForeground}
+                style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+              />
             </View>
-            <View>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('brandMake')}</Text>
-              <TextInput value={editForm.make} onChangeText={t => setEditForm(p => ({ ...p, make: t }))} style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }} />
-            </View>
-            <View>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('ownerName')}</Text>
-              <TextInput value={editForm.registered_owner_name} onChangeText={t => setEditForm(p => ({ ...p, registered_owner_name: t }))} style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }} />
-            </View>
-
-            {[
-              { label: t('insuranceExpiry'), key: "insurance_upto" },
-              { label: t('fitnessExpiry'), key: "fitness_upto" },
-              { label: t('permitExpiry'), key: "permit_upto" },
-              { label: t('puccExpiry'), key: "pollution_upto" },
-            ].map(f => (
-              <TouchableOpacity key={f.key} activeOpacity={0.7} onPress={() => { setDateField(f.key); setIsPickerVisible(true); }}>
-                <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{f.label}</Text>
-                <View style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", padding: 16, borderRadius: 20, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: "center" }}>
-                  <Text style={{ color: (editForm as any)[f.key] ? colors.foreground : colors.mutedForeground, fontWeight: "600" }}>{(editForm as any)[f.key] ? globalFormatDate((editForm as any)[f.key]) : "Select Date"}</Text>
-                  <Calendar size={18} color={colors.primary} />
-                </View>
-              </TouchableOpacity>
-            ))}
           </View>
 
           <TouchableOpacity onPress={handleUpdateTruck} style={{ backgroundColor: colors.primary, padding: 18, borderRadius: 22, alignItems: 'center', marginTop: 32 }}>
@@ -595,9 +578,6 @@ export default function TruckProfile() {
         </View>
       </BottomSheet>
 
-      {isPickerVisible && (
-        <DateTimePicker value={(editForm as any)[dateField!] ? new Date((editForm as any)[dateField!]) : new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onDateChange} />
-      )}
     </View>
   );
 }

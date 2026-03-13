@@ -11,8 +11,8 @@ import { usePushNotifications } from "../hooks/usePushNotifications";
 import { NAV_THEME } from "../theme";
 
 import { AuthProvider } from "../context/AuthContext";
-
 import { LanguageProvider } from "../context/LanguageContext";
+import { NotificationProvider } from "../context/NotificationContext";
 
 function MainLayout() {
   const { theme } = useThemeStore();
@@ -36,9 +36,11 @@ export default function App() {
       <AuthProvider>
         <LanguageProvider>
           <ThemeStoreProvider>
-            <BottomSheetModalProvider>
-              <MainLayout />
-            </BottomSheetModalProvider>
+            <NotificationProvider>
+              <BottomSheetModalProvider>
+                <MainLayout />
+              </BottomSheetModalProvider>
+            </NotificationProvider>
           </ThemeStoreProvider>
         </LanguageProvider>
       </AuthProvider>

@@ -16,6 +16,7 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
+import { NotificationBadge } from "../../../components/NotificationBadge";
 
 import EditTripModal from "../../../components/EditTripModal";
 import SideMenu from "../../../components/SideMenu";
@@ -342,7 +343,7 @@ export default function TripLog() {
           onPress={() => router.push("/(stack)/notifications" as any)}
           style={{ paddingHorizontal: 6, paddingVertical: 4 }}
         >
-          <Ionicons name="notifications-outline" size={24} color={foregroundColor} />
+          <NotificationBadge size={24} color={foregroundColor} />
         </TouchableOpacity>
       ),
     });

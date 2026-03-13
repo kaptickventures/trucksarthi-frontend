@@ -51,7 +51,6 @@ export default function SideMenu({
 
   const FINANCE_LINKS = [
     { title: t('pLReports'), icon: "stats-chart-outline", route: "/(stack)/pl-reports" as const },
-    { title: t('allTransactions'), icon: "list-outline", route: "/(stack)/transactions" as const },
   ] as const;
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;

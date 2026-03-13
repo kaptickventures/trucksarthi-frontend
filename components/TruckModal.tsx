@@ -162,10 +162,12 @@ export default function TruckFormModal({
 
     const allFields: { label: string; key: TruckInputFieldKey; placeholder: string; required?: boolean; numeric?: boolean }[] = [
         { label: "Registration Number", key: "registration_number", placeholder: "e.g. MH 12 AB 1234", required: true },
-        { label: "Container Dimension", key: "container_dimension", placeholder: "e.g. 20ft / 32ft", required: true },
+        { label: "Container Dimension (Optional)", key: "container_dimension", placeholder: "e.g. 20ft / 32ft" },
     ];
 
-    const fieldsToShow = showAllFields
+    const fieldsToShow = editing
+        ? [allFields[1]]
+        : showAllFields
         ? allFields
         : showFetchedSummary
             ? [allFields[0], allFields[1]]

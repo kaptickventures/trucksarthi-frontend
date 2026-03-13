@@ -53,11 +53,7 @@ export default function ClientsManager() {
     }
   }, [fetchClients]);
 
-  const REQUIRED_FIELDS = [
-    "client_name",
-    "contact_person_name",
-    "contact_number",
-  ];
+  const REQUIRED_FIELDS = ["client_name"];
 
   const [formData, setFormData] = useState<ClientFormData>({
     client_name: "",
@@ -119,11 +115,12 @@ export default function ClientsManager() {
     }
 
     try {
+      const normalizedClientName = formData.client_name.trim();
       await addClient({
         ...formData,
-        client_name: formData.client_name.trim(),
-        contact_person_name: formData.contact_person_name.trim(),
-        contact_number: formData.contact_number.trim(),
+        client_name: normalizedClientName,
+        contact_person_name: formData.contact_person_name.trim() || normalizedClientName,
+        contact_number: formData.contact_number.trim() || "NA",
         alternate_contact_number: formData.alternate_contact_number.trim(),
         office_address: formData.office_address.trim(),
         email_address: email,

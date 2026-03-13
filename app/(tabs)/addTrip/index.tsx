@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
+import { NotificationBadge } from "../../../components/NotificationBadge";
 import {
   useEffect,
   useLayoutEffect,
@@ -10,12 +11,12 @@ import { useFocusEffect } from "@react-navigation/native";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Platform,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ScrollView,
   StyleSheet,
   RefreshControl
 } from "react-native";
@@ -25,7 +26,6 @@ import { Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Plus
 
 import ClientFormModal from "../../../components/ClientModal";
 import DriverFormModal from "../../../components/DriverModal";
-import LocationFormModal from "../../../components/LocationModal";
 import SideMenu from "../../../components/SideMenu";
 import TruckFormModal from "../../../components/TruckModal";
 import { SelectionModal } from "../../../components/SelectionModal";
@@ -107,8 +107,7 @@ export default function AddTrip() {
             alignItems: "center",
           }}
         >
-          <Ionicons
-            name="notifications-outline"
+          <NotificationBadge
             size={24}
             color={colors.foreground}
           />
@@ -122,7 +121,7 @@ export default function AddTrip() {
   const { trucks, addTruck, fetchTrucks } = useTrucks();
   const { drivers, addDriver, fetchDrivers } = useDrivers();
   const { clients, addClient, fetchClients } = useClients();
-  const { locations, addLocation, fetchLocations, searchLocations } = useLocations();
+  const { locations, addLocation, fetchLocations } = useLocations();
   const { addTrip } = useTrips();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -164,9 +163,11 @@ export default function AddTrip() {
 
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [startQuery, setStartQuery] = useState("");
+  const [endQuery, setEndQuery] = useState("");
 
   /* ---------------- Entity Selectors ---------------- */
-  const getSelectedLabel = (type: 'truck' | 'driver' | 'client' | 'start' | 'end') => {
+  const getSelectedLabel = (type: 'truck' | 'driver' | 'client') => {
     switch (type) {
       case 'truck': return trucks.find(t => t._id === formData.truck_id)?.registration_number;
       case 'driver': {
@@ -174,8 +175,6 @@ export default function AddTrip() {
         return driver?.name || driver?.driver_name;
       }
       case 'client': return clients.find(c => c._id === formData.client_id)?.client_name;
-      case 'start': return locations.find(l => l._id === formData.start_location_id)?.location_name;
-      case 'end': return locations.find(l => l._id === formData.end_location_id)?.location_name;
       default: return "";
     }
   };
@@ -184,33 +183,61 @@ export default function AddTrip() {
   const [isClientModalVisible, setIsClientModalVisible] = useState(false);
   const [isDriverModalVisible, setIsDriverModalVisible] = useState(false);
   const [isTruckModalVisible, setIsTruckModalVisible] = useState(false);
-  const [isLocationModalVisible, setIsLocationModalVisible] = useState(false);
-
-  const [clientFormData, setClientFormData] = useState({ client_name: "", contact_person_name: "", contact_number: "", alternate_contact_number: "", email_address: "", office_address: "" });
+  const [clientFormData, setClientFormData] = useState({ client_name: "", contact_person_name: "", contact_number: "", alternate_contact_number: "", email_address: "", office_address: "", gstin: "" });
   const [driverFormData, setDriverFormData] = useState({ driver_name: "", contact_number: "", identity_card_url: "", license_card_url: "" });
   const [truckFormData, setTruckFormData] = useState({ registration_number: "", chassis_number: "", engine_number: "", registered_owner_name: "", container_dimension: "", loading_capacity: "" });
-  const [locationFormData, setLocationFormData] = useState({
-    location_name: "",
-    complete_address: "",
-    place_id: "",
-    latitude: undefined as number | undefined,
-    longitude: undefined as number | undefined,
-  });
+  const normalizeLocation = (value: string) => value.trim().toLowerCase();
+  const findLocationByName = (name: string) =>
+    locations.find((loc) => normalizeLocation(loc.location_name) === normalizeLocation(name));
+
+  const getLocationSuggestions = (query: string) => {
+    const trimmed = query.trim().toLowerCase();
+    if (!trimmed) return [];
+    return locations
+      .filter((loc) => loc.location_name.toLowerCase().includes(trimmed))
+      .slice(0, 6);
+  };
 
   const handleSave = async () => {
-    const { truck_id, driver_id, client_id, start_location_id, end_location_id, cost_of_trip } = formData;
-    if (!truck_id || !driver_id || !client_id || !start_location_id || !end_location_id || !cost_of_trip) {
+    const { truck_id, driver_id, client_id, cost_of_trip } = formData;
+    const trimmedStart = startQuery.trim();
+    const trimmedEnd = endQuery.trim();
+
+    if (!truck_id || !driver_id || !client_id || !trimmedStart || !trimmedEnd || !cost_of_trip) {
       Alert.alert("Missing Fields", "Please complete all required fields (*)");
       return;
     }
 
     try {
+      let startLocationId = formData.start_location_id;
+      let endLocationId = formData.end_location_id;
+
+      if (!startLocationId) {
+        const existingStart = findLocationByName(trimmedStart);
+        if (existingStart) {
+          startLocationId = existingStart._id;
+        } else {
+          const created = await addLocation({ location_name: trimmedStart, complete_address: trimmedStart });
+          startLocationId = created._id;
+        }
+      }
+
+      if (!endLocationId) {
+        const existingEnd = findLocationByName(trimmedEnd);
+        if (existingEnd) {
+          endLocationId = existingEnd._id;
+        } else {
+          const created = await addLocation({ location_name: trimmedEnd, complete_address: trimmedEnd });
+          endLocationId = created._id;
+        }
+      }
+
       await addTrip({
         truck: truck_id,
         driver: driver_id,
         client: client_id,
-        start_location: start_location_id,
-        end_location: end_location_id,
+        start_location: startLocationId,
+        end_location: endLocationId,
         cost_of_trip: Number(cost_of_trip),
         miscellaneous_expense: Number(formData.miscellaneous_expense || 0),
         notes: formData.notes,
@@ -228,12 +255,17 @@ export default function AddTrip() {
         miscellaneous_expense: "",
         notes: "",
       });
+      setStartQuery("");
+      setEndQuery("");
     } catch {
       Alert.alert("Error", "Failed to save trip. Please try again.");
     }
   };
 
   if (userLoading && !user) return <View className="flex-1 justify-center items-center"><ActivityIndicator size="large" color={colors.primary} /></View>;
+
+  const startSuggestions = getLocationSuggestions(startQuery);
+  const endSuggestions = getLocationSuggestions(endQuery);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -295,43 +327,81 @@ export default function AddTrip() {
             {/* Origin */}
             <View className="flex-1">
               <InputLabel label={t('origin')} required />
-              <TouchableOpacity
-                style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
-                onPress={() => setActiveModal('start')}
-              >
-                <View className="flex-row items-center flex-1">
-                  <MapPin size={20} color={colors.primary} />
-                  <Text
-                    numberOfLines={1}
-                    className="ml-2 text-base"
-                    style={{ color: getSelectedLabel('start') ? colors.foreground : colors.mutedForeground }}
-                  >
-                    {getSelectedLabel('start') || t('from')}
-                  </Text>
+              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+                <MapPin size={20} color={colors.primary} />
+                <TextInput
+                  placeholder={t('from')}
+                  className="flex-1 ml-2 text-base"
+                  style={{ color: colors.foreground }}
+                  value={startQuery}
+                  onChangeText={(text) => {
+                    setStartQuery(text);
+                    if (formData.start_location_id) setFormData((prev) => ({ ...prev, start_location_id: "" }));
+                  }}
+                  placeholderTextColor={colors.mutedForeground}
+                />
+              </View>
+              {startQuery.trim().length > 0 && (
+                <View style={[styles.suggestionBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                  {startSuggestions.map((loc) => (
+                    <TouchableOpacity
+                      key={loc._id}
+                      style={[styles.suggestionItem, { borderBottomColor: colors.border + "55" }]}
+                      onPress={() => {
+                        setStartQuery(loc.location_name);
+                        setFormData((prev) => ({ ...prev, start_location_id: loc._id }));
+                      }}
+                    >
+                      <Text style={{ color: colors.foreground }} numberOfLines={1}>{loc.location_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {startSuggestions.length === 0 && (
+                    <View style={styles.suggestionEmpty}>
+                      <Text style={{ color: colors.mutedForeground }} numberOfLines={1}>No match. Will add on save.</Text>
+                    </View>
+                  )}
                 </View>
-                <ChevronDown size={20} color={colors.mutedForeground} />
-              </TouchableOpacity>
+              )}
             </View>
 
             {/* Destination */}
             <View className="flex-1">
               <InputLabel label={t('destination')} required />
-              <TouchableOpacity
-                style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
-                onPress={() => setActiveModal('end')}
-              >
-                <View className="flex-row items-center flex-1">
-                  <Navigation size={20} color={colors.primary} />
-                  <Text
-                    numberOfLines={1}
-                    className="ml-2 text-base"
-                    style={{ color: getSelectedLabel('end') ? colors.foreground : colors.mutedForeground }}
-                  >
-                    {getSelectedLabel('end') || t('to')}
-                  </Text>
+              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+                <Navigation size={20} color={colors.primary} />
+                <TextInput
+                  placeholder={t('to')}
+                  className="flex-1 ml-2 text-base"
+                  style={{ color: colors.foreground }}
+                  value={endQuery}
+                  onChangeText={(text) => {
+                    setEndQuery(text);
+                    if (formData.end_location_id) setFormData((prev) => ({ ...prev, end_location_id: "" }));
+                  }}
+                  placeholderTextColor={colors.mutedForeground}
+                />
+              </View>
+              {endQuery.trim().length > 0 && (
+                <View style={[styles.suggestionBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                  {endSuggestions.map((loc) => (
+                    <TouchableOpacity
+                      key={loc._id}
+                      style={[styles.suggestionItem, { borderBottomColor: colors.border + "55" }]}
+                      onPress={() => {
+                        setEndQuery(loc.location_name);
+                        setFormData((prev) => ({ ...prev, end_location_id: loc._id }));
+                      }}
+                    >
+                      <Text style={{ color: colors.foreground }} numberOfLines={1}>{loc.location_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {endSuggestions.length === 0 && (
+                    <View style={styles.suggestionEmpty}>
+                      <Text style={{ color: colors.mutedForeground }} numberOfLines={1}>No match. Will add on save.</Text>
+                    </View>
+                  )}
                 </View>
-                <ChevronDown size={20} color={colors.mutedForeground} />
-              </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -414,22 +484,28 @@ export default function AddTrip() {
           </View>
 
           {/* Notes */}
-          <InputLabel label={t('tripNotes')} />
-          <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF', height: 100, alignItems: 'flex-start', paddingTop: 16 }]}>
-            <View style={{ marginTop: 2 }}>
-              <FileText size={18} color={colors.primary} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 120 : 0}
+            style={{ width: '100%' }}
+          >
+            <InputLabel label={t('tripNotes')} />
+            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF', height: 100, alignItems: 'flex-start', paddingTop: 16 }]}>
+              <View style={{ marginTop: 2 }}>
+                <FileText size={18} color={colors.primary} />
+              </View>
+              <TextInput
+                placeholder={t('anyAdditionalDetails')}
+                multiline
+                numberOfLines={4}
+                className="flex-1 ml-2 text-base"
+                style={{ color: colors.foreground, textAlignVertical: 'top', marginTop: -4 }}
+                value={formData.notes}
+                onChangeText={(t) => setFormData({ ...formData, notes: t })}
+                placeholderTextColor={colors.mutedForeground}
+              />
             </View>
-            <TextInput
-              placeholder={t('anyAdditionalDetails')}
-              multiline
-              numberOfLines={4}
-              className="flex-1 ml-2 text-base"
-              style={{ color: colors.foreground, textAlignVertical: 'top', marginTop: -4 }}
-              value={formData.notes}
-              onChangeText={(t) => setFormData({ ...formData, notes: t })}
-              placeholderTextColor={colors.mutedForeground}
-            />
-          </View>
+          </KeyboardAvoidingView>
 
           {/* Save Button */}
           <TouchableOpacity
@@ -474,24 +550,6 @@ export default function AddTrip() {
         selectedValue={formData.client_id}
         onAddItem={() => setIsClientModalVisible(true)}
       />
-      <SelectionModal
-        visible={activeModal === 'start'}
-        onClose={() => setActiveModal(null)}
-        title="Select Origin"
-        items={locations.map(l => ({ label: l.location_name, value: l._id }))}
-        onSelect={(val) => setFormData({ ...formData, start_location_id: val })}
-        selectedValue={formData.start_location_id}
-        onAddItem={() => setIsLocationModalVisible(true)}
-      />
-      <SelectionModal
-        visible={activeModal === 'end'}
-        onClose={() => setActiveModal(null)}
-        title="Select Destination"
-        items={locations.map(l => ({ label: l.location_name, value: l._id }))}
-        onSelect={(val) => setFormData({ ...formData, end_location_id: val })}
-        selectedValue={formData.end_location_id}
-        onAddItem={() => setIsLocationModalVisible(true)}
-      />
 
       <DatePickerModal
         visible={showDatePicker}
@@ -502,8 +560,15 @@ export default function AddTrip() {
 
       {/* Creation Modals */}
       <ClientFormModal visible={isClientModalVisible} editing={false} formData={clientFormData} setFormData={setClientFormData} onSubmit={async () => {
-        if (!clientFormData.client_name || !clientFormData.contact_number) return Alert.alert("Missing Fields", "Name and contact required.");
-        const res = await addClient(clientFormData);
+        if (!clientFormData.client_name?.trim()) return Alert.alert("Missing Fields", "Client name is required.");
+        const normalizedClientName = clientFormData.client_name.trim();
+        const res = await addClient({
+          ...clientFormData,
+          client_name: normalizedClientName,
+          contact_person_name: clientFormData.contact_person_name?.trim() || normalizedClientName,
+          contact_number: clientFormData.contact_number?.trim() || "NA",
+          gstin: clientFormData.gstin?.trim().toUpperCase() || undefined,
+        });
         setFormData(p => ({ ...p, client_id: res._id }));
         setIsClientModalVisible(false);
         fetchClients();
@@ -528,21 +593,12 @@ export default function AddTrip() {
         }} onClose={() => setIsDriverModalVisible(false)} />
 
       <TruckFormModal visible={isTruckModalVisible} editing={false} formData={truckFormData} setFormData={setTruckFormData} onSubmit={async () => {
-        if (!truckFormData.registration_number || !truckFormData.container_dimension) return Alert.alert("Missing Fields", "Registration and container dimension required.");
+        if (!truckFormData.registration_number) return Alert.alert("Missing Fields", "Registration number required.");
         const res = await addTruck({ ...truckFormData, loading_capacity: truckFormData.loading_capacity ? Number(truckFormData.loading_capacity) : undefined });
         setFormData(p => ({ ...p, truck_id: res._id }));
         setIsTruckModalVisible(false);
         fetchTrucks();
-      }} onClose={() => setIsTruckModalVisible(false)} />
-
-      <LocationFormModal visible={isLocationModalVisible} editing={false} formData={locationFormData} setFormData={(data) => setLocationFormData(data as any)} searchLocations={searchLocations} onSubmit={async () => {
-        if (!locationFormData.location_name || !locationFormData.complete_address) return Alert.alert("Missing Fields", "Name and address required.");
-        const res = await addLocation(locationFormData);
-        if (!formData.start_location_id) setFormData(p => ({ ...p, start_location_id: res._id }));
-        else if (!formData.end_location_id) setFormData(p => ({ ...p, end_location_id: res._id }));
-        setIsLocationModalVisible(false);
-        fetchLocations();
-      }} onClose={() => setIsLocationModalVisible(false)} />
+      }} onClose={() => setIsTruckModalVisible(true)} />
 
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
     </View>
@@ -572,5 +628,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-  }
+  },
+  suggestionBox: {
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 6,
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  suggestionEmpty: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
 });

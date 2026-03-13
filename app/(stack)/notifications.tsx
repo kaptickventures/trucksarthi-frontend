@@ -173,7 +173,8 @@ export default function NotificationsScreen() {
       return {
         _id: `group-${key}`,
         title: `${first.docLabel} ${isExpired ? "Expired" : "Expiring"}`,
-        message: `${first.docLabel} is ${verb} for ${truckNames.length} ${plural}: ${truckNames.join(", ")}.`,
+        message: `${first.docLabel} is ${verb} for ${truckNames.length} ${plural}.`,
+        groupedTruckNames: truckNames,
         type: "DOC_EXPIRY",
         status: "REMINDER",
         scheduled_at: nextExpiry.toISOString(),
@@ -361,6 +362,15 @@ export default function NotificationsScreen() {
                 <Text className="text-sm font-medium leading-5 mb-2" style={{ color: colors.mutedForeground }}>
                   {n.message}
                 </Text>
+                {activeTab === "reminders" && Array.isArray((n as any).groupedTruckNames) && (n as any).groupedTruckNames.length > 0 && (
+                  <View className="mb-2">
+                    {(n as any).groupedTruckNames.map((truckName: string) => (
+                      <Text key={`${n._id}-${truckName}`} className="text-sm leading-5" style={{ color: colors.mutedForeground }}>
+                        • {truckName}
+                      </Text>
+                    ))}
+                  </View>
+                )}
 
                 <View className="flex-row items-center">
                   {n.is_reminder ? (

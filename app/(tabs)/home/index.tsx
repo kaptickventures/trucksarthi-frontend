@@ -24,6 +24,7 @@ import useTrucks from "../../../hooks/useTruck";
 import useLocations from "../../../hooks/useLocation";
 import { formatDate } from "../../../lib/utils";
 import { useTranslation } from "../../../context/LanguageContext";
+import { NotificationBadge } from "../../../components/NotificationBadge";
 
 
 export default function HomeScreen() {
@@ -76,7 +77,7 @@ export default function HomeScreen() {
     return str ? str.slice(-6) : "N/A";
   };
 
-  const getTruckName = (truckOrId: any): string => {
+  const getTruckName = useCallback((truckOrId: any): string => {
     if (!truckOrId) return "N/A";
     const id = typeof truckOrId === "object" ? truckOrId?._id : truckOrId;
     const sId = id ? String(id) : "";
@@ -92,7 +93,7 @@ export default function HomeScreen() {
 
     // 3. Last resort: short ID
     return toShortId(sId);
-  };
+  }, [trucks]);
 
   const getDriverName = (driverOrId: any): string => {
     if (!driverOrId) return "N/A";
@@ -178,6 +179,13 @@ export default function HomeScreen() {
     truck: any;
     expiry: Date;
   };
+  type GroupedHomeReminder = {
+    key: string;
+    label: string;
+    truckNames: string[];
+    expiry: Date;
+    count: number;
+  };
 
   // Uploaded truck-document reminders
   const docReminders: HomeReminder[] = documents
@@ -231,13 +239,29 @@ export default function HomeScreen() {
     return reminders;
   }, [trucks, documents]);
 
-  const latestReminderDocs = useMemo(
-    () =>
-      [...docReminders, ...truckFieldReminders]
-        .sort((a, b) => a.expiry.getTime() - b.expiry.getTime())
-        .slice(0, 5),
-    [docReminders, truckFieldReminders]
-  );
+  const groupedReminderDocs = useMemo<GroupedHomeReminder[]>(() => {
+    const groups = new Map<string, HomeReminder[]>();
+    [...docReminders, ...truckFieldReminders].forEach((item) => {
+      const existing = groups.get(item.label) || [];
+      existing.push(item);
+      groups.set(item.label, existing);
+    });
+
+    return Array.from(groups.entries())
+      .map(([label, items]) => {
+        const truckNames = Array.from(new Set(items.map((i) => getTruckName(i.truck)))).sort();
+        const nextExpiry = items.map((i) => i.expiry).sort((a, b) => a.getTime() - b.getTime())[0];
+        return {
+          key: `group-${label.replace(/\s+/g, "-").toLowerCase()}`,
+          label,
+          truckNames,
+          expiry: nextExpiry,
+          count: truckNames.length,
+        };
+      })
+      .sort((a, b) => a.expiry.getTime() - b.expiry.getTime())
+      .slice(0, 5);
+  }, [docReminders, truckFieldReminders, getTruckName]);
 
   const totalReminderCount = docReminders.length + truckFieldReminders.length;
 
@@ -311,8 +335,7 @@ export default function HomeScreen() {
             alignItems: "center",
           }}
         >
-          <Ionicons
-            name="notifications-outline"
+          <NotificationBadge
             size={24}
             color={colors.foreground}
           />
@@ -455,8 +478,8 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {latestReminderDocs.length > 0 ? (
-            latestReminderDocs.map((item) => {
+          {groupedReminderDocs.length > 0 ? (
+            groupedReminderDocs.map((item) => {
               const dateStr = formatDate(item.expiry);
 
               return (
@@ -470,8 +493,15 @@ export default function HomeScreen() {
                       {item.label}
                     </Text>
                     <Text className="text-muted-foreground text-[10px] mt-1">
-                      Truck: {getTruckName(item.truck)}
+                      {item.count} {item.count > 1 ? "trucks" : "truck"}
                     </Text>
+                    <View className="mt-1">
+                      {item.truckNames.map((truckName) => (
+                        <Text key={`${item.key}-${truckName}`} className="text-muted-foreground text-[10px]">
+                          • {truckName}
+                        </Text>
+                      ))}
+                    </View>
                   </View>
                   <View className="items-end">
                     <Text style={{ color: colors.destructive }} className="font-semibold text-xs">
@@ -568,5 +598,3 @@ export default function HomeScreen() {
     </>
   );
 }
-
-

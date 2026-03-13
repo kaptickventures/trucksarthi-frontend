@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { NotificationBadge } from "../../../components/NotificationBadge";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
@@ -126,7 +127,7 @@ export default function TransactionsScreen() {
           onPress={() => router.push("/(stack)/notifications" as any)}
           style={{ paddingHorizontal: 6, paddingVertical: 4 }}
         >
-          <Ionicons name="notifications-outline" size={24} color={colors.foreground} />
+          <NotificationBadge size={24} color={colors.foreground} />
         </TouchableOpacity>
       ),
     });

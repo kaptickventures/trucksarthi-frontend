@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
+import { NotificationBadge } from "../../components/NotificationBadge";
 
 export default function StackLayout() {
   const { theme, colors } = useThemeStore();
@@ -84,11 +85,7 @@ export default function StackLayout() {
                 onPress={() => router.push("/(stack)/notifications" as any)}
                 style={{ padding: 6 }}
               >
-                <Ionicons
-                  name="notifications-outline"
-                  size={24}
-                  color={foregroundColor}
-                />
+                <NotificationBadge size={24} color={foregroundColor} />
               </TouchableOpacity>
             ),
           }}
@@ -150,8 +147,3 @@ export default function StackLayout() {
     </BottomSheetModalProvider>
   );
 }
-
-
-
-
-

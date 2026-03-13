@@ -147,7 +147,6 @@ export default function ClientLedgerScreen() {
 
         {rows.map((row) => {
           const hasOutstanding = row.unbilled > 0;
-          const isSettled = row.billed > 0 && row.unbilled === 0;
 
           return (
             <TouchableOpacity
@@ -194,7 +193,7 @@ export default function ClientLedgerScreen() {
                 </View>
               </View>
 
-              <View style={{ flexDirection: "row", gap: 16, marginBottom: 10 }}>
+              <View style={{ flexDirection: "row", gap: 16, marginBottom: 10, alignItems: "center" }}>
                 <View>
                   <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('billed').toUpperCase()}</Text>
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
@@ -208,31 +207,18 @@ export default function ClientLedgerScreen() {
                     Rs {row.settled.toLocaleString()}
                   </Text>
                 </View>
-              </View>
-
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <View
-                  style={{
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    borderRadius: 6,
-                    backgroundColor: isSettled ? "#dcfce7" : hasOutstanding ? "#fff7ed" : colors.border + "40",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      fontWeight: "700",
-                      color: isSettled ? "#16a34a" : hasOutstanding ? "#9a3412" : colors.mutedForeground,
-                    }}
-                  >
-                    {isSettled ? `✓ ${t('settled').toUpperCase()}` : hasOutstanding ? t('pending').toUpperCase() : t('noActivity').toUpperCase()}
+                <View style={{ width: 1, backgroundColor: colors.border }} />
+                <View>
+                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{(t('unbilled') || 'Unbilled').toUpperCase()}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: hasOutstanding ? "#dc2626" : colors.mutedForeground }}>
+                    Rs {row.unbilled.toLocaleString()}
                   </Text>
                 </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>{t('viewKhata')}</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
-                </View>
+              </View>
+
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+                <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>{t('viewKhata')}</Text>
+                <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
               </View>
             </TouchableOpacity>
           );

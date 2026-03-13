@@ -154,37 +154,95 @@ export default function KYCVerification() {
         );
     };
 
-    const HistoryChips = ({
+    const HistoryCards = ({
         values,
         onSelect,
+        type,
     }: {
         values: string[];
         onSelect: (value: string) => void;
+        type: "pan" | "gstin" | "bank";
     }) => {
         if (!values.length) return null;
 
+        const label =
+            type === "pan" ? "PAN Number"
+                : type === "gstin" ? "GSTIN"
+                    : "Account Number";
+
+        const getMeta = (value: string) => {
+            if (type === "pan" && normalizePan(value) === normalizePan(user?.pan_number)) {
+                return {
+                    title: user?.name_as_on_pan || user?.kyc_data?.pan_details?.registered_name,
+                    subtitle: user?.kyc_data?.pan_details?.type,
+                };
+            }
+            if (type === "gstin" && normalizeGstin(value) === normalizeGstin(user?.gstin)) {
+                return {
+                    title: user?.kyc_data?.gstin_details?.legal_name_of_business,
+                    subtitle: user?.kyc_data?.gstin_details?.gst_in_status,
+                };
+            }
+            if (type === "bank" && normalizeBank(value) === normalizeBank(user?.account_number)) {
+                return {
+                    title: user?.account_holder_name || user?.kyc_data?.bank_details?.name_at_bank,
+                    subtitle: [user?.bank_name || user?.kyc_data?.bank_details?.bank_name, user?.ifsc_code].filter(Boolean).join(" • "),
+                };
+            }
+            return undefined;
+        };
+
         return (
-            <View style={{ marginTop: 10 }}>
+            <View style={{ marginTop: 12 }}>
                 <Text style={{ fontSize: 11, color: colors.mutedForeground, textTransform: "uppercase", fontWeight: "600", marginBottom: 8 }}>
                     Previously Used
                 </Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                    {values.map((item, index) => (
-                        <TouchableOpacity
-                            key={`${item}-${index}`}
-                            onPress={() => onSelect(item)}
-                            style={{
-                                backgroundColor: colors.background,
-                                borderColor: colors.border,
-                                borderWidth: 1,
-                                borderRadius: 999,
-                                paddingHorizontal: 10,
-                                paddingVertical: 6,
-                            }}
-                        >
-                            <Text style={{ color: colors.foreground, fontSize: 12 }}>{item}</Text>
-                        </TouchableOpacity>
-                    ))}
+                <View style={{ gap: 10 }}>
+                    {values.map((item, index) => {
+                        const meta = getMeta(item);
+                        const isCurrent =
+                            (type === "pan" && normalizePan(item) === normalizePan(user?.pan_number)) ||
+                            (type === "gstin" && normalizeGstin(item) === normalizeGstin(user?.gstin)) ||
+                            (type === "bank" && normalizeBank(item) === normalizeBank(user?.account_number));
+
+                        return (
+                            <TouchableOpacity
+                                key={`${item}-${index}`}
+                                onPress={() => onSelect(item)}
+                                style={{
+                                    backgroundColor: colors.card,
+                                    borderColor: colors.border,
+                                    borderWidth: 1,
+                                    borderRadius: 14,
+                                    paddingHorizontal: 14,
+                                    paddingVertical: 12,
+                                }}
+                            >
+                                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", textTransform: "uppercase" }}>{label}</Text>
+                                    {isCurrent && (
+                                        <View style={{ backgroundColor: "#dcfce7", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
+                                            <Text style={{ fontSize: 10, fontWeight: "700", color: "#16a34a" }}>Current</Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "700" }}>{item}</Text>
+                                {meta?.title ? (
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>
+                                        {meta.title}
+                                    </Text>
+                                ) : null}
+                                {meta?.subtitle ? (
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+                                        {meta.subtitle}
+                                    </Text>
+                                ) : null}
+                                <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 6 }}>
+                                    Tap to use
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
             </View>
         );
@@ -431,7 +489,7 @@ export default function KYCVerification() {
                                         style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                     />
                                     <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 6, fontStyle: 'italic' }}>Name will be auto-fetched from PAN verification</Text>
-                                    <HistoryChips values={history.pan} onSelect={setPan} />
+                                    <HistoryCards values={history.pan} onSelect={setPan} type="pan" />
                                 </View>
                             </View>
 
@@ -499,7 +557,7 @@ export default function KYCVerification() {
                                         autoCapitalize="characters"
                                         style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                     />
-                                    <HistoryChips values={history.gstin} onSelect={setGstin} />
+                                    <HistoryCards values={history.gstin} onSelect={setGstin} type="gstin" />
                                 </View>
                             </View>
 
@@ -565,7 +623,7 @@ export default function KYCVerification() {
                                         keyboardType="numeric"
                                         style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                     />
-                                    <HistoryChips values={history.bank} onSelect={setBankAccount} />
+                                    <HistoryCards values={history.bank} onSelect={setBankAccount} type="bank" />
                                 </View>
                                 <View>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>

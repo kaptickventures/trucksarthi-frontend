@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { NotificationBadge } from "../../components/NotificationBadge";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
@@ -74,7 +75,7 @@ export default function ClientLedgerDetailScreen() {
           onPress={() => router.push("/(stack)/notifications" as any)}
           style={{ paddingHorizontal: 6, paddingVertical: 4 }}
         >
-          <Ionicons name="notifications-outline" size={24} color={colors.foreground} />
+          <NotificationBadge size={24} color={colors.foreground} />
         </TouchableOpacity>
       ),
     });
