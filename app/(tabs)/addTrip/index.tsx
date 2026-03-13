@@ -323,86 +323,84 @@ export default function AddTrip() {
             <ChevronDown size={20} color={colors.mutedForeground} />
           </TouchableOpacity>
 
-          <View className="flex-row gap-4">
-            {/* Origin */}
-            <View className="flex-1">
-              <InputLabel label={t('origin')} required />
-              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
-                <MapPin size={20} color={colors.primary} />
-                <TextInput
-                  placeholder={t('from')}
-                  className="flex-1 ml-2 text-base"
-                  style={{ color: colors.foreground }}
-                  value={startQuery}
-                  onChangeText={(text) => {
-                    setStartQuery(text);
-                    if (formData.start_location_id) setFormData((prev) => ({ ...prev, start_location_id: "" }));
-                  }}
-                  placeholderTextColor={colors.mutedForeground}
-                />
-              </View>
-              {startQuery.trim().length > 0 && (
-                <View style={[styles.suggestionBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                  {startSuggestions.map((loc) => (
-                    <TouchableOpacity
-                      key={loc._id}
-                      style={[styles.suggestionItem, { borderBottomColor: colors.border + "55" }]}
-                      onPress={() => {
-                        setStartQuery(loc.location_name);
-                        setFormData((prev) => ({ ...prev, start_location_id: loc._id }));
-                      }}
-                    >
-                      <Text style={{ color: colors.foreground }} numberOfLines={1}>{loc.location_name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                  {startSuggestions.length === 0 && (
-                    <View style={styles.suggestionEmpty}>
-                      <Text style={{ color: colors.mutedForeground }} numberOfLines={1}>No match. Will add on save.</Text>
-                    </View>
-                  )}
-                </View>
-              )}
+          {/* Origin */}
+          <View>
+            <InputLabel label={t('origin')} required />
+            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+              <MapPin size={20} color={colors.primary} />
+              <TextInput
+                placeholder={t('from')}
+                className="flex-1 ml-2 text-base"
+                style={{ color: colors.foreground }}
+                value={startQuery}
+                onChangeText={(text) => {
+                  setStartQuery(text);
+                  if (formData.start_location_id) setFormData((prev) => ({ ...prev, start_location_id: "" }));
+                }}
+                placeholderTextColor={colors.mutedForeground}
+              />
             </View>
+            {startQuery.trim().length > 0 && !formData.start_location_id && (
+              <View style={[styles.suggestionBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                {startSuggestions.map((loc) => (
+                  <TouchableOpacity
+                    key={loc._id}
+                    style={[styles.suggestionItem, { borderBottomColor: colors.border + "55" }]}
+                    onPress={() => {
+                      setStartQuery(loc.location_name);
+                      setFormData((prev) => ({ ...prev, start_location_id: loc._id }));
+                    }}
+                  >
+                    <Text style={{ color: colors.foreground }} numberOfLines={1}>{loc.location_name}</Text>
+                  </TouchableOpacity>
+                ))}
+                {startSuggestions.length === 0 && (
+                  <View style={styles.suggestionEmpty}>
+                    <Text style={{ color: colors.mutedForeground }} numberOfLines={1}>No match. Will add on save.</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
 
-            {/* Destination */}
-            <View className="flex-1">
-              <InputLabel label={t('destination')} required />
-              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
-                <Navigation size={20} color={colors.primary} />
-                <TextInput
-                  placeholder={t('to')}
-                  className="flex-1 ml-2 text-base"
-                  style={{ color: colors.foreground }}
-                  value={endQuery}
-                  onChangeText={(text) => {
-                    setEndQuery(text);
-                    if (formData.end_location_id) setFormData((prev) => ({ ...prev, end_location_id: "" }));
-                  }}
-                  placeholderTextColor={colors.mutedForeground}
-                />
-              </View>
-              {endQuery.trim().length > 0 && (
-                <View style={[styles.suggestionBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                  {endSuggestions.map((loc) => (
-                    <TouchableOpacity
-                      key={loc._id}
-                      style={[styles.suggestionItem, { borderBottomColor: colors.border + "55" }]}
-                      onPress={() => {
-                        setEndQuery(loc.location_name);
-                        setFormData((prev) => ({ ...prev, end_location_id: loc._id }));
-                      }}
-                    >
-                      <Text style={{ color: colors.foreground }} numberOfLines={1}>{loc.location_name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                  {endSuggestions.length === 0 && (
-                    <View style={styles.suggestionEmpty}>
-                      <Text style={{ color: colors.mutedForeground }} numberOfLines={1}>No match. Will add on save.</Text>
-                    </View>
-                  )}
-                </View>
-              )}
+          {/* Destination */}
+          <View>
+            <InputLabel label={t('destination')} required />
+            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+              <Navigation size={20} color={colors.primary} />
+              <TextInput
+                placeholder={t('to')}
+                className="flex-1 ml-2 text-base"
+                style={{ color: colors.foreground }}
+                value={endQuery}
+                onChangeText={(text) => {
+                  setEndQuery(text);
+                  if (formData.end_location_id) setFormData((prev) => ({ ...prev, end_location_id: "" }));
+                }}
+                placeholderTextColor={colors.mutedForeground}
+              />
             </View>
+            {endQuery.trim().length > 0 && !formData.end_location_id && (
+              <View style={[styles.suggestionBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                {endSuggestions.map((loc) => (
+                  <TouchableOpacity
+                    key={loc._id}
+                    style={[styles.suggestionItem, { borderBottomColor: colors.border + "55" }]}
+                    onPress={() => {
+                      setEndQuery(loc.location_name);
+                      setFormData((prev) => ({ ...prev, end_location_id: loc._id }));
+                    }}
+                  >
+                    <Text style={{ color: colors.foreground }} numberOfLines={1}>{loc.location_name}</Text>
+                  </TouchableOpacity>
+                ))}
+                {endSuggestions.length === 0 && (
+                  <View style={styles.suggestionEmpty}>
+                    <Text style={{ color: colors.mutedForeground }} numberOfLines={1}>No match. Will add on save.</Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
 
           <View className="flex-row gap-4">

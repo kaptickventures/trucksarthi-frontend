@@ -1,589 +1,556 @@
-import { MapPin, Navigation, Search, X } from "lucide-react-native";
+import { MapPin, Search, X } from "lucide-react-native";
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { LocationSuggestion } from "../hooks/useLocation";
 
 type LocationFormData = {
-    location_name: string;
-    complete_address: string;
-    place_id?: string;
-    latitude?: number;
-    longitude?: number;
+  location_name: string;
+  complete_address: string;
+  place_id?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 type Props = {
-    visible: boolean;
-    editing: boolean;
-    formData: LocationFormData;
-    setFormData: Dispatch<SetStateAction<LocationFormData>>;
-    searchLocations?: (query: string) => Promise<LocationSuggestion[]>;
-    onSubmit: () => void;
-    onClose: () => void;
+  visible: boolean;
+  editing: boolean;
+  formData: LocationFormData;
+  setFormData: Dispatch<SetStateAction<LocationFormData>>;
+  searchLocations?: (query: string) => Promise<LocationSuggestion[]>;
+  onSubmit: () => void;
+  onClose: () => void;
 };
 
 export default function LocationFormModal({
-    visible,
-    editing,
-    formData,
-    setFormData,
-    searchLocations,
-    onSubmit,
-    onClose,
+  visible,
+  editing,
+  formData,
+  setFormData,
+  searchLocations,
+  onSubmit,
+  onClose,
 }: Props) {
-    const { colors, theme } = useThemeStore();
-    const isDark = theme === "dark";
-    const webViewRef = useRef<WebView>(null);
-    const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const lastPinnedRef = useRef<{ latitude: number; longitude: number } | null>(null);
-    const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
-    const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-    const [isSearchFocused, setIsSearchFocused] = useState(false);
-    const [mode, setMode] = useState<"search" | "pin">("search");
-    const [mapSearchQuery, setMapSearchQuery] = useState("");
-    const [mapSuggestions, setMapSuggestions] = useState<LocationSuggestion[]>([]);
-    const [mapSearchLoading, setMapSearchLoading] = useState(false);
+  const { colors, theme } = useThemeStore();
+  const isDark = theme === "dark";
+  const insets = useSafeAreaInsets();
+  const webViewRef = useRef<WebView>(null);
+  const mapHtmlRef = useRef<string>("");
+  const titleInputRef = useRef<TextInput>(null);
 
-    const closeModal = () => onClose();
+  const [showMap, setShowMap] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<LocationSuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    useEffect(() => {
-        let mounted = true;
-        const query = String(formData.complete_address || "").trim();
+  useEffect(() => {
+    if (!visible) {
+      setShowMap(false);
+      setSearchQuery("");
+      setSearchResults([]);
+      return;
+    }
 
-        if (!visible || mode !== "search" || !searchLocations || query.length < 3 || (formData.place_id && !isSearchFocused)) {
-            setSuggestions([]);
-            return;
-        }
+    const timer = setTimeout(() => {
+      titleInputRef.current?.focus();
+    }, 120);
 
-        setLoadingSuggestions(true);
-        const timer = setTimeout(async () => {
-            try {
-                const results = await searchLocations(query);
-                if (mounted) setSuggestions(results.slice(0, 5));
-            } finally {
-                if (mounted) setLoadingSuggestions(false);
-            }
-        }, 400);
+    return () => clearTimeout(timer);
+  }, [visible]);
 
-        return () => {
-            mounted = false;
-            clearTimeout(timer);
-        };
-    }, [formData.complete_address, formData.place_id, visible, searchLocations, isSearchFocused, mode]);
+  useEffect(() => {
+    if (!showMap || !searchLocations) return;
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) {
+      setSearchResults([]);
+      return;
+    }
 
-    useEffect(() => {
-        if (!visible) {
-            setMode("search");
-            setMapSearchQuery("");
-            setMapSuggestions([]);
-            setLoadingSuggestions(false);
-            setMapSearchLoading(false);
-            setIsSearchFocused(false);
-            lastPinnedRef.current = null;
-            if (geocodeTimerRef.current) {
-                clearTimeout(geocodeTimerRef.current);
-                geocodeTimerRef.current = null;
-            }
-        }
-    }, [visible]);
-
-    const injectPinToMap = (latitude: number, longitude: number) => {
-        webViewRef.current?.injectJavaScript(`window.setPin && window.setPin(${latitude}, ${longitude}); true;`);
-    };
-
-    const reverseGeocode = async (latitude: number, longitude: number) => {
-        try {
-            const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
-            );
-            const data = await response.json();
-            return String(data?.display_name || "").trim();
-        } catch {
-            return "";
-        }
-    };
-
-    const onPickSuggestion = (item: LocationSuggestion) => {
-        setSuggestions([]);
-        setIsSearchFocused(false);
-        setFormData((prev) => ({
-            ...prev,
-            place_id: item.place_id,
-            location_name: prev.location_name || item.location_name || "",
-            complete_address: item.complete_address || prev.complete_address,
-            latitude: item.latitude,
-            longitude: item.longitude,
-        }));
-
-        if (typeof item.latitude === "number" && typeof item.longitude === "number") {
-            injectPinToMap(item.latitude, item.longitude);
-        }
-    };
-
-    const onSearchHere = async () => {
-        const query = mapSearchQuery.trim();
-        if (!query || !searchLocations) return;
-
-        try {
-            setMapSearchLoading(true);
-            const results = await searchLocations(query);
-            setMapSuggestions(results.slice(0, 6));
-        } finally {
-            setMapSearchLoading(false);
-        }
-    };
-
-    const onPickMapSuggestion = (item: LocationSuggestion) => {
-        setMapSuggestions([]);
-        setMapSearchQuery(item.complete_address || item.location_name || "");
-
-        setFormData((prev) => ({
-            ...prev,
-            place_id: item.place_id,
-            complete_address: item.complete_address || prev.complete_address,
-            latitude: item.latitude,
-            longitude: item.longitude,
-            location_name: prev.location_name || item.location_name || "",
-        }));
-
-        if (typeof item.latitude === "number" && typeof item.longitude === "number") {
-            injectPinToMap(item.latitude, item.longitude);
-        }
-    };
-
-    const onMapMessage = async (event: any) => {
-        try {
-            const payload = JSON.parse(event?.nativeEvent?.data || "{}");
-            if (payload?.type !== "pin") return;
-
-            const latitude = Number(payload?.latitude);
-            const longitude = Number(payload?.longitude);
-            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-
-            const lastPinned = lastPinnedRef.current;
-            if (
-                lastPinned &&
-                Math.abs(lastPinned.latitude - latitude) < 0.000001 &&
-                Math.abs(lastPinned.longitude - longitude) < 0.000001
-            ) {
-                return;
-            }
-            lastPinnedRef.current = { latitude, longitude };
-
-            const fallbackAddress = `Lat ${latitude.toFixed(6)}, Lng ${longitude.toFixed(6)}`;
-            setFormData((prev) => ({
-                ...prev,
-                latitude,
-                longitude,
-                place_id: undefined,
-                complete_address: prev.complete_address || fallbackAddress,
-            }));
-
-            if (geocodeTimerRef.current) {
-                clearTimeout(geocodeTimerRef.current);
-            }
-
-            geocodeTimerRef.current = setTimeout(async () => {
-                const resolvedAddress = await reverseGeocode(latitude, longitude);
-                if (!resolvedAddress) return;
-                setFormData((prev) => ({
-                    ...prev,
-                    latitude,
-                    longitude,
-                    place_id: undefined,
-                    complete_address: resolvedAddress,
-                }));
-            }, 350);
-        } catch {
-            // ignore malformed map messages
-        }
-    };
-
-    const initialLatitude = typeof formData.latitude === "number" ? formData.latitude : 28.6139;
-    const initialLongitude = typeof formData.longitude === "number" ? formData.longitude : 77.209;
-    const trimmedTitle = String(formData.location_name || "").trim();
-    const canSubmit = trimmedTitle.length > 0;
-
-    const mapHtml = `
-<!doctype html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-      html, body, #map { margin:0; padding:0; width:100%; height:100%; }
-      .leaflet-control-attribution { display:none; }
-    </style>
-  </head>
-  <body>
-    <div id="map"></div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-      var map = L.map('map', { zoomControl: true }).setView([${initialLatitude}, ${initialLongitude}], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-
-      var marker = L.marker([${initialLatitude}, ${initialLongitude}], { draggable: true }).addTo(map);
-      function sendPin(lat, lng) {
-        var payload = JSON.stringify({ type: 'pin', latitude: lat, longitude: lng });
-        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-          window.ReactNativeWebView.postMessage(payload);
-        }
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    setIsSearching(true);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await searchLocations(trimmed);
+        setSearchResults(Array.isArray(results) ? results : []);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
       }
+    }, 350);
 
-      map.on('click', function(e) {
-        marker.setLatLng(e.latlng);
-        sendPin(e.latlng.lat, e.latlng.lng);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery, searchLocations, showMap]);
+
+  const getFallbackLocationName = (payload: { name?: string; address?: string }) => {
+    const preferredName = String(payload.name || "").trim();
+    if (preferredName) return preferredName;
+
+    const address = String(payload.address || "").trim();
+    if (!address) return "Pinned Location";
+
+    const [firstSegment] = address.split(",");
+    return String(firstSegment || address).trim() || "Pinned Location";
+  };
+
+  const onMapMessage = (event: any) => {
+    try {
+      const payload = JSON.parse(event?.nativeEvent?.data || "{}");
+      if (payload?.type !== "pin") return;
+      const latitude = Number(payload?.latitude);
+      const longitude = Number(payload?.longitude);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+      if (payload?.address) setSearchQuery(payload.address);
+      setFormData((prev) => ({
+        ...prev,
+        latitude,
+        longitude,
+        location_name: prev.location_name?.trim()
+          ? prev.location_name
+          : getFallbackLocationName(payload),
+        complete_address: payload.address || prev.complete_address,
+        place_id: undefined,
+      }));
+    } catch {
+      // ignore
+    }
+  };
+
+  const buildMapHtml = () => {
+    const lat = typeof formData.latitude === "number" ? formData.latitude : 20.5937;
+    const lng = typeof formData.longitude === "number" ? formData.longitude : 78.9629;
+    const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+    const mapStyles = JSON.stringify([
+      { elementType: "geometry", stylers: [{ color: "#f4f4f4" }] },
+      { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+      { elementType: "labels.text.fill", stylers: [{ color: "#111111" }] },
+      { elementType: "labels.text.stroke", stylers: [{ color: "#f4f4f4" }] },
+      { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#bdbdbd" }] },
+      { featureType: "administrative.land_parcel", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+      { featureType: "poi", stylers: [{ visibility: "off" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ color: "#d9d9d9" }] },
+      { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#ababab" }] },
+      { featureType: "road.arterial", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "transit", stylers: [{ visibility: "off" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#e8e8e8" }] },
+    ]);
+
+    return `<!DOCTYPE html>
+<html><head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #map { filter: grayscale(1) contrast(1.02); }
+    #hint { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid #d4d4d4; background: rgba(255,255,255,0.94); color: #111111; font-size: 12px; line-height: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+  </style>
+</head><body>
+  <div id="map"></div>
+  <div id="hint">Tap or drag the pin to set the exact location.</div>
+  <script>
+    var map, marker, geocoder;
+    function initMap() {
+      var center = { lat: ${lat}, lng: ${lng} };
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: center,
+        zoom: ${typeof formData.latitude === "number" && typeof formData.longitude === "number" ? 14 : 5},
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        zoomControl: false,
+        clickableIcons: false,
+        styles: ${mapStyles}
       });
-
-      marker.on('dragend', function(e) {
-        var p = e.target.getLatLng();
-        sendPin(p.lat, p.lng);
+      marker = new google.maps.Marker({ position: center, map: map, draggable: true, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#111111', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 2 } });
+      geocoder = new google.maps.Geocoder();
+      map.addListener('click', function(e) {
+        marker.setPosition(e.latLng);
+        geocoder.geocode({ location: e.latLng }, function(r, s) {
+          sendPin(e.latLng.lat(), e.latLng.lng(), (s === 'OK' && r[0]) ? r[0].formatted_address : '', '');
+        });
       });
+      marker.addListener('dragend', function() {
+        var p = marker.getPosition();
+        geocoder.geocode({ location: p }, function(r, s) {
+          sendPin(p.lat(), p.lng(), (s === 'OK' && r[0]) ? r[0].formatted_address : '', '');
+        });
+      });
+    }
+    function sendPin(lat, lng, address, name) {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'pin', latitude: lat, longitude: lng, address: address, name: name }));
+      }
+    }
+    window.setPin = function(lat, lng) { map.setCenter({ lat: lat, lng: lng }); map.setZoom(15); marker.setPosition({ lat: lat, lng: lng }); };
+  </script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap"></script>
+</body></html>`;
+  };
 
-      window.setPin = function(lat, lng) {
-        map.setView([lat, lng], 15);
-        marker.setLatLng([lat, lng]);
-        sendPin(lat, lng);
-      };
-    </script>
-  </body>
-</html>
-`;
+  const handleToggleMap = () => {
+    if (!showMap) {
+      mapHtmlRef.current = buildMapHtml();
+    }
+    setShowMap((prev) => !prev);
+  };
 
-    return (
-        <Modal visible={visible} transparent animationType="fade">
-            <Pressable className="flex-1 bg-black/60 justify-end" onPress={closeModal}>
-                <Pressable onPress={() => {}} className="w-full">
-                <Animated.View
-                    className="w-full rounded-t-[42px]"
-                    style={{
-                        backgroundColor: colors.background,
-                        height: "85%",
-                        paddingHorizontal: 24,
-                        paddingTop: 12,
-                    }}
-                >
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === "ios" ? "padding" : "height"}
-                        className="flex-1"
-                    >
-                        <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-4 opacity-40" />
+  const trimmedTitle = String(formData.location_name || "").trim();
+  const hasPinnedLocation = Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude);
+  const canSubmit = trimmedTitle.length > 0 || hasPinnedLocation;
 
-                        <View className="flex-row justify-between items-center mb-6 px-2">
-                            <View>
-                                <Text style={{ color: colors.foreground }} className="text-2xl font-black tracking-tight">
-                                    {editing ? "Edit Point" : "Add Location"}
-                                </Text>
-                                <Text className="text-muted-foreground text-[10px] font-black mt-1 uppercase tracking-[2px] opacity-60">
-                                    Network Access Point
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={closeModal}
-                                className="w-10 h-10 rounded-full items-center justify-center"
-                                style={{ backgroundColor: colors.muted + "40" }}
-                            >
-                                <X size={22} color={colors.foreground} />
-                            </TouchableOpacity>
-                        </View>
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      onRequestClose={onClose}
+      presentationStyle="fullScreen"
+    >
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <View style={styles.headerCopy}>
+            <Text style={[styles.title, { color: colors.foreground }]}>
+              {editing ? "Edit Location" : "Add Location"}
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+              Keep the title clear and pin the spot only if needed.
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={onClose}
+            style={[styles.closeButton, { backgroundColor: colors.muted + "55" }]}
+          >
+            <X size={20} color={colors.foreground} />
+          </TouchableOpacity>
+        </View>
 
-                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
-                            <View className="gap-6 pb-12">
-                                <View>
-                                    <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-3 ml-1">
-                                        Location Title <Text style={{ color: colors.destructive }}>*</Text>
-                                    </Text>
-                                    <TextInput
-                                        className="rounded-2xl p-4 text-base font-bold"
-                                        style={{
-                                            backgroundColor: isDark ? colors.card : colors.secondary + "40",
-                                            color: colors.foreground,
-                                            borderWidth: 1,
-                                            borderColor: isDark ? colors.border : colors.border + "30",
-                                        }}
-                                        value={formData.location_name}
-                                        onChangeText={(val) => setFormData((prev) => ({ ...prev, location_name: val }))}
-                                        placeholder="e.g. Pune Hub, Warehouse A"
-                                        placeholderTextColor={colors.mutedForeground + "60"}
-                                    />
+        <KeyboardAwareScrollView
+          enableOnAndroid
+          extraScrollHeight={140}
+          extraHeight={180}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 40 }]}
+        >
+          <View style={styles.fieldBlock}>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>Location Title</Text>
+            <TextInput
+              ref={titleInputRef}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: isDark ? colors.card : colors.secondary + "30",
+                  borderColor: colors.border,
+                  color: colors.foreground,
+                },
+              ]}
+              value={formData.location_name}
+              onChangeText={(val) => setFormData((prev) => ({ ...prev, location_name: val }))}
+              placeholder="Warehouse A, Delhi Yard"
+              placeholderTextColor={colors.mutedForeground + "70"}
+              returnKeyType="done"
+              autoFocus={visible}
+            />
+          </View>
 
-                                </View>
+          <TouchableOpacity
+            onPress={handleToggleMap}
+            style={[
+              styles.mapToggle,
+              {
+                backgroundColor: showMap ? colors.foreground : colors.background,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View style={styles.mapToggleCopy}>
+              <View style={[styles.mapIconWrap, { backgroundColor: showMap ? colors.background : colors.foreground }]}>
+                {showMap ? (
+                  <X size={14} color={showMap ? colors.foreground : colors.background} />
+                ) : (
+                  <Search size={14} color={showMap ? colors.foreground : colors.background} />
+                )}
+              </View>
+              <View>
+                <Text style={[styles.mapToggleTitle, { color: showMap ? colors.background : colors.foreground }]}>
+                  {showMap ? "Hide Map Picker" : "Add Google Location"}
+                </Text>
+                <Text style={[styles.mapToggleSubtitle, { color: showMap ? colors.background + "CC" : colors.mutedForeground }]}>
+                  Pick on map or search to set exact point.
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
 
-                                <View style={{ flexDirection: "row", gap: 10 }}>
-                                    <TouchableOpacity
-                                        onPress={() => setMode("search")}
-                                        style={{
-                                            flex: 1,
-                                            paddingVertical: 12,
-                                            borderRadius: 14,
-                                            borderWidth: 1,
-                                            borderColor: mode === "search" ? colors.primary : colors.border,
-                                            backgroundColor: mode === "search" ? colors.primary + "1A" : "transparent",
-                                            alignItems: "center",
-                                        }}
-                                    >
-                                        <Text style={{ color: mode === "search" ? colors.primary : colors.foreground, fontWeight: "700" }}>
-                                            Search
-                                        </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        onPress={() => setMode("pin")}
-                                        style={{
-                                            flex: 1,
-                                            paddingVertical: 12,
-                                            borderRadius: 14,
-                                            borderWidth: 1,
-                                            borderColor: mode === "pin" ? colors.primary : colors.border,
-                                            backgroundColor: mode === "pin" ? colors.primary + "1A" : "transparent",
-                                            alignItems: "center",
-                                        }}
-                                    >
-                                        <Text style={{ color: mode === "pin" ? colors.primary : colors.foreground, fontWeight: "700" }}>
-                                            Pin on map
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
+          {showMap && (
+            <View style={styles.mapBlock}>
+              {!!searchLocations && (
+                <>
+                  <View style={[styles.mapSearchWrap, { borderColor: colors.border, backgroundColor: isDark ? colors.card : colors.secondary + "30" }]}>
+                    <Search size={16} color={colors.mutedForeground} />
+                    <TextInput
+                      style={[styles.mapSearchInput, { color: colors.foreground }]}
+                      placeholder="Search on Google Maps"
+                      placeholderTextColor={colors.mutedForeground + "70"}
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      returnKeyType="search"
+                    />
+                    {isSearching && <Text style={[styles.searchingText, { color: colors.mutedForeground }]}>...</Text>}
+                  </View>
 
-                                {mode === "search" ? (
-                                    <View>
-                                        <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-3 ml-1">
-                                            Search Address
-                                        </Text>
-                                        <View
-                                            style={{
-                                                flexDirection: "row",
-                                                alignItems: "center",
-                                                backgroundColor: isDark ? colors.card : colors.secondary + "40",
-                                                borderRadius: 20,
-                                                borderWidth: 2,
-                                                borderColor: isSearchFocused ? colors.primary : (isDark ? colors.border : colors.border + "30"),
-                                                paddingHorizontal: 16,
-                                            }}
-                                        >
-                                            <Search size={20} color={isSearchFocused ? colors.primary : colors.mutedForeground} />
-                                            <TextInput
-                                                className="flex-1 p-4 text-base font-bold"
-                                                style={{ color: colors.foreground, minHeight: formData.complete_address.length > 30 ? 80 : 56, textAlignVertical: "center" }}
-                                                value={formData.complete_address}
-                                                onFocus={() => setIsSearchFocused(true)}
-                                                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                                                onChangeText={(val) =>
-                                                    setFormData((prev) => ({
-                                                        ...prev,
-                                                        complete_address: val,
-                                                        place_id: undefined,
-                                                        latitude: undefined,
-                                                        longitude: undefined,
-                                                    }))
-                                                }
-                                                placeholder="City, Street or Landmark"
-                                                placeholderTextColor={colors.mutedForeground + "60"}
-                                                multiline
-                                            />
-                                            {loadingSuggestions && <ActivityIndicator size="small" color={colors.primary} />}
-                                        </View>
+                  {!!searchResults.length && (
+                    <View style={[styles.searchResults, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                      {searchResults.map((item) => (
+                        <TouchableOpacity
+                          key={item.place_id}
+                          style={[styles.searchResultItem, { borderBottomColor: colors.border + "55" }]}
+                          onPress={() => {
+                            setSearchQuery(item.complete_address || item.location_name);
+                            setSearchResults([]);
+                            setFormData((prev) => ({
+                              ...prev,
+                              location_name: item.location_name || prev.location_name,
+                              complete_address: item.complete_address || item.location_name || prev.complete_address,
+                              place_id: item.place_id,
+                              latitude: item.latitude ?? prev.latitude,
+                              longitude: item.longitude ?? prev.longitude,
+                            }));
+                            if (Number.isFinite(item.latitude) && Number.isFinite(item.longitude)) {
+                              webViewRef.current?.injectJavaScript(
+                                `window.setPin(${Number(item.latitude)}, ${Number(item.longitude)}); true;`
+                              );
+                            }
+                          }}
+                        >
+                          <Text style={[styles.searchResultTitle, { color: colors.foreground }]} numberOfLines={1}>
+                            {item.location_name}
+                          </Text>
+                          {!!item.complete_address && (
+                            <Text style={[styles.searchResultSubtitle, { color: colors.mutedForeground }]} numberOfLines={1}>
+                              {item.complete_address}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </>
+              )}
 
-                                        {suggestions.length > 0 && (
-                                            <Animated.View
-                                                style={{
-                                                    marginTop: 12,
-                                                    borderRadius: 24,
-                                                    borderWidth: 1,
-                                                    borderColor: colors.border,
-                                                    backgroundColor: colors.card,
-                                                    overflow: "hidden",
-                                                    shadowColor: "#000",
-                                                    shadowOffset: { width: 0, height: 10 },
-                                                    shadowOpacity: 0.1,
-                                                    shadowRadius: 20,
-                                                    elevation: 10,
-                                                }}
-                                            >
-                                                {suggestions.map((item, index) => (
-                                                    <TouchableOpacity
-                                                        key={item.place_id || index}
-                                                        onPress={() => onPickSuggestion(item)}
-                                                        style={{
-                                                            flexDirection: "row",
-                                                            alignItems: "center",
-                                                            paddingHorizontal: 16,
-                                                            paddingVertical: 16,
-                                                            borderBottomWidth: index === suggestions.length - 1 ? 0 : 1,
-                                                            borderBottomColor: colors.border + "33",
-                                                        }}
-                                                    >
-                                                        <View
-                                                            style={{
-                                                                width: 40,
-                                                                height: 40,
-                                                                borderRadius: 12,
-                                                                backgroundColor: colors.primary + "15",
-                                                                alignItems: "center",
-                                                                justifyContent: "center",
-                                                                marginRight: 14,
-                                                            }}
-                                                        >
-                                                            <MapPin size={20} color={colors.primary} />
-                                                        </View>
-                                                        <View style={{ flex: 1 }}>
-                                                            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }} numberOfLines={1}>
-                                                                {item.location_name}
-                                                            </Text>
-                                                            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }} numberOfLines={2}>
-                                                                {item.complete_address}
-                                                            </Text>
-                                                        </View>
-                                                    </TouchableOpacity>
-                                                ))}
-                                            </Animated.View>
-                                        )}
-                                    </View>
-                                ) : (
-                                    <View>
-                                        <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-3 ml-1">
-                                            Pin on map or Search here
-                                        </Text>
+              <View style={[styles.mapFrame, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                <WebView
+                  ref={webViewRef}
+                  originWhitelist={["*"]}
+                  source={{ html: mapHtmlRef.current }}
+                  onMessage={onMapMessage}
+                  javaScriptEnabled
+                  domStorageEnabled
+                  startInLoadingState
+                  style={styles.webView}
+                />
+              </View>
 
-                                        <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-                                            <View
-                                                style={{
-                                                    flex: 1,
-                                                    flexDirection: "row",
-                                                    alignItems: "center",
-                                                    borderWidth: 1,
-                                                    borderColor: colors.border,
-                                                    borderRadius: 14,
-                                                    backgroundColor: isDark ? colors.card : colors.secondary + "30",
-                                                    paddingHorizontal: 12,
-                                                }}
-                                            >
-                                                <Search size={16} color={colors.mutedForeground} />
-                                                <TextInput
-                                                    value={mapSearchQuery}
-                                                    onChangeText={setMapSearchQuery}
-                                                    placeholder="Search here"
-                                                    placeholderTextColor={colors.mutedForeground + "66"}
-                                                    style={{ flex: 1, color: colors.foreground, paddingVertical: 12, paddingHorizontal: 8 }}
-                                                />
-                                            </View>
-                                            <TouchableOpacity
-                                                onPress={onSearchHere}
-                                                disabled={mapSearchLoading || !mapSearchQuery.trim()}
-                                                style={{
-                                                    paddingHorizontal: 14,
-                                                    borderRadius: 14,
-                                                    backgroundColor: colors.primary,
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    opacity: mapSearchLoading || !mapSearchQuery.trim() ? 0.6 : 1,
-                                                }}
-                                            >
-                                                {mapSearchLoading ? (
-                                                    <ActivityIndicator size="small" color={colors.primaryForeground} />
-                                                ) : (
-                                                    <Navigation size={16} color={colors.primaryForeground} />
-                                                )}
-                                            </TouchableOpacity>
-                                        </View>
+              {!!formData.complete_address && (
+                <View style={[styles.addressCard, { backgroundColor: isDark ? colors.card : colors.secondary + "30", borderColor: colors.border }]}>
+                  <MapPin size={15} color={colors.foreground} />
+                  <Text style={[styles.addressText, { color: colors.foreground }]}>
+                    {formData.complete_address}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
 
-                                        {mapSuggestions.length > 0 && (
-                                            <View
-                                                style={{
-                                                    borderRadius: 14,
-                                                    borderWidth: 1,
-                                                    borderColor: colors.border,
-                                                    backgroundColor: colors.card,
-                                                    marginBottom: 10,
-                                                    overflow: "hidden",
-                                                }}
-                                            >
-                                                {mapSuggestions.map((item, index) => (
-                                                    <TouchableOpacity
-                                                        key={item.place_id || index}
-                                                        onPress={() => onPickMapSuggestion(item)}
-                                                        style={{
-                                                            paddingHorizontal: 12,
-                                                            paddingVertical: 10,
-                                                            borderBottomWidth: index === mapSuggestions.length - 1 ? 0 : 1,
-                                                            borderBottomColor: colors.border + "33",
-                                                        }}
-                                                    >
-                                                        <Text style={{ color: colors.foreground, fontWeight: "700" }} numberOfLines={1}>
-                                                            {item.location_name}
-                                                        </Text>
-                                                        <Text style={{ color: colors.mutedForeground, fontSize: 12 }} numberOfLines={2}>
-                                                            {item.complete_address}
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                ))}
-                                            </View>
-                                        )}
-
-                                        <View
-                                            style={{
-                                                height: 260,
-                                                borderRadius: 16,
-                                                overflow: "hidden",
-                                                borderWidth: 1,
-                                                borderColor: colors.border,
-                                            }}
-                                        >
-                                            <WebView
-                                                ref={webViewRef}
-                                                originWhitelist={["*"]}
-                                                source={{ html: mapHtml }}
-                                                onMessage={onMapMessage}
-                                                javaScriptEnabled
-                                                domStorageEnabled
-                                                startInLoadingState
-                                            />
-                                        </View>
-
-                                        <Text style={{ color: colors.mutedForeground, marginTop: 8, fontSize: 12 }}>
-                                            Tap on map or drag marker to pin exact location.
-                                        </Text>
-                                    </View>
-                                )}
-
-                                <TouchableOpacity
-                                    onPress={onSubmit}
-                                    disabled={!canSubmit}
-                                    style={{
-                                        backgroundColor: colors.primary,
-                                        paddingVertical: 18,
-                                        borderRadius: 24,
-                                        marginTop: 20,
-                                        shadowColor: colors.primary,
-                                        shadowOffset: { width: 0, height: 8 },
-                                        shadowOpacity: 0.3,
-                                        shadowRadius: 12,
-                                        elevation: 8,
-                                        opacity: canSubmit ? 1 : 0.6,
-                                    }}
-                                >
-                                    <Text style={{ color: colors.primaryForeground }} className="text-center font-black text-lg">
-                                        {editing ? "Update details" : "Register point"}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        </ScrollView>
-                    </KeyboardAvoidingView>
-                </Animated.View>
-                </Pressable>
-            </Pressable>
-        </Modal>
-    );
+          <TouchableOpacity
+            onPress={onSubmit}
+            disabled={!canSubmit}
+            style={[
+              styles.submitButton,
+              {
+                backgroundColor: colors.foreground,
+                opacity: canSubmit ? 1 : 0.45,
+              },
+            ]}
+          >
+            <Text style={[styles.submitText, { color: colors.background }]}>
+              {editing ? "Update Location" : "Save Location"}
+            </Text>
+          </TouchableOpacity>
+        </KeyboardAwareScrollView>
+      </View>
+    </Modal>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  headerCopy: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "500",
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    gap: 14,
+  },
+  fieldBlock: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+  input: {
+    height: 54,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  mapToggle: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  mapToggleCopy: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  mapIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mapToggleTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  mapToggleSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  mapBlock: {
+    gap: 10,
+  },
+  mapSearchWrap: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  mapSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  searchingText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  searchResults: {
+    borderWidth: 1,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  searchResultItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  searchResultTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  searchResultSubtitle: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  mapFrame: {
+    height: 380,
+    borderRadius: 22,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
+  webView: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  addressCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+  },
+  addressText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  submitButton: {
+    height: 54,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 6,
+  },
+  submitText: {
+    fontSize: 16,
+    fontWeight: "800",
+  },
+});

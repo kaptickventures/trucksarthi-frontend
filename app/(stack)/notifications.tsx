@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   ScrollView,
@@ -36,7 +37,13 @@ export default function NotificationsScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"notifications" | "reminders">("notifications");
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
+  const [activeTab, setActiveTab] = useState<"notifications" | "reminders">(
+    tab === "reminders" ? "reminders" : "notifications"
+  );
+  useEffect(() => {
+    if (tab === "reminders") setActiveTab("reminders");
+  }, [tab]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

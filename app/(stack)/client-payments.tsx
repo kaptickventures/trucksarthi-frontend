@@ -18,7 +18,7 @@ import { useClientLedger } from "../../hooks/useClientLedger";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { formatDate } from "../../lib/utils";
 
-const PAYMENT_MODES = ["", "CASH", "BANK", "UPI"];
+const PAYMENT_MODES = ["", "CASH", "BANK"];
 const PAYMENT_TYPES: ("" | "FULL" | "PARTIAL")[] = ["", "FULL", "PARTIAL"];
 
 export default function ClientPaymentsScreen() {

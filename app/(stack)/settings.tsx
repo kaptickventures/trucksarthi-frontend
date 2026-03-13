@@ -108,7 +108,7 @@ export default function Settings() {
 
         {/* Plans & Pricing */}
         <TouchableOpacity
-          onPress={() => Alert.alert(t("comingSoon"), "Plans and Pricing placeholder")}
+          onPress={() => router.push("/(stack)/plans-pricing" as any)}
           className="flex-row items-center justify-between p-4 rounded-xl mb-3 border"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >

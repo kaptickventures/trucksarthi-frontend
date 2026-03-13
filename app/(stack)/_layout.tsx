@@ -101,6 +101,10 @@ export default function StackLayout() {
             name="settings"
             options={{ title: "Settings" }}
           />
+          <Stack.Screen
+            name="plans-pricing"
+            options={{ title: "Plans & Pricing" }}
+          />
           <Stack.Screen name="clients-manager" options={{ title: "Clients" }} />
           <Stack.Screen name="trucks-manager" options={{ title: "Trucks" }} />
           <Stack.Screen name="drivers-manager" options={{ title: "Drivers" }} />

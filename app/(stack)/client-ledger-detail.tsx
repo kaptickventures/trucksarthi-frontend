@@ -46,7 +46,7 @@ export default function ClientLedgerDetailScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
-  const { loading: userLoading } = useUser();
+  const { user, loading: userLoading } = useUser();
   const navigation = useNavigation();
   const { t } = useTranslation();
 
@@ -113,6 +113,8 @@ export default function ClientLedgerDetailScreen() {
   const [showInvoiceConfigForm, setShowInvoiceConfigForm] = useState(false);
   const [invoiceTaxType, setInvoiceTaxType] = useState<"igst" | "cgst_sgst">("igst");
   const [invoiceTaxPercentage, setInvoiceTaxPercentage] = useState<0 | 5 | 18>(0);
+  const [invoiceDueDate, setInvoiceDueDate] = useState<Date>(new Date());
+  const [showInvoiceDueDatePicker, setShowInvoiceDueDatePicker] = useState(false);
 
   // Edit Client Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -128,7 +130,7 @@ export default function ClientLedgerDetailScreen() {
   });
   const translateY = useRef(new Animated.Value(0)).current;
   const SCROLL_THRESHOLD = 40;
-  const PAYMENT_MODES = ["CASH", "BANK", "UPI"] as const;
+  const PAYMENT_MODES = ["CASH", "BANK"] as const;
   const TAX_TYPES = [
     { label: "IGST", value: "igst" },
     { label: "CGST + SGST", value: "cgst_sgst" },
@@ -254,7 +256,56 @@ export default function ClientLedgerDetailScreen() {
             : "No Tax";
 
       const today = formatDate(new Date());
+      const invoiceDate = formatDate(invoice.createdAt || new Date());
+      const dueDate = invoice.due_date ? formatDate(invoice.due_date) : today;
+      const money = (value: number) => Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+      const escapeHtml = (value: any) =>
+        String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
 
+      const partyName = user?.company_name || user?.name || "TRUCKSARTHI";
+      const partyGstin = user?.gstin || (user as any)?.kyc_data?.gstin_details?.gstin || "-";
+      const partyAddress =
+        user?.address ||
+        (user as any)?.kyc_data?.gstin_details?.principal_place_address ||
+        "-";
+      const partyPhone = user?.phone || "-";
+      const partyEmail = user?.email || "-";
+      const partyBankName = user?.bank_name || "-";
+      const partyAccountName = user?.account_holder_name || partyName;
+      const partyAccountNumber = user?.account_number || "-";
+      const partyIfsc = user?.ifsc_code || "-";
+
+      const firstTrip = invoiceTrips[0];
+      const defaultTruck = firstTrip ? truckMap[getId(firstTrip.truck)] || "-" : "-";
+
+      const annexureRows = invoiceTrips
+        .map((t, index) => {
+          const tripTotal = Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0);
+          const truckNumber = truckMap[getId(t.truck)] || "-";
+          const driverName = driverMap[getId(t.driver)] || "-";
+          const from = locationMap[getId(t.start_location)] || "-";
+          const to = locationMap[getId(t.end_location)] || "-";
+
+          return `
+            <tr>
+              <td class="center">${index + 1}</td>
+              <td>${escapeHtml(t.trip_date ? formatDate(t.trip_date) : "-")}</td>
+              <td>${escapeHtml(truckNumber)}</td>
+              <td>${escapeHtml(driverName)}</td>
+              <td>${escapeHtml(from)}</td>
+              <td>${escapeHtml(to)}</td>
+              <td class="right">${money(Number(t.cost_of_trip || 0))}</td>
+              <td class="right">${money(Number(t.miscellaneous_expense || 0))}</td>
+              <td class="right">${money(tripTotal)}</td>
+            </tr>
+          `;
+        })
+        .join("");
 
       const html = `
 <!DOCTYPE html>
@@ -262,198 +313,333 @@ export default function ClientLedgerDetailScreen() {
 <head>
   <meta charset="utf-8" />
   <style>
+    @page { size: A4; margin: 10mm; }
     body {
       font-family: Arial, Helvetica, sans-serif;
-      padding: 24px;
-      color: #111;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 24px;
-      border-bottom: 2px solid #2563eb;
-      padding-bottom: 12px;
-    }
-    .header h1 {
-      color: #2563eb;
       margin: 0;
+      color: #111;
+      font-size: 10px;
+      line-height: 1.25;
     }
-    .header p {
-      font-size: 12px;
-      color: #555;
-      margin: 4px 0 12px;
+    .page { width: 100%; }
+    .page-break { page-break-before: always; }
+
+    .invoice-frame {
+      border: 1.2px solid #111;
     }
-    .divider {
-      border-top: 2px solid #2563eb;
-      margin: 12px 0;
-    }
-    .meta {
+    .row { display: flex; width: 100%; }
+    .b-b { border-bottom: 1px solid #111; }
+    .b-r { border-right: 1px solid #111; }
+    .cell { padding: 5px 6px; box-sizing: border-box; }
+
+    .gst-col {
+      width: 9%;
+      min-height: 92px;
       display: flex;
+      flex-direction: column;
       justify-content: space-between;
+    }
+    .gst-label {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 9px;
+      letter-spacing: 0.3px;
+    }
+    .gst-value {
+      font-weight: 700;
       font-size: 12px;
-      margin-bottom: 12px;
+      letter-spacing: 0.4px;
     }
-    .billto {
-      background: #f0f7ff;
-      padding: 12px;
-      border-left: 4px solid #2563eb;
-      margin-bottom: 16px;
-      font-size: 13px;
+
+    .head-main { width: 69%; min-height: 92px; }
+    .head-right { width: 22%; min-height: 92px; }
+    .tax-title {
+      text-align: center;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      font-size: 11px;
+      margin-bottom: 3px;
     }
-    table {
+    .brand {
+      text-align: center;
+      font-size: 42px;
+      letter-spacing: 1px;
+      line-height: 1;
+      font-weight: 800;
+      margin: 2px 0;
+    }
+    .muted { color: #333; font-size: 9.5px; }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .label { font-weight: 700; text-transform: uppercase; font-size: 9px; }
+    .val { font-size: 10.5px; font-weight: 700; margin-top: 2px; }
+
+    .receiver-left { width: 74%; min-height: 82px; }
+    .receiver-right { width: 26%; min-height: 82px; }
+    .line-item { margin-top: 3px; }
+
+    .items {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
+      border-left: 1px solid #111;
+      border-right: 1px solid #111;
+      border-bottom: 1px solid #111;
+      table-layout: fixed;
     }
-    th {
-      background: #2563eb;
-      color: white;
-      padding: 8px;
-      text-align: left;
+    .items th,
+    .items td {
+      border: 1px solid #111;
+      padding: 5px 6px;
+      vertical-align: top;
+      font-size: 9.8px;
     }
-    td {
-      padding: 8px;
-      border-bottom: 1px solid #e5e7eb;
+    .items th {
+      text-transform: uppercase;
+      font-size: 8.7px;
+      letter-spacing: 0.3px;
+      background: #f7f7f7;
+      font-weight: 700;
     }
-    .right {
-      text-align: right;
+    .items .spacer-row td {
+      height: 170px;
     }
-    .totals {
-      margin-top: 12px;
-      font-size: 13px;
+
+    .bottom-wrap {
+      display: flex;
+      border-left: 1px solid #111;
+      border-right: 1px solid #111;
+      border-bottom: 1px solid #111;
+      min-height: 145px;
     }
-    .totals div {
+    .amount-words {
+      width: 64%;
+      border-right: 1px solid #111;
+      padding: 6px;
+      box-sizing: border-box;
+    }
+    .totals-box {
+      width: 36%;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+    }
+    .tot-line {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 6px;
+      border-bottom: 1px solid #111;
+      padding: 6px;
+      font-size: 10px;
     }
-    .grand {
-      font-weight: bold;
-      color: #2563eb;
-      font-size: 15px;
-      border-top: 2px solid #2563eb;
-      padding-top: 8px;
-      margin-top: 8px;
+    .tot-line:last-child { border-bottom: 0; }
+    .grand { font-weight: 800; font-size: 11px; }
+
+    .declaration {
+      border-left: 1px solid #111;
+      border-right: 1px solid #111;
+      border-bottom: 1px solid #111;
+      display: flex;
     }
-    .footer {
-      margin-top: 32px;
-      text-align: center;
-      font-size: 11px;
-      color: #666;
+    .decl-left {
+      width: 62%;
+      border-right: 1px solid #111;
+      padding: 6px;
+      box-sizing: border-box;
+      min-height: 86px;
+    }
+    .decl-right {
+      width: 38%;
+      padding: 6px;
+      box-sizing: border-box;
+      min-height: 86px;
+      position: relative;
+    }
+    .sign {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      font-size: 9px;
+      color: #333;
+    }
+    .small-note {
+      border-left: 1px solid #111;
+      border-right: 1px solid #111;
+      border-bottom: 1px solid #111;
+      padding: 4px 6px;
+      font-size: 8.7px;
+      color: #444;
+    }
+
+    .section-title {
+      margin: 0 0 8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      font-size: 12px;
+    }
+    .annexure-meta {
+      font-size: 9.5px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    .annexure {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: 1px solid #111;
+    }
+    .annexure th,
+    .annexure td {
+      border: 1px solid #111;
+      padding: 5px 6px;
+      font-size: 9.6px;
+    }
+    .annexure th {
+      background: #f7f7f7;
+      text-transform: uppercase;
+      font-size: 8.6px;
+      letter-spacing: 0.3px;
     }
   </style>
 </head>
-
 <body>
+  <div class="page">
+    <div class="invoice-frame">
+      <div class="row b-b">
+        <div class="cell gst-col b-r">
+          <div class="gst-label">GSTIN NO.</div>
+          <div class="gst-value">${escapeHtml(partyGstin)}</div>
+        </div>
 
-  <div class="header">
-    <h1>Trucksarthi</h1>
-    <p>Professional Logistics & Transportation</p>
-  </div>
+        <div class="cell head-main b-r">
+          <div class="tax-title">Tax Invoice</div>
+          <div class="brand">${escapeHtml(partyName)}</div>
+          <div class="center muted">${escapeHtml(partyAddress)}</div>
+          <div class="center muted">Ph: ${escapeHtml(partyPhone)}, Email: ${escapeHtml(partyEmail)}</div>
+        </div>
 
-  <div class="divider"></div>
-
-  <div class="meta">
-    <div>
-      <strong>Invoice Number</strong><br />
-      ${invoice.invoice_number || "—"}
-    </div>
-    <div>
-      <strong>Invoice Date</strong><br />
-      ${today}
-    </div>
-    <div>
-      <strong>Total Trips</strong><br />
-      ${invoiceTrips.length}
-    </div>
-  </div>
-
-  <div class="billto">
-    <strong>Bill To:</strong><br />
-    ${client?.client_name || ""}<br />
-    ${client?.office_address || "Logistics & Transportation Services"}
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Route</th>
-        <th>Truck</th>
-        <th>Driver</th>
-        <th class="right">Trip Cost</th>
-        <th class="right">Misc Expense</th>
-        <th class="right">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-  ${invoiceTrips
-          .map((t) => {
-            const tripTotal =
-              Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0);
-
-            const driverName =
-              driverMap[getId(t.driver)] || "—";
-
-            const truckNumber =
-              truckMap[getId(t.truck)] || "—";
-
-            const route = `${locationMap[getId(t.start_location)] || "—"
-              } → ${locationMap[getId(t.end_location)] || "—"
-              }`;
-
-            return `
-        <tr>
-          <td>${t.trip_date ? formatDate(t.trip_date) : "—"}</td>
-          <td>${route}</td>
-          <td>${truckNumber}</td>
-          <td>${driverName}</td>
-          <td class="right">₹${Number(
-              t.cost_of_trip
-            ).toLocaleString()}</td>
-          <td class="right">₹${Number(
-              t.miscellaneous_expense || 0
-            ).toLocaleString()}</td>
-          <td class="right"><strong>₹${tripTotal.toLocaleString()}</strong></td>
-        </tr>
-      `;
-          })
-          .join("")}
-</tbody>
-
-  </table>
-
-  <div class="totals">
-    <div>
-      <span>Subtotal (${invoiceTrips.length} trips)</span>
-      <span>₹${invoiceSubtotal.toLocaleString()}</span>
-    </div>
-    ${taxPercentage > 0 ? (
-          invoice.tax_type === "cgst_sgst" ? `
-      <div>
-        <span>CGST (${taxPercentage / 2}%)</span>
-        <span>₹${(tax / 2).toLocaleString()}</span>
+        <div class="cell head-right">
+          <div class="label">Invoice No.</div>
+          <div class="val">${escapeHtml(invoice.invoice_number || "-")}</div>
+          <div class="label" style="margin-top:10px;">Date</div>
+          <div class="val">${escapeHtml(invoiceDate)}</div>
+        </div>
       </div>
-      <div>
-        <span>SGST (${taxPercentage / 2}%)</span>
-        <span>₹${(tax / 2).toLocaleString()}</span>
-      </div>` : `
-      <div>
-        <span>IGST (${taxPercentage}%)</span>
-        <span>₹${tax.toLocaleString()}</span>
-      </div>`
-        ) : ""}
-    <div class="grand">
-      <span>Grand Total</span>
-      <span>₹${grandTotal.toLocaleString()}</span>
+
+      <div class="row b-b">
+        <div class="cell receiver-left b-r">
+          <div class="label">Details of Receiver</div>
+          <div class="line-item"><strong>Name:</strong> ${escapeHtml(client?.client_name || "-")}</div>
+          <div class="line-item"><strong>Address:</strong> ${escapeHtml(client?.office_address || "-")}</div>
+          <div class="line-item"><strong>State:</strong> ${escapeHtml(client?.gstin_details?.state_name || "-")}</div>
+          <div class="line-item"><strong>GSTIN:</strong> ${escapeHtml(client?.gstin || "-")}</div>
+        </div>
+
+        <div class="cell receiver-right">
+          <div class="line-item"><strong>State Code:</strong> ${escapeHtml(client?.gstin?.slice(0, 2) || "-")}</div>
+          <div class="line-item"><strong>Due Date:</strong> ${escapeHtml(dueDate)}</div>
+          <div class="line-item"><strong>Total Trips:</strong> ${invoiceTrips.length}</div>
+          <div class="line-item"><strong>Tax Type:</strong> ${escapeHtml(taxTypeLabel)}</div>
+        </div>
+      </div>
     </div>
+
+    <table class="items">
+      <thead>
+        <tr>
+          <th style="width:7%">Date</th>
+          <th style="width:8%">G.C. No.</th>
+          <th style="width:11%">Vehicle No.</th>
+          <th>Particulars</th>
+          <th style="width:10%">HSN/SAC</th>
+          <th style="width:11%">Rate</th>
+          <th style="width:12%">Total Value Rs.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>${escapeHtml(invoiceDate)}</td>
+          <td class="center">-</td>
+          <td>${escapeHtml(defaultTruck)}</td>
+          <td>Freight charges for transportation services as per annexure (${invoiceTrips.length} trips)</td>
+          <td class="center">9965</td>
+          <td class="right">${money(invoiceSubtotal)}</td>
+          <td class="right">${money(invoiceSubtotal)}</td>
+        </tr>
+        <tr class="spacer-row">
+          <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="bottom-wrap">
+      <div class="amount-words">
+        <div class="label">Rupees in words</div>
+        <div style="margin-top:4px;">Total Invoice Amount: Rs. ${money(grandTotal)} only</div>
+      </div>
+      <div class="totals-box">
+        <div class="tot-line">
+          <span>Total</span>
+          <span>${money(invoiceSubtotal)}</span>
+        </div>
+        ${taxPercentage > 0 ? (
+          invoice.tax_type === "cgst_sgst" ? `
+            <div class="tot-line"><span>CGST @ ${taxPercentage / 2}%</span><span>${money(tax / 2)}</span></div>
+            <div class="tot-line"><span>SGST @ ${taxPercentage / 2}%</span><span>${money(tax / 2)}</span></div>
+          ` : `
+            <div class="tot-line"><span>IGST @ ${taxPercentage}%</span><span>${money(tax)}</span></div>
+          `
+        ) : `<div class="tot-line"><span>Tax</span><span>0.00</span></div>`}
+        <div class="tot-line grand">
+          <span>G. TOTAL</span>
+          <span>${money(grandTotal)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="declaration">
+      <div class="decl-left">
+        <div class="label">Certified that the particulars given above are true and correct</div>
+        <div class="muted" style="margin-top:8px;">
+          <strong>Bank Details:</strong><br/>
+          Bank Name: ${escapeHtml(partyBankName)}<br/>
+          A/C Name: ${escapeHtml(partyAccountName)}<br/>
+          A/C No.: ${escapeHtml(partyAccountNumber)}<br/>
+          IFSC: ${escapeHtml(partyIfsc)}
+        </div>
+      </div>
+      <div class="decl-right">
+        <div class="label right">For ${escapeHtml(partyName)}</div>
+        <div class="sign">Authorised Signatory</div>
+      </div>
+    </div>
+
+    <div class="small-note">Generated on ${escapeHtml(today)}</div>
   </div>
 
-  <div class="footer">
-    <p>Thank you for your business!</p>
-    <p>Trucksarthi – Your Trusted Logistics Partner</p>
-    <p>Generated on ${formatDate(new Date())}</p>
-  </div>
+  <div class="page page-break">
+    <h2 class="section-title">Annexure - Trip Details</h2>
+    <div class="annexure-meta">Invoice No: ${escapeHtml(invoice.invoice_number || "-")} | Client: ${escapeHtml(client?.client_name || "-")}</div>
 
+    <table class="annexure">
+      <thead>
+        <tr>
+          <th style="width:6%">S No.</th>
+          <th style="width:12%">Date</th>
+          <th style="width:13%">Vehicle No.</th>
+          <th style="width:13%">Driver</th>
+          <th>From</th>
+          <th>To</th>
+          <th style="width:11%" class="right">Freight</th>
+          <th style="width:11%" class="right">Misc.</th>
+          <th style="width:11%" class="right">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${annexureRows || `<tr><td colspan="9" class="center">No trips found</td></tr>`}
+      </tbody>
+    </table>
+  </div>
 </body>
 </html>
 `;
@@ -557,6 +743,13 @@ export default function ClientLedgerDetailScreen() {
     }
   };
 
+  const onInvoiceDueDateChange = (event: any, selectedDate?: Date) => {
+    setShowInvoiceDueDatePicker(false);
+    if (selectedDate) {
+      setInvoiceDueDate(selectedDate);
+    }
+  };
+
   const handleGenerateInvoice = async () => {
     if (!selectedTrips.length || !id) {
       Alert.alert("Select uninvoiced trips");
@@ -566,7 +759,7 @@ export default function ClientLedgerDetailScreen() {
     await createInvoice({
       client_id: id,
       tripIds: selectedTrips,
-      due_date: new Date().toISOString().split("T")[0],
+      due_date: invoiceDueDate.toISOString().split("T")[0],
       tax_type: invoiceTaxPercentage === 0 ? "none" : invoiceTaxType,
       tax_percentage: invoiceTaxPercentage,
     });
@@ -971,7 +1164,14 @@ export default function ClientLedgerDetailScreen() {
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-lg font-bold" style={{ color: colors.foreground }}>{t('pendingTrips')}</Text>
               {selectedTrips.length > 0 && (
-                <TouchableOpacity onPress={() => setShowInvoiceConfigForm(true)} className="px-4 py-2 rounded-lg" style={{ backgroundColor: colors.primary }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setInvoiceDueDate(new Date());
+                    setShowInvoiceConfigForm(true);
+                  }}
+                  className="px-4 py-2 rounded-lg"
+                  style={{ backgroundColor: colors.primary }}
+                >
                   <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-xs">{t('generateInvoice')} ({selectedTrips.length})</Text>
                 </TouchableOpacity>
               )}
@@ -1126,10 +1326,25 @@ export default function ClientLedgerDetailScreen() {
           onClose={() => setShowInvoiceConfigForm(false)}
           title="Generate Invoice"
           subtitle={`${selectedTrips.length} trip(s) selected`}
-        >
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-            <View className="mb-6">
-              <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Tax Percentage</Text>
+          >
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+              <View className="mb-6">
+                <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Due Date</Text>
+                <TouchableOpacity
+                  onPress={() => setShowInvoiceDueDatePicker(true)}
+                  className="flex-row items-center rounded-2xl px-4 py-4"
+                  style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', borderWidth: 1, borderColor: colors.border + '30' }}
+                >
+                  <Ionicons name="calendar-outline" size={20} color={colors.primary} style={{ marginRight: 12 }} />
+                  <Text className="text-base font-bold" style={{ color: colors.foreground }}>{formatDate(invoiceDueDate)}</Text>
+                </TouchableOpacity>
+                {showInvoiceDueDatePicker && (
+                  <DateTimePicker value={invoiceDueDate} mode="date" display="default" onChange={onInvoiceDueDateChange} />
+                )}
+              </View>
+
+              <View className="mb-6">
+                <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Tax Percentage</Text>
               <View className="flex-row gap-2">
                 {TAX_PERCENTAGES.map((percent) => {
                   const selected = invoiceTaxPercentage === percent;

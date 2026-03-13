@@ -18,22 +18,6 @@ export function DatePickerModal({
 }: DatePickerModalProps) {
     const { colors } = useThemeStore();
 
-    if (Platform.OS === 'android' && visible) {
-        return (
-            <DateTimePicker
-                value={date}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                    onClose();
-                    if (selectedDate) {
-                        onChange(selectedDate);
-                    }
-                }}
-            />
-        );
-    }
-
     return (
         <Modal
             visible={visible}
@@ -42,6 +26,7 @@ export function DatePickerModal({
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
+                <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
                 <View style={[styles.container, { backgroundColor: colors.background }]}>
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
                         <TouchableOpacity onPress={onClose}>
@@ -54,13 +39,13 @@ export function DatePickerModal({
                     <DateTimePicker
                         value={date}
                         mode="date"
-                        display="spinner"
+                        display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
                         onChange={(event, selectedDate) => {
                             if (selectedDate) {
                                 onChange(selectedDate);
                             }
                         }}
-                        textColor={colors.foreground}
+                        {...(Platform.OS === 'ios' ? { textColor: colors.foreground } : {})}
                     />
                 </View>
             </View>
@@ -72,10 +57,18 @@ const styles = StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    backdrop: {
+        ...StyleSheet.absoluteFillObject,
     },
     container: {
-        paddingBottom: 40,
+        width: '100%',
+        maxWidth: 420,
+        borderRadius: 20,
+        overflow: 'hidden',
     },
     header: {
         flexDirection: 'row',

@@ -91,18 +91,42 @@ export default function LocationsManager() {
     setModalVisible(false);
   };
 
+  const getFallbackLocationTitle = () => {
+    const explicitTitle = String(formData.location_name || "").trim();
+    if (explicitTitle) return explicitTitle;
+
+    const address = String(formData.complete_address || "").trim();
+    if (address) {
+      const [firstSegment] = address.split(",");
+      const normalized = String(firstSegment || address).trim();
+      if (normalized) return normalized;
+    }
+
+    if (Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude)) {
+      return "Pinned Location";
+    }
+
+    return "";
+  };
+
   const handleSubmit = async () => {
-    if (!formData.location_name) {
+    const locationTitle = getFallbackLocationTitle();
+    if (!locationTitle) {
       Alert.alert(t("missingFields"), "Location title is required.");
       return;
     }
 
+    const payload = {
+      ...formData,
+      location_name: locationTitle,
+    };
+
     try {
       if (editingId) {
-        await updateLocation(editingId, formData);
+        await updateLocation(editingId, payload);
         Alert.alert(t("success"), `Location ${t("updatedSuccessfully")}`);
       } else {
-        await addLocation(formData);
+        await addLocation(payload);
         Alert.alert(t("success"), `Location ${t("addedSuccessfully")}`);
       }
       fetchLocations();

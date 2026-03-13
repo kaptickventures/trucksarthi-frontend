@@ -307,7 +307,7 @@ export default function DriverLedgerDetailScreen() {
 
           <Field label="Payment Mode">
             <View style={{ flexDirection: "row", gap: 10 }}>
-              {["CASH", "UPI", "BANK"].map((mode) => (
+              {["CASH", "BANK"].map((mode) => (
                 <TouchableOpacity
                   key={mode}
                   onPress={() => setPaymentMode(mode)}

@@ -350,7 +350,7 @@ export default function MaintenanceDashboardScreen() {
           {/* Payment Mode chips */}
           <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>PAYMENT MODE</Text>
           <View style={{ flexDirection: "row", gap: 8, marginBottom: 20 }}>
-            {["CASH", "BANK", "UPI"].map((mode) => (
+            {["CASH", "BANK"].map((mode) => (
               <TouchableOpacity
                 key={mode}
                 onPress={() => setPaymentMode(mode)}

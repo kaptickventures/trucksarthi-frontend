@@ -12,6 +12,7 @@ import {
   Landmark,
   Mail,
   MapPin,
+  QrCode,
   Phone,
   Save,
   ShieldCheck,
@@ -58,6 +59,7 @@ export default function Profile() {
     account_holder_name: "",
     account_number: "",
     ifsc_code: "",
+    upiId: "",
   });
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -93,6 +95,7 @@ export default function Profile() {
         account_holder_name: user.account_holder_name ?? "",
         account_number: user.account_number ?? "",
         ifsc_code: user.ifsc_code ?? "",
+        upiId: user.upiId ?? "",
       });
 
       setProfileImage(user.profile_picture_url ?? null);
@@ -594,24 +597,39 @@ export default function Profile() {
             </View>
           )}
 
-          {activeTab === 'financial' && (
-            <View style={{ gap: 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <SectionHeader title="Settlement Details" icon={<Landmark size={18} color={colors.primary} />} />
-                <TouchableOpacity
-                  onPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "bank" } } as any)}
-                  style={{
-                    backgroundColor: '#e0f2fe',
-                    borderColor: '#7dd3fc',
-                    borderWidth: 1,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 16
-                  }}
-                >
-                  <Text style={{ color: '#0369a1', fontWeight: '700', fontSize: 12 }}>Update</Text>
-                </TouchableOpacity>
-              </View>
+            {activeTab === 'financial' && (
+              <View style={{ gap: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <SectionHeader title="Settlement Details" icon={<Landmark size={18} color={colors.primary} />} />
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => setIsEditing(!isEditing)}
+                      style={{
+                        backgroundColor: isEditing ? (theme === 'dark' ? '#450a0a' : '#fee2e2') : (theme === 'dark' ? '#064e3b' : '#f0fdf4'),
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 16
+                      }}
+                    >
+                      <Text style={{ color: isEditing ? colors.destructive : colors.primary, fontWeight: 'bold', fontSize: 12 }}>
+                        {isEditing ? "Stop Editing" : "Edit"}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "bank" } } as any)}
+                      style={{
+                        backgroundColor: '#e0f2fe',
+                        borderColor: '#7dd3fc',
+                        borderWidth: 1,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 16
+                      }}
+                    >
+                      <Text style={{ color: '#0369a1', fontWeight: '700', fontSize: 12 }}>Update</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
               {(user?.is_bank_verified || bankVerificationResult?.verified) && (
                 <View style={{
@@ -635,6 +653,15 @@ export default function Profile() {
               <ProfileInput label="Account Holder" value={formData.account_holder_name} editable={false} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
               <ProfileInput label="Account Number" value={formData.account_number} editable={false} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Enter account number" />
               <ProfileInput label="IFSC Code" value={formData.ifsc_code} editable={false} icon={<ShieldCheck size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
+              <ProfileInput
+                label="UPI ID"
+                value={formData.upiId}
+                editable={isEditing}
+                onChange={(v: string) => markChanged("upiId", v.trim())}
+                icon={<QrCode size={18} color={colors.mutedForeground} />}
+                placeholder="example@upi"
+                autoCapitalize="none"
+              />
 
               {formData.account_number && formData.ifsc_code && (
                 <TouchableOpacity

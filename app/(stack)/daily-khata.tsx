@@ -39,28 +39,14 @@ export default function DailyKhataScreen() {
 
   const monthlyByTruck = useMemo(() => {
     const monthlyMap: Record<string, number> = {};
-    const latestFuelByTruck: Record<string, { amount: number; date: string }> = {};
 
     (transactions || []).forEach((item: any) => {
       const key = String(item?.truckId || "");
       if (!key) return;
-
       monthlyMap[key] = (monthlyMap[key] || 0) + Number(item?.amount || 0);
-
-      const isFuel = item?.transactionSubtype === "FUEL" || item?.category === "FUEL";
-      if (!isFuel) return;
-
-      const currentDate = new Date(item?.date || 0).getTime();
-      const prevDate = new Date(latestFuelByTruck[key]?.date || 0).getTime();
-      if (!latestFuelByTruck[key] || currentDate > prevDate) {
-        latestFuelByTruck[key] = {
-          amount: Number(item?.amount || 0),
-          date: item?.date,
-        };
-      }
     });
 
-    return { monthlyMap, latestFuelByTruck };
+    return { monthlyMap };
   }, [transactions]);
 
   const loading = trucksLoading || financeLoading;
@@ -96,8 +82,6 @@ export default function DailyKhataScreen() {
         {(trucks || []).map((truck: any) => {
           const truckId = String(truck._id);
           const monthlyExpense = monthlyByTruck.monthlyMap[truckId] || 0;
-          const lastFuelAmount = monthlyByTruck.latestFuelByTruck[truckId]?.amount || 0;
-
           return (
             <TouchableOpacity
               key={truckId}
@@ -132,15 +116,6 @@ export default function DailyKhataScreen() {
                     </Text>
                     <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }}>
                       Rs {monthlyExpense.toLocaleString()}
-                    </Text>
-                  </View>
-                  <View style={{ width: 1, backgroundColor: colors.border }} />
-                  <View>
-                    <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 2 }}>
-                      LAST FUEL
-                    </Text>
-                    <Text style={{ fontSize: 15, fontWeight: "700", color: lastFuelAmount > 0 ? "#ea580c" : colors.mutedForeground }}>
-                      {lastFuelAmount > 0 ? `Rs ${lastFuelAmount.toLocaleString()}` : "—"}
                     </Text>
                   </View>
                 </View>
