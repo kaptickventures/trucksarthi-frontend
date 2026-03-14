@@ -3,10 +3,6 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -15,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import BottomSheet from "../../components/BottomSheet";
@@ -212,14 +209,14 @@ export default function MiscTransactionsScreen() {
                         paddingHorizontal: 8,
                         paddingVertical: 2,
                         borderRadius: 6,
-                        backgroundColor: isIncome ? "#dcfce7" : "#fee2e2",
+                        backgroundColor: isIncome ? colors.successSoft : colors.destructiveSoft,
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 9,
                           fontWeight: "800",
-                          color: isIncome ? "#16a34a" : "#dc2626",
+                          color: isIncome ? colors.success : colors.destructive,
                         }}
                       >
                         {formatLabel(item.category).toUpperCase()}
@@ -263,8 +260,16 @@ export default function MiscTransactionsScreen() {
         onClose={() => setShowAdd(false)}
         title="Add Transaction"
         subtitle="Manage miscellaneous entries"
+        maxHeight="90%"
       >
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <KeyboardAwareScrollView
+          enableOnAndroid
+          extraScrollHeight={120}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
           {/* Type Toggle */}
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 24 }}>
             <TouchableOpacity
@@ -366,7 +371,7 @@ export default function MiscTransactionsScreen() {
               <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE ENTRY</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </BottomSheet>
     </View>
   );

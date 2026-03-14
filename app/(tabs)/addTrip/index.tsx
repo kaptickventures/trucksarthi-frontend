@@ -5,12 +5,15 @@ import {
   useEffect,
   useLayoutEffect,
   useState,
-  useCallback
+  useCallback,
+  useMemo,
+  useRef
 } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Text,
@@ -20,6 +23,13 @@ import {
   StyleSheet,
   RefreshControl
 } from "react-native";
+import {
+  BottomSheetBackdrop,
+  BottomSheetFlatList,
+  BottomSheetModal,
+  BottomSheetTextInput,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useThemeStore } from "../../../hooks/useThemeStore";
 import { Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Plus, Navigation } from 'lucide-react-native';
@@ -28,7 +38,6 @@ import ClientFormModal from "../../../components/ClientModal";
 import DriverFormModal from "../../../components/DriverModal";
 import SideMenu from "../../../components/SideMenu";
 import TruckFormModal from "../../../components/TruckModal";
-import { SelectionModal } from "../../../components/SelectionModal";
 import { DatePickerModal } from "../../../components/DatePickerModal";
 
 import "../../../global.css";
@@ -161,10 +170,14 @@ export default function AddTrip() {
     notes: "",
   });
 
-  const [activeModal, setActiveModal] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [startQuery, setStartQuery] = useState("");
   const [endQuery, setEndQuery] = useState("");
+
+  const sheetRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ["70%"], []);
+  const [sheetType, setSheetType] = useState<"truck" | "driver" | "client" | null>(null);
+  const [sheetSearch, setSheetSearch] = useState("");
 
   /* ---------------- Entity Selectors ---------------- */
   const getSelectedLabel = (type: 'truck' | 'driver' | 'client') => {
@@ -178,6 +191,37 @@ export default function AddTrip() {
       default: return "";
     }
   };
+
+  const openSheet = (type: "truck" | "driver" | "client") => {
+    Keyboard.dismiss();
+    setSheetSearch("");
+    setSheetType(type);
+    sheetRef.current?.present();
+  };
+
+  const closeSheet = () => {
+    sheetRef.current?.dismiss();
+  };
+
+  const sheetItems = useMemo(() => {
+    const query = sheetSearch.trim().toLowerCase();
+    if (sheetType === "truck") {
+      return trucks
+        .map((t) => ({ label: t.registration_number, value: t._id }))
+        .filter((t) => t.label.toLowerCase().includes(query));
+    }
+    if (sheetType === "driver") {
+      return drivers
+        .map((d) => ({ label: d.name || d.driver_name || "Driver", value: d._id }))
+        .filter((d) => d.label.toLowerCase().includes(query));
+    }
+    if (sheetType === "client") {
+      return clients
+        .map((c) => ({ label: c.client_name, value: c._id }))
+        .filter((c) => c.label.toLowerCase().includes(query));
+    }
+    return [];
+  }, [sheetType, sheetSearch, trucks, drivers, clients]);
 
   /* ---------------- Add Entity Modals ---------------- */
   const [isClientModalVisible, setIsClientModalVisible] = useState(false);
@@ -294,7 +338,7 @@ export default function AddTrip() {
           {/* Date Selector */}
           <InputLabel label={t('tripDate')} required />
           <TouchableOpacity
-            style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+            style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}
             onPress={() => setShowDatePicker(true)}
           >
             <View className="flex-row items-center flex-1">
@@ -307,8 +351,8 @@ export default function AddTrip() {
           {/* Client Selector */}
           <InputLabel label={t('client')} required />
           <TouchableOpacity
-            style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
-            onPress={() => setActiveModal('client')}
+            style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}
+            onPress={() => openSheet("client")}
           >
             <View className="flex-row items-center flex-1">
               <User size={20} color={colors.primary} />
@@ -326,7 +370,7 @@ export default function AddTrip() {
           {/* Origin */}
           <View>
             <InputLabel label={t('origin')} required />
-            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
               <MapPin size={20} color={colors.primary} />
               <TextInput
                 placeholder={t('from')}
@@ -366,7 +410,7 @@ export default function AddTrip() {
           {/* Destination */}
           <View>
             <InputLabel label={t('destination')} required />
-            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
               <Navigation size={20} color={colors.primary} />
               <TextInput
                 placeholder={t('to')}
@@ -408,8 +452,8 @@ export default function AddTrip() {
             <View className="flex-1">
               <InputLabel label={t('truck')} required />
               <TouchableOpacity
-                style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
-                onPress={() => setActiveModal('truck')}
+                style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}
+                onPress={() => openSheet("truck")}
               >
                 <View className="flex-row items-center flex-1">
                   <Truck size={20} color={colors.primary} />
@@ -429,8 +473,8 @@ export default function AddTrip() {
             <View className="flex-1">
               <InputLabel label={t('driver')} required />
               <TouchableOpacity
-                style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
-                onPress={() => setActiveModal('driver')}
+                style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}
+                onPress={() => openSheet("driver")}
               >
                 <View className="flex-row items-center flex-1">
                   <User size={20} color={colors.primary} />
@@ -451,7 +495,7 @@ export default function AddTrip() {
           <View className="flex-row gap-4">
             <View className="flex-1">
               <InputLabel label={t('freightCost')} required />
-              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
                 <IndianRupee size={18} color={colors.primary} />
                 <TextInput
                   placeholder="0.00"
@@ -466,7 +510,7 @@ export default function AddTrip() {
             </View>
             <View className="flex-1">
               <InputLabel label="Misc Expenses" />
-              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
                 <IndianRupee size={18} color={colors.primary} />
                 <TextInput
                   placeholder="0.00"
@@ -488,7 +532,7 @@ export default function AddTrip() {
             style={{ width: '100%' }}
           >
             <InputLabel label={t('tripNotes')} />
-            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF', height: 100, alignItems: 'flex-start', paddingTop: 16 }]}>
+            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input, height: 100, alignItems: 'flex-start', paddingTop: 16 }]}>
               <View style={{ marginTop: 2 }}>
                 <FileText size={18} color={colors.primary} />
               </View>
@@ -520,34 +564,101 @@ export default function AddTrip() {
 
         </KeyboardAwareScrollView>
 
-      {/* Select Modals */}
-      <SelectionModal
-        visible={activeModal === 'truck'}
-        onClose={() => setActiveModal(null)}
-        title="Select Truck"
-        items={trucks.map(t => ({ label: t.registration_number, value: t._id }))}
-        onSelect={(val) => setFormData({ ...formData, truck_id: val })}
-        selectedValue={formData.truck_id}
-        onAddItem={() => setIsTruckModalVisible(true)}
-      />
-      <SelectionModal
-        visible={activeModal === 'driver'}
-        onClose={() => setActiveModal(null)}
-        title="Select Driver"
-        items={drivers.map(d => ({ label: d.name || d.driver_name || "Driver", value: d._id }))}
-        onSelect={(val) => setFormData({ ...formData, driver_id: val })}
-        selectedValue={formData.driver_id}
-        onAddItem={() => setIsDriverModalVisible(true)}
-      />
-      <SelectionModal
-        visible={activeModal === 'client'}
-        onClose={() => setActiveModal(null)}
-        title="Select Client"
-        items={clients.map(c => ({ label: c.client_name, value: c._id }))}
-        onSelect={(val) => setFormData({ ...formData, client_id: val })}
-        selectedValue={formData.client_id}
-        onAddItem={() => setIsClientModalVisible(true)}
-      />
+      {/* Select Sheet */}
+      <BottomSheetModal
+        ref={sheetRef}
+        index={1}
+        snapPoints={snapPoints}
+        onDismiss={() => setSheetType(null)}
+        backdropComponent={(props) => (
+          <BottomSheetBackdrop
+            {...props}
+            appearsOnIndex={0}
+            disappearsOnIndex={-1}
+            pressBehavior="close"
+          />
+        )}
+        handleIndicatorStyle={{ backgroundColor: colors.mutedForeground, opacity: 0.4 }}
+        backgroundStyle={{ backgroundColor: colors.background }}
+        keyboardBehavior="extend"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
+      >
+        <BottomSheetView style={{ padding: 16, gap: 12 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: colors.foreground }}>
+              {sheetType === "truck" ? t("selectTruck") : sheetType === "driver" ? t("selectDriver") : t("selectClient")}
+            </Text>
+            <TouchableOpacity onPress={closeSheet}>
+              <Ionicons name="close" size={20} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input, height: 48 }]}>
+            <Ionicons name="search" size={18} color={colors.mutedForeground} />
+            <BottomSheetTextInput
+              value={sheetSearch}
+              onChangeText={setSheetSearch}
+              placeholder="Search..."
+              placeholderTextColor={colors.mutedForeground}
+              style={{ flex: 1, marginLeft: 10, color: colors.foreground, fontSize: 16 }}
+            />
+          </View>
+
+          <BottomSheetFlatList
+            data={sheetItems}
+            keyExtractor={(item) => item.value}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 16 }}
+            renderItem={({ item }) => {
+              const isSelected =
+                (sheetType === "truck" && formData.truck_id === item.value) ||
+                (sheetType === "driver" && formData.driver_id === item.value) ||
+                (sheetType === "client" && formData.client_id === item.value);
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (sheetType === "truck") setFormData({ ...formData, truck_id: item.value });
+                    if (sheetType === "driver") setFormData({ ...formData, driver_id: item.value });
+                    if (sheetType === "client") setFormData({ ...formData, client_id: item.value });
+                    closeSheet();
+                  }}
+                  style={{
+                    paddingVertical: 12,
+                    paddingHorizontal: 8,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                    backgroundColor: isSelected ? colors.secondary : "transparent",
+                    borderRadius: 10,
+                  }}
+                >
+                  <Text style={{ color: isSelected ? colors.primary : colors.foreground, fontWeight: isSelected ? "700" : "500" }}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
+            ListEmptyComponent={
+              <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                <Text style={{ color: colors.mutedForeground }}>No results found</Text>
+              </View>
+            }
+          />
+
+          <TouchableOpacity
+            style={{ backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 12, alignItems: "center" }}
+            onPress={() => {
+              closeSheet();
+              Keyboard.dismiss();
+              if (sheetType === "truck") setIsTruckModalVisible(true);
+              if (sheetType === "driver") setIsDriverModalVisible(true);
+              if (sheetType === "client") setIsClientModalVisible(true);
+            }}
+          >
+            <Text style={{ color: colors.primaryForeground, fontWeight: "700" }}>Add New</Text>
+          </TouchableOpacity>
+        </BottomSheetView>
+      </BottomSheetModal>
 
       <DatePickerModal
         visible={showDatePicker}
@@ -596,7 +707,7 @@ export default function AddTrip() {
         setFormData(p => ({ ...p, truck_id: res._id }));
         setIsTruckModalVisible(false);
         fetchTrucks();
-      }} onClose={() => setIsTruckModalVisible(true)} />
+      }} onClose={() => setIsTruckModalVisible(false)} />
 
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
     </View>

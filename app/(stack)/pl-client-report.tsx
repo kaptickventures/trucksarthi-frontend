@@ -149,10 +149,10 @@ export default function PLClientReportScreen() {
                     paddingHorizontal: 10,
                     paddingVertical: 4,
                     borderRadius: 20,
-                    backgroundColor: hasOutstanding ? "#fee2e2" : "#dcfce7",
+                    backgroundColor: hasOutstanding ? colors.destructiveSoft : colors.successSoft,
                   }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: "800", color: hasOutstanding ? "#dc2626" : "#16a34a" }}>
+                  <Text style={{ fontSize: 13, fontWeight: "800", color: hasOutstanding ? colors.destructive : colors.success }}>
                     {hasOutstanding ? `-Rs ${row.unbilled.toLocaleString()} ${t('due') || 'due'}` : t('settled')}
                   </Text>
                 </View>
@@ -180,14 +180,14 @@ export default function PLClientReportScreen() {
                     paddingHorizontal: 8,
                     paddingVertical: 3,
                     borderRadius: 6,
-                    backgroundColor: isSettled ? "#dcfce7" : hasOutstanding ? "#fff7ed" : colors.border + "40",
+                    backgroundColor: isSettled ? colors.successSoft : hasOutstanding ? colors.warningSoft : colors.border + "40",
                   }}
                 >
                   <Text
                     style={{
                       fontSize: 10,
                       fontWeight: "700",
-                      color: isSettled ? "#16a34a" : hasOutstanding ? "#9a3412" : colors.mutedForeground,
+                      color: isSettled ? colors.success : hasOutstanding ? colors.warning : colors.mutedForeground,
                     }}
                   >
                     {isSettled ? `✓ ${t('settled').toUpperCase()}` : hasOutstanding ? t('pending').toUpperCase() : t('noActivity').toUpperCase()}
@@ -205,4 +205,3 @@ export default function PLClientReportScreen() {
     </View>
   );
 }
-

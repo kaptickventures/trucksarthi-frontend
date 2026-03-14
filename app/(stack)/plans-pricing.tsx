@@ -13,9 +13,10 @@ type PlanCard = {
   isCurrent?: boolean;
   label?: string;
   accent: string;
+  accentSoft: string;
 };
 
-const PLAN_CARDS: PlanCard[] = [
+const getPlanCards = (colors: any): PlanCard[] => [
   {
     id: "free",
     name: "Free",
@@ -23,7 +24,8 @@ const PLAN_CARDS: PlanCard[] = [
     originalPrice: null,
     discountedPrice: "Rs 0",
     isCurrent: true,
-    accent: "#16A34A",
+    accent: colors.success,
+    accentSoft: colors.successSoft,
   },
   {
     id: "quarterly",
@@ -33,7 +35,8 @@ const PLAN_CARDS: PlanCard[] = [
     discountedPrice: "Rs 1499",
     discountLabel: "50% OFF",
     label: "HOT PICK",
-    accent: "#0EA5E9",
+    accent: colors.info,
+    accentSoft: colors.infoSoft,
   },
   {
     id: "yearly",
@@ -43,7 +46,8 @@ const PLAN_CARDS: PlanCard[] = [
     discountedPrice: "Rs 4999",
     discountLabel: "50% OFF",
     label: "LUDICROUS DEAL",
-    accent: "#F97316",
+    accent: colors.warning,
+    accentSoft: colors.warningSoft,
   },
 ];
 
@@ -74,7 +78,7 @@ export default function PlansPricingScreen() {
               width: 140,
               height: 140,
               borderRadius: 999,
-              backgroundColor: "#F9731622",
+              backgroundColor: colors.warningSoft,
             }}
           />
           <View
@@ -85,7 +89,7 @@ export default function PlansPricingScreen() {
               width: 110,
               height: 110,
               borderRadius: 999,
-              backgroundColor: "#0EA5E922",
+              backgroundColor: colors.infoSoft,
             }}
           />
 
@@ -98,16 +102,16 @@ export default function PlansPricingScreen() {
 
           <View
             className="self-start px-3 py-1 rounded-full"
-            style={{ backgroundColor: "#F59E0B22", borderWidth: 1, borderColor: "#F59E0B66" }}
+            style={{ backgroundColor: colors.warningSoft, borderWidth: 1, borderColor: colors.warning }}
           >
-            <Text className="text-[11px] font-extrabold" style={{ color: "#D97706" }}>
+            <Text className="text-[11px] font-extrabold" style={{ color: colors.warning }}>
               LIMITED OFFER: FLAT 50% OFF
             </Text>
           </View>
         </View>
 
         <View className="gap-3">
-          {PLAN_CARDS.map((plan) => (
+          {getPlanCards(colors).map((plan) => (
             <View key={plan.id} className="rounded-3xl" style={{ backgroundColor: colors.background }}>
               <View
                 className="rounded-3xl border p-4 overflow-hidden"
@@ -130,7 +134,7 @@ export default function PlansPricingScreen() {
                     width: 100,
                     height: 100,
                     borderRadius: 999,
-                    backgroundColor: `${plan.accent}20`,
+                    backgroundColor: plan.accentSoft,
                   }}
                 />
 
@@ -138,7 +142,7 @@ export default function PlansPricingScreen() {
                   <View className="flex-row items-center gap-2">
                     <View
                       className="h-10 w-10 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${plan.accent}20` }}
+                      style={{ backgroundColor: plan.accentSoft }}
                     >
                       {plan.id === "free" ? (
                         <CheckCircle2 size={20} color={plan.accent} />
@@ -162,7 +166,7 @@ export default function PlansPricingScreen() {
                   {plan.isCurrent ? (
                     <View
                       className="px-2 py-1 rounded-full"
-                      style={{ backgroundColor: `${plan.accent}25` }}
+                      style={{ backgroundColor: plan.accentSoft }}
                     >
                       <Text className="text-[10px] font-extrabold" style={{ color: plan.accent }}>
                         CURRENT
@@ -172,9 +176,9 @@ export default function PlansPricingScreen() {
                     <View className="items-end">
                       <View
                         className="px-2 py-1 rounded-full mb-1"
-                        style={{ backgroundColor: "#EF444422" }}
+                        style={{ backgroundColor: colors.destructiveSoft }}
                       >
-                        <Text className="text-[10px] font-extrabold" style={{ color: "#EF4444" }}>
+                        <Text className="text-[10px] font-extrabold" style={{ color: colors.destructive }}>
                           {plan.discountLabel}
                         </Text>
                       </View>
@@ -204,7 +208,7 @@ export default function PlansPricingScreen() {
                 {!plan.isCurrent ? (
                   <View
                     className="rounded-xl px-3 py-2"
-                    style={{ backgroundColor: `${plan.accent}15`, borderWidth: 1, borderColor: `${plan.accent}40` }}
+                    style={{ backgroundColor: plan.accentSoft, borderWidth: 1, borderColor: plan.accent }}
                   >
                     <Text className="text-xs font-bold" style={{ color: colors.foreground }}>
                       You save Rs {parsePriceValue(plan.originalPrice) - parsePriceValue(plan.discountedPrice)} on this plan
@@ -213,7 +217,7 @@ export default function PlansPricingScreen() {
                 ) : (
                   <View
                     className="rounded-xl px-3 py-2"
-                    style={{ backgroundColor: `${plan.accent}15`, borderWidth: 1, borderColor: `${plan.accent}40` }}
+                    style={{ backgroundColor: plan.accentSoft, borderWidth: 1, borderColor: plan.accent }}
                   >
                     <Text className="text-xs font-bold" style={{ color: colors.foreground }}>
                       Starter access active

@@ -104,10 +104,10 @@ export default function LoginEmailOTP() {
                                     <View style={{
                                         flexDirection: 'row',
                                         alignItems: 'center',
-                                        backgroundColor: isDark ? colors.card : '#F8F9FA',
+                                        backgroundColor: isDark ? colors.card : colors.input,
                                         borderRadius: 16,
                                         borderWidth: 1.5,
-                                        borderColor: isDark ? colors.border : '#E9ECEF',
+                                        borderColor: colors.border,
                                         paddingHorizontal: 16
                                     }}>
                                         <Mail size={20} color={colors.mutedForeground} />
@@ -163,10 +163,10 @@ export default function LoginEmailOTP() {
                                     <View style={{
                                         flexDirection: 'row',
                                         alignItems: 'center',
-                                        backgroundColor: isDark ? colors.card : '#F8F9FA',
+                                        backgroundColor: isDark ? colors.card : colors.input,
                                         borderRadius: 16,
                                         borderWidth: 1.5,
-                                        borderColor: isDark ? colors.border : '#E9ECEF',
+                                        borderColor: colors.border,
                                         paddingHorizontal: 16
                                     }}>
                                         <Lock size={20} color={colors.mutedForeground} />

@@ -4,10 +4,6 @@ import { Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -16,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import BottomSheet from "../../components/BottomSheet";
@@ -197,8 +194,8 @@ export default function DailyKhataDashboardScreen() {
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              <View style={{ backgroundColor: "#fff7ed", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                <Text style={{ color: "#ea580c", fontSize: 13, fontWeight: "800" }}>
+              <View style={{ backgroundColor: colors.warningSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                <Text style={{ color: colors.warning, fontSize: 13, fontWeight: "800" }}>
                   Rs {totalsByType.FUEL.toLocaleString()} Fuel
                 </Text>
               </View>
@@ -285,14 +282,14 @@ export default function DailyKhataDashboardScreen() {
                         paddingHorizontal: 8,
                         paddingVertical: 2,
                         borderRadius: 6,
-                        backgroundColor: isFuel ? "#fff7ed" : colors.border + "50",
+                        backgroundColor: isFuel ? colors.warningSoft : colors.border + "50",
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 9,
                           fontWeight: "800",
-                          color: isFuel ? "#ea580c" : colors.mutedForeground,
+                          color: isFuel ? colors.warning : colors.mutedForeground,
                         }}
                       >
                         {formatLabel(type).toUpperCase()}
@@ -343,8 +340,16 @@ export default function DailyKhataDashboardScreen() {
         onClose={() => setShowAdd(false)}
         title="Add Daily Khata"
         subtitle={selectedTruck?.registration_number || "Vehicle"}
+        maxHeight="90%"
       >
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <KeyboardAwareScrollView
+          enableOnAndroid
+          extraScrollHeight={120}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
           {/* Category selector */}
           <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>CATEGORY</Text>
           <View style={{ flexDirection: "row", gap: 8, marginBottom: 20 }}>
@@ -476,7 +481,7 @@ export default function DailyKhataDashboardScreen() {
               <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE EXPENSE</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </BottomSheet>
     </View>
   );

@@ -9,13 +9,7 @@ import { ArrowDownLeft, Banknote, Building2, Edit, Eye, FileText, MapPin, Plus, 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
-  Animated,
-  KeyboardAvoidingView,
   Linking,
-  Modal,
-  PanResponder,
-  Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -25,6 +19,7 @@ import {
   View,
   Image,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomSheet from "../../components/BottomSheet";
 
@@ -128,8 +123,6 @@ export default function ClientLedgerDetailScreen() {
     gstin: "",
     gstin_details: undefined as any,
   });
-  const translateY = useRef(new Animated.Value(0)).current;
-  const SCROLL_THRESHOLD = 40;
   const PAYMENT_MODES = ["CASH", "BANK"] as const;
   const TAX_TYPES = [
     { label: "IGST", value: "igst" },
@@ -886,25 +879,6 @@ export default function ClientLedgerDetailScreen() {
     ]);
   };
 
-  // Edit Client Modal Handlers
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (_, state) => state.y0 < SCROLL_THRESHOLD,
-      onPanResponderMove: (_, state) => {
-        if (state.dy > 0) translateY.setValue(state.dy);
-      },
-      onPanResponderRelease: (_, state) => {
-        if (state.dy > 120) closeEditModal();
-        else
-          Animated.timing(translateY, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }).start();
-      },
-    })
-  ).current;
-
   const openEditModal = () => {
     if (client) {
       setEditFormData({
@@ -922,14 +896,7 @@ export default function ClientLedgerDetailScreen() {
   };
 
   const closeEditModal = () => {
-    Animated.timing(translateY, {
-      toValue: 800,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      translateY.setValue(0);
-      setShowEditModal(false);
-    });
+    setShowEditModal(false);
   };
 
   const [verifyingGstin, setVerifyingGstin] = useState(false);
@@ -1064,7 +1031,7 @@ export default function ClientLedgerDetailScreen() {
         <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ width: 56, height: 56, backgroundColor: colors.secondary, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-              <Building2 size={26} color="#16a34a" />
+              <Building2 size={26} color={colors.success} />
             </View>
 
             <View style={{ flex: 1 }}>
@@ -1113,7 +1080,7 @@ export default function ClientLedgerDetailScreen() {
                   `https://wa.me/91${client.contact_number}?text=Hello ${client.client_name}`
                 )
               }
-              style={{ flex: 1, backgroundColor: '#25D366', paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
+              style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Ionicons name="logo-whatsapp" size={18} color="white" />
@@ -1237,8 +1204,8 @@ export default function ClientLedgerDetailScreen() {
                           Due: {invoice.due_date ? formatDate(invoice.due_date) : "N/A"}
                         </Text>
                       </View>
-                      <View className="px-2 py-1 rounded-md" style={{ backgroundColor: invoice.status === 'paid' ? '#22c55e20' : '#ef444420' }}>
-                        <Text className="font-bold text-[10px] uppercase" style={{ color: invoice.status === 'paid' ? '#22c55e' : '#ef4444' }}>{invoice.status}</Text>
+                      <View className="px-2 py-1 rounded-md" style={{ backgroundColor: invoice.status === 'paid' ? colors.successSoft : colors.destructiveSoft }}>
+                        <Text className="font-bold text-[10px] uppercase" style={{ color: invoice.status === 'paid' ? colors.success : colors.destructive }}>{invoice.status}</Text>
                       </View>
                     </View>
                     <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border + '4D' }}>
@@ -1289,8 +1256,8 @@ export default function ClientLedgerDetailScreen() {
             {entries.filter(e => e.entry_type === 'credit').length > 0 ? (
               entries.filter(e => e.entry_type === 'credit').map(entry => (
                 <View key={getId(entry)} className="p-4 rounded-2xl mb-3 border flex-row items-start" style={{ backgroundColor: colors.card, borderColor: colors.border + '80' }}>
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#22c55e20' }}>
-                    <ArrowDownLeft size={20} color="#16a34a" />
+                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: colors.successSoft }}>
+                    <ArrowDownLeft size={20} color={colors.success} />
                   </View>
                   <View className="flex-1" style={{ paddingRight: 10 }}>
                     <Text className="font-bold" style={{ color: colors.foreground, flexShrink: 1 }}>
@@ -1301,12 +1268,12 @@ export default function ClientLedgerDetailScreen() {
                     </Text>
                   </View>
                   <View className="items-end" style={{ minWidth: 86, marginLeft: 6 }}>
-                    <View className="px-2 py-1 rounded-md mb-1" style={{ backgroundColor: (entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "#f59e0b20" : "#22c55e20" }}>
-                      <Text className="text-[10px] font-bold" style={{ color: (entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "#d97706" : "#22c55e" }}>
+                    <View className="px-2 py-1 rounded-md mb-1" style={{ backgroundColor: (entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? colors.warningSoft : colors.successSoft }}>
+                      <Text className="text-[10px] font-bold" style={{ color: (entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? colors.warning : colors.success }}>
                         {(entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "PARTIAL" : "FULL"}
                       </Text>
                     </View>
-                    <Text className="font-bold" style={{ color: "#16a34a" }}>₹{Number(entry.amount).toLocaleString()}</Text>
+                    <Text className="font-bold" style={{ color: colors.success }}>₹{Number(entry.amount).toLocaleString()}</Text>
                     <TouchableOpacity onPress={() => handleDeletePaymentEntry(getId(entry))} style={{ padding: 4, marginTop: 4 }}>
                       <Trash2 size={14} color={colors.destructive} />
                     </TouchableOpacity>
@@ -1326,8 +1293,16 @@ export default function ClientLedgerDetailScreen() {
           onClose={() => setShowInvoiceConfigForm(false)}
           title="Generate Invoice"
           subtitle={`${selectedTrips.length} trip(s) selected`}
+          maxHeight="90%"
           >
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+            <KeyboardAwareScrollView
+              enableOnAndroid
+              extraScrollHeight={140}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
               <View className="mb-6">
                 <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Due Date</Text>
                 <TouchableOpacity
@@ -1432,7 +1407,7 @@ export default function ClientLedgerDetailScreen() {
                 CREATE INVOICE
               </Text>
             </TouchableOpacity>
-          </ScrollView>
+            </KeyboardAwareScrollView>
         </BottomSheet>
 
         <BottomSheet
@@ -1440,8 +1415,16 @@ export default function ClientLedgerDetailScreen() {
           onClose={() => setShowPaymentForm(false)}
           title="Add Payment"
           subtitle={client?.client_name || "Client"}
+          maxHeight="90%"
         >
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <KeyboardAwareScrollView
+            enableOnAndroid
+            extraScrollHeight={140}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          >
             {/* DATE PICKER */}
             <View className="mb-6">
               <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Date</Text>
@@ -1462,7 +1445,7 @@ export default function ClientLedgerDetailScreen() {
             <View className="mb-6">
               <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Amount</Text>
               <View className="flex-row items-center rounded-2xl px-5 py-4" style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', borderWidth: 1, borderColor: colors.border + '30' }}>
-                <Banknote size={24} color="#16a34a" />
+                <Banknote size={24} color={colors.success} />
                 <TextInput
                   placeholder="0"
                   keyboardType="numeric"
@@ -1532,7 +1515,7 @@ export default function ClientLedgerDetailScreen() {
                 <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE PAYMENT</Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </BottomSheet>
 
         <BottomSheet
@@ -1540,8 +1523,16 @@ export default function ClientLedgerDetailScreen() {
           onClose={closeEditModal}
           title={t('editClient')}
           subtitle="Update business profile"
+          maxHeight="90%"
         >
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <KeyboardAwareScrollView
+            enableOnAndroid
+            extraScrollHeight={140}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          >
             <View className="gap-5">
               <View>
                 <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>{t('clientName')} *</Text>
@@ -1642,7 +1633,7 @@ export default function ClientLedgerDetailScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </BottomSheet>
 
       </ScrollView>

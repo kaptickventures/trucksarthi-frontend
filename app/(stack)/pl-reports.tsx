@@ -4,33 +4,37 @@ import { StatusBar, Text, TouchableOpacity, View, ScrollView } from "react-nativ
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
 
-const getSections = (t: any) => [
+const getSections = (t: any, colors: any) => [
   {
     title: t('clientPL'),
     description: "List report by client",
     icon: "business-outline",
-    color: "#10b981",
+    color: colors.success,
+    bg: colors.successSoft,
     route: "/(stack)/pl-client-report",
   },
   {
     title: t('driverPL'),
     description: "List report by driver",
     icon: "people-outline",
-    color: "#f59e0b",
+    color: colors.warning,
+    bg: colors.warningSoft,
     route: "/(stack)/pl-driver-report",
   },
   {
     title: t('truckPL'),
     description: "List report by truck",
     icon: "car-outline",
-    color: "#3b82f6",
+    color: colors.info,
+    bg: colors.infoSoft,
     route: "/(stack)/pl-truck-report",
   },
   {
     title: t('miscPL'),
     description: "List report by misc categories",
     icon: "apps-outline",
-    color: "#f97316",
+    color: colors.destructive,
+    bg: colors.destructiveSoft,
     route: "/(stack)/pl-misc-report",
   },
 ];
@@ -56,7 +60,7 @@ export default function PLReportsScreen() {
         </View>
 
         <View style={{ gap: 10 }}>
-          {getSections(t).map((item) => (
+          {getSections(t, colors).map((item) => (
             <TouchableOpacity
               key={item.route}
               onPress={() => router.push(item.route as any)}
@@ -75,7 +79,7 @@ export default function PLReportsScreen() {
                     width: 40,
                     height: 40,
                     borderRadius: 12,
-                    backgroundColor: `${item.color}20`,
+                    backgroundColor: item.bg,
                     alignItems: "center",
                     justifyContent: "center",
                   }}

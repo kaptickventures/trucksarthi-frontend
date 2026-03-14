@@ -250,7 +250,7 @@ export default function LocationsManager() {
                     onPress={() => handleDelete(loc._id)}
                     className="w-10 h-10 bg-red-500/10 rounded-full items-center justify-center"
                   >
-                    <Trash2 size={16} color="#ef4444" />
+                    <Trash2 size={16} color={colors.destructive} />
                   </TouchableOpacity>
                 </View>
               </View>

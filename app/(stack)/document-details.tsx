@@ -11,7 +11,7 @@ import {
     Alert,
     FlatList,
     Image,
-    Modal,
+    KeyboardAvoidingView,
     Platform,
     ScrollView,
     Share,
@@ -21,12 +21,14 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
 import useTruckDocuments from "../../hooks/useTruckDocuments";
 import { formatDate as globalFormatDate, getFileUrl } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
+import BottomSheet from "../../components/BottomSheet";
 
 const DEFAULT_DOCUMENT_TYPES = [
     "INSURANCE",
@@ -289,13 +291,13 @@ export default function DocumentDetails() {
                         width: 48,
                         height: 48,
                         borderRadius: 12,
-                        backgroundColor: expired ? '#fee2e2' : (expiring ? '#ffedd5' : colors.primary + '15'),
+                        backgroundColor: expired ? colors.destructiveSoft : (expiring ? colors.warningSoft : colors.accent),
                         alignItems: 'center',
                         justifyContent: 'center',
                         marginRight: 16
                     }}
                 >
-                    <FileText size={22} color={expired ? '#ef4444' : (expiring ? '#f97316' : colors.primary)} />
+                    <FileText size={22} color={expired ? colors.destructive : (expiring ? colors.warning : colors.primary)} />
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -304,20 +306,20 @@ export default function DocumentDetails() {
                             {item.document_type}
                         </Text>
                         {expired && (
-                            <View style={{ backgroundColor: '#fee2e2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                                <Text style={{ fontSize: 10, fontWeight: '700', color: '#ef4444' }}>EXPIRED</Text>
+                            <View style={{ backgroundColor: colors.destructiveSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: colors.destructive }}>EXPIRED</Text>
                             </View>
                         )}
                         {!expired && expiring && (
-                            <View style={{ backgroundColor: '#ffedd5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                                <Text style={{ fontSize: 10, fontWeight: '700', color: '#f97316' }}>EXPIRING</Text>
+                            <View style={{ backgroundColor: colors.warningSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: colors.warning }}>EXPIRING</Text>
                             </View>
                         )}
                     </View>
 
                     <View style={{ marginTop: 4 }}>
                         {item.expiry_date ? (
-                            <Text style={{ fontSize: 12, color: expired ? '#ef4444' : (expiring ? '#f97316' : colors.mutedForeground), fontWeight: (expired || expiring) ? '600' : '400' }}>
+                            <Text style={{ fontSize: 12, color: expired ? colors.destructive : (expiring ? colors.warning : colors.mutedForeground), fontWeight: (expired || expiring) ? '600' : '400' }}>
                                 Expires: {formatDate(item.expiry_date)}
                             </Text>
                         ) : (
@@ -352,7 +354,7 @@ export default function DocumentDetails() {
                             ])}
                             style={{ padding: 8 }}
                         >
-                            <Trash2 size={20} color={colors.destructive || '#ef4444'} />
+                            <Trash2 size={20} color={colors.destructive} />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -365,88 +367,92 @@ export default function DocumentDetails() {
         <View style={{ flex: 1, backgroundColor: colors.background }}>
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-            <FlatList
-                data={filteredDocuments}
-                renderItem={renderDocumentItem}
-                keyExtractor={item => item._id}
-                contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-                ListHeaderComponent={
-                    <View className="mb-3">
-                        <View className="flex-row justify-between items-center mb-3">
-                            <View>
-                                <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
-                                <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>
-                                    {`Truck: ${truckNumber} `}
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={() => setModalVisible(true)}
-                                style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}
-                            >
-                                <Plus size={16} color={colors.primaryForeground} />
-                                <Text style={{ color: colors.primaryForeground, fontWeight: '600', marginLeft: 4 }}>Add</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Search Bar */}
-                        <View
-                            style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                backgroundColor: colors.card,
-                                borderWidth: 1,
-                                borderColor: colors.border,
-                                borderRadius: 12,
-                                paddingHorizontal: 12,
-                                height: 50,
-                            }}
-                        >
-                            <Ionicons name="search" size={18} color={colors.mutedForeground} />
-                            <TextInput
-                                style={{
-                                    flex: 1,
-                                    marginLeft: 10,
-                                    fontSize: 15,
-                                    color: colors.foreground,
-                                    paddingVertical: 0,
-                                    includeFontPadding: false,
-                                }}
-                                placeholder="Search documents..."
-                                placeholderTextColor={colors.mutedForeground}
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                                autoCapitalize="none"
-                            />
-                            {searchQuery.length > 0 && (
-                                <TouchableOpacity onPress={() => setSearchQuery("")}>
-                                    <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
+                <FlatList
+                    data={filteredDocuments}
+                    renderItem={renderDocumentItem}
+                    keyExtractor={item => item._id}
+                    contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+                    ListHeaderComponent={
+                        <View className="mb-3">
+                            <View className="flex-row justify-between items-center mb-3">
+                                <View>
+                                    <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('documents')}</Text>
+                                    <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>
+                                        {`Truck: ${truckNumber} `}
+                                    </Text>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => setModalVisible(true)}
+                                    style={{ backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}
+                                >
+                                    <Plus size={16} color={colors.primaryForeground} />
+                                    <Text style={{ color: colors.primaryForeground, fontWeight: '600', marginLeft: 4 }}>Add</Text>
                                 </TouchableOpacity>
-                            )}
+                            </View>
+
+                            {/* Search Bar */}
+                            <View
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    backgroundColor: colors.card,
+                                    borderWidth: 1,
+                                    borderColor: colors.border,
+                                    borderRadius: 12,
+                                    paddingHorizontal: 12,
+                                    height: 50,
+                                }}
+                            >
+                                <Ionicons name="search" size={18} color={colors.mutedForeground} />
+                                <TextInput
+                                    style={{
+                                        flex: 1,
+                                        marginLeft: 10,
+                                        fontSize: 15,
+                                        color: colors.foreground,
+                                        paddingVertical: 0,
+                                        includeFontPadding: false,
+                                    }}
+                                    placeholder="Search documents..."
+                                    placeholderTextColor={colors.mutedForeground}
+                                    value={searchQuery}
+                                    onChangeText={setSearchQuery}
+                                    autoCapitalize="none"
+                                />
+                                {searchQuery.length > 0 && (
+                                    <TouchableOpacity onPress={() => setSearchQuery("")}>
+                                        <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
                         </View>
-                    </View>
-                }
-                ListEmptyComponent={
-                    <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 80 }}>
-                        <FileText size={48} color={colors.mutedForeground} />
-                        <Text style={{ marginTop: 16, fontSize: 16, color: colors.mutedForeground, fontWeight: '500' }}>No documents found</Text>
-                    </View>
-                }
-            />
+                    }
+                    ListEmptyComponent={
+                        <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 80 }}>
+                            <FileText size={48} color={colors.mutedForeground} />
+                            <Text style={{ marginTop: 16, fontSize: 16, color: colors.mutedForeground, fontWeight: '500' }}>No documents found</Text>
+                        </View>
+                    }
+                />
+            </KeyboardAvoidingView>
 
             {/* ADD MODAL */}
-            <Modal visible={modalVisible} transparent animationType="slide">
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-                    <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '85%' }}>
-                        <View style={{ width: 40, height: 4, backgroundColor: colors.border, alignSelf: 'center', borderRadius: 2, marginBottom: 20 }} />
-
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                            <Text style={{ fontSize: 20, fontWeight: '700', color: colors.foreground }}>New Document</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <X size={24} color={colors.foreground} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView showsVerticalScrollIndicator={false}>
+            <BottomSheet
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                title="New Document"
+                maxHeight="70%"
+            >
+                        <KeyboardAwareScrollView
+                            showsVerticalScrollIndicator={false}
+                            enableOnAndroid
+                            extraScrollHeight={0}
+                            keyboardShouldPersistTaps="handled"
+                        >
                             <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 }}>Type</Text>
                             <TextInput
                                 value={docType}
@@ -504,22 +510,22 @@ export default function DocumentDetails() {
                                 )}
                             </TouchableOpacity>
 
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal>
+                        </KeyboardAwareScrollView>
+            </BottomSheet>
 
             {/* IMAGE PREVIEW */}
-            <Modal visible={!!previewImage} transparent animationType="fade">
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={() => setPreviewImage(null)} style={{ position: 'absolute', top: 50, right: 24, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 20 }}>
-                        <X size={24} color="white" />
-                    </TouchableOpacity>
+            <BottomSheet
+                visible={!!previewImage}
+                onClose={() => setPreviewImage(null)}
+                title="Preview"
+                maxHeight="70%"
+            >
+                <View style={{ paddingTop: 8 }}>
                     {previewImage && (
-                        <Image source={{ uri: previewImage }} style={{ width: '100%', height: '80%' }} resizeMode="contain" />
+                        <Image source={{ uri: previewImage }} style={{ width: '100%', height: 360 }} resizeMode="contain" />
                     )}
                 </View>
-            </Modal>
+            </BottomSheet>
         </View>
     );
 }

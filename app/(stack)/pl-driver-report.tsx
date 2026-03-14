@@ -139,10 +139,10 @@ export default function PLDriverReportScreen() {
                     paddingHorizontal: 10,
                     paddingVertical: 4,
                     borderRadius: 20,
-                    backgroundColor: isPositive ? "#dcfce7" : "#fee2e2",
+                    backgroundColor: isPositive ? colors.successSoft : colors.destructiveSoft,
                   }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: "800", color: isPositive ? "#16a34a" : "#dc2626" }}>
+                  <Text style={{ fontSize: 13, fontWeight: "800", color: isPositive ? colors.success : colors.destructive }}>
                     {isPositive ? "+" : "-"}Rs {Math.abs(bal).toLocaleString()}
                   </Text>
                 </View>

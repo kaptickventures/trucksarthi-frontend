@@ -4,10 +4,12 @@ import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 import { postLoginFlow } from "../hooks/useAuth";
 import { useAuth } from "../context/AuthContext";
+import { useThemeStore } from "../hooks/useThemeStore";
 
 export default function Index() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { colors } = useThemeStore();
 
   useEffect(() => {
     if (!loading) {
@@ -26,10 +28,10 @@ export default function Index() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "white",
+          backgroundColor: colors.background,
         }}
       >
-        <ActivityIndicator size="large" color="#128C7E" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

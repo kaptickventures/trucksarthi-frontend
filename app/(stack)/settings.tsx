@@ -186,7 +186,7 @@ export default function Settings() {
               value={isBiometricEnabled}
               onValueChange={toggleBiometric}
               trackColor={{ false: colors.muted, true: colors.primary }}
-              thumbColor="#f4f3f4"
+              thumbColor={colors.card}
             />
           </View>
         )}
@@ -234,7 +234,7 @@ export default function Settings() {
               }
             }}
             trackColor={{ false: colors.muted, true: colors.primary }}
-            thumbColor="#f4f3f4"
+            thumbColor={colors.card}
           />
         </View>
 
@@ -274,7 +274,7 @@ export default function Settings() {
           className="flex-row items-center justify-center p-4 rounded-xl mb-10"
           style={{ backgroundColor: colors.destructive }}
         >
-          <LogOut size={20} color="#fff" />
+          <LogOut size={20} color={colors.primaryForeground} />
           <Text className="text-white font-semibold text-base ml-2">{t('logout')}</Text>
         </TouchableOpacity>
       </ScrollView>

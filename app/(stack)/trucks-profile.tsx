@@ -23,6 +23,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import BottomSheet from "../../components/BottomSheet";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -508,7 +509,16 @@ export default function TruckProfile() {
         title={t('editTruck')}
         subtitle="Update container dimension"
       >
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <KeyboardAwareScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          enableOnAndroid
+          extraScrollHeight={140}
+          keyboardDismissMode="on-drag"
+          enableAutomaticScroll={false}
+          scrollEnabled={false}
+        >
           <View style={{ gap: 16 }}>
             <View>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>
@@ -527,7 +537,7 @@ export default function TruckProfile() {
           <TouchableOpacity onPress={handleUpdateTruck} style={{ backgroundColor: colors.primary, padding: 18, borderRadius: 22, alignItems: 'center', marginTop: 32 }}>
             <Text style={{ color: "white", fontWeight: '900', fontSize: 16 }}>{t('updateDetails')}</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </BottomSheet>
 
       {/* SHARE MODAL */}

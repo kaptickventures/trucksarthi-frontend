@@ -223,10 +223,10 @@ export default function SideMenu({
               className="flex-row items-center py-4 mt-8 mb-20"
               style={{ borderTopWidth: 1, borderTopColor: colors.border }}
             >
-              <Ionicons name="log-out-outline" size={26} color="#ef4444" />
+              <Ionicons name="log-out-outline" size={26} color={colors.destructive} />
               <Text
                 className="ml-4 text-lg font-medium"
-                style={{ color: "#ef4444" }}
+                style={{ color: colors.destructive }}
               >
                 {t('logout')}
               </Text>

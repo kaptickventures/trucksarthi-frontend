@@ -256,8 +256,8 @@ export default function PLDriverReportDetailScreen() {
 
                   <View style={{ alignItems: "flex-end" }}>
                     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                      {isToDriver ? <ArrowDownLeft size={14} color="#16a34a" /> : <ArrowUpRight size={14} color="#dc2626" />}
-                      <Text style={{ marginLeft: 4, color: isToDriver ? "#16a34a" : "#dc2626", fontWeight: "800", fontSize: 11 }}>
+                      {isToDriver ? <ArrowDownLeft size={14} color={colors.success} /> : <ArrowUpRight size={14} color={colors.destructive} />}
+                      <Text style={{ marginLeft: 4, color: isToDriver ? colors.success : colors.destructive, fontWeight: "800", fontSize: 11 }}>
                         {isToDriver ? "TO DRIVER" : "EXPENSE"}
                       </Text>
                     </View>

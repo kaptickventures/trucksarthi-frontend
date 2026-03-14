@@ -50,8 +50,8 @@ export default function HelpCenter() {
             className="flex-row items-center justify-between"
           >
             <View className="flex-row items-center">
-              <View className="bg-[#25D366] p-3 rounded-xl shadow-lg shadow-[#25D366]/40">
-                <Ionicons name="logo-whatsapp" size={24} color="#fff" />
+              <View className="p-3 rounded-xl" style={{ backgroundColor: colors.success }}>
+                <Ionicons name="logo-whatsapp" size={24} color={colors.primaryForeground} />
               </View>
               <View className="ml-4">
                 <Text className="font-semibold text-base" style={{ color: colors.foreground }}>
@@ -76,8 +76,8 @@ export default function HelpCenter() {
             className="flex-row items-center justify-between"
           >
             <View className="flex-row items-center">
-              <View className="bg-blue-600 p-3 rounded-xl">
-                <Phone size={20} color="#fff" />
+              <View className="p-3 rounded-xl" style={{ backgroundColor: colors.info }}>
+                <Phone size={20} color={colors.primaryForeground} />
               </View>
               <View className="ml-4">
                 <Text className="font-semibold text-base" style={{ color: colors.foreground }}>
@@ -101,8 +101,8 @@ export default function HelpCenter() {
             className="flex-row items-center justify-between"
           >
             <View className="flex-row items-center">
-              <View className="bg-orange-500 p-3 rounded-xl">
-                <Mail size={20} color="#fff" />
+              <View className="p-3 rounded-xl" style={{ backgroundColor: colors.warning }}>
+                <Mail size={20} color={colors.primaryForeground} />
               </View>
               <View className="ml-4">
                 <Text className="font-semibold text-base" style={{ color: colors.foreground }}>

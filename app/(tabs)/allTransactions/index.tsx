@@ -7,7 +7,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "reac
 import {
   Alert,
   FlatList,
-  Modal,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -214,8 +213,8 @@ export default function TransactionsScreen() {
 
   const renderItem = ({ item }: { item: any }) => {
     const isIncome = item.direction === "INCOME";
-    const iconColor = isIncome ? "#16a34a" : "#dc2626";
-    const bgColor = isIncome ? "#dcfce7" : "#fee2e2";
+    const iconColor = isIncome ? colors.success : colors.destructive;
+    const bgColor = isIncome ? colors.successSoft : colors.destructiveSoft;
     const Icon = isIncome ? ArrowDownLeft : ArrowUpRight;
 
     const partyName = item.driverId ? driverMap[String(item.driverId)] :
@@ -258,7 +257,7 @@ export default function TransactionsScreen() {
               {formatDate(item.date)}
             </Text>
             {item.approvalStatus === "PENDING" && (
-              <Text style={{ fontSize: 10, color: "#f59e0b", fontWeight: "bold" }}>PENDING</Text>
+              <Text style={{ fontSize: 10, color: colors.warning, fontWeight: "bold" }}>PENDING</Text>
             )}
           </View>
         </View>

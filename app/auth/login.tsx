@@ -139,10 +139,10 @@ export default function LoginPhone() {
                   <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: isDark ? colors.card : '#F8F9FA',
+                    backgroundColor: isDark ? colors.card : colors.input,
                     borderRadius: 16,
                     borderWidth: 1.5,
-                    borderColor: isDark ? colors.border : '#E9ECEF',
+                    borderColor: colors.border,
                     paddingHorizontal: 16
                   }}>
                     <Smartphone size={20} color={colors.mutedForeground} />
@@ -196,10 +196,10 @@ export default function LoginPhone() {
                   <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: isDark ? colors.card : '#F8F9FA',
+                    backgroundColor: isDark ? colors.card : colors.input,
                     borderRadius: 16,
                     borderWidth: 1.5,
-                    borderColor: isDark ? colors.border : '#E9ECEF',
+                    borderColor: colors.border,
                     paddingHorizontal: 16
                   }}>
                     <Lock size={20} color={colors.mutedForeground} />
@@ -273,9 +273,9 @@ export default function LoginPhone() {
             )}
 
             <View style={{ marginTop: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <View style={{ height: 1.5, flex: 1, backgroundColor: isDark ? colors.border : '#E9ECEF' }} />
+              <View style={{ height: 1.5, flex: 1, backgroundColor: colors.border }} />
               <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: '600' }}>SECURE LOGIN</Text>
-              <View style={{ height: 1.5, flex: 1, backgroundColor: isDark ? colors.border : '#E9ECEF' }} />
+              <View style={{ height: 1.5, flex: 1, backgroundColor: colors.border }} />
             </View>
 
           </View>

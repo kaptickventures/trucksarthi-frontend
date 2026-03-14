@@ -10,7 +10,13 @@ export const Colors = {
   border: '#D1D1D1',
   error: '#FF4B4B',
   success: '#25D366',
+  successSoft: '#E6FFEE',
+  destructive: '#FF4B4B',
+  destructiveSoft: '#FEE2E2',
   warning: '#F4B400',
+  warningSoft: '#FEF3C7',
+  info: '#1D4ED8',
+  infoSoft: '#DBEAFE',
   white: '#FFFFFF',
 };
 

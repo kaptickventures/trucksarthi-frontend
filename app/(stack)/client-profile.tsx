@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import BottomSheet from "../../components/BottomSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -696,7 +697,7 @@ export default function ClientProfile() {
         <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ width: 56, height: 56, backgroundColor: colors.secondary, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-              <Building2 size={26} color="#16a34a" />
+              <Building2 size={26} color={colors.success} />
             </View>
 
             <View style={{ flex: 1 }}>
@@ -743,7 +744,7 @@ export default function ClientProfile() {
                   Linking.openURL(`https://wa.me/${waNumber}?text=Hello ${client.client_name}`);
                 }
               }}
-              style={{ flex: 1, backgroundColor: '#25D366', paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
+              style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Ionicons name="logo-whatsapp" size={18} color="white" />
@@ -776,8 +777,16 @@ export default function ClientProfile() {
         onClose={closeEditModal}
         title={t('editClient')}
         subtitle={t('updateClientInformation')}
+        maxHeight="90%"
       >
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        <KeyboardAwareScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          enableOnAndroid
+          extraScrollHeight={140}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           <View style={{ gap: 16 }}>
             <View>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('clientName')} *</Text>
@@ -880,7 +889,7 @@ export default function ClientProfile() {
           >
             <Text style={{ color: "white", fontWeight: '900', fontSize: 16 }}>{t('saveUpdates')}</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </BottomSheet>
 
       {/* Payment Form Modal */}
@@ -889,7 +898,14 @@ export default function ClientProfile() {
         onClose={() => setShowPaymentForm(false)}
         title={t('addPayment')}
       >
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        <KeyboardAwareScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          enableOnAndroid
+          extraScrollHeight={140}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           <View style={{ gap: 16 }}>
             <View>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('amount')} *</Text>
@@ -954,7 +970,7 @@ export default function ClientProfile() {
           >
             <Text style={{ color: "white", fontWeight: '900', fontSize: 16 }}>{t('saveExpense')}</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </BottomSheet>
 
       {showDatePicker && (
@@ -969,8 +985,7 @@ function SummaryCard({ label, value, green }: any) {
   return (
     <View style={{ backgroundColor: colors.card, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
       <Text style={{ fontSize: 10, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{label}</Text>
-      <Text style={{ color: green ? "#16a34a" : colors.foreground, fontSize: 18, fontWeight: 'bold' }}>₹{Number(value).toLocaleString()}</Text>
+      <Text style={{ color: green ? colors.success : colors.foreground, fontSize: 18, fontWeight: 'bold' }}>₹{Number(value).toLocaleString()}</Text>
     </View>
   );
 }
-

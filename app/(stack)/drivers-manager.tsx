@@ -222,24 +222,26 @@ export default function DriversManager() {
                           Linking.openURL(`https://wa.me/${waNumber}`);
                         }
                       }}
-                      className="w-10 h-10 bg-[#25D366]/10 rounded-full items-center justify-center"
+                      className="w-10 h-10 rounded-full items-center justify-center"
+                      style={{ backgroundColor: colors.successSoft }}
                     >
-                      <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
+                      <Ionicons name="logo-whatsapp" size={16} color={colors.success} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       onPress={(e) => { e.stopPropagation(); handleDelete(driver._id); }}
-                      className="w-10 h-10 bg-red-500/10 rounded-full items-center justify-center"
+                      className="w-10 h-10 rounded-full items-center justify-center"
+                      style={{ backgroundColor: colors.destructiveSoft }}
                     >
-                      <Trash2 size={16} color="#ef4444" />
+                      <Trash2 size={16} color={colors.destructive} />
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 <View className="gap-y-1">
                   <Text style={{ color: colors.foreground }} className="text-sm font-medium">Phone: <Text style={{ color: colors.mutedForeground }}>{formatPhoneNumber(driver.contact_number || "")}</Text></Text>
-                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">License: <Text style={{ color: driver.license_card_url ? "#22c55e" : "#ef4444" }}>{driver.license_card_url ? "Uploaded" : "Not Uploaded"}</Text></Text>
-                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">Aadhar: <Text style={{ color: driver.identity_card_url ? "#22c55e" : "#ef4444" }}>{driver.identity_card_url ? "Uploaded" : "Not Uploaded"}</Text></Text>
+                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">License: <Text style={{ color: driver.license_card_url ? colors.success : colors.destructive }}>{driver.license_card_url ? "Uploaded" : "Not Uploaded"}</Text></Text>
+                  <Text style={{ color: colors.foreground }} className="text-sm font-medium">Aadhar: <Text style={{ color: driver.identity_card_url ? colors.success : colors.destructive }}>{driver.identity_card_url ? "Uploaded" : "Not Uploaded"}</Text></Text>
                 </View>
               </TouchableOpacity>
             );
@@ -260,7 +262,7 @@ export default function DriversManager() {
           shadowOffset: { width: 0, height: 2 },
         }}
       >
-        <Plus color="#FFFFFF" size={28} />
+        <Plus color={colors.primaryForeground} size={28} />
       </TouchableOpacity>
 
       <DriverFormModal

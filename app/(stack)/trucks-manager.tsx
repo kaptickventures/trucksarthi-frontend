@@ -200,7 +200,7 @@ export default function TrucksManager() {
                     onPress={(e) => { e.stopPropagation(); handleDelete(truck._id); }}
                     className="w-10 h-10 bg-red-500/10 rounded-full items-center justify-center"
                   >
-                    <Trash2 size={16} color="#ef4444" />
+                    <Trash2 size={16} color={colors.destructive} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -222,7 +222,7 @@ export default function TrucksManager() {
           shadowOffset: { width: 0, height: 2 },
         }}
       >
-        <Plus color="#FFFFFF" size={28} />
+        <Plus color={colors.primaryForeground} size={28} />
       </TouchableOpacity>
 
       <TruckFormModal

@@ -205,8 +205,8 @@ export default function PLMiscReportDetailScreen() {
 
                   <View style={{ alignItems: "flex-end" }}>
                     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                      {isIncome ? <ArrowDownLeft size={14} color="#16a34a" /> : <ArrowUpRight size={14} color="#dc2626" />}
-                      <Text style={{ marginLeft: 4, color: isIncome ? "#16a34a" : "#dc2626", fontWeight: "800", fontSize: 11 }}>
+                      {isIncome ? <ArrowDownLeft size={14} color={colors.success} /> : <ArrowUpRight size={14} color={colors.destructive} />}
+                      <Text style={{ marginLeft: 4, color: isIncome ? colors.success : colors.destructive, fontWeight: "800", fontSize: 11 }}>
                         {isIncome ? "INCOME" : "EXPENSE"}
                       </Text>
                     </View>

@@ -1,26 +1,22 @@
 import { X, Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Navigation, Plus } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
-  Animated,
-  KeyboardAvoidingView,
-  Modal,
-  PanResponder,
   Platform,
-  Pressable,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
   StyleSheet
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { SelectionModal } from "./SelectionModal";
 import { DatePickerModal } from "./DatePickerModal";
 import { formatDate } from "../lib/utils";
+import BottomSheet from "./BottomSheet";
 
 /* ---------------- Types ---------------- */
 type ModalKey = "truck" | "driver" | "client" | "start" | "end" | null;
@@ -61,9 +57,6 @@ export default function EditTripModal({
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
-
-  const translateY = useRef(new Animated.Value(0)).current;
-  const SCROLL_THRESHOLD = 40;
 
   /* ---------------- Modal State ---------------- */
   const [activeModal, setActiveModal] = useState<ModalKey>(null);
@@ -108,34 +101,8 @@ export default function EditTripModal({
 
   }, [trip]);
 
-  /* ---------------- Modal Pan Gestures ---------------- */
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (_, g) => g.y0 < SCROLL_THRESHOLD,
-      onPanResponderMove: (_, g) => {
-        if (g.dy > 0) translateY.setValue(g.dy);
-      },
-      onPanResponderRelease: (_, g) => {
-        if (g.dy > 120) closeModal();
-        else
-          Animated.timing(translateY, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }).start();
-      },
-    })
-  ).current;
-
   const closeModal = () => {
-    Animated.timing(translateY, {
-      toValue: 800,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      translateY.setValue(0);
-      onClose();
-    });
+    onClose();
   };
 
   if (!trip) return null;
@@ -218,29 +185,12 @@ export default function EditTripModal({
 
   return (
     <>
-      <Modal transparent visible={visible} animationType="slide">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <Pressable className="flex-1" onPress={closeModal} />
-          <Animated.View
-            {...panResponder.panHandlers}
-            className="absolute bottom-0 w-full rounded-t-[42px]"
-            style={{
-              height: "90%",
-              backgroundColor: colors.background,
-              transform: [{ translateY }],
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: -10 },
-              shadowOpacity: 0.1,
-              shadowRadius: 20,
-              elevation: 20,
-            }}
-          >
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              style={{ flex: 1 }}
-            >
-              {/* Grab Handle */}
-              <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mt-3 mb-4 opacity-40" />
+      <BottomSheet
+        visible={visible}
+        onClose={closeModal}
+        title="Edit Trip"
+        subtitle={`${trip?.public_id ? `${trip.public_id} • ` : ''}Update journey`}
+      >
 
               {/* Header */}
               <View className="flex-row justify-between items-center mb-6 px-6">
@@ -255,11 +205,18 @@ export default function EditTripModal({
                 </TouchableOpacity>
               </View>
 
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}>
+              <KeyboardAwareScrollView
+                enableOnAndroid
+                extraScrollHeight={140}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
+              >
                 {/* Date Selector */}
                 <InputLabel label={"Trip Date"} required />
                 <TouchableOpacity
-                  style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+                  style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}
                   onPress={() => setShowDatePicker(true)}
                 >
                   <View className="flex-row items-center flex-1">
@@ -272,7 +229,7 @@ export default function EditTripModal({
                 {/* Client Selector */}
                 <InputLabel label={"Client"} required />
                 <TouchableOpacity
-                  style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+                  style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}
                   onPress={() => setActiveModal('client')}
                 >
                   <View className="flex-row items-center flex-1">
@@ -293,7 +250,7 @@ export default function EditTripModal({
                   <View className="flex-1">
                     <InputLabel label={"Origin"} required />
                     <TouchableOpacity
-                      style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+                      style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}
                       onPress={() => setActiveModal('start')}
                     >
                       <View className="flex-row items-center flex-1">
@@ -314,7 +271,7 @@ export default function EditTripModal({
                   <View className="flex-1">
                     <InputLabel label={"Destination"} required />
                     <TouchableOpacity
-                      style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+                      style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}
                       onPress={() => setActiveModal('end')}
                     >
                       <View className="flex-row items-center flex-1">
@@ -337,7 +294,7 @@ export default function EditTripModal({
                   <View className="flex-1">
                     <InputLabel label={"Truck"} required />
                     <TouchableOpacity
-                      style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+                      style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}
                       onPress={() => setActiveModal('truck')}
                     >
                       <View className="flex-row items-center flex-1">
@@ -358,7 +315,7 @@ export default function EditTripModal({
                   <View className="flex-1">
                     <InputLabel label={"Driver"} required />
                     <TouchableOpacity
-                      style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}
+                      style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}
                       onPress={() => setActiveModal('driver')}
                     >
                       <View className="flex-row items-center flex-1">
@@ -380,7 +337,7 @@ export default function EditTripModal({
                 <View className="flex-row gap-4">
                   <View className="flex-1">
                     <InputLabel label={"Freight Cost"} required />
-                    <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+                    <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
                       <IndianRupee size={18} color={colors.primary} />
                       <TextInput
                         placeholder="0.00"
@@ -395,7 +352,7 @@ export default function EditTripModal({
                   </View>
                   <View className="flex-1">
                     <InputLabel label="Misc Expenses" />
-                    <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF' }]}>
+                    <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
                       <IndianRupee size={18} color={colors.primary} />
                       <TextInput
                         placeholder="0.00"
@@ -412,7 +369,7 @@ export default function EditTripModal({
 
                 {/* Notes */}
                 <InputLabel label={"Trip Notes"} />
-                <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.card : '#FFFFFF', height: 100, alignItems: 'flex-start', paddingTop: 16 }]}>
+                <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input, height: 100, alignItems: 'flex-start', paddingTop: 16 }]}>
                   <View style={{ marginTop: 2 }}>
                     <FileText size={18} color={colors.primary} />
                   </View>
@@ -446,10 +403,7 @@ export default function EditTripModal({
                   <Text className="text-center font-bold" style={{ color: colors.destructive }}>DELETE TRIP</Text>
                 </TouchableOpacity>
 
-              </ScrollView>
-            </KeyboardAvoidingView>
-          </Animated.View>
-        </View>
+              </KeyboardAwareScrollView>
 
         {/* Select Modals */}
         <SelectionModal
@@ -500,7 +454,7 @@ export default function EditTripModal({
           onChange={(d) => setRawTripDate(d)}
         />
 
-      </Modal>
+      </BottomSheet>
     </>
   );
 }

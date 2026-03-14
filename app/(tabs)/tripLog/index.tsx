@@ -387,15 +387,15 @@ export default function TripLog() {
               paddingHorizontal: 14,
               paddingVertical: 10,
               borderRadius: 999,
-              backgroundColor: isDark ? "#0A3325" : "#E7FCEB",
+              backgroundColor: colors.successSoft,
               shadowColor: "#000",
               shadowOpacity: 0.08,
               shadowRadius: 4,
               elevation: 2
             }}
           >
-            <Ionicons name="filter" size={18} color={isDark ? "#4ADE80" : "#25D366"} />
-            <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#86EFAC" : "#128C7E" }}>{t("filters")}</Text>
+            <Ionicons name="filter" size={18} color={colors.success} />
+            <Text style={{ marginLeft: 8, fontWeight: "600", color: colors.success }}>{t("filters")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -406,15 +406,15 @@ export default function TripLog() {
               paddingHorizontal: 14,
               paddingVertical: 10,
               borderRadius: 999,
-              backgroundColor: isDark ? "#111B3C" : "#E8F0FE",
+              backgroundColor: colors.infoSoft,
               shadowColor: "#000",
               shadowOpacity: 0.08,
               shadowRadius: 4,
               elevation: 2
             }}
           >
-            <Ionicons name="download-outline" size={18} color={isDark ? "#93C5FD" : "#2563EB"} />
-            <Text style={{ marginLeft: 8, fontWeight: "600", color: isDark ? "#BFDBFE" : "#1D4ED8" }}>{t("pdf")}</Text>
+            <Ionicons name="download-outline" size={18} color={colors.info} />
+            <Text style={{ marginLeft: 8, fontWeight: "600", color: colors.info }}>{t("pdf")}</Text>
           </TouchableOpacity>
         </View >
 
@@ -495,7 +495,7 @@ export default function TripLog() {
                       </View>
                       <View style={{ flexDirection: "row", marginLeft: 6 }}>
                         <TouchableOpacity onPress={() => { setSelectedTrip(trip); setEditVisible(true); }} style={{ padding: 6, marginRight: 4 }}>
-                          <Edit3 size={18} color="#2563EB" />
+                          <Edit3 size={18} color={colors.info} />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => {
                           Alert.alert(t("delete"), t("deleteTripQuestion"), [
@@ -512,7 +512,7 @@ export default function TripLog() {
                             },
                           ]);
                         }} style={{ padding: 6 }}>
-                          <Trash2 size={18} color="#ef4444" />
+                          <Trash2 size={18} color={colors.destructive} />
                         </TouchableOpacity>
                       </View>
                     </View>

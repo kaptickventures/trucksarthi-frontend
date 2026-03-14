@@ -376,14 +376,14 @@ export default function Profile() {
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: isKycVerified ? '#dcfce7' : '#fee2e2',
+                    backgroundColor: isKycVerified ? colors.successSoft : colors.destructiveSoft,
                     borderRadius: 999,
                     paddingHorizontal: 8,
                     paddingVertical: 4
                   }}
                 >
-                  <CheckCircle2 size={12} color={isKycVerified ? '#16a34a' : '#dc2626'} />
-                  <Text style={{ fontSize: 11, fontWeight: '700', marginLeft: 4, color: isKycVerified ? '#16a34a' : '#dc2626' }}>
+                  <CheckCircle2 size={12} color={isKycVerified ? colors.success : colors.destructive} />
+                  <Text style={{ fontSize: 11, fontWeight: '700', marginLeft: 4, color: isKycVerified ? colors.success : colors.destructive }}>
                     {isKycVerified ? "KYC Verified" : "KYC Pending"}
                   </Text>
                 </View>
@@ -401,17 +401,17 @@ export default function Profile() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                backgroundColor: '#fff7ed',
+                backgroundColor: colors.warningSoft,
                 padding: 14,
                 borderRadius: 12,
                 borderWidth: 1.5,
-                borderColor: '#fdba74'
+                borderColor: colors.warning
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <ShieldCheck size={20} color="#ea580c" />
+                <ShieldCheck size={20} color={colors.warning} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#ea580c' }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 14, color: colors.warning }}>
                     KYC Status: Pending
                   </Text>
                   <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
@@ -460,7 +460,7 @@ export default function Profile() {
                 <TouchableOpacity
                   onPress={() => setIsEditing(!isEditing)}
                   style={{
-                    backgroundColor: isEditing ? (theme === 'dark' ? '#450a0a' : '#fee2e2') : (theme === 'dark' ? '#064e3b' : '#f0fdf4'),
+                    backgroundColor: isEditing ? colors.destructiveSoft : colors.successSoft,
                     paddingHorizontal: 12,
                     paddingVertical: 6,
                     borderRadius: 16
@@ -480,7 +480,7 @@ export default function Profile() {
                 icon={<Mail size={18} color={colors.mutedForeground} />}
                 labelAction={!user?.is_email_verified ? (sendingContactOtp && contactOtpType === "email" ? "Sending..." : "Verify") : undefined}
                 onLabelActionPress={!user?.is_email_verified ? () => handleRequestSecondaryOtp("email") : undefined}
-                rightNode={user?.is_email_verified ? <CheckCircle2 size={18} color="#16a34a" /> : undefined}
+                rightNode={user?.is_email_verified ? <CheckCircle2 size={18} color={colors.success} /> : undefined}
               />
               {contactOtpType === "email" && (
                 <View style={{ gap: 10, marginTop: -8 }}>
@@ -516,7 +516,7 @@ export default function Profile() {
                 icon={<Phone size={18} color={colors.mutedForeground} />}
                 labelAction={!user?.is_mobile_verified ? (sendingContactOtp && contactOtpType === "phone" ? "Sending..." : "Verify") : undefined}
                 onLabelActionPress={!user?.is_mobile_verified ? () => handleRequestSecondaryOtp("phone") : undefined}
-                rightNode={user?.is_mobile_verified ? <CheckCircle2 size={18} color="#16a34a" /> : undefined}
+                rightNode={user?.is_mobile_verified ? <CheckCircle2 size={18} color={colors.success} /> : undefined}
               />
               {contactOtpType === "phone" && (
                 <View style={{ gap: 10, marginTop: -8 }}>
@@ -605,7 +605,7 @@ export default function Profile() {
                     <TouchableOpacity
                       onPress={() => setIsEditing(!isEditing)}
                       style={{
-                        backgroundColor: isEditing ? (theme === 'dark' ? '#450a0a' : '#fee2e2') : (theme === 'dark' ? '#064e3b' : '#f0fdf4'),
+                        backgroundColor: isEditing ? colors.destructiveSoft : colors.successSoft,
                         paddingHorizontal: 12,
                         paddingVertical: 6,
                         borderRadius: 16
@@ -618,31 +618,31 @@ export default function Profile() {
                     <TouchableOpacity
                       onPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "bank" } } as any)}
                       style={{
-                        backgroundColor: '#e0f2fe',
-                        borderColor: '#7dd3fc',
+                        backgroundColor: colors.infoSoft,
+                        borderColor: colors.info,
                         borderWidth: 1,
                         paddingHorizontal: 12,
                         paddingVertical: 6,
                         borderRadius: 16
                       }}
                     >
-                      <Text style={{ color: '#0369a1', fontWeight: '700', fontSize: 12 }}>Update</Text>
+                      <Text style={{ color: colors.info, fontWeight: '700', fontSize: 12 }}>Update</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
               {(user?.is_bank_verified || bankVerificationResult?.verified) && (
                 <View style={{
-                  backgroundColor: '#f0fdf4',
+                  backgroundColor: colors.successSoft,
                   padding: 12,
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: '#bbf7d0',
+                  borderColor: colors.success,
                   marginBottom: 8
                 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <ShieldCheck size={20} color="#16a34a" />
-                    <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#16a34a' }}>
+                    <ShieldCheck size={20} color={colors.success} />
+                    <Text style={{ fontWeight: 'bold', fontSize: 14, color: colors.success }}>
                       Bank Account Verified ✓
                     </Text>
                   </View>
@@ -724,12 +724,15 @@ export default function Profile() {
   );
 }
 
-const SectionHeader = ({ title, icon }: any) => (
-  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-    {icon}
-    <Text style={{ fontSize: 16, fontWeight: 'bold', marginLeft: 8, color: '#16a34a' }}>{title}</Text>
-  </View>
-);
+const SectionHeader = ({ title, icon }: any) => {
+  const { colors } = useThemeStore();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+      {icon}
+      <Text style={{ fontSize: 16, fontWeight: 'bold', marginLeft: 8, color: colors.success }}>{title}</Text>
+    </View>
+  );
+};
 
 const ProfileInput = ({ label, value, editable, onChange, icon, multiline, placeholder, autoCapitalize, labelAction, onLabelActionPress, rightNode }: any) => {
   const { colors } = useThemeStore();
@@ -741,15 +744,15 @@ const ProfileInput = ({ label, value, editable, onChange, icon, multiline, place
           <TouchableOpacity
             onPress={onLabelActionPress}
             style={{
-              backgroundColor: '#e0f2fe',
-              borderColor: '#7dd3fc',
+              backgroundColor: colors.infoSoft,
+              borderColor: colors.info,
               borderWidth: 1,
               paddingHorizontal: 10,
               paddingVertical: 4,
               borderRadius: 999
             }}
           >
-            <Text style={{ color: '#0369a1', fontWeight: '700', fontSize: 11 }}>{labelAction}</Text>
+            <Text style={{ color: colors.info, fontWeight: '700', fontSize: 11 }}>{labelAction}</Text>
           </TouchableOpacity>
         )}
       </View>

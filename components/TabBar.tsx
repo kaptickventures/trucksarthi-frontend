@@ -1,20 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
-import { useColorScheme, View } from "react-native";
+import { View } from "react-native";
+import { useThemeStore } from "../hooks/useThemeStore";
 
 export default function TabBar() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  // 🎨 Adaptive color palette
-  const colors = {
-    background: isDark ? "#0E1116" : "#FFFFFF",
-    border: isDark ? "#1F242B" : "#E5E5E5",
-    active: isDark ? "#3B82F6" : "#1D4ED8",
-    inactive: isDark ? "#6B7280" : "#9CA3AF",
-    shadow: isDark ? "#00000080" : "#00000022",
-  };
+  const { colors } = useThemeStore();
 
   return (
     <Tabs
@@ -29,10 +20,10 @@ export default function TabBar() {
           height: 65,
           borderTopLeftRadius: 25,
           borderTopRightRadius: 25,
-          backgroundColor: colors.background,
+          backgroundColor: colors.card,
           borderTopWidth: 1,
           borderTopColor: colors.border,
-          shadowColor: colors.shadow,
+          shadowColor: "#00000033",
           shadowOpacity: 0.3,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: -3 },
@@ -41,8 +32,8 @@ export default function TabBar() {
           paddingBottom: 10,
           paddingTop: 10,
         },
-        tabBarActiveTintColor: colors.active,
-        tabBarInactiveTintColor: colors.inactive,
+        tabBarActiveTintColor: colors.info,
+        tabBarInactiveTintColor: colors.mutedForeground,
       }}
       initialRouteName="home"
     >

@@ -1,7 +1,6 @@
 import { MapPin, Search, X } from "lucide-react-native";
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
-  Modal,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { LocationSuggestion } from "../hooks/useLocation";
+import BottomSheet from "./BottomSheet";
 
 type LocationFormData = {
   location_name: string;
@@ -212,13 +212,8 @@ export default function LocationFormModal({
   const canSubmit = trimmedTitle.length > 0 || hasPinnedLocation;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={onClose}
-      presentationStyle="fullScreen"
-    >
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+    <BottomSheet visible={visible} onClose={onClose}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <Text style={[styles.title, { color: colors.foreground }]}>
@@ -390,7 +385,7 @@ export default function LocationFormModal({
           </TouchableOpacity>
         </KeyboardAwareScrollView>
       </View>
-    </Modal>
+    </BottomSheet>
   );
 }
 

@@ -1,13 +1,9 @@
 import { X } from "lucide-react-native";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
-    Animated,
-    useWindowDimensions,
     KeyboardAvoidingView,
-    Modal,
-    PanResponder,
+    Keyboard,
     Platform,
-    Pressable,
     Text,
     TouchableOpacity,
     View,
@@ -15,6 +11,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../hooks/useThemeStore";
+import {
+    BottomSheetBackdrop,
+    BottomSheetModal,
+    BottomSheetView,
+} from "@gorhom/bottom-sheet";
 
 type BottomSheetProps = {
     visible: boolean;
@@ -23,6 +24,7 @@ type BottomSheetProps = {
     subtitle?: string;
     children: React.ReactNode;
     maxHeight?: number | string;
+    expandedHeight?: number | string;
 };
 
 export default function BottomSheet({
@@ -31,158 +33,120 @@ export default function BottomSheet({
     title,
     subtitle,
     children,
-    maxHeight = "90%",
+    maxHeight = "70%",
+    expandedHeight = "90%",
 }: BottomSheetProps) {
     const { colors } = useThemeStore();
     const insets = useSafeAreaInsets();
-    const { height: SCREEN_HEIGHT } = useWindowDimensions();
-    const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-
-    const SCROLL_THRESHOLD = 40;
+    const sheetRef = useRef<BottomSheetModal>(null);
+    const snapPoints = useMemo(
+        () => [maxHeight as DimensionValue, expandedHeight as DimensionValue],
+        [maxHeight, expandedHeight]
+    );
 
     useEffect(() => {
         if (visible) {
-            Animated.spring(translateY, {
-                toValue: 0,
-                useNativeDriver: true,
-                tension: 65,
-                friction: 11,
-            }).start();
+            sheetRef.current?.present();
         } else {
-            translateY.setValue(SCREEN_HEIGHT);
+            sheetRef.current?.dismiss();
         }
-    }, [visible, SCREEN_HEIGHT, translateY]);
+    }, [visible]);
 
-    const handleClose = () => {
-        Animated.timing(translateY, {
-            toValue: SCREEN_HEIGHT,
-            duration: 250,
-            useNativeDriver: true,
-        }).start(() => {
-            onClose();
+    useEffect(() => {
+        if (!visible) return;
+
+        const showSub = Keyboard.addListener("keyboardDidShow", () => {
+            sheetRef.current?.snapToIndex(1);
         });
-    };
+        const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+            sheetRef.current?.snapToIndex(0);
+        });
 
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: (_, state) => state.y0 < SCROLL_THRESHOLD,
-            onMoveShouldSetPanResponder: (_, state) => Math.abs(state.dy) > 10,
-            onPanResponderMove: (_, state) => {
-                if (state.dy > 0) translateY.setValue(state.dy);
-            },
-            onPanResponderRelease: (_, state) => {
-                if (state.dy > 120) handleClose();
-                else {
-                    Animated.spring(translateY, {
-                        toValue: 0,
-                        useNativeDriver: true,
-                        bounciness: 4
-                    }).start();
-                }
-            },
-        })
-    ).current;
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, [visible]);
 
     return (
-        <Modal
-            visible={visible}
-            transparent
-            animationType="fade"
-            onRequestClose={handleClose}
-            statusBarTranslucent
+        <BottomSheetModal
+            ref={sheetRef}
+            index={0}
+            snapPoints={snapPoints}
+            onDismiss={onClose}
+            backdropComponent={(props) => (
+                <BottomSheetBackdrop
+                    {...props}
+                    appearsOnIndex={0}
+                    disappearsOnIndex={-1}
+                    pressBehavior="close"
+                />
+            )}
+            handleIndicatorStyle={{ backgroundColor: colors.mutedForeground, opacity: 0.4 }}
+            backgroundStyle={{ backgroundColor: colors.background }}
+            keyboardBehavior="extend"
+            keyboardBlurBehavior="restore"
+            android_keyboardInputMode="adjustResize"
         >
-            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }}>
-                <Pressable style={{ flex: 1 }} onPress={handleClose} />
-                <Animated.View
-                    {...panResponder.panHandlers}
-                    style={{
-                        backgroundColor: colors.background,
-                        width: "100%",
-                        maxHeight: maxHeight as DimensionValue,
-                        borderTopLeftRadius: 42,
-                        borderTopRightRadius: 42,
-                        paddingBottom: Math.max(insets.bottom, 20),
-                        transform: [{ translateY }],
-                        // Ensure it stays at the bottom
-                        position: "absolute",
-                        bottom: 0,
-                    }}
-                >
-                    <Pressable onPress={(e) => e.stopPropagation()}>
-                        {/* Grab Handle */}
-                        <View
+            <BottomSheetView style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
+                {/* Header */}
+                {(title || subtitle) && (
+                    <View style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        paddingHorizontal: 24,
+                        marginBottom: 20
+                    }}>
+                        <View style={{ flex: 1 }}>
+                            {title && (
+                                <Text style={{
+                                    color: colors.foreground,
+                                    fontSize: 24,
+                                    fontWeight: "900",
+                                    letterSpacing: -0.5
+                                }}>
+                                    {title}
+                                </Text>
+                            )}
+                            {subtitle && (
+                                <Text style={{
+                                    color: colors.mutedForeground,
+                                    fontSize: 11,
+                                    marginTop: 2,
+                                    fontWeight: "800",
+                                    textTransform: "uppercase",
+                                    letterSpacing: 1,
+                                    opacity: 0.6
+                                }}>
+                                    {subtitle}
+                                </Text>
+                            )}
+                        </View>
+                        <TouchableOpacity
+                            onPress={onClose}
                             style={{
-                                backgroundColor: colors.muted,
-                                width: 42,
-                                height: 5,
-                                borderRadius: 3,
-                                alignSelf: "center",
-                                marginTop: 12,
-                                marginBottom: 16,
-                                opacity: 0.4
-                            }}
-                        />
-
-                        {/* Header */}
-                        {(title || subtitle) && (
-                            <View style={{
-                                flexDirection: "row",
-                                justifyContent: "space-between",
+                                width: 36,
+                                height: 36,
+                                borderRadius: 18,
                                 alignItems: "center",
-                                paddingHorizontal: 24,
-                                marginBottom: 20
-                            }}>
-                                <View style={{ flex: 1 }}>
-                                    {title && (
-                                        <Text style={{
-                                            color: colors.foreground,
-                                            fontSize: 24,
-                                            fontWeight: "900",
-                                            letterSpacing: -0.5
-                                        }}>
-                                            {title}
-                                        </Text>
-                                    )}
-                                    {subtitle && (
-                                        <Text style={{
-                                            color: colors.mutedForeground,
-                                            fontSize: 11,
-                                            marginTop: 2,
-                                            fontWeight: "800",
-                                            textTransform: "uppercase",
-                                            letterSpacing: 1,
-                                            opacity: 0.6
-                                        }}>
-                                            {subtitle}
-                                        </Text>
-                                    )}
-                                </View>
-                                <TouchableOpacity
-                                    onPress={handleClose}
-                                    style={{
-                                        width: 36,
-                                        height: 36,
-                                        borderRadius: 18,
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        backgroundColor: colors.muted,
-                                    }}
-                                >
-                                    <X size={20} color={colors.foreground} />
-                                </TouchableOpacity>
-                            </View>
-                        )}
-
-                        {/* Content */}
-                        <KeyboardAvoidingView
-                            behavior={Platform.OS === "ios" ? "padding" : undefined}
-                            style={{ paddingHorizontal: 24 }}
+                                justifyContent: "center",
+                                backgroundColor: colors.muted,
+                            }}
                         >
-                            {children}
-                        </KeyboardAvoidingView>
-                    </Pressable>
-                </Animated.View>
-            </View>
-        </Modal>
+                            <X size={20} color={colors.foreground} />
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* Content */}
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : undefined}
+                    style={{ paddingHorizontal: 24 }}
+                >
+                    {children}
+                </KeyboardAvoidingView>
+            </BottomSheetView>
+        </BottomSheetModal>
     );
 }

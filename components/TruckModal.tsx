@@ -1,10 +1,6 @@
-import { X, Search, CheckCircle2 } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { Search, CheckCircle2 } from "lucide-react-native";
+import { useState } from "react";
 import {
-    Animated,
-    Modal,
-    PanResponder,
-    Pressable,
     Text,
     TextInput,
     TouchableOpacity,
@@ -16,6 +12,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { useKYC } from "../hooks/useKYC";
+import BottomSheet from "./BottomSheet";
 
 export type TruckFormData = {
     registration_number: string;
@@ -57,9 +54,7 @@ export default function TruckFormModal({
 }: Props) {
     const { colors, theme } = useThemeStore();
     const isDark = theme === "dark";
-    const translateY = useRef(new Animated.Value(0)).current;
     const insets = useSafeAreaInsets();
-    const SCROLL_THRESHOLD = 40;
 
     const { verifyRC, loading: isFetching } = useKYC();
     const [isVerified, setIsVerified] = useState(false);
@@ -128,37 +123,11 @@ export default function TruckFormModal({
     };
 
     const closeModal = () => {
-        Animated.timing(translateY, {
-            toValue: 800,
-            duration: 250,
-            useNativeDriver: true,
-        }).start(() => {
-            translateY.setValue(0);
-            setIsVerified(false);
-            setShowAllFields(editing); // Reset to initial state
-            setShowFetchedSummary(false);
-            onClose();
-        });
+        setIsVerified(false);
+        setShowAllFields(editing); // Reset to initial state
+        setShowFetchedSummary(false);
+        onClose();
     };
-
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: (_, state) => state.y0 < SCROLL_THRESHOLD,
-            onPanResponderMove: (_, state) => {
-                if (state.dy > 0) translateY.setValue(state.dy);
-            },
-            onPanResponderRelease: (_, state) => {
-                if (state.dy > 120) closeModal();
-                else {
-                    Animated.spring(translateY, {
-                        toValue: 0,
-                        useNativeDriver: true,
-                        bounciness: 4
-                    }).start();
-                }
-            },
-        })
-    ).current;
 
     const allFields: { label: string; key: TruckInputFieldKey; placeholder: string; required?: boolean; numeric?: boolean }[] = [
         { label: "Registration Number", key: "registration_number", placeholder: "e.g. MH 12 AB 1234", required: true },
@@ -174,43 +143,17 @@ export default function TruckFormModal({
             : [allFields[0]];
 
     return (
-        <Modal visible={visible} transparent animationType="fade">
-            <Pressable className="flex-1 bg-black/60" onPress={closeModal}>
-                <Animated.View
-                    {...panResponder.panHandlers}
-                    className="absolute bottom-0 w-full rounded-t-[42px]"
-                    style={{
-                        backgroundColor: colors.background,
-                        height: showAllFields ? "94%" : "78%",
-                        paddingHorizontal: 24,
-                        paddingTop: 12,
-                        transform: [{ translateY }],
-                    }}
-                >
-
-                    {/* Grab Handle */}
-                    <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-4 opacity-40" />
-
-                    {/* Header */}
-                    <View className="flex-row justify-between items-center mb-6 px-2">
-                        <View>
-                            <Text style={{ color: colors.foreground }} className="text-2xl font-black tracking-tight">
-                                {editing ? "Update Vehicle" : "Add New Truck"}
-                            </Text>
-                            <Text className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-widest">
-                                {showAllFields ? "Vehicle Configuration" : showFetchedSummary ? "Verified Details" : "Enter Registration Number"}
-                            </Text>
-                        </View>
-                        <TouchableOpacity onPress={closeModal} className="w-10 h-10 bg-muted rounded-full items-center justify-center">
-                            <X size={22} color={colors.foreground} />
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Form */}
-                    <KeyboardAwareScrollView
+        <BottomSheet
+            visible={visible}
+            onClose={closeModal}
+            title={editing ? "Update Vehicle" : "Add New Truck"}
+            subtitle={showAllFields ? "Vehicle Configuration" : showFetchedSummary ? "Verified Details" : "Enter Registration Number"}
+        >
+            <KeyboardAwareScrollView
                         enableOnAndroid
-                        extraScrollHeight={80}
-                        extraHeight={240}
+                        extraScrollHeight={120}
+                        enableAutomaticScroll={false}
+                        scrollEnabled={false}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         keyboardDismissMode="on-drag"
@@ -230,7 +173,7 @@ export default function TruckFormModal({
                                                     backgroundColor: isDark ? colors.card : colors.secondary + '40',
                                                     color: colors.foreground,
                                                     borderWidth: 1,
-                                                    borderColor: (field.key === "registration_number" && isVerified) ? '#22C55E' : (isDark ? colors.border : colors.border + '30')
+                                                    borderColor: (field.key === "registration_number" && isVerified) ? colors.success : (isDark ? colors.border : colors.border + '30')
                                                 }}
                                                 value={formData[field.key]}
                                                 onChangeText={(val) => {
@@ -255,7 +198,7 @@ export default function TruckFormModal({
                                                 onPress={handleFetchRC}
                                                 disabled={isFetching}
                                                 style={{
-                                                    backgroundColor: isVerified ? '#22C55E20' : colors.primary,
+                                                    backgroundColor: isVerified ? colors.successSoft : colors.primary,
                                                     width: 54,
                                                     height: 54,
                                                     borderRadius: 16,
@@ -266,7 +209,7 @@ export default function TruckFormModal({
                                                 {isFetching ? (
                                                     <ActivityIndicator color="white" size="small" />
                                                 ) : isVerified ? (
-                                                    <CheckCircle2 color="#22C55E" size={24} />
+                                                    <CheckCircle2 color={colors.success} size={24} />
                                                 ) : (
                                                     <Search color="white" size={24} />
                                                 )}
@@ -309,9 +252,7 @@ export default function TruckFormModal({
                                 </TouchableOpacity>
                             )}
                         </View>
-                    </KeyboardAwareScrollView>
-                </Animated.View>
-            </Pressable>
-        </Modal>
+            </KeyboardAwareScrollView>
+        </BottomSheet>
     );
 }

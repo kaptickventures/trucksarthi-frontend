@@ -27,13 +27,13 @@ export default function FinanceScreen() {
   }, [fetchSummary]);
 
   const sections = [
-    { title: "Transactions", description: "All entries", icon: "list-outline", color: "#3b82f6", route: "/(stack)/transactions" },
-    { title: "P&L Reports", description: "Client, driver, truck & misc", icon: "stats-chart-outline", color: "#8b5cf6", route: "/(stack)/pl-reports" },
-    { title: "Driver Khata", description: "Driver khata", icon: "people-outline", color: "#f59e0b", route: "/(stack)/driver-ledger" },
-    { title: "Client Khata", description: "Client khata", icon: "business-outline", color: "#10b981", route: "/(stack)/client-ledger" },
-    { title: "Daily Khata", description: "Fuel, Fastag Recharge, Challan", icon: "speedometer-outline", color: "#ef4444", route: "/(stack)/daily-khata" },
-    { title: "Maintenance Khata", description: "Document Expenses, Service & Repair", icon: "construct-outline", color: "#0f766e", route: "/(stack)/maintenance-khata" },
-    { title: "Misc Transactions", description: "Other entries", icon: "apps-outline", color: "#f97316", route: "/(stack)/misc-transactions" },
+    { title: "Transactions", description: "All entries", icon: "list-outline", color: colors.info, bg: colors.infoSoft, route: "/(stack)/transactions" },
+    { title: "P&L Reports", description: "Client, driver, truck & misc", icon: "stats-chart-outline", color: colors.warning, bg: colors.warningSoft, route: "/(stack)/pl-reports" },
+    { title: "Driver Khata", description: "Driver khata", icon: "people-outline", color: colors.success, bg: colors.successSoft, route: "/(stack)/driver-ledger" },
+    { title: "Client Khata", description: "Client khata", icon: "business-outline", color: colors.info, bg: colors.infoSoft, route: "/(stack)/client-ledger" },
+    { title: "Daily Khata", description: "Fuel, Fastag Recharge, Challan", icon: "speedometer-outline", color: colors.destructive, bg: colors.destructiveSoft, route: "/(stack)/daily-khata" },
+    { title: "Maintenance Khata", description: "Document Expenses, Service & Repair", icon: "construct-outline", color: colors.warning, bg: colors.warningSoft, route: "/(stack)/maintenance-khata" },
+    { title: "Misc Transactions", description: "Other entries", icon: "apps-outline", color: colors.destructive, bg: colors.destructiveSoft, route: "/(stack)/misc-transactions" },
   ];
 
   const balance = Number(metrics.income || 0) - Number(metrics.expense || 0);
@@ -65,8 +65,8 @@ export default function FinanceScreen() {
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
               <View style={{ flex: 1, backgroundColor: colors.card, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <View style={{ padding: 6, backgroundColor: isDark ? "#064e3b" : "#dcfce7", borderRadius: 20 }}>
-                    <ArrowDownLeft size={16} color="#16a34a" />
+                  <View style={{ padding: 6, backgroundColor: colors.successSoft, borderRadius: 20 }}>
+                    <ArrowDownLeft size={16} color={colors.success} />
                   </View>
                   <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "600" }}>Income</Text>
                 </View>
@@ -76,8 +76,8 @@ export default function FinanceScreen() {
               </View>
               <View style={{ flex: 1, backgroundColor: colors.card, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <View style={{ padding: 6, backgroundColor: isDark ? "#7f1d1d" : "#fee2e2", borderRadius: 20 }}>
-                    <ArrowUpRight size={16} color="#dc2626" />
+                  <View style={{ padding: 6, backgroundColor: colors.destructiveSoft, borderRadius: 20 }}>
+                    <ArrowUpRight size={16} color={colors.destructive} />
                   </View>
                   <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "600" }}>Expense</Text>
                 </View>
@@ -89,13 +89,13 @@ export default function FinanceScreen() {
 
             <View style={{ backgroundColor: colors.primary, padding: 20, borderRadius: 20, marginBottom: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <View>
-                <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, fontWeight: "600", marginBottom: 4 }}>Balance</Text>
-                <Text style={{ color: "white", fontSize: 28, fontWeight: "bold" }}>
+                <Text style={{ color: colors.primaryForeground, fontSize: 14, fontWeight: "600", marginBottom: 4, opacity: 0.8 }}>Balance</Text>
+                <Text style={{ color: colors.primaryForeground, fontSize: 28, fontWeight: "bold" }}>
                   {balance >= 0 ? "+" : "-"}Rs {Math.abs(balance).toLocaleString()}
                 </Text>
               </View>
               <View style={{ backgroundColor: "rgba(255,255,255,0.2)", padding: 10, borderRadius: 12 }}>
-                <PieChart size={32} color="white" />
+                <PieChart size={32} color={colors.primaryForeground} />
               </View>
             </View>
           </>
@@ -111,7 +111,7 @@ export default function FinanceScreen() {
               style={{ backgroundColor: colors.card, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}
             >
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${item.color}20`, alignItems: "center", justifyContent: "center" }}>
+                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: item.bg, alignItems: "center", justifyContent: "center" }}>
                   <Ionicons name={item.icon as any} size={22} color={item.color} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 12, marginRight: 8 }}>

@@ -176,8 +176,8 @@ export default function ClientPaymentsScreen() {
           <View key={row.paymentId} style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 10 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
               <Text style={{ fontWeight: "700", color: colors.foreground }}>{row.clientName}</Text>
-              <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, backgroundColor: row.paymentType === "FULL" ? "#dcfce7" : "#fff7ed" }}>
-                <Text style={{ fontSize: 10, fontWeight: "700", color: row.paymentType === "FULL" ? "#166534" : "#9a3412" }}>{row.paymentType}</Text>
+              <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, backgroundColor: row.paymentType === "FULL" ? colors.successSoft : colors.warningSoft }}>
+                <Text style={{ fontSize: 10, fontWeight: "700", color: row.paymentType === "FULL" ? colors.success : colors.warning }}>{row.paymentType}</Text>
               </View>
             </View>
             <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 6 }}>

@@ -1,12 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -15,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Trash2 } from "lucide-react-native";
 import BottomSheet from "../../components/BottomSheet";
 import { Skeleton } from "../../components/Skeleton";
@@ -242,8 +238,16 @@ export default function DriverLedgerDetailScreen() {
         onClose={() => setShowAdd(false)}
         title="Add Ledger Entry"
         subtitle={driver?.driver_name || "Driver"}
+        maxHeight="90%"
       >
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <KeyboardAwareScrollView
+          enableOnAndroid
+          extraScrollHeight={120}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
           <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>ENTRY TYPE</Text>
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
             {([
@@ -341,7 +345,7 @@ export default function DriverLedgerDetailScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </BottomSheet>
     </View>
   );

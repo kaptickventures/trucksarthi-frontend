@@ -1,14 +1,7 @@
-import { X, UserPlus, Search, CheckCircle2 } from "lucide-react-native";
-import { useRef, useState, useEffect } from "react";
+import { UserPlus, Search, CheckCircle2 } from "lucide-react-native";
+import { useState } from "react";
 import {
-  Animated,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  PanResponder,
   Platform,
-  Pressable,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -16,10 +9,12 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../hooks/useThemeStore";
 import * as Contacts from "expo-contacts";
 import API from "../app/api/axiosInstance";
+import BottomSheet from "./BottomSheet";
 
 export type ClientFormData = {
   client_name: string;
@@ -51,29 +46,8 @@ export default function ClientFormModal({
 }: Props) {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
-  const translateY = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
-  const keyboardVerticalOffset = Platform.select({
-    ios: Math.max(insets.bottom, 12),
-    android: 0,
-    default: 0,
-  });
-  const SCROLL_THRESHOLD = 40;
-
   const [verifying, setVerifying] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
-    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   const verifyGSTIN = async () => {
     const normalizedGstin = (formData.gstin || "").trim().toUpperCase();
@@ -116,34 +90,8 @@ export default function ClientFormModal({
   };
 
   const closeModal = () => {
-    Animated.timing(translateY, {
-      toValue: 800,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      translateY.setValue(0);
-      onClose();
-    });
+    onClose();
   };
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (_, state) => state.y0 < SCROLL_THRESHOLD,
-      onPanResponderMove: (_, state) => {
-        if (state.dy > 0) translateY.setValue(state.dy);
-      },
-      onPanResponderRelease: (_, state) => {
-        if (state.dy > 120) closeModal();
-        else {
-          Animated.timing(translateY, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
 
   const normalizePhone = (value?: string) => {
     if (!value) return "";
@@ -193,14 +141,17 @@ export default function ClientFormModal({
   };
 
   const renderSimpleAdd = () => (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
+    <KeyboardAwareScrollView
+      enableOnAndroid
+      extraScrollHeight={120}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 80, 100) }}
     >
       {!editing && formData.gstin_details && (
         <View className="bg-green-500/10 p-4 rounded-2xl mb-5 flex-row items-center border border-green-500/20">
-          <CheckCircle2 size={24} color="#22c55e" className="mr-3" />
+          <CheckCircle2 size={24} color={colors.success} className="mr-3" />
           <View className="flex-1">
             <Text className="text-green-700 font-bold text-[10px] uppercase tracking-widest leading-tight">GSTIN Verified</Text>
             <Text style={{ color: colors.foreground }} className="font-bold text-sm" numberOfLines={1}>
@@ -296,13 +247,16 @@ export default function ClientFormModal({
           Create Client
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 
   const renderEditForm = () => (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
+    <KeyboardAwareScrollView
+      enableOnAndroid
+      extraScrollHeight={120}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 80, 100) }}
     >
       <View className="mb-8">
@@ -409,49 +363,16 @@ export default function ClientFormModal({
           Update Client
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <Pressable className="flex-1 bg-black/60" onPress={closeModal}>
-        <Animated.View
-          {...panResponder.panHandlers}
-          className="absolute bottom-0 w-full rounded-t-[32px]"
-          style={{
-            backgroundColor: colors.background,
-            height: editing ? "92%" : keyboardVisible ? "88%" : "76%",
-            paddingHorizontal: 24,
-            paddingTop: 12,
-            transform: [{ translateY }],
-          }}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            keyboardVerticalOffset={keyboardVerticalOffset}
-            className="flex-1"
-          >
-            <View style={{ backgroundColor: colors.muted }} className="w-12 h-1.5 rounded-full self-center mb-4 opacity-40" />
-
-            <View className="flex-row justify-between items-center mb-6">
-              <View>
-                <Text style={{ color: colors.foreground }} className="text-xl font-black tracking-tight">
-                  {editing ? "Edit Client" : "New Client"}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={closeModal}
-                className="w-10 h-10 rounded-full items-center justify-center"
-                style={{ backgroundColor: colors.muted }}
-              >
-                <X size={22} color={colors.foreground} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ flex: 1 }}>{editing ? renderEditForm() : renderSimpleAdd()}</View>
-          </KeyboardAvoidingView>
-        </Animated.View>
-      </Pressable>
-    </Modal>
+    <BottomSheet
+      visible={visible}
+      onClose={closeModal}
+      title={editing ? "Edit Client" : "New Client"}
+    >
+      <View style={{ flex: 1 }}>{editing ? renderEditForm() : renderSimpleAdd()}</View>
+    </BottomSheet>
   );
 }

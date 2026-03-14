@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Modal,
     View,
     Text,
     TouchableOpacity,
     FlatList,
     TextInput,
     StyleSheet,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Search, Plus, X, Check } from 'lucide-react-native';
 import { useThemeStore } from '../hooks/useThemeStore';
+import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 
 interface SelectionModalProps {
     visible: boolean;
@@ -36,101 +38,119 @@ export function SelectionModal({
     const [search, setSearch] = useState('');
     const { colors, theme } = useThemeStore();
     const isDark = theme === "dark";
+    const sheetRef = useRef<BottomSheetModal>(null);
+    const snapPoints = useMemo(() => ["70%"], []);
+
+    useEffect(() => {
+        if (visible) sheetRef.current?.present();
+        else sheetRef.current?.dismiss();
+    }, [visible]);
 
     const filteredItems = items.filter(item =>
         item.label.toLowerCase().includes(search.toLowerCase())
     );
 
     return (
-        <Modal
-            visible={visible}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={onClose}
+        <BottomSheetModal
+            ref={sheetRef}
+            index={0}
+            snapPoints={snapPoints}
+            onDismiss={onClose}
+            backdropComponent={(props) => (
+                <BottomSheetBackdrop
+                    {...props}
+                    appearsOnIndex={0}
+                    disappearsOnIndex={-1}
+                    pressBehavior="close"
+                />
+            )}
+            handleIndicatorStyle={{ backgroundColor: colors.mutedForeground, opacity: 0.4 }}
+            backgroundStyle={{ backgroundColor: colors.background }}
+            keyboardBehavior="extend"
+            keyboardBlurBehavior="restore"
+            android_keyboardInputMode="adjustResize"
         >
-            <View style={styles.overlay}>
-                <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-                    <View style={styles.content}>
-                        <View style={styles.header}>
-                            <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
-                            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                                <X size={24} color={colors.mutedForeground} />
-                            </TouchableOpacity>
-                        </View>
+            <BottomSheetView style={{ flex: 1 }}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                >
+                    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                        <View style={styles.content}>
+                            <View style={styles.header}>
+                                <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+                                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                                    <X size={24} color={colors.mutedForeground} />
+                                </TouchableOpacity>
+                            </View>
 
-                        <View style={[styles.searchBar, { backgroundColor: colors.input }]}>
-                            <Search size={20} color={colors.mutedForeground} />
-                            <TextInput
-                                style={[styles.searchInput, { color: colors.foreground }]}
-                                placeholder={placeholder}
-                                value={search}
-                                onChangeText={setSearch}
-                                placeholderTextColor={colors.mutedForeground}
+                            <View style={[styles.searchBar, { backgroundColor: colors.input }]}>
+                                <Search size={20} color={colors.mutedForeground} />
+                                <TextInput
+                                    style={[styles.searchInput, { color: colors.foreground }]}
+                                    placeholder={placeholder}
+                                    value={search}
+                                    onChangeText={setSearch}
+                                    placeholderTextColor={colors.mutedForeground}
+                                />
+                            </View>
+
+                            <FlatList
+                                data={filteredItems}
+                                keyExtractor={(item) => item.value}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.item,
+                                            { borderBottomColor: colors.border },
+                                            selectedValue === item.value && { backgroundColor: isDark ? colors.secondary : colors.accent }
+                                        ]}
+                                        onPress={() => {
+                                            onSelect(item.value);
+                                            onClose();
+                                        }}
+                                    >
+                                        <Text style={[
+                                            styles.itemText,
+                                            { color: colors.foreground },
+                                            selectedValue === item.value && { fontWeight: 'bold', color: colors.primary }
+                                        ]}>
+                                            {item.label}
+                                        </Text>
+                                        {selectedValue === item.value && (
+                                            <Check size={20} color={colors.primary} />
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                                ListEmptyComponent={
+                                    <View style={styles.emptyContainer}>
+                                        <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No results found</Text>
+                                    </View>
+                                }
                             />
-                        </View>
 
-                        <FlatList
-                            data={filteredItems}
-                            keyExtractor={(item) => item.value}
-                            renderItem={({ item }) => (
+                            {onAddItem && (
                                 <TouchableOpacity
-                                    style={[
-                                        styles.item,
-                                        { borderBottomColor: colors.border },
-                                        selectedValue === item.value && { backgroundColor: isDark ? colors.secondary : colors.accent }
-                                    ]}
+                                    style={[styles.addButton, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
                                     onPress={() => {
-                                        onSelect(item.value);
                                         onClose();
-                                    }}
-                                >
-                                    <Text style={[
-                                        styles.itemText,
-                                        { color: colors.foreground },
-                                        selectedValue === item.value && { fontWeight: 'bold', color: colors.primary }
-                                    ]}>
-                                        {item.label}
-                                    </Text>
-                                    {selectedValue === item.value && (
-                                        <Check size={20} color={colors.primary} />
-                                    )}
+                                        onAddItem();
+                                    }}>
+                                    <Plus size={20} color="white" />
+                                    <Text style={styles.addButtonText}>Add New</Text>
                                 </TouchableOpacity>
                             )}
-                            ListEmptyComponent={
-                                <View style={styles.emptyContainer}>
-                                    <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No results found</Text>
-                                </View>
-                            }
-                        />
-
-                        {onAddItem && (
-                            <TouchableOpacity
-                                style={[styles.addButton, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
-                                onPress={() => {
-                                    onClose();
-                                    onAddItem();
-                                }}>
-                                <Plus size={20} color="white" />
-                                <Text style={styles.addButtonText}>Add New</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                </SafeAreaView>
-            </View>
-        </Modal>
+                        </View>
+                    </SafeAreaView>
+                </KeyboardAvoidingView>
+            </BottomSheetView>
+        </BottomSheetModal>
     );
 }
 
 const styles = StyleSheet.create({
-    overlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
     container: {
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        height: '80%',
+        height: '100%',
     },
     content: {
         flex: 1,

@@ -224,16 +224,18 @@ export default function ClientsManager() {
                       const waNumber = cleaned.length === 12 && cleaned.startsWith("91") ? cleaned : `91${cleaned.slice(-10)}`;
                       Linking.openURL(`https://wa.me/${waNumber}`);
                     }}
-                    className="w-10 h-10 bg-[#25D366]/10 rounded-full items-center justify-center"
+                    className="w-10 h-10 rounded-full items-center justify-center"
+                    style={{ backgroundColor: colors.successSoft }}
                   >
-                    <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
+                    <Ionicons name="logo-whatsapp" size={16} color={colors.success} />
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={(e) => { e.stopPropagation(); handleDelete(client._id); }}
-                    className="w-10 h-10 bg-red-500/10 rounded-full items-center justify-center"
+                    className="w-10 h-10 rounded-full items-center justify-center"
+                    style={{ backgroundColor: colors.destructiveSoft }}
                   >
-                    <Trash2 size={16} color="#ef4444" />
+                    <Trash2 size={16} color={colors.destructive} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -269,7 +271,7 @@ export default function ClientsManager() {
           zIndex: 999
         }}
       >
-        <Plus color="#FFFFFF" size={28} strokeWidth={3} />
+        <Plus color={colors.primaryForeground} size={28} strokeWidth={3} />
       </TouchableOpacity>
 
       <ClientFormModal

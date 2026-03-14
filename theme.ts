@@ -24,7 +24,13 @@ export const THEME = {
     accentForeground: "#128C7E",
 
     success: "#25D366",
+    successSoft: "#E6FFEE",
     destructive: "#FF4B4B",
+    destructiveSoft: "#FEE2E2",
+    warning: "#F4B400",
+    warningSoft: "#FEF3C7",
+    info: "#1D4ED8",
+    infoSoft: "#DBEAFE",
 
     border: "#D1D1D1",
     input: "#F0F0F0",
@@ -62,10 +68,16 @@ export const THEME = {
     accentForeground: "#FFFFFF",
 
     success: "#1FA855",
+    successSoft: "#0A3325",
     destructive: "#FF5C5C",
+    destructiveSoft: "#450A0A",
+    warning: "#F4C430",
+    warningSoft: "#3A2A05",
+    info: "#3B82F6",
+    infoSoft: "#111B3C",
 
     border: "#2A343C",
-    input: "#202C33",
+    input: "#26333B",
     ring: "#1FA855",
 
     radius: "0.625rem",

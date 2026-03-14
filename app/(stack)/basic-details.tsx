@@ -173,7 +173,7 @@ export default function BasicDetailsScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Header Splash */}
-                    <View style={{ backgroundColor: theme === 'dark' ? colors.muted : '#F0FDF4', padding: 32, paddingBottom: 48, borderBottomLeftRadius: 40, borderBottomRightRadius: 40 }}>
+                    <View style={{ backgroundColor: theme === 'dark' ? colors.muted : colors.successSoft, padding: 32, paddingBottom: 48, borderBottomLeftRadius: 40, borderBottomRightRadius: 40 }}>
                         <Text style={{ fontSize: 32, fontWeight: '900', color: colors.foreground, marginBottom: 8 }}>Almost There!</Text>
                         <Text style={{ fontSize: 16, color: colors.mutedForeground, lineHeight: 22 }}>Just a few more details to get your fleet management journey started.</Text>
                     </View>

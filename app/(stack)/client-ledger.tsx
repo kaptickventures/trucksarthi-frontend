@@ -178,14 +178,14 @@ export default function ClientLedgerScreen() {
                     paddingHorizontal: 10,
                     paddingVertical: 4,
                     borderRadius: 20,
-                    backgroundColor: hasOutstanding ? "#fee2e2" : "#dcfce7",
+                    backgroundColor: hasOutstanding ? colors.destructiveSoft : colors.successSoft,
                   }}
                 >
                   <Text
                     style={{
                       fontSize: 13,
                       fontWeight: "800",
-                      color: hasOutstanding ? "#dc2626" : "#16a34a",
+                      color: hasOutstanding ? colors.destructive : colors.success,
                     }}
                   >
                     {hasOutstanding ? `-Rs ${row.unbilled.toLocaleString()} ${t('due') || 'due'}` : t('settled')}
@@ -210,7 +210,7 @@ export default function ClientLedgerScreen() {
                 <View style={{ width: 1, backgroundColor: colors.border }} />
                 <View>
                   <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{(t('unbilled') || 'Unbilled').toUpperCase()}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: hasOutstanding ? "#dc2626" : colors.mutedForeground }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: hasOutstanding ? colors.destructive : colors.mutedForeground }}>
                     Rs {row.unbilled.toLocaleString()}
                   </Text>
                 </View>

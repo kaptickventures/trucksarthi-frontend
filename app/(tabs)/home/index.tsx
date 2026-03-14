@@ -35,6 +35,8 @@ export default function HomeScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { t } = useTranslation();
+  const quickActionIconBg = colors.accent;
+  const quickActionIconColor = colors.primary;
 
 
   const [refreshing, setRefreshing] = useState(false);
@@ -426,12 +428,12 @@ export default function HomeScreen() {
         {/* ====== Quick Actions ====== */}
         <View className="flex-row flex-wrap justify-between mt-2 mb-6">
           {[
-            { title: "Driver khata", icon: "person-outline", route: "/driver-ledger", iconBg: "#DBEAFE", iconColor: "#1D4ED8" },
-            { title: "Client khata", icon: "people-outline", route: "/client-ledger", iconBg: "#DCFCE7", iconColor: "#166534" },
-            { title: "Document Manager", icon: "document-text-outline", route: "/documents-manager", iconBg: "#FEF3C7", iconColor: "#92400E" },
-            { title: "Daily khata", icon: "speedometer-outline", route: "/daily-khata", iconBg: "#FCE7F3", iconColor: "#9D174D" },
-            { title: "Maintenance khata", icon: "build-outline", route: "/maintenance-khata", iconBg: "#EDE9FE", iconColor: "#5B21B6" },
-            { title: "Misc transactions", icon: "swap-horizontal-outline", route: "/misc-transactions", iconBg: "#E0F2FE", iconColor: "#0C4A6E" },
+            { title: "Driver khata", icon: "person-outline", route: "/driver-ledger" },
+            { title: "Client khata", icon: "people-outline", route: "/client-ledger" },
+            { title: "Document Manager", icon: "document-text-outline", route: "/documents-manager" },
+            { title: "Daily khata", icon: "speedometer-outline", route: "/daily-khata" },
+            { title: "Maintenance khata", icon: "build-outline", route: "/maintenance-khata" },
+            { title: "Misc transactions", icon: "swap-horizontal-outline", route: "/misc-transactions" },
           ].map((item, idx) => (
             <TouchableOpacity
               key={idx}
@@ -453,9 +455,9 @@ export default function HomeScreen() {
             >
               <View
                 className="rounded-full items-center justify-center mb-2"
-                style={{ width: 34, height: 34, backgroundColor: item.iconBg }}
+                style={{ width: 34, height: 34, backgroundColor: quickActionIconBg }}
               >
-                <Ionicons name={item.icon as any} size={18} color={item.iconColor} />
+                <Ionicons name={item.icon as any} size={18} color={quickActionIconColor} />
               </View>
               <Text
                 className="text-muted-foreground text-[11px] text-center font-semibold"

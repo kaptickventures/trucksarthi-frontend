@@ -146,7 +146,7 @@ export default function KYCVerification() {
         if (!value) return null;
         return (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                <CheckCircle size={14} color="#16a34a" />
+                <CheckCircle size={14} color={colors.success} />
                 <Text style={{ color: colors.mutedForeground, fontSize: 13, marginLeft: 6 }}>
                     {label}: {value}
                 </Text>
@@ -221,8 +221,8 @@ export default function KYCVerification() {
                                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                                     <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", textTransform: "uppercase" }}>{label}</Text>
                                     {isCurrent && (
-                                        <View style={{ backgroundColor: "#dcfce7", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
-                                            <Text style={{ fontSize: 10, fontWeight: "700", color: "#16a34a" }}>Current</Text>
+                                        <View style={{ backgroundColor: colors.successSoft, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
+                                            <Text style={{ fontSize: 10, fontWeight: "700", color: colors.success }}>Current</Text>
                                         </View>
                                     )}
                                 </View>
@@ -456,19 +456,19 @@ export default function KYCVerification() {
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                                 <CreditCard size={24} color={colors.primary} />
                                 {isPanVerifiedNow ? (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                        <CheckCircle size={14} color="#16a34a" />
-                                        <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.successSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <CheckCircle size={14} color={colors.success} />
+                                        <Text style={{ color: colors.success, fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
                                     </View>
                                 ) : isVerifying ? (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                        <Loader2 size={14} color="#f59e0b" />
-                                        <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verifying...</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.warningSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <Loader2 size={14} color={colors.warning} />
+                                        <Text style={{ color: colors.warning, fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verifying...</Text>
                                     </View>
                                 ) : (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                        <XCircle size={14} color="#dc2626" />
-                                        <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.destructiveSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <XCircle size={14} color={colors.destructive} />
+                                        <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
                                     </View>
                                 )}
                             </View>
@@ -477,7 +477,7 @@ export default function KYCVerification() {
                                 <View>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                                         <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>PAN Number</Text>
-                                        {isPanVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
+                                        {isPanVerifiedNow && <CheckCircle size={14} color={colors.success} />}
                                     </View>
                                     <TextInput
                                         value={pan}
@@ -515,7 +515,7 @@ export default function KYCVerification() {
                         </View>
 
                         {isPanVerifiedNow && user.kyc_data?.pan_details && (
-                            <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
+                            <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: colors.success }}>
                                 <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Details:</Text>
                                 <VerifiedValue label="Registered Name" value={user.kyc_data.pan_details.registered_name} />
                                 <VerifiedValue label="Type" value={user.kyc_data.pan_details.type} />
@@ -531,14 +531,14 @@ export default function KYCVerification() {
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                                 <Building2 size={24} color={colors.primary} />
                                 {isGstinVerifiedNow ? (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                        <CheckCircle size={14} color="#16a34a" />
-                                        <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.successSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <CheckCircle size={14} color={colors.success} />
+                                        <Text style={{ color: colors.success, fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
                                     </View>
                                 ) : (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                        <XCircle size={14} color="#dc2626" />
-                                        <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.destructiveSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <XCircle size={14} color={colors.destructive} />
+                                        <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
                                     </View>
                                 )}
                             </View>
@@ -547,7 +547,7 @@ export default function KYCVerification() {
                                 <View>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                                         <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>GSTIN</Text>
-                                        {isGstinVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
+                                        {isGstinVerifiedNow && <CheckCircle size={14} color={colors.success} />}
                                     </View>
                                     <TextInput
                                         value={gstin}
@@ -578,7 +578,7 @@ export default function KYCVerification() {
                         </View>
 
                         {isGstinVerifiedNow && user.kyc_data?.gstin_details && (
-                            <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
+                            <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: colors.success }}>
                                 <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Business Details:</Text>
                                 <VerifiedValue label="Legal Name" value={user.kyc_data.gstin_details.legal_name_of_business} />
                                 <VerifiedValue label="Trade Name" value={user.kyc_data.gstin_details.trade_name_of_business} />
@@ -597,14 +597,14 @@ export default function KYCVerification() {
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                                 <Building2 size={24} color={colors.primary} />
                                 {isBankVerifiedNow ? (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                        <CheckCircle size={14} color="#16a34a" />
-                                        <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.successSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <CheckCircle size={14} color={colors.success} />
+                                        <Text style={{ color: colors.success, fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Verified</Text>
                                     </View>
                                 ) : (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
-                                        <XCircle size={14} color="#dc2626" />
-                                        <Text style={{ color: '#dc2626', fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.destructiveSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 }}>
+                                        <XCircle size={14} color={colors.destructive} />
+                                        <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: 'bold', marginLeft: 4 }}>Pending</Text>
                                     </View>
                                 )}
                             </View>
@@ -613,7 +613,7 @@ export default function KYCVerification() {
                                 <View>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                                         <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>Account Number</Text>
-                                        {isBankVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
+                                        {isBankVerifiedNow && <CheckCircle size={14} color={colors.success} />}
                                     </View>
                                     <TextInput
                                         value={bankAccount}
@@ -628,7 +628,7 @@ export default function KYCVerification() {
                                 <View>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                                         <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>IFSC Code</Text>
-                                        {isBankVerifiedNow && <CheckCircle size={14} color="#16a34a" />}
+                                        {isBankVerifiedNow && <CheckCircle size={14} color={colors.success} />}
                                     </View>
                                     <TextInput
                                         value={ifsc}
@@ -658,7 +658,7 @@ export default function KYCVerification() {
                         </View>
 
                         {isBankVerifiedNow && user.kyc_data?.bank_details && (
-                            <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: '#16a34a' }}>
+                            <View style={{ marginTop: 20, padding: 16, borderRadius: 12, backgroundColor: colors.card, borderLeftWidth: 4, borderLeftColor: colors.success }}>
                                 <Text style={{ fontWeight: 'bold', color: colors.foreground, fontSize: 14 }}>Verified Bank Details:</Text>
                                 <VerifiedValue label="Beneficiary" value={user.kyc_data.bank_details.name_at_bank} />
                                 <VerifiedValue label="Bank" value={user.kyc_data.bank_details.bank_name} />

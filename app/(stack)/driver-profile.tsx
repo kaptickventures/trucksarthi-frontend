@@ -231,7 +231,7 @@ export default function DriverProfile() {
                   Linking.openURL(`https://wa.me/${waNumber}?text=Hello ${driver.driver_name}`);
                 }
               }}
-              style={{ flex: 1, backgroundColor: '#25D366', paddingVertical: 12, borderRadius: 16, alignItems: 'center' }}
+              style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 16, alignItems: 'center' }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Ionicons name="logo-whatsapp" size={20} color="white" />

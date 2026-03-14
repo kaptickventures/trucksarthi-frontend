@@ -4,10 +4,6 @@ import { Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -16,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import BottomSheet from "../../components/BottomSheet";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
@@ -263,14 +260,14 @@ export default function MaintenanceDashboardScreen() {
                         paddingHorizontal: 8,
                         paddingVertical: 2,
                         borderRadius: 6,
-                        backgroundColor: isDocument ? "#e0f2fe" : "#fee2e2",
+                        backgroundColor: isDocument ? colors.infoSoft : colors.destructiveSoft,
                       }}
                     >
                       <Text
                         style={{
                           fontSize: 9,
                           fontWeight: "800",
-                          color: isDocument ? "#0369a1" : "#dc2626",
+                          color: isDocument ? colors.info : colors.destructive,
                         }}
                       >
                         {isDocument ? "DOCUMENT" : "SERVICE & REPAIR"}
@@ -304,8 +301,16 @@ export default function MaintenanceDashboardScreen() {
         onClose={() => setShowAdd(false)}
         title="Record Maintenance"
         subtitle={selectedTruck?.registration_number || "Vehicle"}
+        maxHeight="90%"
       >
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <KeyboardAwareScrollView
+          enableOnAndroid
+          extraScrollHeight={120}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
           {/* Category selector */}
           <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>CATEGORY</Text>
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
@@ -398,7 +403,7 @@ export default function MaintenanceDashboardScreen() {
               <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE RECORD</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </BottomSheet>
     </View>
   );

@@ -258,10 +258,10 @@ export default function NotificationsScreen() {
 
   const getReminderLevel = (daysLeft?: number) => {
     if (typeof daysLeft !== "number") return null;
-    if (daysLeft < 0) return { label: "Expired", bg: "#7f1d1d", text: "#fff" };
-    if (daysLeft <= 7) return { label: "Reminder - 7 days", bg: "#fee2e2", text: "#b91c1c" };
-    if (daysLeft <= 15) return { label: "Reminder - 15 days", bg: "#ffedd5", text: "#c2410c" };
-    return { label: "Reminder - 30 days", bg: "#fef3c7", text: "#a16207" };
+    if (daysLeft < 0) return { label: "Expired", bg: colors.destructiveSoft, text: colors.destructive };
+    if (daysLeft <= 7) return { label: "Reminder - 7 days", bg: colors.warningSoft, text: colors.warning };
+    if (daysLeft <= 15) return { label: "Reminder - 15 days", bg: colors.warningSoft, text: colors.warning };
+    return { label: "Reminder - 30 days", bg: colors.infoSoft, text: colors.info };
   };
 
   return (
