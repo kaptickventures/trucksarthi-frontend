@@ -49,7 +49,7 @@ export default function AuthDebugScreen() {
   const targetRoute = useMemo(() => {
     if (!user) return "/auth/login";
     if (profileCompleted === true) return "/(tabs)/home";
-    if (profileCompleted === false) return "/basic-details";
+    if (profileCompleted === false) return "/gstin-onboarding";
     return "waiting_profile_check";
   }, [profileCompleted, user]);
 

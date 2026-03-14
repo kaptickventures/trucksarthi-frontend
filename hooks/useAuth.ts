@@ -130,7 +130,7 @@ export async function postLoginFlow(router: any) {
     if (completed) {
       resetAndReplace("/(tabs)/home");
     } else {
-      resetAndReplace("/basic-details");
+      resetAndReplace("/gstin-onboarding");
     }
   } catch (err) {
     console.error("postLoginFlow error:", err);
