@@ -40,6 +40,37 @@ export interface User {
   is_pan_verified?: boolean;
   is_bank_verified?: boolean;
   has_notifications_allowed?: boolean;
+  plan?: "free" | "paid";
+  plan_status?: "free" | "trial" | "paid";
+  plan_is_limited?: boolean;
+  plan_trial_ends_at?: ISODate;
+  plan_trial_days_left?: number;
+  plan_limits?: {
+    trucks: number;
+    drivers: number;
+    clients: number;
+    bankVerifications: number;
+    gstPanVerifications: number;
+    rcVerificationsPerYear: number;
+  };
+  plan_usage?: {
+    trucks: number;
+    drivers: number;
+    clients: number;
+    bankVerifications: number;
+    gstPanVerifications: number;
+    rcVerificationsCurrentYear: number;
+    rcYear: number;
+  };
+  plan_remaining?: {
+    trucks: number;
+    drivers: number;
+    clients: number;
+    bankVerifications: number;
+    gstPanVerifications: number;
+    rcVerificationsCurrentYear: number;
+  } | null;
+  plan_owner_id?: ObjectId;
   kyc_data?: {
     pan_details?: any;
     gstin_details?: any;

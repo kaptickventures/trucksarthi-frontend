@@ -1,5 +1,5 @@
 import { MapPin, Search, X } from "lucide-react-native";
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { WebView } from "react-native-webview";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { LocationSuggestion } from "../hooks/useLocation";
 import BottomSheet from "./BottomSheet";
@@ -44,15 +44,20 @@ export default function LocationFormModal({
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
-  const webViewRef = useRef<WebView>(null);
-  const mapHtmlRef = useRef<string>("");
+  const mapRef = useRef<MapView>(null);
   const titleInputRef = useRef<TextInput>(null);
 
   const [showMap, setShowMap] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<LocationSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const mapsApiKey =
+    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    process.env.GOOGLE_MAPS_API_KEY ||
+    "";
 
   useEffect(() => {
     if (!visible) {
@@ -106,110 +111,50 @@ export default function LocationFormModal({
     return String(firstSegment || address).trim() || "Pinned Location";
   };
 
-  const onMapMessage = (event: any) => {
+  const resolveAddressFromCoords = async (latitude: number, longitude: number) => {
+    if (!mapsApiKey) return;
+    setIsResolvingAddress(true);
     try {
-      const payload = JSON.parse(event?.nativeEvent?.data || "{}");
-      if (payload?.type !== "pin") return;
-      const latitude = Number(payload?.latitude);
-      const longitude = Number(payload?.longitude);
-      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-      if (payload?.address) setSearchQuery(payload.address);
-      setFormData((prev) => ({
-        ...prev,
-        latitude,
-        longitude,
-        location_name: prev.location_name?.trim()
-          ? prev.location_name
-          : getFallbackLocationName(payload),
-        complete_address: payload.address || prev.complete_address,
-        place_id: undefined,
-      }));
-    } catch {
-      // ignore
-    }
-  };
-
-  const buildMapHtml = () => {
-    const lat = typeof formData.latitude === "number" ? formData.latitude : 20.5937;
-    const lng = typeof formData.longitude === "number" ? formData.longitude : 78.9629;
-    const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-    const mapStyles = JSON.stringify([
-      { elementType: "geometry", stylers: [{ color: "#f4f4f4" }] },
-      { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-      { elementType: "labels.text.fill", stylers: [{ color: "#111111" }] },
-      { elementType: "labels.text.stroke", stylers: [{ color: "#f4f4f4" }] },
-      { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#bdbdbd" }] },
-      { featureType: "administrative.land_parcel", elementType: "labels", stylers: [{ visibility: "off" }] },
-      { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-      { featureType: "poi", stylers: [{ visibility: "off" }] },
-      { featureType: "road", elementType: "geometry", stylers: [{ color: "#d9d9d9" }] },
-      { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#ababab" }] },
-      { featureType: "road.arterial", elementType: "labels", stylers: [{ visibility: "off" }] },
-      { featureType: "transit", stylers: [{ visibility: "off" }] },
-      { featureType: "water", elementType: "geometry", stylers: [{ color: "#e8e8e8" }] },
-    ]);
-
-    return `<!DOCTYPE html>
-<html><head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    #map { filter: grayscale(1) contrast(1.02); }
-    #hint { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid #d4d4d4; background: rgba(255,255,255,0.94); color: #111111; font-size: 12px; line-height: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-  </style>
-</head><body>
-  <div id="map"></div>
-  <div id="hint">Tap or drag the pin to set the exact location.</div>
-  <script>
-    var map, marker, geocoder;
-    function initMap() {
-      var center = { lat: ${lat}, lng: ${lng} };
-      map = new google.maps.Map(document.getElementById('map'), {
-        center: center,
-        zoom: ${typeof formData.latitude === "number" && typeof formData.longitude === "number" ? 14 : 5},
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-        zoomControl: false,
-        clickableIcons: false,
-        styles: ${mapStyles}
-      });
-      marker = new google.maps.Marker({ position: center, map: map, draggable: true, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#111111', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 2 } });
-      geocoder = new google.maps.Geocoder();
-      map.addListener('click', function(e) {
-        marker.setPosition(e.latLng);
-        geocoder.geocode({ location: e.latLng }, function(r, s) {
-          sendPin(e.latLng.lat(), e.latLng.lng(), (s === 'OK' && r[0]) ? r[0].formatted_address : '', '');
-        });
-      });
-      marker.addListener('dragend', function() {
-        var p = marker.getPosition();
-        geocoder.geocode({ location: p }, function(r, s) {
-          sendPin(p.lat(), p.lng(), (s === 'OK' && r[0]) ? r[0].formatted_address : '', '');
-        });
-      });
-    }
-    function sendPin(lat, lng, address, name) {
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'pin', latitude: lat, longitude: lng, address: address, name: name }));
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${mapsApiKey}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const first = Array.isArray(data?.results) ? data.results[0] : null;
+      if (first?.formatted_address) {
+        setSearchQuery(first.formatted_address);
+        setFormData((prev) => ({
+          ...prev,
+          complete_address: first.formatted_address,
+          place_id: first.place_id || prev.place_id,
+          location_name: prev.location_name?.trim()
+            ? prev.location_name
+            : getFallbackLocationName({ address: first.formatted_address }),
+        }));
       }
+    } catch {
+      // ignore reverse geocode failures
+    } finally {
+      setIsResolvingAddress(false);
     }
-    window.setPin = function(lat, lng) { map.setCenter({ lat: lat, lng: lng }); map.setZoom(15); marker.setPosition({ lat: lat, lng: lng }); };
-  </script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap"></script>
-</body></html>`;
   };
 
   const handleToggleMap = () => {
-    if (!showMap) {
-      mapHtmlRef.current = buildMapHtml();
-    }
     setShowMap((prev) => !prev);
   };
 
   const trimmedTitle = String(formData.location_name || "").trim();
   const hasPinnedLocation = Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude);
   const canSubmit = trimmedTitle.length > 0 || hasPinnedLocation;
+  const mapRegion = useMemo(() => {
+    const latitude = typeof formData.latitude === "number" ? formData.latitude : 20.5937;
+    const longitude = typeof formData.longitude === "number" ? formData.longitude : 78.9629;
+    const hasExact = typeof formData.latitude === "number" && typeof formData.longitude === "number";
+    return {
+      latitude,
+      longitude,
+      latitudeDelta: hasExact ? 0.045 : 8,
+      longitudeDelta: hasExact ? 0.045 : 8,
+    };
+  }, [formData.latitude, formData.longitude]);
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
@@ -236,7 +181,7 @@ export default function LocationFormModal({
           extraScrollHeight={140}
           extraHeight={180}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 40 }]}
+          contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 140 }]}
         >
           <View style={styles.fieldBlock}>
             <Text style={[styles.label, { color: colors.mutedForeground }]}>Location Title</Text>
@@ -323,8 +268,14 @@ export default function LocationFormModal({
                               longitude: item.longitude ?? prev.longitude,
                             }));
                             if (Number.isFinite(item.latitude) && Number.isFinite(item.longitude)) {
-                              webViewRef.current?.injectJavaScript(
-                                `window.setPin(${Number(item.latitude)}, ${Number(item.longitude)}); true;`
+                              mapRef.current?.animateToRegion(
+                                {
+                                  latitude: Number(item.latitude),
+                                  longitude: Number(item.longitude),
+                                  latitudeDelta: 0.045,
+                                  longitudeDelta: 0.045,
+                                },
+                                350
                               );
                             }
                           }}
@@ -345,16 +296,45 @@ export default function LocationFormModal({
               )}
 
               <View style={[styles.mapFrame, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                <WebView
-                  ref={webViewRef}
-                  originWhitelist={["*"]}
-                  source={{ html: mapHtmlRef.current }}
-                  onMessage={onMapMessage}
-                  javaScriptEnabled
-                  domStorageEnabled
-                  startInLoadingState
-                  style={styles.webView}
-                />
+                <MapView
+                  ref={mapRef}
+                  provider={PROVIDER_GOOGLE}
+                  style={styles.map}
+                  initialRegion={mapRegion}
+                  onPress={(e) => {
+                    const { latitude, longitude } = e.nativeEvent.coordinate;
+                    setFormData((prev) => ({
+                      ...prev,
+                      latitude,
+                      longitude,
+                      location_name: prev.location_name?.trim()
+                        ? prev.location_name
+                        : getFallbackLocationName({ name: prev.location_name, address: prev.complete_address }),
+                      place_id: undefined,
+                    }));
+                    resolveAddressFromCoords(latitude, longitude);
+                  }}
+                  showsMyLocationButton={false}
+                  toolbarEnabled={false}
+                  rotateEnabled={false}
+                >
+                  {Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude) && (
+                    <Marker
+                      coordinate={{ latitude: Number(formData.latitude), longitude: Number(formData.longitude) }}
+                      draggable
+                      onDragEnd={(e) => {
+                        const { latitude, longitude } = e.nativeEvent.coordinate;
+                        setFormData((prev) => ({
+                          ...prev,
+                          latitude,
+                          longitude,
+                          place_id: undefined,
+                        }));
+                        resolveAddressFromCoords(latitude, longitude);
+                      }}
+                    />
+                  )}
+                </MapView>
               </View>
 
               {!!formData.complete_address && (
@@ -365,25 +345,33 @@ export default function LocationFormModal({
                   </Text>
                 </View>
               )}
+              {isResolvingAddress && (
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>
+                  Resolving address…
+                </Text>
+              )}
             </View>
           )}
 
+        </KeyboardAwareScrollView>
+
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <TouchableOpacity
             onPress={onSubmit}
             disabled={!canSubmit}
             style={[
               styles.submitButton,
               {
-                backgroundColor: colors.foreground,
+                backgroundColor: colors.primary,
                 opacity: canSubmit ? 1 : 0.45,
               },
             ]}
           >
-            <Text style={[styles.submitText, { color: colors.background }]}>
+            <Text style={[styles.submitText, { color: colors.primaryForeground }]}>
               {editing ? "Update Location" : "Save Location"}
             </Text>
           </TouchableOpacity>
-        </KeyboardAwareScrollView>
+        </View>
       </View>
     </BottomSheet>
   );
@@ -519,7 +507,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
   },
-  webView: {
+  map: {
     flex: 1,
     backgroundColor: "transparent",
   },
@@ -542,10 +530,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 6,
   },
   submitText: {
     fontSize: 16,
     fontWeight: "800",
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
   },
 });

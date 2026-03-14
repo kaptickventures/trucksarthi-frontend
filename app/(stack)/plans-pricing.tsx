@@ -1,6 +1,8 @@
 import { CheckCircle2, Crown, Wallet } from "lucide-react-native";
-import { ScrollView, StatusBar, Text, View } from "react-native";
+import { ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
 
+import { useAuth } from "../../context/AuthContext";
 import { useThemeStore } from "../../hooks/useThemeStore";
 
 type PlanCard = {
@@ -20,32 +22,19 @@ const getPlanCards = (colors: any): PlanCard[] => [
   {
     id: "free",
     name: "Free",
-    period: "Current plan",
+    period: "Starter plan",
     originalPrice: null,
     discountedPrice: "Rs 0",
-    isCurrent: true,
     accent: colors.success,
     accentSoft: colors.successSoft,
   },
   {
-    id: "quarterly",
-    name: "Quarterly",
-    period: "per quarter",
-    originalPrice: "Rs 2999",
-    discountedPrice: "Rs 1499",
-    discountLabel: "50% OFF",
-    label: "HOT PICK",
-    accent: colors.info,
-    accentSoft: colors.infoSoft,
-  },
-  {
-    id: "yearly",
-    name: "Yearly",
-    period: "per year",
-    originalPrice: "Rs 9999",
-    discountedPrice: "Rs 4999",
-    discountLabel: "50% OFF",
-    label: "LUDICROUS DEAL",
+    id: "paid",
+    name: "Paid",
+    period: "Custom plan",
+    originalPrice: null,
+    discountedPrice: "Contact support",
+    label: "CUSTOM",
     accent: colors.warning,
     accentSoft: colors.warningSoft,
   },
@@ -58,8 +47,23 @@ const parsePriceValue = (value: string | null) => {
 };
 
 export default function PlansPricingScreen() {
+  const router = useRouter();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
+  const { user } = useAuth();
+
+  const planStatus = user?.plan_status || "free";
+  const isLimited = user?.plan_is_limited ?? true;
+  const planLimits = user?.plan_limits;
+  const planUsage = user?.plan_usage;
+  const planRemaining = user?.plan_remaining;
+
+  const trialEndsAt = user?.plan_trial_ends_at ? new Date(user.plan_trial_ends_at) : null;
+  const trialDaysLeft = user?.plan_trial_days_left ?? null;
+  const trialLabel =
+    planStatus === "trial" && trialEndsAt
+      ? `Trial ends in ${trialDaysLeft ?? 0} day(s) • ${trialEndsAt.toDateString()}`
+      : null;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -97,7 +101,7 @@ export default function PlansPricingScreen() {
             Plans & Pricing
           </Text>
           <Text className="text-sm mb-3" style={{ color: colors.mutedForeground }}>
-            Clean pricing. Wild discounts. Limits can be added next.
+            Transparent plans with clear limits and flexible upgrades.
           </Text>
 
           <View
@@ -105,20 +109,87 @@ export default function PlansPricingScreen() {
             style={{ backgroundColor: colors.warningSoft, borderWidth: 1, borderColor: colors.warning }}
           >
             <Text className="text-[11px] font-extrabold" style={{ color: colors.warning }}>
-              LIMITED OFFER: FLAT 50% OFF
+              {planStatus === "paid" ? "PAID PLAN ACTIVE" : planStatus === "trial" ? "FREE TRIAL ACTIVE" : "FREE PLAN ACTIVE"}
             </Text>
           </View>
         </View>
 
+        <View
+          className="rounded-3xl border p-5 mb-5"
+          style={{ backgroundColor: colors.card, borderColor: colors.border }}
+        >
+          <Text className="text-base font-extrabold mb-2" style={{ color: colors.foreground }}>
+            Your plan
+          </Text>
+          <Text className="text-sm mb-2" style={{ color: colors.mutedForeground }}>
+            {planStatus === "paid"
+              ? "Unlimited access with paid plan."
+              : planStatus === "trial"
+              ? "All features unlocked during trial."
+              : "Free plan limits apply after trial."}
+          </Text>
+          {trialLabel ? (
+            <Text className="text-xs font-semibold" style={{ color: colors.info }}>
+              {trialLabel}
+            </Text>
+          ) : null}
+        </View>
+
+        {planLimits && planUsage ? (
+          <View
+            className="rounded-3xl border p-5 mb-5"
+            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+          >
+            <Text className="text-base font-extrabold mb-2" style={{ color: colors.foreground }}>
+              Free plan limits
+            </Text>
+            <Text className="text-xs mb-3" style={{ color: colors.mutedForeground }}>
+              {isLimited ? "Remaining counts shown below." : "Limits are paused during trial or paid plan."}
+            </Text>
+
+            <View className="gap-2">
+              <Text className="text-sm" style={{ color: colors.foreground }}>
+                Trucks: {planUsage.trucks}/{planLimits.trucks}
+                {isLimited && planRemaining ? ` • ${planRemaining.trucks} left` : ""}
+              </Text>
+              <Text className="text-sm" style={{ color: colors.foreground }}>
+                Drivers: {planUsage.drivers}/{planLimits.drivers}
+                {isLimited && planRemaining ? ` • ${planRemaining.drivers} left` : ""}
+              </Text>
+              <Text className="text-sm" style={{ color: colors.foreground }}>
+                Clients: {planUsage.clients}/{planLimits.clients}
+                {isLimited && planRemaining ? ` • ${planRemaining.clients} left` : ""}
+              </Text>
+              <Text className="text-sm" style={{ color: colors.foreground }}>
+                Bank verifications: {planUsage.bankVerifications}/{planLimits.bankVerifications}
+                {isLimited && planRemaining ? ` • ${planRemaining.bankVerifications} left` : ""}
+              </Text>
+              <Text className="text-sm" style={{ color: colors.foreground }}>
+                GST/PAN verifications: {planUsage.gstPanVerifications}/{planLimits.gstPanVerifications}
+                {isLimited && planRemaining ? ` • ${planRemaining.gstPanVerifications} left` : ""}
+              </Text>
+              <Text className="text-sm" style={{ color: colors.foreground }}>
+                RC verifications ({planUsage.rcYear}): {planUsage.rcVerificationsCurrentYear}/{planLimits.rcVerificationsPerYear}
+                {isLimited && planRemaining ? ` • ${planRemaining.rcVerificationsCurrentYear} left` : ""}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <View className="gap-3">
-          {getPlanCards(colors).map((plan) => (
+          {getPlanCards(colors).map((plan) => {
+            const isCurrent =
+              (plan.id === "free" && (planStatus === "free" || planStatus === "trial")) ||
+              (plan.id === "paid" && planStatus === "paid");
+
+            return (
             <View key={plan.id} className="rounded-3xl" style={{ backgroundColor: colors.background }}>
               <View
                 className="rounded-3xl border p-4 overflow-hidden"
                 style={{
                   backgroundColor: colors.card,
-                  borderColor: plan.id === "yearly" ? plan.accent : colors.border,
-                  borderWidth: plan.id === "yearly" ? 1.5 : 1,
+                  borderColor: isCurrent ? plan.accent : colors.border,
+                  borderWidth: isCurrent ? 1.5 : 1,
                   shadowColor: plan.accent,
                   shadowOpacity: 0.16,
                   shadowRadius: 12,
@@ -146,7 +217,7 @@ export default function PlansPricingScreen() {
                     >
                       {plan.id === "free" ? (
                         <CheckCircle2 size={20} color={plan.accent} />
-                      ) : plan.id === "yearly" ? (
+                      ) : plan.id === "paid" ? (
                         <Crown size={20} color={plan.accent} />
                       ) : (
                         <Wallet size={20} color={plan.accent} />
@@ -163,7 +234,7 @@ export default function PlansPricingScreen() {
                     </View>
                   </View>
 
-                  {plan.isCurrent ? (
+                  {isCurrent ? (
                     <View
                       className="px-2 py-1 rounded-full"
                       style={{ backgroundColor: plan.accentSoft }}
@@ -205,13 +276,15 @@ export default function PlansPricingScreen() {
                   </Text>
                 </View>
 
-                {!plan.isCurrent ? (
+                {!isCurrent ? (
                   <View
                     className="rounded-xl px-3 py-2"
                     style={{ backgroundColor: plan.accentSoft, borderWidth: 1, borderColor: plan.accent }}
                   >
                     <Text className="text-xs font-bold" style={{ color: colors.foreground }}>
-                      You save Rs {parsePriceValue(plan.originalPrice) - parsePriceValue(plan.discountedPrice)} on this plan
+                      {plan.originalPrice
+                        ? `You save Rs ${parsePriceValue(plan.originalPrice) - parsePriceValue(plan.discountedPrice)} on this plan`
+                        : "Contact support to upgrade"}
                     </Text>
                   </View>
                 ) : (
@@ -220,14 +293,27 @@ export default function PlansPricingScreen() {
                     style={{ backgroundColor: plan.accentSoft, borderWidth: 1, borderColor: plan.accent }}
                   >
                     <Text className="text-xs font-bold" style={{ color: colors.foreground }}>
-                      Starter access active
+                      {planStatus === "trial" ? "Trial access active" : "Plan access active"}
                     </Text>
                   </View>
                 )}
               </View>
             </View>
-          ))}
+          )})}
         </View>
+
+        <TouchableOpacity
+          onPress={() => router.push("/(stack)/helpCenter" as any)}
+          className="mt-6 rounded-2xl px-4 py-3 border"
+          style={{ backgroundColor: colors.card, borderColor: colors.border }}
+        >
+          <Text className="text-base font-extrabold" style={{ color: colors.foreground }}>
+            Upgrade or contact support
+          </Text>
+          <Text className="text-xs mt-1" style={{ color: colors.mutedForeground }}>
+            Need higher limits? Tap here to reach support.
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );

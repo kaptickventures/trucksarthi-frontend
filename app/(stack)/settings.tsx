@@ -43,6 +43,9 @@ export default function Settings() {
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
+  const planStatus = user?.plan_status || "free";
+  const planLabel =
+    planStatus === "paid" ? "PAID" : planStatus === "trial" ? "TRIAL" : "FREE";
 
   useEffect(() => {
     if (user) {
@@ -115,6 +118,14 @@ export default function Settings() {
           <View className="flex-row items-center gap-2">
             <Wallet size={20} color={colors.primary} />
             <Text className="text-base" style={{ color: colors.foreground }}>{t('plansPricing')}</Text>
+          </View>
+          <View
+            className="px-2 py-1 rounded-full"
+            style={{ backgroundColor: colors.primary + "1A", borderWidth: 1, borderColor: colors.primary }}
+          >
+            <Text className="text-[10px] font-extrabold" style={{ color: colors.primary }}>
+              {planLabel}
+            </Text>
           </View>
         </TouchableOpacity>
 
