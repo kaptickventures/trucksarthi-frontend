@@ -1,7 +1,6 @@
 import { MapPin, Search, X } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -10,21 +9,9 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { MapPressEvent, MarkerDragEvent } from "react-native-maps";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { LocationSuggestion } from "../hooks/useLocation";
 import BottomSheet from "./BottomSheet";
-
-let MapView: any;
-let Marker: any;
-let PROVIDER_GOOGLE: any;
-if (Platform.OS !== "web") {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const maps = require("react-native-maps");
-  MapView = maps.default;
-  Marker = maps.Marker;
-  PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
-}
 
 type LocationFormData = {
   location_name: string;
@@ -56,21 +43,13 @@ export default function LocationFormModal({
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
-  const mapRef = useRef<any>(null);
   const titleInputRef = useRef<TextInput>(null);
-  const isWeb = Platform.OS === "web";
 
   const [showMap, setShowMap] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<LocationSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const mapsApiKey =
-    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
-    process.env.GOOGLE_MAPS_API_KEY ||
-    "";
 
   useEffect(() => {
     if (!visible) {
@@ -124,32 +103,6 @@ export default function LocationFormModal({
     return String(firstSegment || address).trim() || "Pinned Location";
   };
 
-  const resolveAddressFromCoords = async (latitude: number, longitude: number) => {
-    if (!mapsApiKey) return;
-    setIsResolvingAddress(true);
-    try {
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${mapsApiKey}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const first = Array.isArray(data?.results) ? data.results[0] : null;
-      if (first?.formatted_address) {
-        setSearchQuery(first.formatted_address);
-        setFormData((prev) => ({
-          ...prev,
-          complete_address: first.formatted_address,
-          place_id: first.place_id || prev.place_id,
-          location_name: prev.location_name?.trim()
-            ? prev.location_name
-            : getFallbackLocationName({ address: first.formatted_address }),
-        }));
-      }
-    } catch {
-      // ignore reverse geocode failures
-    } finally {
-      setIsResolvingAddress(false);
-    }
-  };
-
   const handleToggleMap = () => {
     setShowMap((prev) => !prev);
   };
@@ -157,17 +110,6 @@ export default function LocationFormModal({
   const trimmedTitle = String(formData.location_name || "").trim();
   const hasPinnedLocation = Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude);
   const canSubmit = trimmedTitle.length > 0 || hasPinnedLocation;
-  const mapRegion = useMemo(() => {
-    const latitude = typeof formData.latitude === "number" ? formData.latitude : 20.5937;
-    const longitude = typeof formData.longitude === "number" ? formData.longitude : 78.9629;
-    const hasExact = typeof formData.latitude === "number" && typeof formData.longitude === "number";
-    return {
-      latitude,
-      longitude,
-      latitudeDelta: hasExact ? 0.045 : 8,
-      longitudeDelta: hasExact ? 0.045 : 8,
-    };
-  }, [formData.latitude, formData.longitude]);
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
@@ -240,7 +182,7 @@ export default function LocationFormModal({
                   {showMap ? "Hide Map Picker" : "Add Google Location"}
                 </Text>
                 <Text style={[styles.mapToggleSubtitle, { color: showMap ? colors.background + "CC" : colors.mutedForeground }]}>
-                  Pick on map or search to set exact point.
+                  Search to set the exact point.
                 </Text>
               </View>
             </View>
@@ -280,17 +222,6 @@ export default function LocationFormModal({
                               latitude: item.latitude ?? prev.latitude,
                               longitude: item.longitude ?? prev.longitude,
                             }));
-                            if (!isWeb && Number.isFinite(item.latitude) && Number.isFinite(item.longitude)) {
-                              mapRef.current?.animateToRegion(
-                                {
-                                  latitude: Number(item.latitude),
-                                  longitude: Number(item.longitude),
-                                  latitudeDelta: 0.045,
-                                  longitudeDelta: 0.045,
-                                },
-                                350
-                              );
-                            }
                           }}
                         >
                           <Text style={[styles.searchResultTitle, { color: colors.foreground }]} numberOfLines={1}>
@@ -308,55 +239,11 @@ export default function LocationFormModal({
                 </>
               )}
 
-              <View style={[styles.mapFrame, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                {isWeb || !MapView ? (
-                  <View style={[styles.webMapFallback, { borderColor: colors.border, backgroundColor: colors.background }]}>
-                    <Text style={[styles.webMapTitle, { color: colors.foreground }]}>Map preview not available on web</Text>
-                    <Text style={[styles.webMapSubtitle, { color: colors.mutedForeground }]}>
-                      Use the search bar above to set the exact location, then save.
-                    </Text>
-                  </View>
-                ) : (
-                  <MapView
-                    ref={mapRef}
-                    provider={PROVIDER_GOOGLE}
-                    style={styles.map}
-                    initialRegion={mapRegion}
-                    onPress={(e: MapPressEvent) => {
-                      const { latitude, longitude } = e.nativeEvent.coordinate;
-                      setFormData((prev) => ({
-                        ...prev,
-                        latitude,
-                        longitude,
-                        location_name: prev.location_name?.trim()
-                          ? prev.location_name
-                          : getFallbackLocationName({ name: prev.location_name, address: prev.complete_address }),
-                        place_id: undefined,
-                      }));
-                      resolveAddressFromCoords(latitude, longitude);
-                    }}
-                    showsMyLocationButton={false}
-                    toolbarEnabled={false}
-                    rotateEnabled={false}
-                  >
-                    {Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude) && (
-                      <Marker
-                        coordinate={{ latitude: Number(formData.latitude), longitude: Number(formData.longitude) }}
-                        draggable
-                      onDragEnd={(e: MarkerDragEvent) => {
-                          const { latitude, longitude } = e.nativeEvent.coordinate;
-                          setFormData((prev) => ({
-                            ...prev,
-                            latitude,
-                            longitude,
-                            place_id: undefined,
-                          }));
-                          resolveAddressFromCoords(latitude, longitude);
-                        }}
-                      />
-                    )}
-                  </MapView>
-                )}
+              <View style={[styles.webMapFallback, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                <Text style={[styles.webMapTitle, { color: colors.foreground }]}>Map preview not available on web</Text>
+                <Text style={[styles.webMapSubtitle, { color: colors.mutedForeground }]}>
+                  Use the search bar above to set the exact location, then save.
+                </Text>
               </View>
 
               {!!formData.complete_address && (
@@ -366,11 +253,6 @@ export default function LocationFormModal({
                     {formData.complete_address}
                   </Text>
                 </View>
-              )}
-              {isResolvingAddress && (
-                <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>
-                  Resolving address…
-                </Text>
               )}
             </View>
           )}
@@ -482,6 +364,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 12,
     lineHeight: 17,
+    fontWeight: "600",
   },
   mapBlock: {
     gap: 10,
@@ -523,18 +406,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
   },
-  mapFrame: {
-    height: 380,
-    borderRadius: 22,
-    overflow: "hidden",
-    borderWidth: 1,
-  },
-  map: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
   webMapFallback: {
-    flex: 1,
     borderWidth: 1,
     borderStyle: "dashed",
     borderRadius: 18,
