@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { Plus } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -9,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import ClientFormModal, { ClientFormData } from "../../components/ClientModal";
 import useClients from "../../hooks/useClient";
 import { useClientLedger } from "../../hooks/useClientLedger";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -27,13 +30,27 @@ export default function ClientLedgerScreen() {
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
-  const { clients, fetchClients } = useClients();
+  const { clients, fetchClients, addClient } = useClients();
   const { fetchSummary } = useClientLedger();
 
   const [refreshing, setRefreshing] = useState(false);
   const [rows, setRows] = useState<ClientRow[]>([]);
   // true while clients are still loading or rows are being built
   const [isBuilding, setIsBuilding] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const REQUIRED_FIELDS = ["client_name"];
+
+  const [formData, setFormData] = useState<ClientFormData>({
+    client_name: "",
+    contact_person_name: "",
+    contact_number: "",
+    alternate_contact_number: "",
+    email_address: "",
+    office_address: "",
+    gstin: undefined,
+    gstin_details: undefined
+  });
 
   const load = useCallback(async () => {
     await fetchClients();
@@ -109,12 +126,59 @@ export default function ClientLedgerScreen() {
     setRefreshing(false);
   }, [load]);
 
+  const openModal = () => {
+    setFormData({
+      client_name: "",
+      contact_person_name: "",
+      contact_number: "",
+      alternate_contact_number: "",
+      email_address: "",
+      office_address: "",
+      gstin: undefined,
+      gstin_details: undefined
+    });
+    setModalVisible(true);
+  };
+
+  const handleSubmit = async () => {
+    const missingFields = REQUIRED_FIELDS.filter(f => !String(formData[f as keyof typeof formData] || "").trim());
+    if (missingFields.length > 0) {
+      const labels = missingFields.map(f => f.replaceAll("_", " ").toUpperCase());
+      Alert.alert(t("missingFields"), `Please fill the following required fields:\n\nâ€¢ ${labels.join("\nâ€¢ ")}`);
+      return;
+    }
+
+    const email = formData.email_address.trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailPattern.test(email)) {
+      Alert.alert(t("error"), "Please enter a valid client email address.");
+      return;
+    }
+
+    try {
+      const normalizedClientName = formData.client_name.trim();
+      await addClient({
+        ...formData,
+        client_name: normalizedClientName,
+        contact_person_name: formData.contact_person_name.trim() || normalizedClientName,
+        contact_number: formData.contact_number.trim() || "NA",
+        alternate_contact_number: formData.alternate_contact_number.trim(),
+        office_address: formData.office_address.trim(),
+        email_address: email,
+        gstin: formData.gstin?.trim().toUpperCase() || undefined,
+      });
+      Alert.alert(t("success"), `Client ${t("addedSuccessfully")}`);
+      setModalVisible(false);
+      fetchClients();
+    } catch {}
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View className="mb-3 px-0">
@@ -224,6 +288,40 @@ export default function ClientLedgerScreen() {
           );
         })}
       </ScrollView>
+
+      {/* Floating Add Button */}
+      <TouchableOpacity
+        onPress={openModal}
+        activeOpacity={0.8}
+        style={{
+          position: 'absolute',
+          bottom: 30,
+          right: 25,
+          backgroundColor: colors.primary,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          justifyContent: 'center',
+          alignItems: 'center',
+          elevation: 5,
+          shadowColor: "#000",
+          shadowOpacity: 0.3,
+          shadowRadius: 5,
+          shadowOffset: { width: 0, height: 3 },
+          zIndex: 999
+        }}
+      >
+        <Plus color={colors.primaryForeground} size={28} strokeWidth={3} />
+      </TouchableOpacity>
+
+      <ClientFormModal
+        visible={modalVisible}
+        editing={false}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleSubmit}
+        onClose={() => setModalVisible(false)}
+      />
     </View>
   );
 }

@@ -147,6 +147,7 @@ export default function StackLayout() {
           <Stack.Screen name="client-ledger-detail" options={{ title: "Client Khata" }} />
           <Stack.Screen name="client-payments" options={{ title: "Client Payments" }} />
           <Stack.Screen name="misc-transactions" options={{ title: "Misc Transactions" }} />
+          <Stack.Screen name="location-picker" options={{ headerShown: false }} />
         </Stack>
       </GestureHandlerRootView>
     </BottomSheetModalProvider>

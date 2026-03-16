@@ -1,12 +1,9 @@
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import {
     Camera,
     User,
     Building2,
     MapPin,
-    Calendar as CalendarIcon,
-    ChevronRight,
     CheckCircle2,
     ArrowRight,
     Smartphone,
@@ -17,7 +14,6 @@ import {
     ActivityIndicator,
     Alert,
     Image,
-    Keyboard,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -30,7 +26,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useUser } from "../../hooks/useUser";
 import { useThemeStore } from "../../hooks/useThemeStore";
-import { formatDate, getFileUrl } from "../../lib/utils";
+import { getFileUrl } from "../../lib/utils";
 
 export default function BasicDetailsScreen() {
     const router = useRouter();
@@ -42,9 +38,7 @@ export default function BasicDetailsScreen() {
     const [phone, setPhone] = useState("");
     const [company_name, setCompany] = useState("");
     const [address, setAddress] = useState("");
-    const [dob, setDob] = useState<Date | null>(null);
     const [profile_picture_url, setProfileUrl] = useState<string | null>(null);
-    const [showDatePicker, setShowDatePicker] = useState(false);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -65,11 +59,6 @@ export default function BasicDetailsScreen() {
         setCompany(user.company_name ?? "");
         setAddress(user.address ?? "");
         setProfileUrl(user.profile_picture_url ?? null);
-
-        if (user.date_of_birth) {
-            const d = new Date(user.date_of_birth);
-            if (!isNaN(d.getTime())) setDob(d);
-        }
     }, [user]);
 
     const pickImage = async () => {
@@ -99,20 +88,9 @@ export default function BasicDetailsScreen() {
         }
     };
 
-    const handleDateChange = (event: any, selectedDate?: Date) => {
-        setShowDatePicker(false);
-        if (selectedDate) setDob(selectedDate);
-    };
-
-    const handleOpenDatePicker = () => {
-        Keyboard.dismiss();
-        setShowDatePicker(true);
-    };
-
     const validate = () => {
         if (!name.trim()) return "Full Name is required";
         if (!company_name.trim()) return "Company Name is required";
-        if (!dob) return "Date of Birth is required";
         if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return "A valid Mobile Number is required";
         if (!email.trim() || !email.includes("@")) return "A valid Email Address is required";
         if (!address.trim()) return "Address is required";
@@ -133,8 +111,7 @@ export default function BasicDetailsScreen() {
                 email: email.trim(),
                 phone: phone.trim(),
                 company_name: company_name.trim(),
-                address: address.trim(),
-                date_of_birth: dob?.toISOString()
+                address: address.trim()
             });
 
             Alert.alert("Success", "Profile completed! Welcome to Trucksarthi.", [
@@ -242,43 +219,6 @@ export default function BasicDetailsScreen() {
                                 placeholder="Your fleet or business name"
                                 icon={<Building2 size={18} color={colors.mutedForeground} />}
                             />
-
-                            <View>
-                                <Text style={{ fontSize: 12, fontWeight: '800', color: colors.mutedForeground, marginBottom: 8, marginLeft: 4 }}>DATE OF BIRTH</Text>
-                                <TouchableOpacity
-                                    activeOpacity={0.7}
-                                    onPress={handleOpenDatePicker}
-                                    style={{
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        backgroundColor: colors.card,
-                                        borderRadius: 16,
-                                        borderWidth: 1,
-                                        borderColor: colors.border,
-                                        paddingHorizontal: 16,
-                                        paddingVertical: 14,
-                                        gap: 12
-                                    }}
-                                >
-                                    <CalendarIcon size={18} color={colors.mutedForeground} />
-                                    <Text style={{ flex: 1, fontSize: 16, color: dob ? colors.foreground : colors.mutedForeground, fontWeight: dob ? '600' : '400' }}>
-                                        {dob ? formatDate(dob.toISOString()) : "Select your birth date"}
-                                    </Text>
-                                    <ChevronRight size={18} color={colors.border} />
-                                </TouchableOpacity>
-
-                                {showDatePicker && (
-                                    <View style={{ marginTop: 8 }}>
-                                        <DateTimePicker
-                                            value={dob || new Date(new Date().setFullYear(new Date().getFullYear() - 20))}
-                                            mode="date"
-                                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                            onChange={handleDateChange}
-                                            maximumDate={new Date()}
-                                        />
-                                    </View>
-                                )}
-                            </View>
 
                             <CustomInput
                                 label="MOBILE NUMBER"

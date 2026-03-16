@@ -104,19 +104,41 @@ export default function PLDriverReportDetailScreen() {
     if (!driverId) return;
     setDownloading(true);
     try {
+      const debitTotal = normalized
+        .filter((entry: any) => entry.type === "TO_DRIVER")
+        .reduce((sum: number, entry: any) => sum + Number(entry.amount || 0), 0);
+      const creditTotal = normalized
+        .filter((entry: any) => entry.type === "DRIVER_SPENDS")
+        .reduce((sum: number, entry: any) => sum + Number(entry.amount || 0), 0);
+      const difference = debitTotal - creditTotal;
+
       const rowsHtml = normalized
         .map((entry: any, index: number) => {
-          const signed = `${entry.type === "TO_DRIVER" ? "+" : "-"}Rs ${Math.abs(entry.amount).toLocaleString()}`;
+          const isDebit = entry.type === "TO_DRIVER";
+          const debit = isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const credit = !isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
           return `
           <tr>
             <td>${index + 1}</td>
             <td>${escapeHtml(formatDate(entry.entryDate))}</td>
             <td>${escapeHtml(entry.type === "TO_DRIVER" ? "To Driver" : "Driver Spend")}</td>
             <td>${escapeHtml(entry.entryTitle || "-")}</td>
-            <td class="${entry.type === "TO_DRIVER" ? "pos" : "neg"}">${escapeHtml(signed)}</td>
+            <td class="debit">${escapeHtml(debit)}</td>
+            <td class="credit">${escapeHtml(credit)}</td>
           </tr>`;
         })
         .join("");
+
+      const totalsHtml = `
+          <tr class="totals">
+            <td colspan="4">Totals</td>
+            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
+            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+          </tr>
+          <tr class="difference">
+            <td colspan="4">Difference (Debit - Credit)</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+          </tr>`;
 
       const html = `
       <!DOCTYPE html>
@@ -134,8 +156,11 @@ export default function PLDriverReportDetailScreen() {
           table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 11px; }
           th { background: #111827; color: white; text-align: left; padding: 8px; }
           td { border-bottom: 1px solid #e5e7eb; padding: 8px; vertical-align: top; }
-          .pos { color: #15803d; font-weight: 700; }
-          .neg { color: #b91c1c; font-weight: 700; }
+          .debit { color: #b91c1c; font-weight: 700; }
+          .credit { color: #15803d; font-weight: 700; }
+          .totals td { font-weight: 700; background: #f9fafb; }
+          .difference td { font-weight: 800; background: #f3f4f6; }
+          .diff { text-align: left; }
         </style>
       </head>
       <body>
@@ -148,8 +173,8 @@ export default function PLDriverReportDetailScreen() {
           <div class="card"><div class="label">Balance</div><div class="value">${totals.balance >= 0 ? "+" : "-"}Rs ${Math.abs(totals.balance).toLocaleString()}</div></div>
         </div>
         <table>
-          <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Remarks</th><th>Amount</th></tr></thead>
-          <tbody>${rowsHtml || `<tr><td colspan="5">No entries found.</td></tr>`}</tbody>
+          <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Remarks</th><th>Debit</th><th>Credit</th></tr></thead>
+          <tbody>${(rowsHtml || `<tr><td colspan="6">No entries found.</td></tr>`) + totalsHtml}</tbody>
         </table>
       </body>
       </html>`;

@@ -109,19 +109,41 @@ export default function PLTruckReportDetailScreen() {
     if (!truckId) return;
     setDownloading(true);
     try {
+      const debitTotal = combinedEntries
+        .filter((item) => item.direction === "EXPENSE")
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const creditTotal = combinedEntries
+        .filter((item) => item.direction === "INCOME")
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const difference = debitTotal - creditTotal;
+
       const rowsHtml = combinedEntries
         .map((item, index) => {
-          const signed = `${item.direction === "INCOME" ? "+" : "-"}Rs ${Math.abs(item.amount).toLocaleString()}`;
+          const isDebit = item.direction === "EXPENSE";
+          const debit = isDebit ? `Rs ${Number(item.amount || 0).toLocaleString()}` : "";
+          const credit = !isDebit ? `Rs ${Number(item.amount || 0).toLocaleString()}` : "";
           return `
           <tr>
             <td>${index + 1}</td>
             <td>${escapeHtml(formatDate(item.date))}</td>
             <td>${escapeHtml(item.title)}</td>
             <td>${escapeHtml(item.notes || "-")}</td>
-            <td class="${item.direction === "INCOME" ? "pos" : "neg"}">${escapeHtml(signed)}</td>
+            <td class="debit">${escapeHtml(debit)}</td>
+            <td class="credit">${escapeHtml(credit)}</td>
           </tr>`;
         })
         .join("");
+
+      const totalsHtml = `
+          <tr class="totals">
+            <td colspan="4">Totals</td>
+            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
+            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+          </tr>
+          <tr class="difference">
+            <td colspan="4">Difference (Debit - Credit)</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+          </tr>`;
 
       const html = `
       <!DOCTYPE html>
@@ -139,8 +161,11 @@ export default function PLTruckReportDetailScreen() {
           table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 11px; }
           th { background: #111827; color: white; text-align: left; padding: 8px; }
           td { border-bottom: 1px solid #e5e7eb; padding: 8px; vertical-align: top; }
-          .pos { color: #15803d; font-weight: 700; }
-          .neg { color: #b91c1c; font-weight: 700; }
+          .debit { color: #b91c1c; font-weight: 700; }
+          .credit { color: #15803d; font-weight: 700; }
+          .totals td { font-weight: 700; background: #f9fafb; }
+          .difference td { font-weight: 800; background: #f3f4f6; }
+          .diff { text-align: left; }
         </style>
       </head>
       <body>
@@ -153,8 +178,8 @@ export default function PLTruckReportDetailScreen() {
           <div class="card"><div class="label">Net</div><div class="value">${summary.balance >= 0 ? "+" : "-"}Rs ${Math.abs(summary.balance).toLocaleString()}</div></div>
         </div>
         <table>
-          <thead><tr><th>#</th><th>Date</th><th>Entry</th><th>Notes</th><th>Amount</th></tr></thead>
-          <tbody>${rowsHtml || `<tr><td colspan="5">No entries found.</td></tr>`}</tbody>
+          <thead><tr><th>#</th><th>Date</th><th>Entry</th><th>Notes</th><th>Debit</th><th>Credit</th></tr></thead>
+          <tbody>${(rowsHtml || `<tr><td colspan="6">No entries found.</td></tr>`) + totalsHtml}</tbody>
         </table>
       </body>
       </html>`;

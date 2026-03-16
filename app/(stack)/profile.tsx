@@ -1,11 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import {
   Briefcase,
   Building2,
-  Calendar,
   Camera,
   CheckCircle2,
   Hash,
@@ -23,7 +21,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Platform,
   RefreshControl,
   Text,
   TextInput,
@@ -35,7 +32,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import "../../global.css";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
-import { formatDate, getFileUrl } from "../../lib/utils";
+import { getFileUrl } from "../../lib/utils";
 import API from "../api/axiosInstance";
 import { useTranslation } from "../../context/LanguageContext";
 
@@ -49,7 +46,6 @@ export default function Profile() {
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
-    date_of_birth: "",
     phone: "",
     email: "",
     address: "",
@@ -68,8 +64,6 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [dobDate, setDobDate] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<"personal" | "company" | "financial">("personal");
   const [contactOtpType, setContactOtpType] = useState<"email" | "phone" | null>(null);
   const [contactOtp, setContactOtp] = useState("");
@@ -85,7 +79,6 @@ export default function Profile() {
       setFormData({
         name: user.name ?? "",
         company_name: user.company_name ?? "",
-        date_of_birth: typeof user.date_of_birth === 'string' ? user.date_of_birth.substring(0, 10) : user.date_of_birth ? new Date(user.date_of_birth).toISOString().substring(0, 10) : "",
         phone: user.phone ?? "",
         email: user.email ?? "",
         address: user.address ?? "",
@@ -99,11 +92,6 @@ export default function Profile() {
       });
 
       setProfileImage(user.profile_picture_url ?? null);
-
-      if (user.date_of_birth) {
-        const parsed = new Date(user.date_of_birth);
-        if (!isNaN(parsed.getTime())) setDobDate(parsed);
-      }
     }
   }, [user]);
 
@@ -152,14 +140,6 @@ export default function Profile() {
         { text: "Cancel", style: "cancel" },
       ]
     );
-  };
-
-  const onChangeDate = (event: any, selected?: Date) => {
-    if (Platform.OS === "android") setShowDatePicker(false);
-    if (selected) {
-      setDobDate(selected);
-      markChanged("date_of_birth", selected.toISOString().split("T")[0]);
-    }
   };
 
   const handleSave = async () => {
@@ -544,28 +524,6 @@ export default function Profile() {
                 </View>
               )}
 
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, marginBottom: -12, textTransform: 'uppercase' }}>Date of Birth</Text>
-              <TouchableOpacity
-                disabled={!isEditing}
-                onPress={() => setShowDatePicker(true)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: colors.card,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 12,
-                  paddingHorizontal: 16,
-                  paddingVertical: 14
-                }}
-              >
-                <Calendar size={18} color={colors.mutedForeground} />
-                <Text style={{ marginLeft: 12, color: colors.foreground, fontSize: 16 }}>{formData.date_of_birth ? formatDate(formData.date_of_birth) : "Select Date"}</Text>
-              </TouchableOpacity>
-
-              {showDatePicker && (
-                <DateTimePicker value={dobDate || new Date()} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onChangeDate} />
-              )}
             </View>
           )}
 
@@ -602,32 +560,6 @@ export default function Profile() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <SectionHeader title="Settlement Details" icon={<Landmark size={18} color={colors.primary} />} />
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <TouchableOpacity
-                      onPress={() => setIsEditing(!isEditing)}
-                      style={{
-                        backgroundColor: isEditing ? colors.destructiveSoft : colors.successSoft,
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 16
-                      }}
-                    >
-                      <Text style={{ color: isEditing ? colors.destructive : colors.primary, fontWeight: 'bold', fontSize: 12 }}>
-                        {isEditing ? "Stop Editing" : "Edit"}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "bank" } } as any)}
-                      style={{
-                        backgroundColor: colors.infoSoft,
-                        borderColor: colors.info,
-                        borderWidth: 1,
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 16
-                      }}
-                    >
-                      <Text style={{ color: colors.info, fontWeight: '700', fontSize: 12 }}>Update</Text>
-                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -649,7 +581,14 @@ export default function Profile() {
                 </View>
               )}
 
-              <ProfileInput label="Bank Name" value={formData.bank_name} editable={false} icon={<Landmark size={18} color={colors.mutedForeground} />} />
+              <ProfileInput
+                label="Bank Name"
+                value={formData.bank_name}
+                editable={false}
+                icon={<Landmark size={18} color={colors.mutedForeground} />}
+                labelAction="Update"
+                onLabelActionPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "bank" } } as any)}
+              />
               <ProfileInput label="Account Holder" value={formData.account_holder_name} editable={false} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
               <ProfileInput label="Account Number" value={formData.account_number} editable={false} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Enter account number" />
               <ProfileInput label="IFSC Code" value={formData.ifsc_code} editable={false} icon={<ShieldCheck size={18} color={colors.mutedForeground} />} autoCapitalize="characters" />
@@ -661,6 +600,8 @@ export default function Profile() {
                 icon={<QrCode size={18} color={colors.mutedForeground} />}
                 placeholder="example@upi"
                 autoCapitalize="none"
+                labelAction={!isEditing ? "Update UPI ID" : undefined}
+                onLabelActionPress={!isEditing ? () => setIsEditing(true) : undefined}
               />
 
               {formData.account_number && formData.ifsc_code && (

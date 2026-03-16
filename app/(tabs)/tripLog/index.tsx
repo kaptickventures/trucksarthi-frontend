@@ -222,6 +222,9 @@ export default function TripLog() {
   const generatePDF = async () => {
     try {
       const fmt = (d: Date | null) => formatDate(d);
+      const totalCredit = sortedTrips.reduce((sum, t) => sum + Number(t.cost_of_trip || 0), 0);
+      const totalDebit = sortedTrips.reduce((sum, t) => sum + Number(t.miscellaneous_expense || 0), 0);
+      const difference = totalDebit - totalCredit;
 
       let dateRangeText = "";
 
@@ -258,6 +261,10 @@ export default function TripLog() {
     .value { font-size: 13px; font-weight: 600; margin-top: 4px; }
     .cost-row { display: flex; justify-content: space-between; margin-top: 12px; border-top: 1px solid #000; padding-top: 10px; font-size: 13px; }
     .notes { margin-top: 10px; font-size: 13px; font-style: italic; opacity: 0.8; }
+    .summary { border: 2px solid #000; border-radius: 10px; padding: 14px; margin-top: 18px; }
+    .summary-title { font-size: 14px; font-weight: 800; margin-bottom: 8px; text-transform: uppercase; }
+    .summary-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+    .summary-row:last-child { margin-bottom: 0; }
   </style>
 </head>
 <body>
@@ -295,6 +302,12 @@ export default function TripLog() {
   `;
           })
           .join("")}
+  <div class="summary">
+    <div class="summary-title">Totals</div>
+    <div class="summary-row"><div>Total Credit</div><div>Rs ${totalCredit.toLocaleString()}</div></div>
+    <div class="summary-row"><div>Total Debit</div><div>Rs ${totalDebit.toLocaleString()}</div></div>
+    <div class="summary-row"><div>Difference (Debit - Credit)</div><div>${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</div></div>
+  </div>
 </body>
 </html>
 `;

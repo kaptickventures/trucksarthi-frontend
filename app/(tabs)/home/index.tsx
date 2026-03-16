@@ -430,10 +430,10 @@ export default function HomeScreen() {
           {[
             { title: "Driver khata", icon: "person-outline", route: "/driver-ledger" },
             { title: "Client khata", icon: "people-outline", route: "/client-ledger" },
-            { title: "Document Manager", icon: "document-text-outline", route: "/documents-manager" },
             { title: "Daily khata", icon: "speedometer-outline", route: "/daily-khata" },
             { title: "Maintenance khata", icon: "build-outline", route: "/maintenance-khata" },
             { title: "Misc transactions", icon: "swap-horizontal-outline", route: "/misc-transactions" },
+            { title: "Document Manager", icon: "document-text-outline", route: "/documents-manager" },
           ].map((item, idx) => (
             <TouchableOpacity
               key={idx}

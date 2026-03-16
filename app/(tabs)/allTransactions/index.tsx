@@ -1,22 +1,23 @@
 import { Ionicons } from "@expo/vector-icons";
 import { NotificationBadge } from "../../../components/NotificationBadge";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
-  Alert,
   FlatList,
+  LayoutAnimation,
+  Modal,
+  Platform,
   RefreshControl,
-  ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
+  UIManager,
   View,
 } from "react-native";
-import { ArrowDownLeft, ArrowUpRight, Calendar, Filter, Trash2 } from "lucide-react-native";
+import { ArrowDownLeft, ArrowUpRight, Calendar, Filter } from "lucide-react-native";
 import SideMenu from "../../../components/SideMenu";
-import BottomSheet from "../../../components/BottomSheet";
 import { Skeleton } from "../../../components/Skeleton";
 import useFinance from "../../../hooks/useFinance";
 import { useThemeStore } from "../../../hooks/useThemeStore";
@@ -41,6 +42,11 @@ type TagFilter = (typeof TAG_FILTERS)[number];
 const TAG_PILL_HEIGHT = 40;
 const TYPE_PILL_HEIGHT = 36;
 
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  // @ts-ignore
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export default function TransactionsScreen() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -48,7 +54,7 @@ export default function TransactionsScreen() {
   const { t } = useTranslation();
   const isDark = theme === "dark";
   const [menuVisible, setMenuVisible] = useState(false);
-  const { loading, transactions, fetchTransactions, deleteTransaction } = useFinance();
+  const { loading, transactions, fetchTransactions } = useFinance();
 
   const { drivers } = useDrivers();
   const { clients } = useClients();
@@ -83,8 +89,9 @@ export default function TransactionsScreen() {
     startDate: null as Date | null,
     endDate: null as Date | null,
     direction: "",
+    paymentMode: "",
   });
-  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<"start" | "end" | null>(null);
 
   useFocusEffect(
@@ -138,6 +145,7 @@ export default function TransactionsScreen() {
       startDate: filters.startDate ? filters.startDate.toISOString() : undefined,
       endDate: filters.endDate ? filters.endDate.toISOString() : undefined,
       direction: filters.direction,
+      paymentMode: filters.paymentMode,
     });
     setRefreshing(false);
   }, [fetchTransactions, filters]);
@@ -146,16 +154,43 @@ export default function TransactionsScreen() {
     loadData();
   }, [loadData]);
 
-  const onDateChange = (_: any, selectedDate?: Date) => {
-    const type = showDatePicker;
-    setShowDatePicker(null);
-    if (selectedDate && type) {
-      setFilters((prev) => ({
-        ...prev,
-        [type === "start" ? "startDate" : "endDate"]: selectedDate,
-      }));
-    }
+  const toggleFilters = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowFilters((prev) => !prev);
   };
+
+  const resetFilters = () => {
+    setShowDatePicker(null);
+    setFilters({
+      startDate: null,
+      endDate: null,
+      direction: "",
+      paymentMode: "",
+    });
+    loadData();
+  };
+
+  const openDatePicker = (field: "start" | "end") => {
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: (field === "start" ? filters.startDate : filters.endDate) || new Date(),
+        mode: "date",
+        display: "calendar",
+        onChange: (_, selectedDate) => {
+          if (selectedDate) {
+            setFilters((prev) => ({
+              ...prev,
+              [field === "start" ? "startDate" : "endDate"]: selectedDate,
+            }));
+          }
+        },
+      });
+      return;
+    }
+    setShowDatePicker(field);
+  };
+
+  const closeDatePicker = () => setShowDatePicker(null);
 
   const filteredTransactions = useMemo(() => {
     const base = (transactions || [])
@@ -194,22 +229,6 @@ export default function TransactionsScreen() {
       return true;
     });
   }, [transactions, activeTag]);
-
-  const confirmDelete = (id: string) => {
-    Alert.alert("Delete", "Delete this transaction?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteTransaction(id);
-            await loadData();
-          } catch { }
-        },
-      },
-    ]);
-  };
 
   const renderItem = ({ item }: { item: any }) => {
     const isIncome = item.direction === "INCOME";
@@ -271,12 +290,6 @@ export default function TransactionsScreen() {
           <Text style={{ fontSize: 9, color: colors.mutedForeground, marginTop: 1 }}>
             {item.paymentMode || "CASH"}
           </Text>
-          <TouchableOpacity
-            onPress={() => confirmDelete(String(item._id))}
-            style={{ marginTop: 6, padding: 4 }}
-          >
-            <Trash2 size={14} color={colors.destructive} />
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -300,13 +313,208 @@ export default function TransactionsScreen() {
                 <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Financial history</Text>
               </View>
               <TouchableOpacity
-                onPress={() => setShowFilterModal(true)}
+                onPress={toggleFilters}
                 className="w-10 h-10 rounded-full items-center justify-center border"
                 style={{ backgroundColor: colors.muted, borderColor: colors.border + '33' }}
               >
                 <Filter size={20} color={colors.foreground} />
               </TouchableOpacity>
             </View>
+
+            {showFilters && (
+              <View
+                style={{
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  borderRadius: 16,
+                  padding: 14,
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Date Range</Text>
+                <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+                  <View style={{ flex: 1 }}>
+                    <TouchableOpacity
+                      onPress={() => openDatePicker("start")}
+                      style={{
+                        padding: 12,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: 10,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        backgroundColor: isDark ? colors.card : colors.secondary + "10",
+                      }}
+                    >
+                      <Calendar size={16} color={colors.mutedForeground} />
+                      <Text style={{ color: colors.foreground }}>
+                        {filters.startDate ? formatDate(filters.startDate) : "Start date"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <TouchableOpacity
+                      onPress={() => openDatePicker("end")}
+                      style={{
+                        padding: 12,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: 10,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        backgroundColor: isDark ? colors.card : colors.secondary + "10",
+                      }}
+                    >
+                      <Calendar size={16} color={colors.mutedForeground} />
+                      <Text style={{ color: colors.foreground }}>
+                        {filters.endDate ? formatDate(filters.endDate) : "End date"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Type</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+                  {["ALL", "INCOME", "EXPENSE", "CASH", "BANK"].map((type) => {
+                    const active =
+                      (type === "ALL" && !filters.direction && !filters.paymentMode) ||
+                      (type === "INCOME" && filters.direction === "INCOME") ||
+                      (type === "EXPENSE" && filters.direction === "EXPENSE") ||
+                      (type === "CASH" && filters.paymentMode === "CASH") ||
+                      (type === "BANK" && filters.paymentMode === "BANK");
+                    return (
+                      <TouchableOpacity
+                        key={type}
+                        onPress={() =>
+                          setFilters((prev) => {
+                            if (type === "ALL") return { ...prev, direction: "", paymentMode: "" };
+                            if (type === "CASH" || type === "BANK")
+                              return { ...prev, paymentMode: type, direction: "" };
+                            return { ...prev, direction: type, paymentMode: "" };
+                          })
+                        }
+                        style={{
+                          paddingHorizontal: 14,
+                          height: TYPE_PILL_HEIGHT,
+                          borderRadius: 20,
+                          backgroundColor: active
+                            ? colors.primary
+                            : (isDark ? colors.card : colors.secondary + "10"),
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontWeight: "600",
+                            textAlign: "center",
+                            color: active ? "white" : colors.foreground,
+                          }}
+                        >
+                          {type}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={resetFilters}
+                    style={{
+                      flex: 1,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      padding: 14,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      backgroundColor: isDark ? colors.card : colors.secondary + "10",
+                    }}
+                  >
+                    <Text style={{ color: colors.foreground, fontWeight: "600" }}>Reset</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      loadData();
+                      setShowFilters(false);
+                    }}
+                    style={{
+                      flex: 1,
+                      backgroundColor: colors.primary,
+                      padding: 14,
+                      borderRadius: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ color: "white", fontWeight: "bold" }}>Apply</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {Platform.OS === "ios" && showDatePicker && (
+              <Modal
+                transparent
+                animationType="slide"
+                visible
+                onRequestClose={closeDatePicker}
+              >
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: "rgba(0,0,0,0.35)",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: colors.card,
+                      borderTopLeftRadius: 16,
+                      borderTopRightRadius: 16,
+                      paddingBottom: 20,
+                      borderTopWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border,
+                      }}
+                    >
+                      <TouchableOpacity onPress={closeDatePicker}>
+                        <Text style={{ color: colors.destructive, fontWeight: "600" }}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={closeDatePicker}>
+                        <Text style={{ color: colors.primary, fontWeight: "700" }}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <DateTimePicker
+                      value={(showDatePicker === "start" ? filters.startDate : filters.endDate) || new Date()}
+                      mode="date"
+                      display="inline"
+                      onChange={(_, selectedDate) => {
+                        if (!selectedDate) return;
+                        setFilters((prev) => ({
+                          ...prev,
+                          [showDatePicker === "start" ? "startDate" : "endDate"]: selectedDate,
+                        }));
+                      }}
+                    />
+                  </View>
+                </View>
+              </Modal>
+            )}
 
             <FlatList
               horizontal
@@ -359,128 +567,6 @@ export default function TransactionsScreen() {
           )
         }
       />
-
-      <BottomSheet
-        visible={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        title="Filter Transactions"
-      >
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-          <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Date Range</Text>
-          <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
-            <View style={{ flex: 1 }}>
-              <TouchableOpacity
-                onPress={() => setShowDatePicker("start")}
-                style={{
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  backgroundColor: isDark ? colors.card : colors.secondary + '10'
-                }}
-              >
-                <Calendar size={16} color={colors.mutedForeground} />
-                <Text style={{ color: colors.foreground }}>{formatDate(filters.startDate)}</Text>
-              </TouchableOpacity>
-              {showDatePicker === "start" && (
-                <DateTimePicker
-                  value={filters.startDate || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(_, selectedDate) => {
-                    setShowDatePicker(null);
-                    if (selectedDate) setFilters((prev) => ({ ...prev, startDate: selectedDate }));
-                  }}
-                />
-              )}
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <TouchableOpacity
-                onPress={() => setShowDatePicker("end")}
-                style={{
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 8,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  backgroundColor: isDark ? colors.card : colors.secondary + '10'
-                }}
-              >
-                <Calendar size={16} color={colors.mutedForeground} />
-                <Text style={{ color: colors.foreground }}>{formatDate(filters.endDate)}</Text>
-              </TouchableOpacity>
-              {showDatePicker === "end" && (
-                <DateTimePicker
-                  value={filters.endDate || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(_, selectedDate) => {
-                    setShowDatePicker(null);
-                    if (selectedDate) setFilters((prev) => ({ ...prev, endDate: selectedDate }));
-                  }}
-                />
-              )}
-            </View>
-          </View>
-
-          <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Type</Text>
-          <View style={{ flexDirection: "row", gap: 8, marginBottom: 24 }}>
-            {["ALL", "INCOME", "EXPENSE"].map((type) => (
-              <TouchableOpacity
-                key={type}
-                onPress={() =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    direction: type === "ALL" ? "" : type,
-                  }))
-                }
-                style={{
-                  flex: 1,
-                  height: TYPE_PILL_HEIGHT,
-                  borderRadius: 20,
-                  backgroundColor:
-                    filters.direction === type || (type === "ALL" && !filters.direction)
-                      ? colors.primary
-                      : (isDark ? colors.card : colors.secondary + '10'),
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    fontWeight: "600",
-                    textAlign: "center",
-                    color:
-                      filters.direction === type || (type === "ALL" && !filters.direction)
-                        ? "white"
-                        : colors.foreground,
-                  }}
-                >
-                  {type}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <TouchableOpacity
-            onPress={() => {
-              setShowFilterModal(false);
-              loadData();
-            }}
-            style={{ backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: "center" }}
-          >
-            <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>Apply Filters</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </BottomSheet>
 
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
     </View>

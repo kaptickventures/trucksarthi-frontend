@@ -31,7 +31,6 @@ export default function LocationsManager() {
     addLocation,
     updateLocation,
     deleteLocation,
-    searchLocations,
   } = useLocations();
 
   const loading = userLoading || locationsLoading;
@@ -284,7 +283,6 @@ export default function LocationsManager() {
         editing={!!editingId}
         formData={formData}
         setFormData={setFormData}
-        searchLocations={searchLocations}
         onSubmit={handleSubmit}
         onClose={closeModal}
       />

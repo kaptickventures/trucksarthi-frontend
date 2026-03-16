@@ -149,12 +149,33 @@ export default function PLReportDetailScreen() {
 
     setDownloading(true);
     try {
+      const isCreditForDriver = (tx: any) =>
+        ["OWNER_TO_DRIVER", "SALARY"].includes(String(tx.category || "").toUpperCase());
+
+      const debitTotal = filtered
+        .filter((tx: any) => {
+          if (entityType === "driver") return !isCreditForDriver(tx);
+          return String(tx.direction || "").toUpperCase() === "EXPENSE";
+        })
+        .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
+
+      const creditTotal = filtered
+        .filter((tx: any) => {
+          if (entityType === "driver") return isCreditForDriver(tx);
+          return String(tx.direction || "").toUpperCase() === "INCOME";
+        })
+        .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
+
+      const difference = debitTotal - creditTotal;
+
       const rowsHtml = filtered
         .map((tx: any, index: number) => {
           const txDate = formatDate(tx.date || tx.createdAt);
           const direction = String(tx.direction || "").toUpperCase();
           const amount = Number(tx.amount || 0);
-          const signedAmount = `${direction === "INCOME" ? "+" : "-"}Rs ${Math.abs(amount).toLocaleString()}`;
+          const isCredit = entityType === "driver" ? isCreditForDriver(tx) : direction === "INCOME";
+          const debit = !isCredit ? `Rs ${Math.abs(amount).toLocaleString()}` : "";
+          const credit = isCredit ? `Rs ${Math.abs(amount).toLocaleString()}` : "";
           const status = String(tx.approvalStatus || "PENDING").toUpperCase();
           const category = String(tx.category || "-");
           const sourceModule = String(tx.sourceModule || "-");
@@ -167,12 +188,26 @@ export default function PLReportDetailScreen() {
               <td>${escapeHtml(category)}</td>
               <td>${escapeHtml(sourceModule)}</td>
               <td>${escapeHtml(status)}</td>
-              <td class="${direction === "INCOME" ? "pos" : "neg"}">${escapeHtml(signedAmount)}</td>
+              <td class="debit">${escapeHtml(debit)}</td>
+              <td class="credit">${escapeHtml(credit)}</td>
               <td>${escapeHtml(notes)}</td>
             </tr>
           `;
         })
         .join("");
+
+      const totalsHtml = `
+        <tr class="totals">
+          <td colspan="5">Totals</td>
+          <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
+          <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+          <td></td>
+        </tr>
+        <tr class="difference">
+          <td colspan="5">Difference (Debit - Credit)</td>
+          <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+          <td></td>
+        </tr>`;
 
       const html = `
 <!DOCTYPE html>
@@ -191,8 +226,11 @@ export default function PLReportDetailScreen() {
     table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 11px; }
     th { background: #111827; color: white; text-align: left; padding: 8px; }
     td { border-bottom: 1px solid #e5e7eb; padding: 8px; vertical-align: top; }
-    .pos { color: #15803d; font-weight: 700; }
-    .neg { color: #b91c1c; font-weight: 700; }
+    .debit { color: #b91c1c; font-weight: 700; }
+    .credit { color: #15803d; font-weight: 700; }
+    .totals td { font-weight: 700; background: #f9fafb; }
+    .difference td { font-weight: 800; background: #f3f4f6; }
+    .diff { text-align: left; }
     .footer { margin-top: 16px; font-size: 11px; color: #6b7280; }
   </style>
 </head>
@@ -226,12 +264,13 @@ export default function PLReportDetailScreen() {
         <th>Category</th>
         <th>Module</th>
         <th>Status</th>
-        <th>Amount</th>
+        <th>Debit</th>
+        <th>Credit</th>
         <th>Notes</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || `<tr><td colspan="7">No transactions found.</td></tr>`}
+      ${(rowsHtml || `<tr><td colspan="8">No transactions found.</td></tr>`) + totalsHtml}
     </tbody>
   </table>
 

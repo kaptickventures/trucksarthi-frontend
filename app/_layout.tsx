@@ -13,6 +13,7 @@ import { NAV_THEME } from "../theme";
 import { AuthProvider } from "../context/AuthContext";
 import { LanguageProvider } from "../context/LanguageContext";
 import { NotificationProvider } from "../context/NotificationContext";
+import { LocationPickerProvider } from "../context/LocationPickerContext";
 
 function MainLayout() {
   const { theme } = useThemeStore();
@@ -37,9 +38,11 @@ export default function App() {
         <LanguageProvider>
           <ThemeStoreProvider>
             <NotificationProvider>
-              <BottomSheetModalProvider>
-                <MainLayout />
-              </BottomSheetModalProvider>
+              <LocationPickerProvider>
+                <BottomSheetModalProvider>
+                  <MainLayout />
+                </BottomSheetModalProvider>
+              </LocationPickerProvider>
             </NotificationProvider>
           </ThemeStoreProvider>
         </LanguageProvider>

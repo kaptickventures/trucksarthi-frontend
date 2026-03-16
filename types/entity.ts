@@ -21,7 +21,6 @@ export interface User {
 
   company_name?: string;
   address?: string;
-  date_of_birth?: ISODate;
   profile_picture_url?: string;
   license_card_url?: string;
   identity_card_url?: string;

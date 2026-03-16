@@ -1,11 +1,9 @@
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
-import { ArrowRight, Building2, Calendar as CalendarIcon, CheckCircle2, ChevronRight, Mail, MapPin, Smartphone, User } from "lucide-react-native";
+import { ArrowRight, Building2, CheckCircle2, Mail, MapPin, Smartphone, User } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,7 +16,6 @@ import {
 import { useKYC } from "../../hooks/useKYC";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
-import { formatDate } from "../../lib/utils";
 
 type Step = "gstin" | "preview";
 
@@ -39,8 +36,6 @@ export default function GstinOnboardingScreen() {
   const [phone, setPhone] = useState("");
   const [company_name, setCompany] = useState("");
   const [address, setAddress] = useState("");
-  const [dob, setDob] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -53,11 +48,6 @@ export default function GstinOnboardingScreen() {
     setCompany(user.company_name ?? "");
     setAddress(user.address ?? "");
     setGstin(user.gstin ?? "");
-
-    if (user.date_of_birth) {
-      const d = new Date(user.date_of_birth);
-      if (!isNaN(d.getTime())) setDob(d);
-    }
 
     if (user?.gstin && user?.kyc_data?.gstin_details) {
       const details = user.kyc_data.gstin_details;
@@ -75,16 +65,6 @@ export default function GstinOnboardingScreen() {
     const currentEmail = user?.email ?? "";
     return Boolean(currentEmail.includes("@trucksarthi.com") && user?.phone && currentEmail.startsWith(user?.phone));
   }, [user?.email, user?.phone]);
-
-  const handleOpenDatePicker = () => {
-    Keyboard.dismiss();
-    setShowDatePicker(true);
-  };
-
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) setDob(selectedDate);
-  };
 
   const applyGstinDetails = (details: any, normalizedGstin: string) => {
     const legalName = details?.legal_name_of_business;
@@ -124,7 +104,6 @@ export default function GstinOnboardingScreen() {
     if (!gstinDetails) return "Please verify your GSTIN to continue.";
     if (!name.trim()) return "Full Name is required";
     if (!company_name.trim()) return "Company Name is required";
-    if (!dob) return "Date of Birth is required";
     if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return "A valid Mobile Number is required";
     if (!email.trim() || !email.includes("@")) return "A valid Email Address is required";
     if (!address.trim()) return "Address is required";
@@ -146,7 +125,6 @@ export default function GstinOnboardingScreen() {
         phone: phone.trim(),
         company_name: company_name.trim(),
         address: address.trim(),
-        date_of_birth: dob?.toISOString(),
         gstin: normalizeGstin(gstin),
         is_gstin_verified: Boolean(gstinDetails),
         kyc_data: gstinDetails
@@ -286,45 +264,6 @@ export default function GstinOnboardingScreen() {
                   placeholder="Your fleet or business name"
                   icon={<Building2 size={18} color={colors.mutedForeground} />}
                 />
-
-                <View>
-                  <Text style={{ fontSize: 12, fontWeight: "800", color: colors.mutedForeground, marginBottom: 8, marginLeft: 4 }}>
-                    DATE OF BIRTH
-                  </Text>
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={handleOpenDatePicker}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      backgroundColor: colors.card,
-                      borderRadius: 16,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      paddingHorizontal: 16,
-                      paddingVertical: 14,
-                      gap: 12,
-                    }}
-                  >
-                    <CalendarIcon size={18} color={colors.mutedForeground} />
-                    <Text style={{ flex: 1, fontSize: 16, color: dob ? colors.foreground : colors.mutedForeground, fontWeight: dob ? "600" : "400" }}>
-                      {dob ? formatDate(dob.toISOString()) : "Select your birth date"}
-                    </Text>
-                    <ChevronRight size={18} color={colors.border} />
-                  </TouchableOpacity>
-
-                  {showDatePicker && (
-                    <View style={{ marginTop: 8 }}>
-                      <DateTimePicker
-                        value={dob || new Date(new Date().setFullYear(new Date().getFullYear() - 20))}
-                        mode="date"
-                        display={Platform.OS === "ios" ? "spinner" : "default"}
-                        onChange={handleDateChange}
-                        maximumDate={new Date()}
-                      />
-                    </View>
-                  )}
-                </View>
 
                 <CustomInput
                   label="MOBILE NUMBER"

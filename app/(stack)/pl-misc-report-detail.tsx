@@ -82,10 +82,19 @@ export default function PLMiscReportDetailScreen() {
   const handleDownload = async () => {
     setDownloading(true);
     try {
+      const debitTotal = filtered
+        .filter((tx: any) => String(tx.direction || "").toUpperCase() === "EXPENSE")
+        .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
+      const creditTotal = filtered
+        .filter((tx: any) => String(tx.direction || "").toUpperCase() === "INCOME")
+        .reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0);
+      const difference = debitTotal - creditTotal;
+
       const rowsHtml = filtered
         .map((tx: any, index: number) => {
           const isIncome = String(tx.direction || "").toUpperCase() === "INCOME";
-          const signed = `${isIncome ? "+" : "-"}Rs ${Math.abs(Number(tx.amount || 0)).toLocaleString()}`;
+          const debit = isIncome ? "" : `Rs ${Math.abs(Number(tx.amount || 0)).toLocaleString()}`;
+          const credit = isIncome ? `Rs ${Math.abs(Number(tx.amount || 0)).toLocaleString()}` : "";
           return `
           <tr>
             <td>${index + 1}</td>
@@ -93,10 +102,22 @@ export default function PLMiscReportDetailScreen() {
             <td>${escapeHtml(String(tx.subcategory || tx.category || "MISC").replace(/_/g, " "))}</td>
             <td>${escapeHtml(String(tx.approvalStatus || "PENDING").toUpperCase())}</td>
             <td>${escapeHtml(String(tx.paymentMode || "CASH").toUpperCase())}</td>
-            <td class="${isIncome ? "pos" : "neg"}">${escapeHtml(signed)}</td>
+            <td class="debit">${escapeHtml(debit)}</td>
+            <td class="credit">${escapeHtml(credit)}</td>
           </tr>`;
         })
         .join("");
+
+      const totalsHtml = `
+          <tr class="totals">
+            <td colspan="5">Totals</td>
+            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
+            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+          </tr>
+          <tr class="difference">
+            <td colspan="5">Difference (Debit - Credit)</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+          </tr>`;
 
       const html = `
       <!DOCTYPE html>
@@ -114,8 +135,11 @@ export default function PLMiscReportDetailScreen() {
           table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 11px; }
           th { background: #111827; color: white; text-align: left; padding: 8px; }
           td { border-bottom: 1px solid #e5e7eb; padding: 8px; vertical-align: top; }
-          .pos { color: #15803d; font-weight: 700; }
-          .neg { color: #b91c1c; font-weight: 700; }
+          .debit { color: #b91c1c; font-weight: 700; }
+          .credit { color: #15803d; font-weight: 700; }
+          .totals td { font-weight: 700; background: #f9fafb; }
+          .difference td { font-weight: 800; background: #f3f4f6; }
+          .diff { text-align: left; }
         </style>
       </head>
       <body>
@@ -128,8 +152,8 @@ export default function PLMiscReportDetailScreen() {
           <div class="card"><div class="label">Net</div><div class="value">${summary.balance >= 0 ? "+" : "-"}Rs ${Math.abs(summary.balance).toLocaleString()}</div></div>
         </div>
         <table>
-          <thead><tr><th>#</th><th>Date</th><th>Entry</th><th>Status</th><th>Mode</th><th>Amount</th></tr></thead>
-          <tbody>${rowsHtml || `<tr><td colspan="6">No entries found.</td></tr>`}</tbody>
+          <thead><tr><th>#</th><th>Date</th><th>Entry</th><th>Status</th><th>Mode</th><th>Debit</th><th>Credit</th></tr></thead>
+          <tbody>${(rowsHtml || `<tr><td colspan="7">No entries found.</td></tr>`) + totalsHtml}</tbody>
         </table>
       </body>
       </html>`;

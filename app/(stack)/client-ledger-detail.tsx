@@ -1,15 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { NotificationBadge } from "../../components/NotificationBadge";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { ArrowDownLeft, Banknote, Building2, Edit, Eye, FileText, MapPin, Plus, Share2, Trash2, X } from "lucide-react-native";
+import { ArrowDownLeft, Banknote, Building2, Calendar, Download, Edit, Eye, FileText, MapPin, Plus, Share2, X } from "lucide-react-native";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Linking,
+  Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -36,6 +38,14 @@ import { useUser } from "../../hooks/useUser";
 import { formatDate } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 import API from "../../app/api/axiosInstance";
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 
 export default function ClientLedgerDetailScreen() {
   const router = useRouter();
@@ -88,12 +98,12 @@ export default function ClientLedgerDetailScreen() {
     entries,
     fetchLedger,
     addPayment,
-    deleteEntry,
   } = useClientLedger();
 
   /* ---------------- STATE ---------------- */
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"unbilled" | "billed" | "settled">("unbilled");
+  const [isClientExpanded, setIsClientExpanded] = useState(false);
 
   // Payment Form
   const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -110,6 +120,13 @@ export default function ClientLedgerDetailScreen() {
   const [invoiceTaxPercentage, setInvoiceTaxPercentage] = useState<0 | 5 | 18>(0);
   const [invoiceDueDate, setInvoiceDueDate] = useState<Date>(new Date());
   const [showInvoiceDueDatePicker, setShowInvoiceDueDatePicker] = useState(false);
+  const [showDownloadSheet, setShowDownloadSheet] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadDateField, setDownloadDateField] = useState<"start" | "end" | null>(null);
+  const [downloadRange, setDownloadRange] = useState({
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    endDate: new Date(),
+  });
 
   // Edit Client Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -154,7 +171,7 @@ export default function ClientLedgerDetailScreen() {
   const { clients, loading: clientsLoading, fetchClients, updateClient } =
     useClients();
 
-  const { invoices, fetchInvoices, createInvoice, deleteInvoice } =
+  const { invoices, fetchInvoices, createInvoice } =
     useInvoices();
 
   const { trips, fetchTrips } = useTrips({ autoFetch: false });
@@ -708,6 +725,149 @@ export default function ClientLedgerDetailScreen() {
       }, 0);
   }, [clientInvoices, entries]);
 
+  const getEntriesForRange = useCallback(
+    (range: { startDate: Date; endDate: Date }) => {
+      const start = new Date(range.startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(range.endDate);
+      end.setHours(23, 59, 59, 999);
+      return (entries || []).filter((entry: any) => {
+        const entryDate = new Date(entry?.entry_date || entry?.date || entry?.createdAt || 0);
+        return entryDate >= start && entryDate <= end;
+      });
+    },
+    [entries]
+  );
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const entriesForRange = getEntriesForRange(downloadRange);
+      const debitTotal = entriesForRange
+        .filter((entry: any) => String(entry?.entry_type || "").toLowerCase() === "debit")
+        .reduce((sum: number, entry: any) => sum + Number(entry.amount || 0), 0);
+      const creditTotal = entriesForRange
+        .filter((entry: any) => String(entry?.entry_type || "").toLowerCase() === "credit")
+        .reduce((sum: number, entry: any) => sum + Number(entry.amount || 0), 0);
+      const difference = debitTotal - creditTotal;
+
+      const rowsHtml = entriesForRange
+        .map((entry: any, index: number) => {
+          const type = String(entry?.entry_type || "").toLowerCase();
+          const isDebit = type === "debit";
+          const debit = isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const credit = !isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const title = entry.remarks || (isDebit ? "Invoice" : "Payment Received");
+          return `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${escapeHtml(formatDate(entry.entry_date || entry.date))}</td>
+            <td>${escapeHtml(title)}</td>
+            <td class="debit">${escapeHtml(debit)}</td>
+            <td class="credit">${escapeHtml(credit)}</td>
+          </tr>`;
+        })
+        .join("");
+
+      const totalsHtml = `
+          <tr class="totals">
+            <td colspan="3">Totals</td>
+            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
+            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+          </tr>
+          <tr class="difference">
+            <td colspan="3">Difference (Debit - Credit)</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+          </tr>`;
+
+      const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: Arial, Helvetica, sans-serif; padding: 24px; color: #111827; }
+          h1 { margin: 0; font-size: 22px; }
+          .client { margin-top: 6px; font-size: 18px; font-weight: 800; }
+          .sub { margin-top: 4px; color: #6b7280; font-size: 12px; }
+          .cards { margin-top: 12px; display: flex; gap: 10px; }
+          .card { flex: 1; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; }
+          .label { color: #6b7280; font-size: 11px; }
+          .value { margin-top: 4px; font-size: 15px; font-weight: 700; }
+          table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 11px; }
+          th { background: #111827; color: white; text-align: left; padding: 8px; }
+          td { border-bottom: 1px solid #e5e7eb; padding: 8px; vertical-align: top; }
+          .debit { color: #b91c1c; font-weight: 700; }
+          .credit { color: #15803d; font-weight: 700; }
+          .totals td { font-weight: 700; background: #f9fafb; }
+          .difference td { font-weight: 800; background: #f3f4f6; }
+          .diff { text-align: left; }
+          .disclaimer { margin-top: 16px; font-size: 11px; color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <h1>Client Ledger</h1>
+        <div class="client">${escapeHtml(client?.client_name || "Client")}</div>
+        <div class="sub">Period: ${escapeHtml(formatDate(downloadRange.startDate))} - ${escapeHtml(formatDate(downloadRange.endDate))}</div>
+        <div class="cards">
+          <div class="card"><div class="label">Debit</div><div class="value">Rs ${debitTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Credit</div><div class="value">Rs ${creditTotal.toLocaleString()}</div></div>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Date</th><th>Particulars</th><th>Debit</th><th>Credit</th></tr></thead>
+          <tbody>${(rowsHtml || `<tr><td colspan="5">No entries found for this range.</td></tr>`) + totalsHtml}</tbody>
+        </table>
+        <div class="disclaimer">Disclaimer: Transactions exist before and after this date range.</div>
+      </body>
+      </html>`;
+
+      const { uri } = await Print.printToFileAsync({ html });
+      const cleanName = (client?.client_name || "client").replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 32);
+      const targetUri = `${FileSystem.documentDirectory}Client-Ledger-${cleanName}-${Date.now()}.pdf`;
+      await FileSystem.moveAsync({ from: uri, to: targetUri });
+
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(targetUri);
+      else Alert.alert("Report Ready", `Saved at: ${targetUri}`);
+      setShowDownloadSheet(false);
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to generate client ledger PDF");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const applyDownloadDate = (field: "start" | "end", selectedDate: Date) => {
+    if (field === "start") {
+      setDownloadRange((prev) => ({
+        startDate: selectedDate,
+        endDate: prev.endDate < selectedDate ? selectedDate : prev.endDate,
+      }));
+      return;
+    }
+    setDownloadRange((prev) => ({
+      startDate: prev.startDate > selectedDate ? selectedDate : prev.startDate,
+      endDate: selectedDate,
+    }));
+  };
+
+  const openDownloadDatePicker = (field: "start" | "end") => {
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: field === "start" ? downloadRange.startDate : downloadRange.endDate,
+        mode: "date",
+        display: "calendar",
+        onChange: (_, selectedDate) => {
+          if (selectedDate) applyDownloadDate(field, selectedDate);
+        },
+      });
+      return;
+    }
+    setDownloadDateField(field);
+  };
+
+  const closeDownloadDatePicker = () => setDownloadDateField(null);
+
   const settledAmount = useMemo(() => {
     return (entries || [])
       .filter((e) => e && e.entry_type === "credit")
@@ -843,40 +1003,6 @@ export default function ClientLedgerDetailScreen() {
     setPaymentMode("BANK");
     setPaymentDate(new Date());
     setShowPaymentForm(true);
-  };
-
-  const handleDeleteInvoice = (invoiceId: string) => {
-    Alert.alert("Delete Invoice", "Delete this invoice? Its trips will move back to Unbilled.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          if (!id) return;
-          try {
-            await deleteInvoice(invoiceId);
-            await Promise.all([fetchInvoices(), fetchTrips(), fetchLedger(id)]);
-          } catch { }
-        },
-      },
-    ]);
-  };
-
-  const handleDeletePaymentEntry = (entryId: string) => {
-    Alert.alert("Delete Payment", "Delete this payment transaction?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          if (!id) return;
-          try {
-            await deleteEntry(entryId, id);
-            await Promise.all([fetchInvoices(), fetchTrips(), fetchLedger(id)]);
-          } catch { }
-        },
-      },
-    ]);
   };
 
   const openEditModal = () => {
@@ -1025,25 +1151,52 @@ export default function ClientLedgerDetailScreen() {
               <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('clientKhata')}</Text>
               <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('billingSummary')}</Text>
             </View>
+            <TouchableOpacity
+              onPress={() => setShowDownloadSheet(true)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+              }}
+            >
+              <Download size={16} color={colors.foreground} />
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground }}>Download</Text>
+            </TouchableOpacity>
           </View>
         </View>
         {/* Client Card */}
         <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{ width: 56, height: 56, backgroundColor: colors.secondary, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-              <Building2 size={26} color={colors.success} />
-            </View>
+            <TouchableOpacity
+              onPress={() => setIsClientExpanded((prev) => !prev)}
+              activeOpacity={0.8}
+              style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+            >
+              <View style={{ width: 56, height: 56, backgroundColor: colors.secondary, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                <Building2 size={26} color={colors.success} />
+              </View>
 
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: colors.foreground }}>
-                {client.client_name}
-              </Text>
-              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                {client.contact_person_name || "—"} {client.gstin ? ` • ${client.gstin}` : ""}
-              </Text>
-            </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.foreground }}>
+                  {client.client_name}
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                  GSTIN: {client.gstin || "N/A"}
+                </Text>
+              </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ paddingRight: 8 }}>
+                <Ionicons name={isClientExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.mutedForeground} />
+              </View>
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 8 }}>
               <TouchableOpacity
                 onPress={openEditModal}
                 style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}
@@ -1059,39 +1212,57 @@ export default function ClientLedgerDetailScreen() {
             </View>
           </View>
 
-          {/* ACTION ROW */}
-          <View style={{ flexDirection: 'row', gap: 16, marginTop: 16 }}>
-            {/* CALL */}
-            <TouchableOpacity
-              onPress={() =>
-                client.contact_number &&
-                Linking.openURL(`tel:${client.contact_number}`)
-              }
-              style={{ flex: 1, backgroundColor: colors.muted, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
-            >
-              <Text style={{ fontWeight: '600', fontSize: 14, color: colors.foreground }}>📞 {t('call')}</Text>
-            </TouchableOpacity>
-
-            {/* WHATSAPP */}
-            <TouchableOpacity
-              onPress={() =>
-                client.contact_number &&
-                Linking.openURL(
-                  `https://wa.me/91${client.contact_number}?text=Hello ${client.client_name}`
-                )
-              }
-              style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="logo-whatsapp" size={18} color="white" />
-                <Text style={{ fontWeight: '600', fontSize: 14, color: 'white' }}>
-                  WhatsApp
+          {isClientExpanded && (
+            <View style={{ marginTop: 14, gap: 8 }}>
+              <View style={{ gap: 4 }}>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                  {t('contactPerson')}: {client.contact_person_name || "N/A"}
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                  {t('clientContact')}: {client.contact_number || "N/A"}
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                  {t('email')}: {client.email_address || "N/A"}
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                  {t('officeAddress')}: {client.office_address || "N/A"}
                 </Text>
               </View>
-            </TouchableOpacity>
-          </View>
-        </View>
 
+              {/* ACTION ROW */}
+              <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
+                {/* CALL */}
+                <TouchableOpacity
+                  onPress={() =>
+                    client.contact_number &&
+                    Linking.openURL(`tel:${client.contact_number}`)
+                  }
+                  style={{ flex: 1, backgroundColor: colors.muted, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
+                >
+                  <Text style={{ fontWeight: '600', fontSize: 14, color: colors.foreground }}>{t('call')}</Text>
+                </TouchableOpacity>
+
+                {/* WHATSAPP */}
+                <TouchableOpacity
+                  onPress={() =>
+                    client.contact_number &&
+                    Linking.openURL(
+                      `https://wa.me/91${client.contact_number}?text=Hello ${client.client_name}`
+                    )
+                  }
+                  style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="logo-whatsapp" size={18} color="white" />
+                    <Text style={{ fontWeight: '600', fontSize: 14, color: 'white' }}>
+                      WhatsApp
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
         {/* Summary */}
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
           <SummaryCard label={t('unbilled')} value={unbilledAmount} />
@@ -1231,9 +1402,6 @@ export default function ClientLedgerDetailScreen() {
                         <TouchableOpacity onPress={() => generateInvoicePDF(invoice, "share")} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
                           <Share2 size={16} color={colors.foreground} />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleDeleteInvoice(getId(invoice))} className="p-2 rounded-lg" style={{ backgroundColor: colors.muted }}>
-                          <Trash2 size={16} color={colors.destructive} />
-                        </TouchableOpacity>
                         {invoice.status !== 'paid' && (
                           <TouchableOpacity onPress={() => handleSettleInvoice(invoice)} className="px-4 py-2 rounded-full" style={{ backgroundColor: colors.primary }}>
                             <Text style={{ color: colors.primaryForeground, fontWeight: 'bold' }} className="text-xs">Settle</Text>
@@ -1274,9 +1442,6 @@ export default function ClientLedgerDetailScreen() {
                       </Text>
                     </View>
                     <Text className="font-bold" style={{ color: colors.success }}>₹{Number(entry.amount).toLocaleString()}</Text>
-                    <TouchableOpacity onPress={() => handleDeletePaymentEntry(getId(entry))} style={{ padding: 4, marginTop: 4 }}>
-                      <Trash2 size={14} color={colors.destructive} />
-                    </TouchableOpacity>
                   </View>
                 </View>
               ))
@@ -1634,6 +1799,124 @@ export default function ClientLedgerDetailScreen() {
               </View>
             </View>
           </KeyboardAwareScrollView>
+        </BottomSheet>
+
+        <BottomSheet
+          visible={showDownloadSheet}
+          onClose={() => {
+            setShowDownloadSheet(false);
+            setDownloadDateField(null);
+          }}
+          title="Download Ledger"
+          subtitle="Choose a date range"
+          maxHeight="70%"
+        >
+          <View style={{ gap: 14, paddingBottom: 10 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+              Select the period you want to include in the PDF.
+            </Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => openDownloadDatePicker("start")}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: 12,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.card,
+                }}
+              >
+                <Calendar size={14} color={colors.mutedForeground} />
+                <View>
+                  <Text style={{ fontSize: 11, color: colors.mutedForeground }}>Start</Text>
+                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>{formatDate(downloadRange.startDate)}</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => openDownloadDatePicker("end")}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: 12,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.card,
+                }}
+              >
+                <Calendar size={14} color={colors.mutedForeground} />
+                <View>
+                  <Text style={{ fontSize: 11, color: colors.mutedForeground }}>End</Text>
+                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>{formatDate(downloadRange.endDate)}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {Platform.OS === "ios" && downloadDateField && (
+              <Modal transparent animationType="slide" visible onRequestClose={closeDownloadDatePicker}>
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }}>
+                  <View
+                    style={{
+                      backgroundColor: colors.card,
+                      borderTopLeftRadius: 16,
+                      borderTopRightRadius: 16,
+                      paddingBottom: 20,
+                      borderTopWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border,
+                      }}
+                    >
+                      <TouchableOpacity onPress={closeDownloadDatePicker}>
+                        <Text style={{ color: colors.destructive, fontWeight: "600" }}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={closeDownloadDatePicker}>
+                        <Text style={{ color: colors.primary, fontWeight: "700" }}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <DateTimePicker
+                      value={downloadDateField === "start" ? downloadRange.startDate : downloadRange.endDate}
+                      mode="date"
+                      display="inline"
+                      onChange={(_, selectedDate) => {
+                        if (selectedDate) applyDownloadDate(downloadDateField, selectedDate);
+                      }}
+                    />
+                  </View>
+                </View>
+              </Modal>
+            )}
+
+            <TouchableOpacity
+              onPress={handleDownload}
+              disabled={downloading}
+              style={{
+                backgroundColor: colors.primary,
+                paddingVertical: 14,
+                borderRadius: 12,
+                alignItems: "center",
+                opacity: downloading ? 0.7 : 1,
+              }}
+            >
+              <Text style={{ color: colors.primaryForeground, fontWeight: "800", fontSize: 14 }}>
+                {downloading ? "Generating PDF..." : "Download PDF"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </BottomSheet>
 
       </ScrollView>

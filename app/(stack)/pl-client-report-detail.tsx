@@ -91,9 +91,18 @@ export default function PLClientReportDetailScreen() {
     if (!clientId) return;
     setDownloading(true);
     try {
+      const debitTotal = normalizedEntries
+        .filter((entry: any) => !entry.isCredit)
+        .reduce((sum: number, entry: any) => sum + Number(entry.amount || 0), 0);
+      const creditTotal = normalizedEntries
+        .filter((entry: any) => entry.isCredit)
+        .reduce((sum: number, entry: any) => sum + Number(entry.amount || 0), 0);
+      const difference = debitTotal - creditTotal;
+
       const rowsHtml = normalizedEntries
         .map((entry: any, index: number) => {
-          const signed = `${entry.isCredit ? "+" : "-"}Rs ${Math.abs(entry.amount).toLocaleString()}`;
+          const debit = entry.isCredit ? "" : `Rs ${Math.abs(entry.amount).toLocaleString()}`;
+          const credit = entry.isCredit ? `Rs ${Math.abs(entry.amount).toLocaleString()}` : "";
           return `
           <tr>
             <td>${index + 1}</td>
@@ -101,10 +110,22 @@ export default function PLClientReportDetailScreen() {
             <td>${escapeHtml(entry.remarks || (entry.isCredit ? "Payment Received" : "Invoice Generated"))}</td>
             <td>${escapeHtml(entry.idLabel)}</td>
             <td>${escapeHtml((entry.payment_mode || "CASH").toUpperCase())}</td>
-            <td class="${entry.isCredit ? "pos" : "neg"}">${escapeHtml(signed)}</td>
+            <td class="debit">${escapeHtml(debit)}</td>
+            <td class="credit">${escapeHtml(credit)}</td>
           </tr>`;
         })
         .join("");
+
+      const totalsHtml = `
+          <tr class="totals">
+            <td colspan="5">Totals</td>
+            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
+            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+          </tr>
+          <tr class="difference">
+            <td colspan="5">Difference (Debit - Credit)</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+          </tr>`;
 
       const html = `
       <!DOCTYPE html>
@@ -122,8 +143,11 @@ export default function PLClientReportDetailScreen() {
           table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 11px; }
           th { background: #111827; color: white; text-align: left; padding: 8px; }
           td { border-bottom: 1px solid #e5e7eb; padding: 8px; vertical-align: top; }
-          .pos { color: #15803d; font-weight: 700; }
-          .neg { color: #b91c1c; font-weight: 700; }
+          .debit { color: #b91c1c; font-weight: 700; }
+          .credit { color: #15803d; font-weight: 700; }
+          .totals td { font-weight: 700; background: #f9fafb; }
+          .difference td { font-weight: 800; background: #f3f4f6; }
+          .diff { text-align: left; }
         </style>
       </head>
       <body>
@@ -136,8 +160,8 @@ export default function PLClientReportDetailScreen() {
           <div class="card"><div class="label">Outstanding</div><div class="value">Rs ${summary.outstanding.toLocaleString()}</div></div>
         </div>
         <table>
-          <thead><tr><th>#</th><th>Date</th><th>Entry</th><th>Reference</th><th>Mode</th><th>Amount</th></tr></thead>
-          <tbody>${rowsHtml || `<tr><td colspan="6">No entries found.</td></tr>`}</tbody>
+          <thead><tr><th>#</th><th>Date</th><th>Entry</th><th>Reference</th><th>Mode</th><th>Debit</th><th>Credit</th></tr></thead>
+          <tbody>${(rowsHtml || `<tr><td colspan="7">No entries found.</td></tr>`) + totalsHtml}</tbody>
         </table>
       </body>
       </html>`;

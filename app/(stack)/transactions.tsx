@@ -1,9 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   FlatList,
   RefreshControl,
   ScrollView,
@@ -12,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { ArrowDownLeft, ArrowUpRight, Calendar, Filter, Trash2 } from "lucide-react-native";
+import { ArrowDownLeft, ArrowUpRight, Calendar, Filter } from "lucide-react-native";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import BottomSheet from "../../components/BottomSheet";
 import { Skeleton } from "../../components/Skeleton";
@@ -41,11 +39,10 @@ const TAG_PILL_HEIGHT = 40;
 const TYPE_PILL_HEIGHT = 36;
 
 export default function TransactionsScreen() {
-  const router = useRouter();
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
-  const { loading, transactions, fetchTransactions, deleteTransaction } = useFinance();
+  const { loading, transactions, fetchTransactions } = useFinance();
 
   const { drivers } = useDrivers();
   const { clients } = useClients();
@@ -180,22 +177,6 @@ export default function TransactionsScreen() {
     });
   }, [transactions, activeTag, filters]);
 
-  const confirmDelete = (id: string) => {
-    Alert.alert("Delete", "Delete this transaction?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteTransaction(id);
-            await loadData(filters);
-          } catch { }
-        },
-      },
-    ]);
-  };
-
   const renderItem = ({ item }: { item: any }) => {
     const isIncome = item.direction === "INCOME";
     const iconColor = isIncome ? colors.success : colors.destructive;
@@ -256,12 +237,6 @@ export default function TransactionsScreen() {
           <Text style={{ fontSize: 9, color: colors.mutedForeground, marginTop: 1 }}>
             {item.paymentMode || "CASH"}
           </Text>
-          <TouchableOpacity
-            onPress={() => confirmDelete(String(item._id))}
-            style={{ marginTop: 6, padding: 4 }}
-          >
-            <Trash2 size={14} color={colors.destructive} />
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -329,7 +304,9 @@ export default function TransactionsScreen() {
             />
           </View>
         }
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => loadData(filters)} tintColor={colors.primary} />
+        }
         ListEmptyComponent={
           loading && !transactions.length ? (
             <View style={{ flex: 1, padding: 20 }}>

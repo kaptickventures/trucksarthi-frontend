@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { Plus } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -10,6 +12,7 @@ import {
   View,
 } from "react-native";
 import API from "../api/axiosInstance";
+import DriverFormModal from "../../components/DriverModal";
 import useDrivers from "../../hooks/useDriver";
 import { Skeleton } from "../../components/Skeleton";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -20,10 +23,23 @@ export default function DriverLedgerScreen() {
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
-  const { drivers, fetchDrivers, loading } = useDrivers();
+  const { drivers, fetchDrivers, loading, addDriver } = useDrivers();
   const [refreshing, setRefreshing] = useState(false);
   const [balances, setBalances] = useState<Record<string, number>>({});
   const showInitialSkeleton = loading && !refreshing && (drivers || []).length === 0;
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const [formData, setFormData] = useState({
+    driver_name: "",
+    contact_number: "",
+    identity_card_url: "",
+    license_card_url: "",
+  });
+
+  const requiredFields: Array<keyof typeof formData> = [
+    "driver_name",
+    "contact_number",
+  ];
 
   const load = useCallback(async () => {
     await fetchDrivers();
@@ -81,11 +97,49 @@ export default function DriverLedgerScreen() {
     setRefreshing(false);
   }, [load]);
 
+  const openModal = () => {
+    setFormData({
+      driver_name: "",
+      contact_number: "",
+      identity_card_url: "",
+      license_card_url: "",
+    });
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+  };
+
+  const handleSubmit = async () => {
+    for (const field of requiredFields) {
+      if (!formData[field]) {
+        Alert.alert(t("missingFields"), "Please fill all required fields.");
+        return;
+      }
+    }
+
+    try {
+      await addDriver(formData);
+      Alert.alert(t("success"), `Driver ${t("addedSuccessfully")}`);
+      closeModal();
+      fetchDrivers();
+    } catch (err) {
+      console.error("Submit error:", err);
+      const msg =
+        (err as any)?.response?.data?.error ||
+        (err as any)?.response?.data?.message ||
+        (err as Error)?.message ||
+        "Failed to save driver details.";
+      Alert.alert(t("error"), msg);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View className="mb-3 px-0">
@@ -164,6 +218,31 @@ export default function DriverLedgerScreen() {
           );
         })}
       </ScrollView>
+
+      {/* Floating Add Button */}
+      <TouchableOpacity
+        onPress={openModal}
+        className="absolute bottom-8 right-6 w-16 h-16 rounded-full justify-center items-center"
+        style={{
+          backgroundColor: colors.primary,
+          elevation: 8,
+          shadowColor: "#000",
+          shadowOpacity: 0.25,
+          shadowRadius: 4,
+          shadowOffset: { width: 0, height: 2 },
+        }}
+      >
+        <Plus color={colors.primaryForeground} size={28} />
+      </TouchableOpacity>
+
+      <DriverFormModal
+        visible={modalVisible}
+        editing={false}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleSubmit}
+        onClose={closeModal}
+      />
     </View>
   );
 }
