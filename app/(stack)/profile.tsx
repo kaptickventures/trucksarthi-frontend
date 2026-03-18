@@ -563,30 +563,12 @@ export default function Profile() {
                   </View>
                 </View>
 
-              {(user?.is_bank_verified || bankVerificationResult?.verified) && (
-                <View style={{
-                  backgroundColor: colors.successSoft,
-                  padding: 12,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: colors.success,
-                  marginBottom: 8
-                }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <ShieldCheck size={20} color={colors.success} />
-                    <Text style={{ fontWeight: 'bold', fontSize: 14, color: colors.success }}>
-                      Bank Account Verified ✓
-                    </Text>
-                  </View>
-                </View>
-              )}
-
               <ProfileInput
                 label="Bank Name"
                 value={formData.bank_name}
                 editable={false}
                 icon={<Landmark size={18} color={colors.mutedForeground} />}
-                labelAction="Update"
+                labelAction="Update Bank"
                 onLabelActionPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "bank" } } as any)}
               />
               <ProfileInput label="Account Holder" value={formData.account_holder_name} editable={false} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
@@ -600,40 +582,10 @@ export default function Profile() {
                 icon={<QrCode size={18} color={colors.mutedForeground} />}
                 placeholder="example@upi"
                 autoCapitalize="none"
-                labelAction={!isEditing ? "Update UPI ID" : undefined}
-                onLabelActionPress={!isEditing ? () => setIsEditing(true) : undefined}
+                labelAction={isEditing ? "Save" : "Update UPI ID"}
+                onLabelActionPress={isEditing ? handleSave : () => setIsEditing(true)}
               />
 
-              {formData.account_number && formData.ifsc_code && (
-                <TouchableOpacity
-                  onPress={handleBankVerification}
-                  disabled={verifyingBank}
-                  style={{
-                    backgroundColor: user?.is_bank_verified ? colors.muted : colors.primary,
-                    borderRadius: 12,
-                    paddingVertical: 14,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginTop: 8,
-                    opacity: verifyingBank ? 0.7 : 1
-                  }}
-                >
-                  {verifyingBank ? (
-                    <ActivityIndicator color={colors.primaryForeground} />
-                  ) : (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <ShieldCheck size={18} color={user?.is_bank_verified ? colors.mutedForeground : colors.primaryForeground} />
-                      <Text style={{
-                        color: user?.is_bank_verified ? colors.mutedForeground : colors.primaryForeground,
-                        fontWeight: 'bold',
-                        fontSize: 14
-                      }}>
-                        {user?.is_bank_verified ? 'Re-verify Bank Account' : 'Verify Bank Account'}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              )}
             </View>
           )}
 

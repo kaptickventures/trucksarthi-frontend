@@ -43,14 +43,7 @@ export default function SideMenu({
   const menuTopOffset = typeof topOffset === "number" ? topOffset : insets.top + 56;
 
   const MANAGER_LINKS = [
-    { title: t('trucks'), icon: "bus-outline", route: "/(stack)/trucks-manager" as const },
-    { title: t('drivers'), icon: "person-add-outline", route: "/(stack)/drivers-manager" as const },
-    { title: t('clients'), icon: "people-outline", route: "/(stack)/clients-manager" as const },
     { title: t('locations'), icon: "location-outline", route: "/(stack)/locations-manager" as const },
-  ] as const;
-
-  const FINANCE_LINKS = [
-    { title: t('pLReports'), icon: "stats-chart-outline", route: "/(stack)/pl-reports" as const },
   ] as const;
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
@@ -169,25 +162,6 @@ export default function SideMenu({
 
           {/* SCROLLABLE MENU ITEMS */}
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 0 }}>
-            {/* FINANCE SECTION */}
-            <View className="mb-6">
-              <Text className="text-base font-semibold mb-3 mt-4" style={{ color: colors.mutedForeground }}>
-                {t('financeHub')}
-              </Text>
-              {FINANCE_LINKS.map((item, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() => navigate(item.route)}
-                  className="flex-row items-center py-4"
-                >
-                  {renderIcon(item.icon)}
-                  <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                    {item.title}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
             {/* MANAGER SECTION */}
             <View className="mb-6">
               <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>

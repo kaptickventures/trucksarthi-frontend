@@ -37,6 +37,15 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const quickActionIconBg = colors.accent;
   const quickActionIconColor = colors.primary;
+  const quickActions = [
+    { title: "Driver khata", icon: "person-outline", route: "/driver-ledger" },
+    { title: "Client khata", icon: "people-outline", route: "/client-ledger" },
+    { title: "Truck khata", icon: "bus-outline", route: "/truck-khata" },
+    { title: "Misc transactions", icon: "swap-horizontal-outline", route: "/misc-transactions" },
+    { title: "Truck Manager", icon: "folder-outline", route: "/truck-manager" },
+  ] as const;
+  const quickActionColumns = quickActions.length <= 5 ? 2 : 3;
+  const quickActionWidth = quickActionColumns === 2 ? "48%" : "32%";
 
 
   const [refreshing, setRefreshing] = useState(false);
@@ -174,6 +183,16 @@ export default function HomeScreen() {
     // Showing reminders for everything expired or expiring within 30 days
     return diffDays <= 30;
   };
+  const getDaysLeftLabel = (expiry: Date): string => {
+    const today = new Date();
+    const expiryStart = new Date(expiry.getFullYear(), expiry.getMonth(), expiry.getDate());
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffTime = expiryStart.getTime() - todayStart.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return "Expired";
+    if (diffDays === 0) return "Expires today";
+    return `${diffDays} days left`;
+  };
 
   type HomeReminder = {
     key: string;
@@ -184,7 +203,7 @@ export default function HomeScreen() {
   type GroupedHomeReminder = {
     key: string;
     label: string;
-    truckNames: string[];
+    truckItems: { name: string; expiry: Date }[];
     expiry: Date;
     count: number;
   };
@@ -251,14 +270,26 @@ export default function HomeScreen() {
 
     return Array.from(groups.entries())
       .map(([label, items]) => {
-        const truckNames = Array.from(new Set(items.map((i) => getTruckName(i.truck)))).sort();
+        const byTruck = new Map<string, Date[]>();
+        items.forEach((i) => {
+          const name = getTruckName(i.truck);
+          const existing = byTruck.get(name) || [];
+          existing.push(i.expiry);
+          byTruck.set(name, existing);
+        });
+        const truckItems = Array.from(byTruck.entries())
+          .map(([name, dates]) => ({
+            name,
+            expiry: dates.sort((a, b) => a.getTime() - b.getTime())[0],
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name));
         const nextExpiry = items.map((i) => i.expiry).sort((a, b) => a.getTime() - b.getTime())[0];
         return {
           key: `group-${label.replace(/\s+/g, "-").toLowerCase()}`,
           label,
-          truckNames,
+          truckItems,
           expiry: nextExpiry,
-          count: truckNames.length,
+          count: truckItems.length,
         };
       })
       .sort((a, b) => a.expiry.getTime() - b.expiry.getTime())
@@ -401,13 +432,19 @@ export default function HomeScreen() {
       >
         {/* ====== Stats Section ====== */}
         <View className="flex-row justify-between mb-4">
-          <View style={{ backgroundColor: colors.card }} className="flex-1 rounded-2xl p-4 mr-2">
+          <View
+            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+            className="flex-1 rounded-2xl p-4 mr-2"
+          >
             <Text className="text-muted-foreground text-xs">{t('monthlyRevenue')}</Text>
             <Text style={{ color: colors.foreground }} className="text-xl font-bold mt-1">
               ₹{totalRevenue.toLocaleString()}
             </Text>
           </View>
-          <View style={{ backgroundColor: colors.card }} className="flex-1 rounded-2xl p-4 ml-2">
+          <View
+            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+            className="flex-1 rounded-2xl p-4 ml-2"
+          >
             <Text className="text-muted-foreground text-xs">{t('numberOfTrips')}</Text>
             <Text style={{ color: colors.foreground }} className="text-xl font-bold mt-1">
               {totalTrips}
@@ -421,27 +458,20 @@ export default function HomeScreen() {
           style={{ backgroundColor: colors.primary }}
           className="rounded-full p-4 flex-row justify-center items-center mb-3"
         >
-          <Ionicons name="bus-outline" size={20} color="white" />
+          <Ionicons name="add-outline" size={20} color="white" />
           <Text style={{ color: colors.primaryForeground }} className="font-semibold text-base ml-2">{t('addTrip')}</Text>
         </TouchableOpacity>
 
         {/* ====== Quick Actions ====== */}
         <View className="flex-row flex-wrap justify-between mt-2 mb-6">
-          {[
-            { title: "Driver khata", icon: "person-outline", route: "/driver-ledger" },
-            { title: "Client khata", icon: "people-outline", route: "/client-ledger" },
-            { title: "Daily khata", icon: "speedometer-outline", route: "/daily-khata" },
-            { title: "Maintenance khata", icon: "build-outline", route: "/maintenance-khata" },
-            { title: "Misc transactions", icon: "swap-horizontal-outline", route: "/misc-transactions" },
-            { title: "Document Manager", icon: "document-text-outline", route: "/documents-manager" },
-          ].map((item, idx) => (
+          {quickActions.map((item, idx) => (
             <TouchableOpacity
               key={idx}
               onPress={() => router.push(item.route as any)}
               activeOpacity={0.85}
               style={{
                 backgroundColor: colors.card,
-                width: "32%",
+                width: quickActionWidth,
                 marginBottom: 8,
                 minHeight: 92,
                 borderWidth: 1,
@@ -470,7 +500,10 @@ export default function HomeScreen() {
         </View>
 
         {/* ====== Reminders Card ====== */}
-        <View style={{ backgroundColor: colors.card }} className="rounded-2xl p-4 mb-6">
+        <View
+          style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+          className="rounded-2xl p-4 mb-6"
+        >
           <View className="flex-row justify-between items-center mb-3">
             <Text style={{ color: colors.foreground }} className="font-semibold text-lg">{t('reminders')}</Text>
             {totalReminderCount > 0 && (
@@ -498,9 +531,9 @@ export default function HomeScreen() {
                       {item.count} {item.count > 1 ? "trucks" : "truck"}
                     </Text>
                     <View className="mt-1">
-                      {item.truckNames.map((truckName) => (
-                        <Text key={`${item.key}-${truckName}`} className="text-muted-foreground text-[10px]">
-                          • {truckName}
+                      {item.truckItems.map((truckItem) => (
+                        <Text key={`${item.key}-${truckItem.name}`} className="text-muted-foreground text-[10px]">
+                          * {truckItem.name} - {getDaysLeftLabel(truckItem.expiry)}
                         </Text>
                       ))}
                     </View>
@@ -521,7 +554,10 @@ export default function HomeScreen() {
         </View>
 
         {/* ====== Recent Trips ====== */}
-        <View style={{ backgroundColor: colors.card }} className="rounded-2xl p-4 mb-6">
+        <View
+          style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+          className="rounded-2xl p-4 mb-6"
+        >
           <View className="flex-row justify-between items-center mb-3">
             <Text style={{ color: colors.foreground }} className="font-semibold text-lg">{t('recentTrips')}</Text>
             <TouchableOpacity onPress={() => router.push("/tripLog")}>
@@ -582,11 +618,10 @@ export default function HomeScreen() {
           {recentTrips.length > recentTripsVisibleCount && (
             <TouchableOpacity
               onPress={handleLoadMoreTrips}
-              style={{ backgroundColor: colors.secondary }}
               className="mt-2 p-2 rounded-lg items-center"
             >
-              <Text style={{ color: colors.secondaryForeground }} className="text-xs font-semibold">
-                {recentTripsVisibleCount < 10 ? "Load 5 more" : "View all"}
+              <Text style={{ color: colors.success }} className="text-xs font-semibold">
+                {recentTripsVisibleCount < 10 ? "view more" : "View all"}
               </Text>
             </TouchableOpacity>
           )}

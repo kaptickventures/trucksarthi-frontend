@@ -191,28 +191,14 @@ export default function EditTripModal({
         title="Edit Trip"
         subtitle={`${trip?.public_id ? `${trip.public_id} • ` : ''}Update journey`}
       >
-
-              {/* Header */}
-              <View className="flex-row justify-between items-center mb-6 px-6">
-                <View>
-                  <Text style={{ color: colors.foreground }} className="text-2xl font-black tracking-tight">Edit Trip</Text>
-                  <Text className="text-muted-foreground text-[10px] font-black mt-1 uppercase tracking-[2px] opacity-60">
-                    {trip?.public_id ? `${trip.public_id} • ` : ''}Update journey
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={closeModal} className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: colors.muted + '40' }}>
-                  <X size={22} color={colors.foreground} />
-                </TouchableOpacity>
-              </View>
-
-              <KeyboardAwareScrollView
-                enableOnAndroid
-                extraScrollHeight={140}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
-              >
+        <KeyboardAwareScrollView
+          enableOnAndroid
+          extraScrollHeight={140}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
+        >
                 {/* Date Selector */}
                 <InputLabel label={"Trip Date"} required />
                 <TouchableOpacity

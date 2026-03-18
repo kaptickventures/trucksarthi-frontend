@@ -77,6 +77,12 @@ export default function NotificationsScreen() {
     const diffTime = expiryStart.getTime() - todayStart.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
+  const getDaysLeftLabel = (expiry: Date) => {
+    const daysLeft = getDaysLeft(expiry);
+    if (daysLeft < 0) return "Expired";
+    if (daysLeft === 0) return "Expires today";
+    return `${daysLeft} days left`;
+  };
 
   const reminders = useMemo<ReminderItem[]>(() => {
     const uploadedDocReminders: ReminderItem[] = documents
@@ -168,20 +174,32 @@ export default function NotificationsScreen() {
 
     const grouped = Array.from(groups.entries()).map(([key, items]) => {
       const first = items[0];
-      const truckNames = Array.from(new Set(items.map((i) => i.truckName))).sort();
+      const truckDetails = Array.from(
+        items.reduce((acc, i) => {
+          const existing = acc.get(i.truckName) || [];
+          existing.push(i.expiryDate);
+          acc.set(i.truckName, existing);
+          return acc;
+        }, new Map<string, Date[]>())
+      )
+        .map(([truckName, dates]) => ({
+          truckName,
+          expiryDate: dates.sort((a, b) => a.getTime() - b.getTime())[0],
+        }))
+        .sort((a, b) => a.truckName.localeCompare(b.truckName));
       const minDaysLeft = Math.min(...items.map((i) => i.daysLeft ?? 9999));
       const nextExpiry = items
         .map((i) => i.expiryDate)
         .sort((a, b) => a.getTime() - b.getTime())[0];
       const isExpired = first.isExpired;
       const verb = isExpired ? "expired" : "expiring";
-      const plural = truckNames.length > 1 ? "trucks" : "truck";
+      const plural = truckDetails.length > 1 ? "trucks" : "truck";
 
       return {
         _id: `group-${key}`,
         title: `${first.docLabel} ${isExpired ? "Expired" : "Expiring"}`,
-        message: `${first.docLabel} is ${verb} for ${truckNames.length} ${plural}.`,
-        groupedTruckNames: truckNames,
+        message: `${first.docLabel} is ${verb} for ${truckDetails.length} ${plural}.`,
+        groupedTruckDetails: truckDetails,
         type: "DOC_EXPIRY",
         status: "REMINDER",
         scheduled_at: nextExpiry.toISOString(),
@@ -256,13 +274,6 @@ export default function NotificationsScreen() {
     return `${diffInDays}d ago`;
   };
 
-  const getReminderLevel = (daysLeft?: number) => {
-    if (typeof daysLeft !== "number") return null;
-    if (daysLeft < 0) return { label: "Expired", bg: colors.destructiveSoft, text: colors.destructive };
-    if (daysLeft <= 7) return { label: "Reminder - 7 days", bg: colors.warningSoft, text: colors.warning };
-    if (daysLeft <= 15) return { label: "Reminder - 15 days", bg: colors.warningSoft, text: colors.warning };
-    return { label: "Reminder - 30 days", bg: colors.infoSoft, text: colors.info };
-  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -369,40 +380,26 @@ export default function NotificationsScreen() {
                 <Text className="text-sm font-medium leading-5 mb-2" style={{ color: colors.mutedForeground }}>
                   {n.message}
                 </Text>
-                {activeTab === "reminders" && Array.isArray((n as any).groupedTruckNames) && (n as any).groupedTruckNames.length > 0 && (
+                {activeTab === "reminders" && Array.isArray((n as any).groupedTruckDetails) && (n as any).groupedTruckDetails.length > 0 && (
                   <View className="mb-2">
-                    {(n as any).groupedTruckNames.map((truckName: string) => (
-                      <Text key={`${n._id}-${truckName}`} className="text-sm leading-5" style={{ color: colors.mutedForeground }}>
-                        • {truckName}
+                    {(n as any).groupedTruckDetails.map((item: { truckName: string; expiryDate: Date }) => (
+                      <Text key={`${n._id}-${item.truckName}`} className="text-sm leading-5" style={{ color: colors.mutedForeground }}>
+                        * {item.truckName} - {getDaysLeftLabel(item.expiryDate)}
                       </Text>
                     ))}
                   </View>
                 )}
 
-                <View className="flex-row items-center">
-                  {n.is_reminder ? (
-                    (() => {
-                      const level = getReminderLevel(n.daysLeft);
-                      if (!level) return null;
-                      return (
-                        <View style={{ backgroundColor: level.bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
-                          <Text style={{ color: level.text, fontSize: 10, fontWeight: "800", textTransform: "uppercase" }}>
-                            {level.label}
-                          </Text>
-                        </View>
-                      );
-                    })()
-                  ) : (
-                    <>
-                      <Ionicons name="time-outline" size={12} color={emptyIconColor} />
-                      <Text className="text-xs ml-1" style={{ color: colors.mutedForeground }}>
-                        {getTimeAgo(n.scheduled_at)}
-                      </Text>
-                    </>
-                  )}
+                {!n.is_reminder && (
+                  <View className="flex-row items-center">
+                    <Ionicons name="time-outline" size={12} color={emptyIconColor} />
+                    <Text className="text-xs ml-1" style={{ color: colors.mutedForeground }}>
+                      {getTimeAgo(n.scheduled_at)}
+                    </Text>
+                  </View>
+                )}
                 </View>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
           ))
         )}
       </ScrollView>

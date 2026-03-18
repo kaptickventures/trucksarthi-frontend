@@ -308,6 +308,24 @@ export interface Location {
 
 export type InvoicedStatus = "not_invoiced" | "invoiced";
 
+export interface TripEditHistoryEntry {
+  edited_at: ISODate;
+  edited_by?: ObjectId | User;
+  snapshot: {
+    trip_date?: ISODate;
+    truck?: ObjectId | Truck;
+    driver?: ObjectId | Driver;
+    client?: ObjectId | Client;
+    start_location?: ObjectId | Location;
+    end_location?: ObjectId | Location;
+    cost_of_trip?: number;
+    miscellaneous_expense?: number;
+    notes?: string;
+    invoiced_status?: InvoicedStatus;
+    public_id?: string;
+  };
+}
+
 export interface Trip {
   _id: ObjectId;
   user: ObjectId | User;
@@ -327,6 +345,7 @@ export interface Trip {
   notes?: string;
   invoiced_status?: InvoicedStatus;
   public_id?: string;
+  edit_history?: TripEditHistoryEntry[];
   createdAt?: ISODate;
   updatedAt?: ISODate;
 }

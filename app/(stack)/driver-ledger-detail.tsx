@@ -1,4 +1,5 @@
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams } from "expo-router";
@@ -19,7 +20,7 @@ import {
   View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { Calendar, Download } from "lucide-react-native";
+import { Calendar, Download, Pencil } from "lucide-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import BottomSheet from "../../components/BottomSheet";
 import { Skeleton } from "../../components/Skeleton";
@@ -47,13 +48,14 @@ export default function DriverLedgerDetailScreen() {
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
-  const { drivers, fetchDrivers, loading: driversLoading } = useDrivers();
+  const { drivers, fetchDrivers, loading: driversLoading, uploadLicense, uploadAadhaar, uploadProfilePicture } = useDrivers();
   const { entries, loading, fetchDriverLedger, addLedgerEntry } = useDriverFinance();
 
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("ALL");
   const [showAdd, setShowAdd] = useState(false);
   const [isProfileExpanded, setIsProfileExpanded] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [quickType, setQuickType] = useState<QuickType>("ADVANCE");
   const [amount, setAmount] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -283,6 +285,43 @@ export default function DriverLedgerDetailScreen() {
     await load();
   };
 
+
+  const handleUpload = async (type: "LICENSE" | "AADHAAR" | "PROFILE") => {
+    if (!id) return;
+    try {
+      const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!granted) {
+        Alert.alert("Permission required", "Allow access to your photos to upload documents.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.5,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      const file = {
+        uri: asset.uri,
+        name: asset.fileName || `${type.toLowerCase()}.jpg`,
+        type: asset.mimeType || "image/jpeg",
+      };
+      if (type === "LICENSE") {
+        await uploadLicense(id, file);
+      } else if (type === "AADHAAR") {
+        await uploadAadhaar(id, file);
+      } else {
+        await uploadProfilePicture(id, file);
+      }
+
+      Alert.alert(t('success'), t('uploadSuccess'));
+      await load();
+    } catch {
+      Alert.alert(t('error'), t('uploadFailed'));
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -321,13 +360,42 @@ export default function DriverLedgerDetailScreen() {
             activeOpacity={0.8}
             style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
           >
-            <View style={{ flex: 1, marginRight: 10 }}>
-              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
-                {driver?.driver_name || driver?.name || "Driver"}
-              </Text>
-              <Text style={{ color: colors.mutedForeground, marginTop: 2, fontSize: 13 }}>
-                {driver?.contact_number || driver?.phone || "-"}
-              </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 10 }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: colors.muted,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  marginRight: 12,
+                }}
+              >
+                {driver?.profile_picture_url ? (
+                  <Image
+                    source={{ uri: getFileUrl(driver.profile_picture_url) || "" }}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700" }}>
+                    Photo
+                  </Text>
+                )}
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
+                  {driver?.driver_name || driver?.name || "Driver"}
+                </Text>
+                <Text style={{ color: colors.mutedForeground, marginTop: 2, fontSize: 13 }}>
+                  {driver?.contact_number || driver?.phone || "-"}
+                </Text>
+              </View>
             </View>
             <Ionicons name={isProfileExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.mutedForeground} />
           </TouchableOpacity>
@@ -338,83 +406,6 @@ export default function DriverLedgerDetailScreen() {
 
           {isProfileExpanded && (
             <View style={{ marginTop: 12, gap: 8 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                <View
-                  style={{
-                    width: 54,
-                    height: 54,
-                    borderRadius: 27,
-                    backgroundColor: colors.muted,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    overflow: "hidden",
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  {driver?.profile_picture_url ? (
-                    <Image
-                      source={{ uri: getFileUrl(driver.profile_picture_url) || "" }}
-                      style={{ width: "100%", height: "100%" }}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>
-                      Photo
-                    </Text>
-                  )}
-                </View>
-
-                <View style={{ flexDirection: "row", gap: 10, flex: 1 }}>
-                  <View
-                    style={{
-                      width: 64,
-                      height: 44,
-                      borderRadius: 10,
-                      backgroundColor: colors.muted,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      overflow: "hidden",
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    {driver?.identity_card_url ? (
-                      <Image
-                        source={{ uri: getFileUrl(driver.identity_card_url) || "" }}
-                        style={{ width: "100%", height: "100%" }}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Text style={{ color: colors.mutedForeground, fontSize: 9, fontWeight: "700" }}>Aadhaar</Text>
-                    )}
-                  </View>
-                  <View
-                    style={{
-                      width: 64,
-                      height: 44,
-                      borderRadius: 10,
-                      backgroundColor: colors.muted,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      overflow: "hidden",
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    {driver?.license_card_url ? (
-                      <Image
-                        source={{ uri: getFileUrl(driver.license_card_url) || "" }}
-                        style={{ width: "100%", height: "100%" }}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Text style={{ color: colors.mutedForeground, fontSize: 9, fontWeight: "700" }}>License</Text>
-                    )}
-                  </View>
-                </View>
-              </View>
-
               <View style={{ gap: 4 }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
                   {t('driverContact') || "Contact"}: {driver?.contact_number || driver?.phone || "N/A"}
@@ -425,6 +416,106 @@ export default function DriverLedgerDetailScreen() {
                 <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
                   Aadhaar: {driver?.identity_card_url ? "Uploaded" : "Not Uploaded"}
                 </Text>
+              </View>
+
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
+                <View style={{ flex: 1 }}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      driver?.identity_card_url
+                        ? setPreviewImage(getFileUrl(driver.identity_card_url))
+                        : handleUpload("AADHAAR")
+                    }
+                    activeOpacity={0.85}
+                    style={{
+                      height: 120,
+                      backgroundColor: colors.card,
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      overflow: "hidden",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {driver?.identity_card_url ? (
+                      <Image
+                        source={{ uri: getFileUrl(driver.identity_card_url) || "" }}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={{ color: colors.mutedForeground, fontWeight: "700", fontSize: 12 }}>
+                        {t('tapToUpload') || "Tap to upload"}
+                      </Text>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => handleUpload("AADHAAR")}
+                      style={{
+                        position: "absolute",
+                        bottom: 8,
+                        right: 8,
+                        backgroundColor: "rgba(0,0,0,0.6)",
+                        padding: 8,
+                        borderRadius: 20,
+                      }}
+                    >
+                      <Pencil size={12} color="white" />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                  <Text style={{ textAlign: "center", fontSize: 12, fontWeight: "700", marginTop: 8, color: colors.mutedForeground }}>
+                    {t('aadhaar') || "Aadhaar"}
+                  </Text>
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      driver?.license_card_url
+                        ? setPreviewImage(getFileUrl(driver.license_card_url))
+                        : handleUpload("LICENSE")
+                    }
+                    activeOpacity={0.85}
+                    style={{
+                      height: 120,
+                      backgroundColor: colors.card,
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      overflow: "hidden",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {driver?.license_card_url ? (
+                      <Image
+                        source={{ uri: getFileUrl(driver.license_card_url) || "" }}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={{ color: colors.mutedForeground, fontWeight: "700", fontSize: 12 }}>
+                        {t('tapToUpload') || "Tap to upload"}
+                      </Text>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => handleUpload("LICENSE")}
+                      style={{
+                        position: "absolute",
+                        bottom: 8,
+                        right: 8,
+                        backgroundColor: "rgba(0,0,0,0.6)",
+                        padding: 8,
+                        borderRadius: 20,
+                      }}
+                    >
+                      <Pencil size={12} color="white" />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                  <Text style={{ textAlign: "center", fontSize: 12, fontWeight: "700", marginTop: 8, color: colors.mutedForeground }}>
+                    {t('license') || "License"}
+                  </Text>
+                </View>
               </View>
 
               <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
@@ -761,6 +852,20 @@ export default function DriverLedgerDetailScreen() {
               {downloading ? "Generating PDF..." : "Download PDF"}
             </Text>
           </TouchableOpacity>
+        </View>
+      </BottomSheet>
+
+      <BottomSheet
+        visible={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        title="Document Preview"
+      >
+        <View style={{ paddingBottom: 20 }}>
+          <Image
+            source={{ uri: previewImage || "" }}
+            style={{ width: "100%", height: 400, borderRadius: 20 }}
+            resizeMode="contain"
+          />
         </View>
       </BottomSheet>
     </View>

@@ -222,9 +222,9 @@ export default function TripLog() {
   const generatePDF = async () => {
     try {
       const fmt = (d: Date | null) => formatDate(d);
-      const totalCredit = sortedTrips.reduce((sum, t) => sum + Number(t.cost_of_trip || 0), 0);
-      const totalDebit = sortedTrips.reduce((sum, t) => sum + Number(t.miscellaneous_expense || 0), 0);
-      const difference = totalDebit - totalCredit;
+      const totalCost = sortedTrips.reduce((sum, t) => sum + Number(t.cost_of_trip || 0), 0);
+      const totalMisc = sortedTrips.reduce((sum, t) => sum + Number(t.miscellaneous_expense || 0), 0);
+      const totalRevenue = totalCost + totalMisc;
 
       let dateRangeText = "";
 
@@ -235,6 +235,12 @@ export default function TripLog() {
       } else if (filters.endDate) {
         dateRangeText = `Date Range: Until ${fmt(filters.endDate)}`;
       }
+
+      const driverFilters = filters.driver.map((id) => getDriverName(id)).filter(Boolean);
+      const clientFilters = filters.client.map((id) => getClientName(id)).filter(Boolean);
+      const truckFilters = filters.truck.map((id) => getTruckReg(id)).filter(Boolean);
+      const locationFilters = filters.location.map((id) => getLocationName(id)).filter(Boolean);
+      const hasFilters = driverFilters.length || clientFilters.length || truckFilters.length || locationFilters.length;
 
       const html = `
 <html>
@@ -252,6 +258,7 @@ export default function TripLog() {
     .section-title { text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
     .generated { text-align: center; font-size: 12px; opacity: 0.65; margin-bottom: 10px; }
     .daterange { text-align: center; font-size: 13px; opacity: 0.75; margin-bottom: 18px; }
+    .filters { text-align: center; font-size: 12px; opacity: 0.8; margin-bottom: 18px; }
     .card { border: 1px solid #000; border-radius: 10px; padding: 14px; margin-bottom: 22px; }
     .card-top { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; margin-bottom: 10px; }
     .route { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
@@ -272,6 +279,12 @@ export default function TripLog() {
   <div class="section-title">Trip Report</div>
   <div class="generated">Generated on ${formatDate(new Date())}</div>
   ${dateRangeText ? `<div class="daterange">${dateRangeText}</div>` : ""}
+  ${hasFilters ? `<div class="filters">
+    ${driverFilters.length ? `Drivers: ${driverFilters.join(", ")}` : ""}
+    ${clientFilters.length ? `${driverFilters.length ? " | " : ""}Clients: ${clientFilters.join(", ")}` : ""}
+    ${truckFilters.length ? `${driverFilters.length || clientFilters.length ? " | " : ""}Trucks: ${truckFilters.join(", ")}` : ""}
+    ${locationFilters.length ? `${driverFilters.length || clientFilters.length || truckFilters.length ? " | " : ""}Locations: ${locationFilters.join(", ")}` : ""}
+  </div>` : ""}
   ${sortedTrips
           .map((t) => {
             const total = Number(t.cost_of_trip) + Number(t.miscellaneous_expense);
@@ -304,9 +317,9 @@ export default function TripLog() {
           .join("")}
   <div class="summary">
     <div class="summary-title">Totals</div>
-    <div class="summary-row"><div>Total Credit</div><div>Rs ${totalCredit.toLocaleString()}</div></div>
-    <div class="summary-row"><div>Total Debit</div><div>Rs ${totalDebit.toLocaleString()}</div></div>
-    <div class="summary-row"><div>Difference (Debit - Credit)</div><div>${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</div></div>
+    <div class="summary-row"><div>Total Cost</div><div>Rs ${totalCost.toLocaleString()}</div></div>
+    <div class="summary-row"><div>Misc Cost</div><div>Rs ${totalMisc.toLocaleString()}</div></div>
+    <div class="summary-row"><div>Total Revenue</div><div>Rs ${totalRevenue.toLocaleString()}</div></div>
   </div>
 </body>
 </html>
@@ -471,7 +484,9 @@ export default function TripLog() {
               const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
               return (
                 <View key={trip._id} style={{ marginBottom: 12 }}>
-                  <View
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => router.push({ pathname: "/(stack)/trip-detail", params: { tripId: trip._id } } as any)}
                     className="border rounded-2xl p-3 shadow-sm"
                     style={{ backgroundColor: colors.card, borderColor: colors.border }}
                   >
@@ -507,29 +522,40 @@ export default function TripLog() {
                         ) : null}
                       </View>
                       <View style={{ flexDirection: "row", marginLeft: 6 }}>
-                        <TouchableOpacity onPress={() => { setSelectedTrip(trip); setEditVisible(true); }} style={{ padding: 6, marginRight: 4 }}>
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            setSelectedTrip(trip);
+                            setEditVisible(true);
+                          }}
+                          style={{ padding: 6, marginRight: 4 }}
+                        >
                           <Edit3 size={18} color={colors.info} />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => {
-                          Alert.alert(t("delete"), t("deleteTripQuestion"), [
-                            { text: t("cancel"), style: "cancel" },
-                            {
-                              text: t("delete"),
-                              style: "destructive",
-                              onPress: async () => {
-                                try {
-                                  await deleteTrip(trip._id);
-                                  await fetchTrips();
-                                } catch { }
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            Alert.alert(t("delete"), t("deleteTripQuestion"), [
+                              { text: t("cancel"), style: "cancel" },
+                              {
+                                text: t("delete"),
+                                style: "destructive",
+                                onPress: async () => {
+                                  try {
+                                    await deleteTrip(trip._id);
+                                    await fetchTrips();
+                                  } catch { }
+                                },
                               },
-                            },
-                          ]);
-                        }} style={{ padding: 6 }}>
+                            ]);
+                          }}
+                          style={{ padding: 6 }}
+                        >
                           <Trash2 size={18} color={colors.destructive} />
                         </TouchableOpacity>
                       </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 </View>
               );
             })

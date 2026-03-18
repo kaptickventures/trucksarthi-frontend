@@ -120,8 +120,10 @@ export default function StackLayout() {
 
           <Stack.Screen name="gstin-onboarding" options={{ title: "Trucksarthi" }} />
           <Stack.Screen name="basic-details" options={{ title: "Trucksarthi" }} />
-          <Stack.Screen name="documents-manager" options={{ title: "Documents" }} />
+          <Stack.Screen name="truck-manager" options={{ title: "Truck Manager" }} />
+          <Stack.Screen name="truck-manager-options" options={{ title: "Truck Manager" }} />
           <Stack.Screen name="document-details" options={{ title: "Document Details" }} />
+          <Stack.Screen name="truck-khata" options={{ title: "Truck Khata" }} />
           <Stack.Screen name="finance" options={{ title: "Finance Hub" }} />
           <Stack.Screen name="pl-reports" options={{ title: "P&L Reports" }} />
           <Stack.Screen name="pl-client-report" options={{ title: "Client Khata Report" }} />
@@ -141,6 +143,7 @@ export default function StackLayout() {
           <Stack.Screen name="daily-khata-dashboard" options={{ title: "Truck Running" }} />
           <Stack.Screen name="maintenance-khata" options={{ title: "Maintenance Khata" }} />
           <Stack.Screen name="maintenance-dashboard" options={{ title: "Truck Maintenance" }} />
+          <Stack.Screen name="trip-detail" options={{ title: "Trip Detail" }} />
           <Stack.Screen name="driver-ledger" options={{ title: "Driver Khata" }} />
           <Stack.Screen name="driver-ledger-detail" options={{ title: "Driver Khata" }} />
           <Stack.Screen name="client-ledger" options={{ title: "Client Khata" }} />

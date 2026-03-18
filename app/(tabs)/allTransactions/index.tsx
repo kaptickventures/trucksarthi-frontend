@@ -28,16 +28,14 @@ import useClients from "../../../hooks/useClient";
 import useTrucks from "../../../hooks/useTruck";
 
 const TAG_FILTERS = [
-  "ALL",
-  "MISC_EXPENSE",
-  "DRIVER_EXPENSE",
-  "CLIENT_PAYMENT",
-  "FUEL",
-  "FASTAG",
-  "MAINTENANCE",
+  { key: "ALL", label: "All" },
+  { key: "DRIVER_EXPENSE", label: "Driver Expenses" },
+  { key: "CLIENT_EXPENSE", label: "Client Expenses" },
+  { key: "TRUCK_EXPENSE", label: "Truck Expenses" },
+  { key: "MISC_KHATA", label: "Misc Khata" },
 ] as const;
 
-type TagFilter = (typeof TAG_FILTERS)[number];
+type TagFilter = (typeof TAG_FILTERS)[number]["key"];
 
 const TAG_PILL_HEIGHT = 40;
 const TYPE_PILL_HEIGHT = 36;
@@ -213,22 +211,48 @@ export default function TransactionsScreen() {
 
     const sorted = withBalance.reverse();
 
-    if (activeTag === "ALL") return sorted;
+    const filtered = sorted.filter((item: any) => {
+      const direction = String(item?.direction || "").toUpperCase();
+      const paymentMode = String(item?.paymentMode || "").toUpperCase();
+      const txDate = new Date(item?.date);
 
-    return sorted.filter((item: any) => {
+      if (filters.direction && direction !== filters.direction) return false;
+      if (filters.paymentMode && paymentMode !== filters.paymentMode) return false;
+      if (filters.startDate) {
+        const start = new Date(filters.startDate);
+        start.setHours(0, 0, 0, 0);
+        if (txDate < start) return false;
+      }
+      if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        end.setHours(23, 59, 59, 999);
+        if (txDate > end) return false;
+      }
+      return true;
+    });
+
+    if (activeTag === "ALL") return filtered;
+
+    return filtered.filter((item: any) => {
       const category = String(item?.category || "").toUpperCase();
       const subtype = String(item?.transactionSubtype || "").toUpperCase();
       const sourceModule = String(item?.sourceModule || "").toUpperCase();
 
-      if (activeTag === "MISC_EXPENSE") return sourceModule === "MISC" && item.direction === "EXPENSE";
+      if (activeTag === "MISC_KHATA") return sourceModule === "MISC";
       if (activeTag === "DRIVER_EXPENSE") return sourceModule === "DRIVER_KHATA";
-      if (activeTag === "CLIENT_PAYMENT") return sourceModule === "CLIENT_PAYMENT";
-      if (activeTag === "FUEL") return category.includes("FUEL") || subtype.includes("FUEL");
-      if (activeTag === "FASTAG") return category.includes("FASTAG") || subtype.includes("FASTAG");
-      if (activeTag === "MAINTENANCE") return sourceModule === "MAINTENANCE";
+      if (activeTag === "CLIENT_EXPENSE") return sourceModule === "CLIENT_PAYMENT";
+      if (activeTag === "TRUCK_EXPENSE")
+        return (
+          sourceModule === "RUNNING_EXPENSE" ||
+          sourceModule === "MAINTENANCE" ||
+          category.includes("FUEL") ||
+          subtype.includes("FUEL") ||
+          category.includes("FASTAG") ||
+          subtype.includes("FASTAG")
+        );
       return true;
     });
-  }, [transactions, activeTag]);
+  }, [transactions, activeTag, filters]);
 
   const renderItem = ({ item }: { item: any }) => {
     const isIncome = item.direction === "INCOME";
@@ -247,6 +271,8 @@ export default function TransactionsScreen() {
           padding: 16,
           borderRadius: 12,
           marginBottom: 12,
+          borderWidth: 1,
+          borderColor: colors.border,
           flexDirection: "row",
           alignItems: "center",
         }}
@@ -379,22 +405,18 @@ export default function TransactionsScreen() {
 
                 <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Type</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-                  {["ALL", "INCOME", "EXPENSE", "CASH", "BANK"].map((type) => {
+                  {["ALL", "INCOME", "EXPENSE"].map((type) => {
                     const active =
-                      (type === "ALL" && !filters.direction && !filters.paymentMode) ||
+                      (type === "ALL" && !filters.direction) ||
                       (type === "INCOME" && filters.direction === "INCOME") ||
-                      (type === "EXPENSE" && filters.direction === "EXPENSE") ||
-                      (type === "CASH" && filters.paymentMode === "CASH") ||
-                      (type === "BANK" && filters.paymentMode === "BANK");
+                      (type === "EXPENSE" && filters.direction === "EXPENSE");
                     return (
                       <TouchableOpacity
                         key={type}
                         onPress={() =>
                           setFilters((prev) => {
-                            if (type === "ALL") return { ...prev, direction: "", paymentMode: "" };
-                            if (type === "CASH" || type === "BANK")
-                              return { ...prev, paymentMode: type, direction: "" };
-                            return { ...prev, direction: type, paymentMode: "" };
+                            if (type === "ALL") return { ...prev, direction: "" };
+                            return { ...prev, direction: type };
                           })
                         }
                         style={{
@@ -418,6 +440,49 @@ export default function TransactionsScreen() {
                           }}
                         >
                           {type}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Mode of Payment</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+                  {["ALL", "CASH", "BANK"].map((mode) => {
+                    const active =
+                      (mode === "ALL" && !filters.paymentMode) ||
+                      (mode === "CASH" && filters.paymentMode === "CASH") ||
+                      (mode === "BANK" && filters.paymentMode === "BANK");
+                    return (
+                      <TouchableOpacity
+                        key={mode}
+                        onPress={() =>
+                          setFilters((prev) => {
+                            if (mode === "ALL") return { ...prev, paymentMode: "" };
+                            return { ...prev, paymentMode: mode };
+                          })
+                        }
+                        style={{
+                          paddingHorizontal: 14,
+                          height: TYPE_PILL_HEIGHT,
+                          borderRadius: 20,
+                          backgroundColor: active
+                            ? colors.primary
+                            : (isDark ? colors.card : colors.secondary + "10"),
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontWeight: "600",
+                            textAlign: "center",
+                            color: active ? "white" : colors.foreground,
+                          }}
+                        >
+                          {mode}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -520,18 +585,18 @@ export default function TransactionsScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               data={TAG_FILTERS as any}
-              keyExtractor={(item) => item}
+              keyExtractor={(item) => item.key}
               contentContainerStyle={{ gap: 8 }}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  onPress={() => setActiveTag(item as TagFilter)}
+                  onPress={() => setActiveTag(item.key as TagFilter)}
                   style={{
                     paddingHorizontal: 16,
                     height: TAG_PILL_HEIGHT,
                     borderRadius: 16,
                     borderWidth: 1,
-                    borderColor: activeTag === item ? colors.primary : colors.border,
-                    backgroundColor: activeTag === item ? colors.primary : "transparent",
+                    borderColor: activeTag === item.key ? colors.primary : colors.border,
+                    backgroundColor: activeTag === item.key ? colors.primary : "transparent",
                     justifyContent: "center",
                     alignItems: "center",
                   }}
@@ -539,13 +604,13 @@ export default function TransactionsScreen() {
                   <Text
                     numberOfLines={1}
                     style={{
-                      color: activeTag === item ? "white" : colors.foreground,
+                      color: activeTag === item.key ? "white" : colors.foreground,
                       fontWeight: "700",
                       fontSize: 12,
                       textAlign: "center",
                     }}
                   >
-                    {formatLabel(item)}
+                    {item.label}
                   </Text>
                 </TouchableOpacity>
               )}

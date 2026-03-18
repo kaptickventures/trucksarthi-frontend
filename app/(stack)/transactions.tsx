@@ -194,6 +194,8 @@ export default function TransactionsScreen() {
           padding: 16,
           borderRadius: 12,
           marginBottom: 12,
+          borderWidth: 1,
+          borderColor: colors.border,
           flexDirection: "row",
           alignItems: "center",
         }}
