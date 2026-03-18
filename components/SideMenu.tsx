@@ -42,9 +42,6 @@ export default function SideMenu({
   const { t } = useTranslation();
   const menuTopOffset = typeof topOffset === "number" ? topOffset : insets.top + 56;
 
-  const MANAGER_LINKS = [
-    { title: t('locations'), icon: "location-outline", route: "/(stack)/locations-manager" as const },
-  ] as const;
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
 
@@ -161,26 +158,7 @@ export default function SideMenu({
           </View>
 
           {/* SCROLLABLE MENU ITEMS */}
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 0 }}>
-            {/* MANAGER SECTION */}
-            <View className="mb-6">
-              <Text className="text-base font-semibold mb-3" style={{ color: colors.mutedForeground }}>
-                {t('manager')}
-              </Text>
-              {MANAGER_LINKS.map((item, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() => navigate(item.route)}
-                  className="flex-row items-center py-4"
-                >
-                  {renderIcon(item.icon)}
-                  <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                    {item.title}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
             <TouchableOpacity
               onPress={() => navigate("/(stack)/settings")}
               className="flex-row items-center py-4"
@@ -194,7 +172,7 @@ export default function SideMenu({
             {/* Logout as part of the scrollable list */}
             <TouchableOpacity
               onPress={handleLogout}
-              className="flex-row items-center py-4 mt-8 mb-20"
+              className="flex-row items-center py-4 mt-4 mb-12"
               style={{ borderTopWidth: 1, borderTopColor: colors.border }}
             >
               <Ionicons name="log-out-outline" size={26} color={colors.destructive} />

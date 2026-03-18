@@ -44,8 +44,7 @@ export default function HomeScreen() {
     { title: "Misc transactions", icon: "swap-horizontal-outline", route: "/misc-transactions" },
     { title: "Truck Manager", icon: "folder-outline", route: "/truck-manager" },
   ] as const;
-  const quickActionColumns = quickActions.length <= 5 ? 2 : 3;
-  const quickActionWidth = quickActionColumns === 2 ? "48%" : "32%";
+  const quickActionRows = [quickActions.slice(0, 3), quickActions.slice(3, 5)];
 
 
   const [refreshing, setRefreshing] = useState(false);
@@ -463,40 +462,75 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* ====== Quick Actions ====== */}
-        <View className="flex-row flex-wrap justify-between mt-2 mb-6">
-          {quickActions.map((item, idx) => (
-            <TouchableOpacity
-              key={idx}
-              onPress={() => router.push(item.route as any)}
-              activeOpacity={0.85}
-              style={{
-                backgroundColor: colors.card,
-                width: quickActionWidth,
-                marginBottom: 8,
-                minHeight: 92,
-                borderWidth: 1,
-                borderColor: colors.border,
-                shadowColor: "#000",
-                shadowOpacity: 0.06,
-                shadowRadius: 6,
-                elevation: 2,
-              }}
-              className="rounded-2xl items-center justify-center px-2 py-2"
-            >
-              <View
-                className="rounded-full items-center justify-center mb-2"
-                style={{ width: 34, height: 34, backgroundColor: quickActionIconBg }}
+        <View className="mt-2 mb-6">
+          <View className="flex-row justify-between mb-2">
+            {quickActionRows[0].map((item, idx) => (
+              <TouchableOpacity
+                key={`row1-${idx}`}
+                onPress={() => router.push(item.route as any)}
+                activeOpacity={0.85}
+                style={{
+                  backgroundColor: colors.card,
+                  width: "31%",
+                  minHeight: 92,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  shadowColor: "#000",
+                  shadowOpacity: 0.06,
+                  shadowRadius: 6,
+                  elevation: 2,
+                }}
+                className="rounded-2xl items-center justify-center px-2 py-2"
               >
-                <Ionicons name={item.icon as any} size={18} color={quickActionIconColor} />
-              </View>
-              <Text
-                className="text-muted-foreground text-[11px] text-center font-semibold"
-                numberOfLines={2}
+                <View
+                  className="rounded-full items-center justify-center mb-2"
+                  style={{ width: 34, height: 34, backgroundColor: quickActionIconBg }}
+                >
+                  <Ionicons name={item.icon as any} size={18} color={quickActionIconColor} />
+                </View>
+                <Text
+                  className="text-muted-foreground text-[11px] text-center font-semibold"
+                  numberOfLines={2}
+                >
+                  {item.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 10 }}>
+            {quickActionRows[1].map((item, idx) => (
+              <TouchableOpacity
+                key={`row2-${idx}`}
+                onPress={() => router.push(item.route as any)}
+                activeOpacity={0.85}
+                style={{
+                  backgroundColor: colors.card,
+                  width: "36%",
+                  minHeight: 92,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  shadowColor: "#000",
+                  shadowOpacity: 0.06,
+                  shadowRadius: 6,
+                  elevation: 2,
+                }}
+                className="rounded-2xl items-center justify-center px-2 py-2"
               >
-                {item.title}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <View
+                  className="rounded-full items-center justify-center mb-2"
+                  style={{ width: 34, height: 34, backgroundColor: quickActionIconBg }}
+                >
+                  <Ionicons name={item.icon as any} size={18} color={quickActionIconColor} />
+                </View>
+                <Text
+                  className="text-muted-foreground text-[11px] text-center font-semibold"
+                  numberOfLines={2}
+                >
+                  {item.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* ====== Reminders Card ====== */}

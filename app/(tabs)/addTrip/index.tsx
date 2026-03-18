@@ -330,7 +330,7 @@ export default function AddTrip() {
         }
       >
           {/* Header Title Section */}
-          <View className="mb-3 flex-row items-start justify-between">
+          <View className="mb-3 flex-row items-center justify-between">
             <View>
               <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('addNewTrip')}</Text>
               <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>{t('recordJourney')}</Text>
@@ -338,19 +338,17 @@ export default function AddTrip() {
             <TouchableOpacity
               onPress={() => router.push("/(stack)/locations-manager" as any)}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
+                width: 36,
+                height: 36,
+                borderRadius: 18,
                 borderWidth: 1,
                 borderColor: colors.border,
                 backgroundColor: colors.card,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: 12,
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <MapPin size={14} color={colors.primary} />
-              <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>Locations</Text>
+              <MapPin size={24} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
