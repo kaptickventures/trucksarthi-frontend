@@ -18,18 +18,70 @@ import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
 import { useTranslation } from "../../context/LanguageContext";
+import FinanceFAB from "../../components/finance/FinanceFAB";
+import TruckFormModal from "../../components/TruckModal";
+import type { TruckFormData } from "../../components/TruckModal";
 
 export default function DocumentManager() {
   const router = useRouter();
   const { theme, colors } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
-  const { trucks, loading, fetchTrucks } = useTrucks();
+  const { trucks, loading, fetchTrucks, addTruck } = useTrucks();
   const [searchQuery, setSearchQuery] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [formData, setFormData] = useState<TruckFormData>({
+    registration_number: "",
+    chassis_number: "",
+    engine_number: "",
+    registered_owner_name: "",
+    vehicle_class: "",
+    fuel_norms: "",
+    registration_date: "",
+    container_dimension: "",
+    loading_capacity: "",
+    rc_details: undefined,
+  });
 
   const filteredTrucks = trucks.filter((truck) =>
     truck.registration_number.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const openModal = () => {
+    setFormData({
+      registration_number: "",
+      chassis_number: "",
+      engine_number: "",
+      registered_owner_name: "",
+      vehicle_class: "",
+      fuel_norms: "",
+      registration_date: "",
+      container_dimension: "",
+      loading_capacity: "",
+      rc_details: undefined,
+    });
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.registration_number) return;
+    try {
+      const saved = await addTruck({
+        ...formData,
+        loading_capacity: formData.loading_capacity ? Number(formData.loading_capacity) : undefined,
+      });
+      closeModal();
+      if (saved?._id) {
+        router.push({ pathname: "/(stack)/document-details", params: { truckId: saved._id } } as any);
+      }
+    } catch {
+      // Errors are handled in the hook
+    }
+  };
 
   const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -171,6 +223,17 @@ export default function DocumentManager() {
           }
         />
       </KeyboardAvoidingView>
+
+      <FinanceFAB onPress={openModal} />
+
+      <TruckFormModal
+        visible={modalVisible}
+        editing={false}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleSubmit}
+        onClose={closeModal}
+      />
     </View>
   );
 }

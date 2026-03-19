@@ -53,14 +53,14 @@ export default function LocationFormModal({
   }, [visible]);
 
   useEffect(() => {
-    if (!visible || !draft) return;
+    if (!draft) return;
     setFormData((prev) => ({
       ...prev,
       ...draft,
       location_name: String(draft.location_name || "").trim() ? draft.location_name : prev.location_name,
     }));
     clearDraft();
-  }, [draft, visible, setFormData, clearDraft]);
+  }, [draft, setFormData, clearDraft]);
 
   const trimmedTitle = String(formData.location_name || "").trim();
   const hasPinnedLocation = Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude);
@@ -72,6 +72,8 @@ export default function LocationFormModal({
       onClose={onClose}
       title={editing ? "Edit Location" : "Add Location"}
       subtitle="Location Details"
+      maxHeight="85%"
+      expandedHeight="85%"
     >
       <KeyboardAwareScrollView
         enableOnAndroid
@@ -105,18 +107,21 @@ export default function LocationFormModal({
           </View>
 
           <TouchableOpacity
-            onPress={() =>
-              router.push({
-                pathname: "/(stack)/location-picker",
-                params: {
-                  name: formData.location_name || "",
-                  address: formData.complete_address || "",
-                  placeId: formData.place_id || "",
-                  lat: Number.isFinite(formData.latitude) ? String(formData.latitude) : "",
-                  lng: Number.isFinite(formData.longitude) ? String(formData.longitude) : "",
-                },
-              } as any)
-            }
+            onPress={() => {
+              onClose();
+              setTimeout(() => {
+                router.push({
+                  pathname: "/(stack)/location-picker",
+                  params: {
+                    name: formData.location_name || "",
+                    address: formData.complete_address || "",
+                    placeId: formData.place_id || "",
+                    lat: Number.isFinite(formData.latitude) ? String(formData.latitude) : "",
+                    lng: Number.isFinite(formData.longitude) ? String(formData.longitude) : "",
+                  },
+                } as any);
+              }, 150);
+            }}
           >
             <Text style={{ color: colors.success }} className="text-sm font-bold">
               Add Google Location

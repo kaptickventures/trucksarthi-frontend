@@ -3,7 +3,8 @@ import { Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, MapPin, Search } from "lucide-react-native";
-import type { MapPressEvent, MarkerDragEvent } from "react-native-maps";
+import type { Region } from "react-native-maps";
+import * as ExpoLocation from "expo-location";
 
 import API from "../api/axiosInstance";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -51,6 +52,9 @@ export default function LocationPicker() {
   const { setDraft } = useLocationPicker();
   const mapRef = useRef<any>(null);
   const isWeb = Platform.OS === "web";
+  const regionChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestRegionRef = useRef<Region | null>(null);
+  const NEW_DELHI = { latitude: 28.6139, longitude: 77.2090 };
 
   const initialLocation = useMemo<LocationDraft>(() => {
     const latitude = params.lat ? Number(params.lat) : undefined;
@@ -79,8 +83,76 @@ export default function LocationPicker() {
   useEffect(() => {
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      if (regionChangeTimerRef.current) clearTimeout(regionChangeTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (Number.isFinite(initialLocation.latitude) && Number.isFinite(initialLocation.longitude)) return;
+    let cancelled = false;
+    const initLocation = async () => {
+      if (Platform.OS === "web") {
+        if (!cancelled) {
+          setLocation((prev) => ({
+            ...prev,
+            latitude: NEW_DELHI.latitude,
+            longitude: NEW_DELHI.longitude,
+          }));
+        }
+        return;
+      }
+
+      try {
+        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const position = await ExpoLocation.getCurrentPositionAsync({
+            accuracy: ExpoLocation.Accuracy.Balanced,
+          });
+          if (cancelled) return;
+          const { latitude, longitude } = position.coords;
+          setLocation((prev) => ({
+            ...prev,
+            latitude,
+            longitude,
+          }));
+          mapRef.current?.animateToRegion(
+            {
+              latitude,
+              longitude,
+              latitudeDelta: 0.03,
+              longitudeDelta: 0.03,
+            },
+            350
+          );
+          resolveAddressFromCoords(latitude, longitude);
+          return;
+        }
+      } catch {
+        // fall back to New Delhi
+      }
+
+      if (cancelled) return;
+      setLocation((prev) => ({
+        ...prev,
+        latitude: NEW_DELHI.latitude,
+        longitude: NEW_DELHI.longitude,
+      }));
+      mapRef.current?.animateToRegion(
+        {
+          latitude: NEW_DELHI.latitude,
+          longitude: NEW_DELHI.longitude,
+          latitudeDelta: 0.03,
+          longitudeDelta: 0.03,
+        },
+        350
+      );
+    };
+
+    initLocation();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialLocation.latitude, initialLocation.longitude, NEW_DELHI.latitude, NEW_DELHI.longitude]);
 
   useEffect(() => {
     const trimmed = searchQuery.trim();
@@ -144,16 +216,16 @@ export default function LocationPicker() {
   };
 
   const mapRegion = useMemo(() => {
-    const latitude = typeof location.latitude === "number" ? location.latitude : 20.5937;
-    const longitude = typeof location.longitude === "number" ? location.longitude : 78.9629;
+    const latitude = typeof location.latitude === "number" ? location.latitude : NEW_DELHI.latitude;
+    const longitude = typeof location.longitude === "number" ? location.longitude : NEW_DELHI.longitude;
     const hasExact = typeof location.latitude === "number" && typeof location.longitude === "number";
     return {
       latitude,
       longitude,
-      latitudeDelta: hasExact ? 0.03 : 8,
-      longitudeDelta: hasExact ? 0.03 : 8,
+      latitudeDelta: hasExact ? 0.03 : 0.08,
+      longitudeDelta: hasExact ? 0.03 : 0.08,
     };
-  }, [location.latitude, location.longitude]);
+  }, [location.latitude, location.longitude, NEW_DELHI.latitude, NEW_DELHI.longitude]);
 
   const canConfirm =
     String(location.location_name || "").trim().length > 0 ||
@@ -240,8 +312,9 @@ export default function LocationPicker() {
             provider={PROVIDER_GOOGLE}
             style={styles.map}
             initialRegion={mapRegion}
-            onPress={(e: MapPressEvent) => {
-              const { latitude, longitude } = e.nativeEvent.coordinate;
+            onRegionChangeComplete={(region: Region) => {
+              latestRegionRef.current = region;
+              const { latitude, longitude } = region;
               setLocation((prev) => ({
                 ...prev,
                 latitude,
@@ -251,29 +324,23 @@ export default function LocationPicker() {
                   : getFallbackLocationName({ name: prev.location_name, address: prev.complete_address }),
                 place_id: undefined,
               }));
-              resolveAddressFromCoords(latitude, longitude);
+
+              if (regionChangeTimerRef.current) clearTimeout(regionChangeTimerRef.current);
+              regionChangeTimerRef.current = setTimeout(() => {
+                resolveAddressFromCoords(latitude, longitude);
+              }, 350);
             }}
             showsMyLocationButton={false}
             toolbarEnabled={false}
             rotateEnabled={false}
-          >
-            {Number.isFinite(location.latitude) && Number.isFinite(location.longitude) && (
-              <Marker
-                coordinate={{ latitude: Number(location.latitude), longitude: Number(location.longitude) }}
-                draggable
-                onDragEnd={(e: MarkerDragEvent) => {
-                  const { latitude, longitude } = e.nativeEvent.coordinate;
-                  setLocation((prev) => ({
-                    ...prev,
-                    latitude,
-                    longitude,
-                    place_id: undefined,
-                  }));
-                  resolveAddressFromCoords(latitude, longitude);
-                }}
-              />
-            )}
-          </MapView>
+          />
+        )}
+        {!isWeb && (
+          <View pointerEvents="none" style={styles.centerPinWrap}>
+            <View style={styles.centerPin}>
+              <MapPin size={30} color={colors.primary} />
+            </View>
+          </View>
         )}
       </View>
 
@@ -294,7 +361,13 @@ export default function LocationPicker() {
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity
           onPress={() => {
-            setDraft(location);
+            const latest = latestRegionRef.current;
+            const payload = {
+              ...location,
+              latitude: latest?.latitude ?? location.latitude,
+              longitude: latest?.longitude ?? location.longitude,
+            };
+            setDraft(payload);
             router.back();
           }}
           disabled={!canConfirm}
@@ -373,6 +446,18 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  centerPinWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  centerPin: {
+    transform: [{ translateY: -18 }],
   },
   webMapFallback: {
     flex: 1,

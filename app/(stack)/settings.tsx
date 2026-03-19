@@ -4,19 +4,15 @@ import { useRouter } from "expo-router";
 import {
   Bell,
   Fingerprint,
-  HelpCircle,
   Languages,
   LogOut,
-  MonitorSmartphone,
   Moon,
   Palette,
-  Sun,
-  Wallet
+  Sun
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   Alert,
-  Linking,
   ScrollView,
   StatusBar,
   Switch,
@@ -43,9 +39,6 @@ export default function Settings() {
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
-  const planStatus = user?.plan_status || "free";
-  const planLabel =
-    planStatus === "paid" ? "PAID" : planStatus === "trial" ? "TRIAL" : "FREE";
 
   useEffect(() => {
     if (user) {
@@ -105,29 +98,6 @@ export default function Settings() {
           <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('settings')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Customize your app experience</Text>
         </View>
-
-        {/* ===================== ACCOUNT ===================== */}
-        <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>{t('account')}</Text>
-
-        {/* Plans & Pricing */}
-        <TouchableOpacity
-          onPress={() => router.push("/(stack)/plans-pricing" as any)}
-          className="flex-row items-center justify-between p-4 rounded-xl mb-3 border"
-          style={{ backgroundColor: colors.card, borderColor: colors.border }}
-        >
-          <View className="flex-row items-center gap-2">
-            <Wallet size={20} color={colors.primary} />
-            <Text className="text-base" style={{ color: colors.foreground }}>{t('plansPricing')}</Text>
-          </View>
-          <View
-            className="px-2 py-1 rounded-full"
-            style={{ backgroundColor: colors.primary + "1A", borderWidth: 1, borderColor: colors.primary }}
-          >
-            <Text className="text-[10px] font-extrabold" style={{ color: colors.primary }}>
-              {planLabel}
-            </Text>
-          </View>
-        </TouchableOpacity>
 
         {/* ===================== APP PREFERENCES ===================== */}
         <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>
@@ -248,36 +218,6 @@ export default function Settings() {
             thumbColor={colors.card}
           />
         </View>
-
-        {/* ===================== DESKTOP ===================== */}
-        <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>{t('desktop')}</Text>
-
-        <TouchableOpacity
-          onPress={() => Linking.openURL("https://trucksarthi.com")}
-          className="flex-row items-center justify-between p-4 rounded-xl mb-8 border"
-          style={{ backgroundColor: colors.card, borderColor: colors.border }}
-        >
-          <View className="flex-row items-center gap-2">
-            <MonitorSmartphone size={20} color={colors.primary} />
-            <Text className="text-base" style={{ color: colors.foreground }}>
-              {t('useDesktop')}
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* ===================== SUPPORT ===================== */}
-        <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>{t('support')}</Text>
-
-        <TouchableOpacity
-          onPress={() => router.push("/(stack)/helpCenter")}
-          className="flex-row items-center justify-between p-4 rounded-xl mb-10 border"
-          style={{ backgroundColor: colors.card, borderColor: colors.border }}
-        >
-          <View className="flex-row items-center gap-2">
-            <HelpCircle size={20} color={colors.primary} />
-            <Text className="text-base" style={{ color: colors.foreground }}>{t('helpCenter')}</Text>
-          </View>
-        </TouchableOpacity>
 
         {/* ===================== LOGOUT ===================== */}
         <TouchableOpacity

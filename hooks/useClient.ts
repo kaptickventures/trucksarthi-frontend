@@ -7,6 +7,14 @@ import { Client } from "../types/entity";
 export default function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
+  const toRefId = (value: any) =>
+    value && typeof value === "object" ? value._id : value;
+  const matchesId = (value: any, id: string) =>
+    String(toRefId(value) || "") === String(id);
+  const fetchTripsForDeleteCheck = async () => {
+    const res = await API.get("/api/trips");
+    return res.data || [];
+  };
 
   const fetchClients = useCallback(async () => {
     try {
@@ -58,13 +66,28 @@ export default function useClients() {
 
   const deleteClient = async (id: string) => {
     try {
+      const trips = await fetchTripsForDeleteCheck();
+      const usedInTrips = trips.some((t: any) =>
+        matchesId(t.client ?? t.clientId, id)
+      );
+      if (usedInTrips) {
+        Alert.alert(
+          "Cannot Delete",
+          "This client is used in one or more trips and cannot be deleted."
+        );
+        return;
+      }
       await API.delete(`/api/clients/${id}`);
       setClients((prev) =>
         prev.filter((c) => c._id !== id)
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", "Failed to delete client");
+      if (error?.response?.data?.error) {
+        Alert.alert("Error", error.response.data.error);
+      } else {
+        Alert.alert("Error", "Unable to verify trips. Please try again.");
+      }
     }
   };
 

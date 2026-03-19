@@ -48,6 +48,7 @@ export default function ClientFormModal({
   const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
   const [verifying, setVerifying] = useState(false);
+  const [showManualFields, setShowManualFields] = useState(false);
 
   const verifyGSTIN = async () => {
     const normalizedGstin = (formData.gstin || "").trim().toUpperCase();
@@ -90,6 +91,7 @@ export default function ClientFormModal({
   };
 
   const closeModal = () => {
+    setShowManualFields(false);
     onClose();
   };
 
@@ -197,46 +199,50 @@ export default function ClientFormModal({
         </TouchableOpacity>
       </View>
 
-      <Text style={{ color: colors.mutedForeground }} className="text-xs font-bold mb-4">
-        Not registered with GST?
-      </Text>
+      {!showManualFields ? (
+        <TouchableOpacity onPress={() => setShowManualFields(true)} style={{ marginBottom: 16 }}>
+          <Text style={{ color: colors.destructive, textAlign: "center" }} className="text-xs font-bold">
+            Not registered with GST?
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <View className="mb-8">
+          <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+            Client Name <Text style={{ color: colors.destructive }}>*</Text>
+          </Text>
+          <TextInput
+            className="rounded-2xl p-4 text-base font-bold mb-4"
+            style={{
+              backgroundColor: isDark ? colors.card : colors.secondary + "40",
+              color: colors.foreground,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            value={formData.client_name}
+            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, client_name: val }))}
+            placeholder="e.g. Acme Logistics Pvt Ltd"
+            placeholderTextColor={colors.mutedForeground + "80"}
+          />
 
-      <View className="mb-8">
-        <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
-          Client Name <Text style={{ color: colors.destructive }}>*</Text>
-        </Text>
-        <TextInput
-          className="rounded-2xl p-4 text-base font-bold mb-4"
-          style={{
-            backgroundColor: isDark ? colors.card : colors.secondary + "40",
-            color: colors.foreground,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-          value={formData.client_name}
-          onChangeText={(val) => setFormData((prev: any) => ({ ...prev, client_name: val }))}
-          placeholder="e.g. Acme Logistics Pvt Ltd"
-          placeholderTextColor={colors.mutedForeground + "80"}
-        />
-
-        <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
-          GSTIN Number (Optional)
-        </Text>
-        <TextInput
-          className="rounded-2xl p-4 text-base font-bold"
-          style={{
-            backgroundColor: isDark ? colors.card : colors.secondary + "40",
-            color: colors.foreground,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-          value={formData.gstin}
-          onChangeText={(val) => setFormData((prev: any) => ({ ...prev, gstin: val }))}
-          placeholder="e.g. 29ABCDE1234F1Z5"
-          placeholderTextColor={colors.mutedForeground + "80"}
-          autoCapitalize="characters"
-        />
-      </View>
+          <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
+            GSTIN Number (Optional)
+          </Text>
+          <TextInput
+            className="rounded-2xl p-4 text-base font-bold"
+            style={{
+              backgroundColor: isDark ? colors.card : colors.secondary + "40",
+              color: colors.foreground,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            value={formData.gstin}
+            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, gstin: val }))}
+            placeholder="e.g. 29ABCDE1234F1Z5"
+            placeholderTextColor={colors.mutedForeground + "80"}
+            autoCapitalize="characters"
+          />
+        </View>
+      )}
 
       <TouchableOpacity
         onPress={handleFormSubmit}

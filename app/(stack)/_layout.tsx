@@ -124,6 +124,7 @@ export default function StackLayout() {
           <Stack.Screen name="truck-manager-options" options={{ title: "Truck Manager" }} />
           <Stack.Screen name="document-details" options={{ title: "Document Details" }} />
           <Stack.Screen name="truck-khata" options={{ title: "Truck Khata" }} />
+          <Stack.Screen name="truck-khata-modules" options={{ title: "Truck Khata" }} />
           <Stack.Screen name="finance" options={{ title: "Finance Hub" }} />
           <Stack.Screen name="pl-reports" options={{ title: "P&L Reports" }} />
           <Stack.Screen name="pl-client-report" options={{ title: "Client Khata Report" }} />

@@ -1,7 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Plus, Trash2 } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   RefreshControl,
@@ -26,6 +26,8 @@ export default function TrucksManager() {
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
+  const { openAdd } = useLocalSearchParams<{ openAdd?: string }>();
+  const didAutoOpenRef = useRef(false);
 
   const {
     trucks,
@@ -91,6 +93,13 @@ export default function TrucksManager() {
   const closeModal = () => {
     setModalVisible(false);
   };
+
+  useEffect(() => {
+    if (openAdd && !didAutoOpenRef.current) {
+      didAutoOpenRef.current = true;
+      openModal();
+    }
+  }, [openAdd]);
 
   /* ---------------- ACTIONS ---------------- */
   const handleSubmit = async () => {

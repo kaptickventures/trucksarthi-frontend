@@ -15,6 +15,14 @@ export type LocationSuggestion = {
 export default function useLocations() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(false);
+  const toRefId = (value: any) =>
+    value && typeof value === "object" ? value._id : value;
+  const matchesId = (value: any, id: string) =>
+    String(toRefId(value) || "") === String(id);
+  const fetchTripsForDeleteCheck = async () => {
+    const res = await API.get("/api/trips");
+    return res.data || [];
+  };
 
   const fetchLocations = useCallback(async () => {
     try {
@@ -57,11 +65,27 @@ export default function useLocations() {
 
   const deleteLocation = async (id: string) => {
     try {
+      const trips = await fetchTripsForDeleteCheck();
+      const usedInTrips = trips.some((t: any) =>
+        matchesId(t.start_location ?? t.start_location_id, id) ||
+        matchesId(t.end_location ?? t.end_location_id, id)
+      );
+      if (usedInTrips) {
+        Alert.alert(
+          "Cannot Delete",
+          "This location is used in one or more trips and cannot be deleted."
+        );
+        return;
+      }
       await API.delete(`/api/locations/${id}`);
       setLocations((prev) => prev.filter((l) => l._id !== id));
     } catch (error: any) {
       console.error("Delete error:", error.response?.data || error);
-      Alert.alert("Error", error.response?.data?.error || "Failed to delete location");
+      if (error?.response?.data?.error) {
+        Alert.alert("Error", error.response.data.error);
+      } else {
+        Alert.alert("Error", "Unable to verify trips. Please try again.");
+      }
     }
   };
 

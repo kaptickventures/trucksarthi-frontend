@@ -12,13 +12,14 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 
 import { useThemeStore } from "../hooks/useThemeStore";
 import { useUser } from "../hooks/useUser";
 import { getFileUrl, formatPhoneNumber } from "../lib/utils";
-import { Bell } from "lucide-react-native";
+import { Bell, HelpCircle, MonitorSmartphone, Wallet } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 
 import { useTranslation } from "../context/LanguageContext";
@@ -158,7 +159,7 @@ export default function SideMenu({
           </View>
 
           {/* SCROLLABLE MENU ITEMS */}
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20, paddingTop: 8 }}>
             <TouchableOpacity
               onPress={() => navigate("/(stack)/settings")}
               className="flex-row items-center py-4"
@@ -169,10 +170,40 @@ export default function SideMenu({
               </Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              onPress={() => navigate("/(stack)/plans-pricing")}
+              className="flex-row items-center py-4"
+            >
+              <Wallet size={22} color={colors.foreground} />
+              <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                {t('plansPricing')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => navigate("/(stack)/helpCenter")}
+              className="flex-row items-center py-4"
+            >
+              <HelpCircle size={22} color={colors.foreground} />
+              <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                {t('helpCenter')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => Linking.openURL("https://trucksarthi.in")}
+              className="flex-row items-center py-4"
+            >
+              <MonitorSmartphone size={22} color={colors.foreground} />
+              <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                {t('useDesktop')}
+              </Text>
+            </TouchableOpacity>
+
             {/* Logout as part of the scrollable list */}
             <TouchableOpacity
               onPress={handleLogout}
-              className="flex-row items-center py-4 mt-4 mb-12"
+              className="flex-row items-center py-5 mt-5 mb-12"
               style={{ borderTopWidth: 1, borderTopColor: colors.border }}
             >
               <Ionicons name="log-out-outline" size={26} color={colors.destructive} />

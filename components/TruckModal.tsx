@@ -227,7 +227,7 @@ export default function TruckFormModal({
                                     }}
                                     style={{ marginTop: 8 }}
                                 >
-                                    <Text style={{ color: colors.primary, textAlign: 'center', fontSize: 14, fontWeight: '600' }}>
+                                    <Text style={{ color: colors.destructive, textAlign: 'center', fontSize: 12, fontWeight: '700' }}>
                                         Enter details manually
                                     </Text>
                                 </TouchableOpacity>

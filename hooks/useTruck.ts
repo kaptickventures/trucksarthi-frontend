@@ -9,6 +9,14 @@ import { Truck } from "../types/entity";
 export default function useTrucks() {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [loading, setLoading] = useState(false);
+  const toRefId = (value: any) =>
+    value && typeof value === "object" ? value._id : value;
+  const matchesId = (value: any, id: string) =>
+    String(toRefId(value) || "") === String(id);
+  const fetchTripsForDeleteCheck = async () => {
+    const res = await API.get("/api/trips");
+    return res.data || [];
+  };
 
   /* ---------------- FETCH ---------------- */
   const fetchTrucks = useCallback(async () => {
@@ -94,14 +102,26 @@ export default function useTrucks() {
   /* ---------------- DELETE ---------------- */
   const deleteTruck = async (id: string) => {
     try {
+      const trips = await fetchTripsForDeleteCheck();
+      const usedInTrips = trips.some((t: any) =>
+        matchesId(t.truck ?? t.truckId, id)
+      );
+      if (usedInTrips) {
+        Alert.alert(
+          "Cannot Delete",
+          "This truck is used in one or more trips and cannot be deleted."
+        );
+        return;
+      }
       await API.delete(`/api/trucks/${id}`);
       setTrucks((prev) => prev.filter((t) => t._id !== id));
     } catch (error: any) {
       console.error(error);
-      Alert.alert(
-        "Error",
-        error?.response?.data?.error || "Failed to delete truck"
-      );
+      if (error?.response?.data?.error) {
+        Alert.alert("Error", error.response.data.error);
+      } else {
+        Alert.alert("Error", "Unable to verify trips. Please try again.");
+      }
     }
   };
 

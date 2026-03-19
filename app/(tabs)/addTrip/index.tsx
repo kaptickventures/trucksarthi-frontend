@@ -133,6 +133,7 @@ export default function AddTrip() {
   const { locations, addLocation, fetchLocations } = useLocations();
   const { addTrip } = useTrips();
   const [refreshing, setRefreshing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -243,6 +244,7 @@ export default function AddTrip() {
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
     const { truck_id, driver_id, client_id, cost_of_trip } = formData;
     const trimmedStart = startQuery.trim();
     const trimmedEnd = endQuery.trim();
@@ -253,6 +255,7 @@ export default function AddTrip() {
     }
 
     try {
+      setIsSaving(true);
       let startLocationId = formData.start_location_id;
       let endLocationId = formData.end_location_id;
 
@@ -303,6 +306,8 @@ export default function AddTrip() {
       setEndQuery("");
     } catch {
       Alert.alert("Error", "Failed to save trip. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -569,13 +574,20 @@ export default function AddTrip() {
           {/* Save Button */}
           <TouchableOpacity
             activeOpacity={0.8}
-            style={{ backgroundColor: colors.primary }}
+            disabled={isSaving}
+            style={{ backgroundColor: colors.primary, opacity: isSaving ? 0.7 : 1 }}
             className="mt-8 h-16 rounded-2xl items-center justify-center shadow-lg shadow-primary/30"
             onPress={handleSave}
           >
             <View className="flex-row items-center">
-              <Plus size={24} color="white" strokeWidth={3} />
-              <Text className="text-white text-xl font-bold ml-2">{t('recordTrip')}</Text>
+              {isSaving ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Plus size={24} color="white" strokeWidth={3} />
+              )}
+              <Text className="text-white text-xl font-bold ml-2">
+                {isSaving ? "Saving..." : t('recordTrip')}
+              </Text>
             </View>
           </TouchableOpacity>
 
