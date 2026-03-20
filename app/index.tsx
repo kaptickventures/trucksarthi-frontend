@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
+import { Redirect, useRootNavigationState, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Platform, View } from "react-native";
 import "react-native-reanimated";
 import { postLoginFlow } from "../hooks/useAuth";
 import { useAuth } from "../context/AuthContext";
@@ -8,10 +8,15 @@ import { useThemeStore } from "../hooks/useThemeStore";
 
 export default function Index() {
   const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
   const { user, loading } = useAuth();
   const { colors } = useThemeStore();
+  const isRouterReady = !!rootNavigationState?.key;
 
   useEffect(() => {
+    if (!isRouterReady) return;
+
+    if (Platform.OS === "web") return;
     if (!loading) {
       if (user) {
         postLoginFlow(router);
@@ -19,9 +24,13 @@ export default function Index() {
         router.replace("/auth/login" as any);
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isRouterReady]);
 
-  if (loading) {
+  if (Platform.OS === "web") {
+    return <Redirect href="/desktop-qr" />;
+  }
+
+  if (!isRouterReady || loading) {
     return (
       <View
         style={{

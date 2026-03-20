@@ -12,7 +12,6 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 
@@ -191,7 +190,7 @@ export default function SideMenu({
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => Linking.openURL("https://trucksarthi.in")}
+              onPress={() => navigate("/(stack)/desktop-auth")}
               className="flex-row items-center py-4"
             >
               <MonitorSmartphone size={22} color={colors.foreground} />

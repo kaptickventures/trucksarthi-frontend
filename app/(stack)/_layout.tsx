@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { Stack, useRouter } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import {
   StatusBar,
   TouchableOpacity,
@@ -20,14 +20,20 @@ export default function StackLayout() {
   const isDark = theme === "dark";
   const router = useRouter();
   const { user, loading } = useAuth();
+  const pathname = usePathname();
+  const allowUnauthed = pathname === "/desktop-qr";
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !user && !allowUnauthed) {
       router.replace("/auth/login" as any);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, allowUnauthed]);
 
-  if (loading || !user) {
+  if (loading && !allowUnauthed) {
+    return null;
+  }
+
+  if (!user && !allowUnauthed) {
     return null;
   }
 
@@ -116,6 +122,8 @@ export default function StackLayout() {
           <Stack.Screen name="driver-profile" options={{ title: "Driver Profile" }} />
           <Stack.Screen name="trucks-profile" options={{ title: "Truck Profile" }} />
           <Stack.Screen name="helpCenter" options={{ title: "Help Center" }} />
+          <Stack.Screen name="desktop-qr" options={{ headerShown: false }} />
+          <Stack.Screen name="desktop-auth" options={{ title: t('useDesktop') }} />
           <Stack.Screen name="kyc-verification" options={{ title: t('kycVerifications') }} />
 
           <Stack.Screen name="gstin-onboarding" options={{ title: "Trucksarthi" }} />

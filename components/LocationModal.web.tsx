@@ -51,8 +51,8 @@ export default function LocationFormModal({
   }, [visible]);
 
   const trimmedTitle = String(formData.location_name || "").trim();
-  const hasPinnedLocation = Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude);
-  const canSubmit = trimmedTitle.length > 0 || hasPinnedLocation;
+  const hasPickedCoordinates = Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude);
+  const canSubmit = trimmedTitle.length > 0;
 
   return (
     <BottomSheet
@@ -96,16 +96,19 @@ export default function LocationFormModal({
 
           <TouchableOpacity
             onPress={() => {
-              router.push({
-                pathname: "/(stack)/location-picker",
-                params: {
-                  name: formData.location_name || "",
-                  address: formData.complete_address || "",
-                  placeId: formData.place_id || "",
-                  lat: Number.isFinite(formData.latitude) ? String(formData.latitude) : "",
-                  lng: Number.isFinite(formData.longitude) ? String(formData.longitude) : "",
-                },
-              } as any);
+              onClose();
+              setTimeout(() => {
+                router.push({
+                  pathname: "/(stack)/location-picker",
+                  params: {
+                    name: formData.location_name || "",
+                    address: formData.complete_address || "",
+                    placeId: formData.place_id || "",
+                    lat: Number.isFinite(formData.latitude) ? String(formData.latitude) : "",
+                    lng: Number.isFinite(formData.longitude) ? String(formData.longitude) : "",
+                  },
+                } as any);
+              }, 120);
             }}
           >
             <Text style={{ color: colors.success }} className="text-sm font-bold">
@@ -116,6 +119,12 @@ export default function LocationFormModal({
           {!!formData.complete_address && (
             <Text style={{ color: colors.mutedForeground }} className="text-xs font-semibold">
               Address: {formData.complete_address}
+            </Text>
+          )}
+
+          {hasPickedCoordinates && (
+            <Text style={{ color: colors.mutedForeground }} className="text-xs font-semibold">
+              Coordinates: {Number(formData.latitude).toFixed(6)}, {Number(formData.longitude).toFixed(6)}
             </Text>
           )}
 

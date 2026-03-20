@@ -54,6 +54,7 @@ export default function BottomSheet({
 
     useEffect(() => {
         if (!visible) return;
+        if (Platform.OS === "web") return;
 
         const showSub = Keyboard.addListener("keyboardDidShow", () => {
             sheetRef.current?.snapToIndex(1);

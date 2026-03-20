@@ -26,6 +26,7 @@
     "constants": "^0.0.2",
     "expo": "~54.0.33",
     "expo-auth-session": "~7.0.10",
+    "expo-camera": "~15.0.16",
     "expo-constants": "~18.0.9",
     "expo-contacts": "~15.0.11",
     "expo-dev-client": "~6.0.20",
@@ -54,6 +55,7 @@
     "lucide-react-native": "^0.546.0",
     "nativewind": "^4.2.1",
     "prettier-plugin-tailwindcss": "^0.5.14",
+    "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
@@ -77,6 +79,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.6",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",

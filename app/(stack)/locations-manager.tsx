@@ -53,7 +53,8 @@ export default function LocationsManager() {
     setFormData((prev) => ({
       ...prev,
       ...draft,
-      location_name: String(draft.location_name || "").trim() ? draft.location_name : prev.location_name,
+      // Keep title user-controlled in the modal; picker should only update location details.
+      location_name: prev.location_name,
     }));
     setModalVisible(true);
     clearDraft();
@@ -103,34 +104,27 @@ export default function LocationsManager() {
     setModalVisible(false);
   };
 
-  const getFallbackLocationTitle = () => {
-    const explicitTitle = String(formData.location_name || "").trim();
-    if (explicitTitle) return explicitTitle;
-
-    const address = String(formData.complete_address || "").trim();
-    if (address) {
-      const [firstSegment] = address.split(",");
-      const normalized = String(firstSegment || address).trim();
-      if (normalized) return normalized;
-    }
-
-    if (Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude)) {
-      return "Pinned Location";
-    }
-
-    return "";
-  };
-
   const handleSubmit = async () => {
-    const locationTitle = getFallbackLocationTitle();
+    const locationTitle = String(formData.location_name || "").trim();
     if (!locationTitle) {
       Alert.alert(t("missingFields"), "Location title is required.");
+      return;
+    }
+
+    const normalizedAddress = String(formData.complete_address || "").trim() ||
+      (Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude)
+        ? `${Number(formData.latitude).toFixed(6)}, ${Number(formData.longitude).toFixed(6)}`
+        : "");
+
+    if (!normalizedAddress) {
+      Alert.alert(t("missingFields"), "Please add a Google location before saving.");
       return;
     }
 
     const payload = {
       ...formData,
       location_name: locationTitle,
+      complete_address: normalizedAddress,
     };
 
     try {
