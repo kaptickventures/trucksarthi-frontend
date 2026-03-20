@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { Edit3, Plus, Trash2, Share2 } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   RefreshControl,
@@ -17,11 +17,13 @@ import useLocations from "../../hooks/useLocation";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
 import { useTranslation } from "../../context/LanguageContext";
+import { useLocationPicker } from "../../context/LocationPickerContext";
 
 export default function LocationsManager() {
   const { user, loading: userLoading } = useUser();
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
+  const { draft, clearDraft } = useLocationPicker();
   const isDark = theme === "dark";
 
   const {
@@ -45,6 +47,17 @@ export default function LocationsManager() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!draft) return;
+    setFormData((prev) => ({
+      ...prev,
+      ...draft,
+      location_name: String(draft.location_name || "").trim() ? draft.location_name : prev.location_name,
+    }));
+    setModalVisible(true);
+    clearDraft();
+  }, [draft, clearDraft]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

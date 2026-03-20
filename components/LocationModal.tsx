@@ -9,7 +9,6 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useThemeStore } from "../hooks/useThemeStore";
-import { useLocationPicker } from "../context/LocationPickerContext";
 import BottomSheet from "./BottomSheet";
 
 type LocationFormData = {
@@ -41,7 +40,6 @@ export default function LocationFormModal({
   const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { draft, clearDraft } = useLocationPicker();
   const titleInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -51,16 +49,6 @@ export default function LocationFormModal({
     }, 120);
     return () => clearTimeout(timer);
   }, [visible]);
-
-  useEffect(() => {
-    if (!draft) return;
-    setFormData((prev) => ({
-      ...prev,
-      ...draft,
-      location_name: String(draft.location_name || "").trim() ? draft.location_name : prev.location_name,
-    }));
-    clearDraft();
-  }, [draft, setFormData, clearDraft]);
 
   const trimmedTitle = String(formData.location_name || "").trim();
   const hasPinnedLocation = Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude);
@@ -108,19 +96,16 @@ export default function LocationFormModal({
 
           <TouchableOpacity
             onPress={() => {
-              onClose();
-              setTimeout(() => {
-                router.push({
-                  pathname: "/(stack)/location-picker",
-                  params: {
-                    name: formData.location_name || "",
-                    address: formData.complete_address || "",
-                    placeId: formData.place_id || "",
-                    lat: Number.isFinite(formData.latitude) ? String(formData.latitude) : "",
-                    lng: Number.isFinite(formData.longitude) ? String(formData.longitude) : "",
-                  },
-                } as any);
-              }, 150);
+              router.push({
+                pathname: "/(stack)/location-picker",
+                params: {
+                  name: formData.location_name || "",
+                  address: formData.complete_address || "",
+                  placeId: formData.place_id || "",
+                  lat: Number.isFinite(formData.latitude) ? String(formData.latitude) : "",
+                  lng: Number.isFinite(formData.longitude) ? String(formData.longitude) : "",
+                },
+              } as any);
             }}
           >
             <Text style={{ color: colors.success }} className="text-sm font-bold">
