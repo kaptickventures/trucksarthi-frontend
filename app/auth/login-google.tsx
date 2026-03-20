@@ -35,7 +35,7 @@ export default function LoginGoogle() {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           {/* Logo */}
           <Image
-            source={require("../../assets/TruckSarthi-Graphic.png")}
+            source={require("../../assets/Trucksarthi-Graphic.png")}
             style={{ width: 180, height: 60, marginBottom: 40, tintColor: isDark ? colors.foreground : undefined }}
             resizeMode="contain"
           />
