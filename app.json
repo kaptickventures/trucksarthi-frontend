@@ -57,7 +57,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "splash": {
-      "image": "./assets/Trucksarthi-Graphic.png",
+      "image": "./assets/TruckSarthi-Graphic.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -67,7 +67,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/Trucksarthi-Graphic.png",
+          "image": "./assets/TruckSarthi-Graphic.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
