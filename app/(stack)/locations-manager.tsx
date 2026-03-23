@@ -18,6 +18,29 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
 import { useTranslation } from "../../context/LanguageContext";
 import { useLocationPicker } from "../../context/LocationPickerContext";
+import { reverseGeocode } from "../../lib/reverseGeocode";
+
+const parseCoordString = (value?: string) => {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const candidates = [
+    raw.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/),
+    raw.match(/^\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$/),
+    raw.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/),
+  ].filter(Boolean) as RegExpMatchArray[];
+
+  const match = candidates[0];
+  if (!match) return null;
+
+  const lat = Number(match[1]);
+  const lng = Number(match[2]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
+};
+
+const isCoordAddress = (value?: string) => Boolean(parseCoordString(value));
 
 export default function LocationsManager() {
   const { user, loading: userLoading } = useUser();
@@ -47,6 +70,48 @@ export default function LocationsManager() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [resolvedAddresses, setResolvedAddresses] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolve = async () => {
+      const pending = (locations || []).filter((loc: any) => {
+        const id = String(loc?._id || "");
+        if (!id) return false;
+        if (resolvedAddresses[id]) return false;
+
+        const addressRaw = String(loc?.complete_address || "").trim();
+        const addressLooksLikeCoords = isCoordAddress(addressRaw);
+
+        const lat = Number(loc?.latitude);
+        const lng = Number(loc?.longitude);
+        const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+
+        return addressLooksLikeCoords || (!addressRaw && hasCoords);
+      });
+
+      for (const loc of pending) {
+        const id = String(loc?._id || "");
+        const addressRaw = String(loc?.complete_address || "").trim();
+        const coordsFromString = parseCoordString(addressRaw);
+        const lat = Number.isFinite(Number(loc?.latitude)) ? Number(loc?.latitude) : coordsFromString?.lat;
+        const lng = Number.isFinite(Number(loc?.longitude)) ? Number(loc?.longitude) : coordsFromString?.lng;
+
+        const res = await reverseGeocode(Number(lat), Number(lng));
+        if (cancelled) return;
+        setResolvedAddresses((prev) => ({
+          ...prev,
+          [id]: res?.formattedAddress || "Address unavailable",
+        }));
+      }
+    };
+
+    resolve();
+    return () => {
+      cancelled = true;
+    };
+  }, [locations, resolvedAddresses]);
 
   useEffect(() => {
     if (!draft) return;
@@ -63,6 +128,7 @@ export default function LocationsManager() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      setResolvedAddresses({});
       await fetchLocations();
     } catch (error) {
       console.error(error);
@@ -171,7 +237,12 @@ export default function LocationsManager() {
   const handleShareLocation = async (loc: any) => {
     try {
       const title = String(loc?.location_name || "").trim() || "Location";
-      const address = String(loc?.complete_address || "").trim() || "Address not available";
+      const id = String(loc?._id || "");
+      const raw = String(loc?.complete_address || "").trim();
+      const address =
+        String(resolvedAddresses[id] || "").trim() ||
+        (isCoordAddress(raw) ? "" : raw) ||
+        "Address not available";
       const mapsLink = getGoogleMapsLink(loc);
       const message = `Location Title: ${title}\nLocation Address: ${address}\nGoogle Maps Link: ${mapsLink}`;
       await Share.share({ message });
@@ -262,7 +333,9 @@ export default function LocationsManager() {
               </View>
 
               <View className="gap-y-1">
-                <Text style={{ color: colors.mutedForeground }} className="text-sm font-medium">Address: {loc.complete_address || "Full address not added"}</Text>
+                <Text style={{ color: colors.mutedForeground }} className="text-sm font-medium">
+                  Address: {resolvedAddresses[String(loc._id)] || (isCoordAddress(loc.complete_address) ? "Resolving address..." : loc.complete_address) || "Full address not added"}
+                </Text>
               </View>
             </View>
           ))

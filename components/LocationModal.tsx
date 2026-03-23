@@ -90,8 +90,8 @@ export default function LocationFormModal({
       onClose={onClose}
       title={editing ? "Edit Location" : "Add Location"}
       subtitle="Location Details"
-      maxHeight={editing ? "85%" : "90%"}
-      expandedHeight={editing ? "85%" : "90%"}
+      maxHeight="90%"
+      expandedHeight="90%"
     >
       <KeyboardAwareScrollView
         enableOnAndroid
