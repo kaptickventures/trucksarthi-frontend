@@ -1,6 +1,10 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StatusBar, Text, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as Print from "expo-print";
+import { cacheDirectory, documentDirectory, moveAsync } from "expo-file-system";
+import * as Sharing from "expo-sharing";
 
 import API from "../api/axiosInstance";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -23,6 +27,7 @@ export default function TripDetail() {
 
   const [loading, setLoading] = useState(false);
   const [trip, setTrip] = useState<Trip | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     fetchDrivers();
@@ -114,12 +119,121 @@ export default function TripDetail() {
 
   const totalCost = Number(trip.cost_of_trip || 0) + Number(trip.miscellaneous_expense || 0);
 
+  const downloadTripPDF = async () => {
+    if (!trip || downloading) return;
+
+    try {
+      setDownloading(true);
+      const route = `${getLocationName(trip.start_location)} -> ${getLocationName(trip.end_location)}`;
+      const title = trip.public_id ? `Trip ${trip.public_id}` : "Trip Detail";
+      const dateLabel = trip.trip_date ? formatDate(trip.trip_date) : "-";
+
+      const html = `
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 30px; color: #000; }
+    .title { text-align: center; font-size: 26px; font-weight: 800; margin-bottom: 4px; }
+    .subtitle { text-align: center; font-size: 12px; opacity: 0.75; margin-bottom: 16px; }
+    .card { border: 1px solid #000; border-radius: 10px; padding: 14px; margin-top: 14px; }
+    .row { display: flex; justify-content: space-between; gap: 12px; }
+    .label { font-size: 11px; opacity: 0.6; margin-bottom: 4px; }
+    .value { font-size: 13px; font-weight: 700; }
+    .route { font-size: 15px; font-weight: 800; margin: 8px 0 10px 0; }
+    .total { font-size: 18px; font-weight: 900; }
+    .notes { margin-top: 10px; font-size: 13px; font-style: italic; opacity: 0.85; }
+    .divider { height: 1px; background: #000; opacity: 0.2; margin: 12px 0; }
+  </style>
+</head>
+<body>
+  <div class="title">${title}</div>
+  <div class="subtitle">${dateLabel}</div>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="label">TOTAL</div>
+        <div class="total">Rs ${totalCost.toLocaleString()}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="label">TRIP ID</div>
+        <div class="value">${trip.public_id || "-"}</div>
+      </div>
+    </div>
+    <div class="route">${route}</div>
+    <div class="row">
+      <div style="flex:1">
+        <div class="label">CLIENT</div>
+        <div class="value">${getClientName(trip.client)}</div>
+      </div>
+      <div style="flex:1">
+        <div class="label">TRUCK</div>
+        <div class="value">${getTruckReg(trip.truck)}</div>
+      </div>
+      <div style="flex:1">
+        <div class="label">DRIVER</div>
+        <div class="value">${getDriverName(trip.driver)}</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="row">
+      <div style="flex:1">
+        <div class="label">TRIP COST</div>
+        <div class="value">Rs ${Number(trip.cost_of_trip || 0).toLocaleString()}</div>
+      </div>
+      <div style="flex:1; text-align:right">
+        <div class="label">MISC EXPENSE</div>
+        <div class="value">Rs ${Number(trip.miscellaneous_expense || 0).toLocaleString()}</div>
+      </div>
+    </div>
+    ${trip.notes ? `<div class="notes">Notes: ${String(trip.notes)}</div>` : ""}
+  </div>
+</body>
+</html>
+`;
+
+      const { uri } = await Print.printToFileAsync({ html });
+      const safeId = String(trip.public_id || trip._id || "Trip").replace(/[^a-zA-Z0-9_-]/g, "");
+      const baseDir = documentDirectory || cacheDirectory;
+      const shareUri = baseDir ? `${baseDir}${safeId}.pdf` : uri;
+      if (baseDir) {
+        await moveAsync({ from: uri, to: shareUri });
+      }
+      await Sharing.shareAsync(shareUri);
+    } catch (err) {
+      console.log(err);
+      Alert.alert("Error", "Failed to generate PDF.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
         <View className="mb-4">
-          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>Trip Detail</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>Trip Detail</Text>
+            <TouchableOpacity
+              onPress={downloadTripPDF}
+              disabled={downloading}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: colors.infoSoft,
+                opacity: downloading ? 0.8 : 1,
+              }}
+            >
+              <Ionicons name="download-outline" size={18} color={colors.info} />
+              <Text style={{ marginLeft: 8, fontWeight: "700", color: colors.info }}>
+                {downloading ? "Generating..." : "Download PDF"}
+              </Text>
+            </TouchableOpacity>
+          </View>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>
             {trip.public_id ? `${trip.public_id} • ` : ""}{trip.trip_date ? formatDate(trip.trip_date) : "No date"}
           </Text>
@@ -152,50 +266,50 @@ export default function TripDetail() {
           ) : null}
         </View>
 
-        <View className="mb-2">
-          <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>Edited History</Text>
-        </View>
+        {history.length > 0 ? (
+          <>
+            <View className="mb-2">
+              <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>Edited History</Text>
+            </View>
 
-        {history.length === 0 ? (
-          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>No edits yet.</Text>
-        ) : (
-          history.map((entry, idx) => {
-            const snap = entry.snapshot || {} as any;
-            const snapTotal = Number(snap.cost_of_trip || 0) + Number(snap.miscellaneous_expense || 0);
-            return (
-              <View
-                key={`history-${idx}`}
-                className="border rounded-2xl p-4 mb-3"
-                style={{ backgroundColor: colors.card, borderColor: colors.border }}
-              >
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Edited on</Text>
-                  <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
-                    {entry.edited_at ? formatDate(entry.edited_at) : "-"}
+            {history.map((entry, idx) => {
+              const snap = (entry.snapshot || {}) as any;
+              const snapTotal = Number(snap.cost_of_trip || 0) + Number(snap.miscellaneous_expense || 0);
+              return (
+                <View
+                  key={`history-${idx}`}
+                  className="border rounded-2xl p-4 mb-3"
+                  style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                >
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Edited on</Text>
+                    <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>
+                      {entry.edited_at ? formatDate(entry.edited_at) : "-"}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+                    {getLocationName(snap.start_location)}
+                    {" -> "}
+                    {getLocationName(snap.end_location)}
                   </Text>
+                  <Text style={{ color: colors.foreground, fontSize: 12 }}>Client: {getClientName(snap.client)}</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 12 }}>Truck: {getTruckReg(snap.truck)}</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 12, marginBottom: 6 }}>Driver: {getDriverName(snap.driver)}</Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {Number(snap.cost_of_trip || 0).toLocaleString()}</Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {Number(snap.miscellaneous_expense || 0).toLocaleString()}</Text>
+                  </View>
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 6 }}>Total: Rs {snapTotal.toLocaleString()}</Text>
+                  {snap.notes ? (
+                    <Text style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11, marginTop: 6 }}>
+                      Notes: {snap.notes}
+                    </Text>
+                  ) : null}
                 </View>
-                <Text style={{ fontSize: 14, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
-                  {getLocationName(snap.start_location)}
-                  {" -> "}
-                  {getLocationName(snap.end_location)}
-                </Text>
-                <Text style={{ color: colors.foreground, fontSize: 12 }}>Client: {getClientName(snap.client)}</Text>
-                <Text style={{ color: colors.foreground, fontSize: 12 }}>Truck: {getTruckReg(snap.truck)}</Text>
-                <Text style={{ color: colors.foreground, fontSize: 12, marginBottom: 6 }}>Driver: {getDriverName(snap.driver)}</Text>
-                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {Number(snap.cost_of_trip || 0).toLocaleString()}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {Number(snap.miscellaneous_expense || 0).toLocaleString()}</Text>
-                </View>
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 6 }}>Total: Rs {snapTotal.toLocaleString()}</Text>
-                {snap.notes ? (
-                  <Text style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11, marginTop: 6 }}>
-                    Notes: {snap.notes}
-                  </Text>
-                ) : null}
-              </View>
-            );
-          })
-        )}
+              );
+            })}
+          </>
+        ) : null}
       </ScrollView>
     </View>
   );

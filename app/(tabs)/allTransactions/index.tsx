@@ -10,9 +10,11 @@ import {
   Modal,
   Platform,
   RefreshControl,
+  ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   UIManager,
   View,
 } from "react-native";
@@ -347,7 +349,154 @@ export default function TransactionsScreen() {
               </TouchableOpacity>
             </View>
 
-            {showFilters && (
+            {Platform.OS === "ios" && showDatePicker && (
+              <Modal
+                transparent
+                animationType="slide"
+                visible
+                onRequestClose={closeDatePicker}
+              >
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: "rgba(0,0,0,0.35)",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: colors.card,
+                      borderTopLeftRadius: 16,
+                      borderTopRightRadius: 16,
+                      paddingBottom: 20,
+                      borderTopWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border,
+                      }}
+                    >
+                      <TouchableOpacity onPress={closeDatePicker}>
+                        <Text style={{ color: colors.destructive, fontWeight: "600" }}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={closeDatePicker}>
+                        <Text style={{ color: colors.primary, fontWeight: "700" }}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <DateTimePicker
+                      value={(showDatePicker === "start" ? filters.startDate : filters.endDate) || new Date()}
+                      mode="date"
+                      display="inline"
+                      onChange={(_, selectedDate) => {
+                        if (!selectedDate) return;
+                        setFilters((prev) => ({
+                          ...prev,
+                          [showDatePicker === "start" ? "startDate" : "endDate"]: selectedDate,
+                        }));
+                      }}
+                    />
+                  </View>
+                </View>
+              </Modal>
+            )}
+
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={TAG_FILTERS as any}
+              keyExtractor={(item) => item.key}
+              contentContainerStyle={{ gap: 8 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => setActiveTag(item.key as TagFilter)}
+                  style={{
+                    paddingHorizontal: 16,
+                    height: TAG_PILL_HEIGHT,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: activeTag === item.key ? colors.primary : colors.border,
+                    backgroundColor: activeTag === item.key ? colors.primary : "transparent",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      color: activeTag === item.key ? "white" : colors.foreground,
+                      fontWeight: "700",
+                      fontSize: 12,
+                      textAlign: "center",
+                    }}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
+        ListEmptyComponent={
+          loading && !transactions.length ? (
+            <View style={{ flex: 1, padding: 20 }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} width="100%" height={70} borderRadius={12} style={{ marginBottom: 12 }} />
+              ))}
+            </View>
+          ) : (
+            <View style={{ alignItems: "center", marginTop: 50 }}>
+              <Text style={{ color: colors.mutedForeground }}>No transactions found.</Text>
+            </View>
+          )
+        }
+      />
+
+      <Modal
+        visible={showFilters}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <TouchableWithoutFeedback onPress={() => setShowFilters(false)}>
+            <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.45)" }} />
+          </TouchableWithoutFeedback>
+
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              borderWidth: 1,
+              borderColor: colors.border,
+              paddingTop: 12,
+              paddingBottom: 16,
+              maxHeight: "90%",
+            }}
+          >
+            <View style={{ paddingHorizontal: 16, paddingBottom: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>Filters</Text>
+              <TouchableOpacity
+                onPress={() => setShowFilters(false)}
+                style={{ padding: 8, borderRadius: 999, backgroundColor: colors.secondary }}
+              >
+                <Ionicons name="close" size={18} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+              showsVerticalScrollIndicator={false}
+            >
               <View
                 style={{
                   backgroundColor: colors.card,
@@ -355,7 +504,6 @@ export default function TransactionsScreen() {
                   borderWidth: 1,
                   borderRadius: 16,
                   padding: 14,
-                  marginBottom: 16,
                 }}
               >
                 <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Date Range</Text>
@@ -521,117 +669,10 @@ export default function TransactionsScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-            )}
-
-            {Platform.OS === "ios" && showDatePicker && (
-              <Modal
-                transparent
-                animationType="slide"
-                visible
-                onRequestClose={closeDatePicker}
-              >
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: "rgba(0,0,0,0.35)",
-                    justifyContent: "flex-end",
-                  }}
-                >
-                  <View
-                    style={{
-                      backgroundColor: colors.card,
-                      borderTopLeftRadius: 16,
-                      borderTopRightRadius: 16,
-                      paddingBottom: 20,
-                      borderTopWidth: 1,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.border,
-                      }}
-                    >
-                      <TouchableOpacity onPress={closeDatePicker}>
-                        <Text style={{ color: colors.destructive, fontWeight: "600" }}>Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={closeDatePicker}>
-                        <Text style={{ color: colors.primary, fontWeight: "700" }}>Done</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <DateTimePicker
-                      value={(showDatePicker === "start" ? filters.startDate : filters.endDate) || new Date()}
-                      mode="date"
-                      display="inline"
-                      onChange={(_, selectedDate) => {
-                        if (!selectedDate) return;
-                        setFilters((prev) => ({
-                          ...prev,
-                          [showDatePicker === "start" ? "startDate" : "endDate"]: selectedDate,
-                        }));
-                      }}
-                    />
-                  </View>
-                </View>
-              </Modal>
-            )}
-
-            <FlatList
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              data={TAG_FILTERS as any}
-              keyExtractor={(item) => item.key}
-              contentContainerStyle={{ gap: 8 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  onPress={() => setActiveTag(item.key as TagFilter)}
-                  style={{
-                    paddingHorizontal: 16,
-                    height: TAG_PILL_HEIGHT,
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    borderColor: activeTag === item.key ? colors.primary : colors.border,
-                    backgroundColor: activeTag === item.key ? colors.primary : "transparent",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      color: activeTag === item.key ? "white" : colors.foreground,
-                      fontWeight: "700",
-                      fontSize: 12,
-                      textAlign: "center",
-                    }}
-                  >
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
+            </ScrollView>
           </View>
-        }
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
-        ListEmptyComponent={
-          loading && !transactions.length ? (
-            <View style={{ flex: 1, padding: 20 }}>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} width="100%" height={70} borderRadius={12} style={{ marginBottom: 12 }} />
-              ))}
-            </View>
-          ) : (
-            <View style={{ alignItems: "center", marginTop: 50 }}>
-              <Text style={{ color: colors.mutedForeground }}>No transactions found.</Text>
-            </View>
-          )
-        }
-      />
+        </View>
+      </Modal>
 
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
     </View>

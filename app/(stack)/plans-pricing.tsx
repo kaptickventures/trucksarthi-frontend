@@ -1,9 +1,11 @@
 import { CheckCircle2, Crown, Wallet } from "lucide-react-native";
-import { ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { useAuth } from "../../context/AuthContext";
 import { useThemeStore } from "../../hooks/useThemeStore";
+import API from "../api/axiosInstance";
 
 type PlanCard = {
   id: string;
@@ -16,6 +18,7 @@ type PlanCard = {
   label?: string;
   accent: string;
   accentSoft: string;
+  action?: "interest" | "contact" | "none";
 };
 
 const getPlanCards = (colors: any): PlanCard[] => [
@@ -27,6 +30,30 @@ const getPlanCards = (colors: any): PlanCard[] => [
     discountedPrice: "Rs 0",
     accent: colors.success,
     accentSoft: colors.successSoft,
+    action: "none",
+  },
+  {
+    id: "quarterly",
+    name: "Quarterly",
+    period: "3 months access",
+    originalPrice: "Rs 2999",
+    discountedPrice: "Rs 1499",
+    discountLabel: "50% OFF",
+    label: "BEST VALUE",
+    accent: colors.info,
+    accentSoft: colors.infoSoft,
+    action: "interest",
+  },
+  {
+    id: "yearly",
+    name: "Yearly",
+    period: "12 months access",
+    originalPrice: "Rs 9999",
+    discountedPrice: "Rs 4999",
+    discountLabel: "50% OFF",
+    accent: colors.primary,
+    accentSoft: colors.successSoft,
+    action: "interest",
   },
   {
     id: "paid",
@@ -37,6 +64,7 @@ const getPlanCards = (colors: any): PlanCard[] => [
     label: "CUSTOM",
     accent: colors.warning,
     accentSoft: colors.warningSoft,
+    action: "contact",
   },
 ];
 
@@ -51,6 +79,7 @@ export default function PlansPricingScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { user } = useAuth();
+  const [requestingPlanId, setRequestingPlanId] = useState<string | null>(null);
 
   const planStatus = user?.plan_status || "free";
   const isLimited = user?.plan_is_limited ?? true;
@@ -64,6 +93,38 @@ export default function PlansPricingScreen() {
     planStatus === "trial" && trialEndsAt
       ? `Trial ends in ${trialDaysLeft ?? 0} day(s) • ${trialEndsAt.toDateString()}`
       : null;
+
+  const requestPlanCallback = (plan: PlanCard) => {
+    if (requestingPlanId) return;
+
+    Alert.alert(
+      "Request purchase call",
+      "We will contact you soon to help you buy this plan.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Request",
+          onPress: async () => {
+            try {
+              setRequestingPlanId(plan.id);
+              await API.post("/api/plans/interest", {
+                planId: plan.id,
+                planName: plan.name,
+                period: plan.period,
+                originalPrice: plan.originalPrice,
+                discountedPrice: plan.discountedPrice,
+              });
+              Alert.alert("Request sent", "Thanks! We will contact you shortly.");
+            } catch (err: any) {
+              Alert.alert("Error", err?.response?.data?.error || "Failed to send request.");
+            } finally {
+              setRequestingPlanId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -160,18 +221,6 @@ export default function PlansPricingScreen() {
                 Clients: {planUsage.clients}/{planLimits.clients}
                 {isLimited && planRemaining ? ` • ${planRemaining.clients} left` : ""}
               </Text>
-              <Text className="text-sm" style={{ color: colors.foreground }}>
-                Bank verifications: {planUsage.bankVerifications}/{planLimits.bankVerifications}
-                {isLimited && planRemaining ? ` • ${planRemaining.bankVerifications} left` : ""}
-              </Text>
-              <Text className="text-sm" style={{ color: colors.foreground }}>
-                GST/PAN verifications: {planUsage.gstPanVerifications}/{planLimits.gstPanVerifications}
-                {isLimited && planRemaining ? ` • ${planRemaining.gstPanVerifications} left` : ""}
-              </Text>
-              <Text className="text-sm" style={{ color: colors.foreground }}>
-                RC verifications ({planUsage.rcYear}): {planUsage.rcVerificationsCurrentYear}/{planLimits.rcVerificationsPerYear}
-                {isLimited && planRemaining ? ` • ${planRemaining.rcVerificationsCurrentYear} left` : ""}
-              </Text>
             </View>
           </View>
         ) : null}
@@ -184,7 +233,19 @@ export default function PlansPricingScreen() {
 
             return (
             <View key={plan.id} className="rounded-3xl" style={{ backgroundColor: colors.background }}>
-              <View
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => {
+                  if (isCurrent) return;
+                  if (plan.action === "contact") {
+                    router.push("/(stack)/helpCenter" as any);
+                    return;
+                  }
+                  if (plan.action === "interest") {
+                    requestPlanCallback(plan);
+                  }
+                }}
+                disabled={isCurrent || requestingPlanId === plan.id}
                 className="rounded-3xl border p-4 overflow-hidden"
                 style={{
                   backgroundColor: colors.card,
@@ -195,6 +256,7 @@ export default function PlansPricingScreen() {
                   shadowRadius: 12,
                   shadowOffset: { width: 0, height: 6 },
                   elevation: 4,
+                  opacity: requestingPlanId === plan.id ? 0.85 : 1,
                 }}
               >
                 <View
@@ -245,14 +307,16 @@ export default function PlansPricingScreen() {
                     </View>
                   ) : (
                     <View className="items-end">
-                      <View
-                        className="px-2 py-1 rounded-full mb-1"
-                        style={{ backgroundColor: colors.destructiveSoft }}
-                      >
-                        <Text className="text-[10px] font-extrabold" style={{ color: colors.destructive }}>
-                          {plan.discountLabel}
-                        </Text>
-                      </View>
+                      {plan.discountLabel ? (
+                        <View
+                          className="px-2 py-1 rounded-full mb-1"
+                          style={{ backgroundColor: colors.destructiveSoft }}
+                        >
+                          <Text className="text-[10px] font-extrabold" style={{ color: colors.destructive }}>
+                            {plan.discountLabel}
+                          </Text>
+                        </View>
+                      ) : null}
                       {plan.label ? (
                         <Text className="text-[10px] font-black" style={{ color: plan.accent }}>
                           {plan.label}
@@ -276,6 +340,15 @@ export default function PlansPricingScreen() {
                   </Text>
                 </View>
 
+                {requestingPlanId === plan.id ? (
+                  <View className="flex-row items-center" style={{ marginBottom: 10 }}>
+                    <ActivityIndicator color={plan.accent} />
+                    <Text className="ml-2 text-xs font-bold" style={{ color: colors.mutedForeground }}>
+                      Sending request...
+                    </Text>
+                  </View>
+                ) : null}
+
                 {!isCurrent ? (
                   <View
                     className="rounded-xl px-3 py-2"
@@ -284,7 +357,9 @@ export default function PlansPricingScreen() {
                     <Text className="text-xs font-bold" style={{ color: colors.foreground }}>
                       {plan.originalPrice
                         ? `You save Rs ${parsePriceValue(plan.originalPrice) - parsePriceValue(plan.discountedPrice)} on this plan`
-                        : "Contact support to upgrade"}
+                        : plan.action === "contact"
+                          ? "Tap to contact support"
+                          : "Tap to request a call back"}
                     </Text>
                   </View>
                 ) : (
@@ -297,7 +372,7 @@ export default function PlansPricingScreen() {
                     </Text>
                   </View>
                 )}
-              </View>
+              </TouchableOpacity>
             </View>
           )})}
         </View>

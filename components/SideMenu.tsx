@@ -160,16 +160,6 @@ export default function SideMenu({
           {/* SCROLLABLE MENU ITEMS */}
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20, paddingTop: 8 }}>
             <TouchableOpacity
-              onPress={() => navigate("/(stack)/settings")}
-              className="flex-row items-center py-4"
-            >
-              <Ionicons name="settings-outline" size={24} color={colors.foreground} />
-              <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                {t('settings')}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
               onPress={() => navigate("/(stack)/plans-pricing")}
               className="flex-row items-center py-4"
             >
@@ -180,12 +170,12 @@ export default function SideMenu({
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => navigate("/(stack)/helpCenter")}
+              onPress={() => navigate("/(stack)/settings")}
               className="flex-row items-center py-4"
             >
-              <HelpCircle size={22} color={colors.foreground} />
+              <Ionicons name="settings-outline" size={24} color={colors.foreground} />
               <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
-                {t('helpCenter')}
+                {t('settings')}
               </Text>
             </TouchableOpacity>
 
@@ -196,6 +186,16 @@ export default function SideMenu({
               <MonitorSmartphone size={22} color={colors.foreground} />
               <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
                 {t('useDesktop')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => navigate("/(stack)/helpCenter")}
+              className="flex-row items-center py-4"
+            >
+              <HelpCircle size={22} color={colors.foreground} />
+              <Text className="ml-4 text-lg" style={{ color: colors.foreground }}>
+                {t('helpCenter')}
               </Text>
             </TouchableOpacity>
 

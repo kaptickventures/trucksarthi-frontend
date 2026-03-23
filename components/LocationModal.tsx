@@ -1,4 +1,4 @@
-import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   Text,
   TextInput,
@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useThemeStore } from "../hooks/useThemeStore";
 import BottomSheet from "./BottomSheet";
+import { reverseGeocode } from "../lib/reverseGeocode";
 
 type LocationFormData = {
   location_name: string;
@@ -41,6 +42,7 @@ export default function LocationFormModal({
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const titleInputRef = useRef<TextInput>(null);
+  const [resolvingAddress, setResolvingAddress] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -52,7 +54,35 @@ export default function LocationFormModal({
 
   const trimmedTitle = String(formData.location_name || "").trim();
   const hasPickedCoordinates = Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude);
+  const addressRaw = String(formData.complete_address || "").trim();
+  const addressLooksLikeCoords = Boolean(addressRaw.match(/^\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*$/));
   const canSubmit = trimmedTitle.length > 0;
+
+  useEffect(() => {
+    if (!visible) return;
+    if (addressRaw.length > 0 && !addressLooksLikeCoords) return;
+    if (!hasPickedCoordinates) return;
+
+    let cancelled = false;
+    const run = async () => {
+      setResolvingAddress(true);
+      const res = await reverseGeocode(Number(formData.latitude), Number(formData.longitude));
+      if (cancelled) return;
+      if (res?.formattedAddress) {
+        setFormData((prev) => ({
+          ...prev,
+          complete_address: prev.complete_address || res.formattedAddress,
+          place_id: prev.place_id || res.placeId,
+        }));
+      }
+      setResolvingAddress(false);
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, addressRaw, addressLooksLikeCoords, formData.latitude, formData.longitude, hasPickedCoordinates, setFormData]);
 
   return (
     <BottomSheet
@@ -60,8 +90,8 @@ export default function LocationFormModal({
       onClose={onClose}
       title={editing ? "Edit Location" : "Add Location"}
       subtitle="Location Details"
-      maxHeight="85%"
-      expandedHeight="85%"
+      maxHeight={editing ? "85%" : "90%"}
+      expandedHeight={editing ? "85%" : "90%"}
     >
       <KeyboardAwareScrollView
         enableOnAndroid
@@ -116,17 +146,17 @@ export default function LocationFormModal({
             </Text>
           </TouchableOpacity>
 
-          {!!formData.complete_address && (
+          {!!formData.complete_address && !addressLooksLikeCoords && (
             <Text style={{ color: colors.mutedForeground }} className="text-xs font-semibold">
               Address: {formData.complete_address}
             </Text>
           )}
 
-          {hasPickedCoordinates && (
+          {hasPickedCoordinates && (!formData.complete_address || addressLooksLikeCoords) ? (
             <Text style={{ color: colors.mutedForeground }} className="text-xs font-semibold">
-              Coordinates: {Number(formData.latitude).toFixed(6)}, {Number(formData.longitude).toFixed(6)}
+              {resolvingAddress ? "Resolving location..." : "Location selected"}
             </Text>
-          )}
+          ) : null}
 
           <TouchableOpacity
             onPress={onSubmit}
