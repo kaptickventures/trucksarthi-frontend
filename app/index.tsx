@@ -16,19 +16,24 @@ export default function Index() {
   useEffect(() => {
     if (!isRouterReady) return;
 
-    if (Platform.OS === "web") return;
     if (!loading) {
-      if (user) {
-        postLoginFlow(router);
+      if (Platform.OS === "web") {
+        // Web routing
+        if (user) {
+          router.replace("/web" as any);
+        } else {
+          router.replace("/(stack)/desktop-qr" as any);
+        }
       } else {
-        router.replace("/auth/login" as any);
+        // Mobile routing
+        if (user) {
+          postLoginFlow(router);
+        } else {
+          router.replace("/auth/login" as any);
+        }
       }
     }
   }, [user, loading, router, isRouterReady]);
-
-  if (Platform.OS === "web") {
-    return <Redirect href="/desktop-qr" />;
-  }
 
   if (!isRouterReady || loading) {
     return (

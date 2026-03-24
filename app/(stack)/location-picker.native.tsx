@@ -19,8 +19,10 @@ type Region = {
 let MapView: any;
 let PROVIDER_GOOGLE: any;
 if (Platform.OS !== "web") {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const maps = require("react-native-maps");
+  // Runtime require prevents web bundlers from traversing native-only module graph.
+  // eslint-disable-next-line no-eval
+  const runtimeRequire = eval("require");
+  const maps = runtimeRequire("react-native-maps");
   MapView = maps.default;
   PROVIDER_GOOGLE = maps.PROVIDER_GOOGLE;
 }
