@@ -1,10 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useHeaderHeight } from "@react-navigation/elements";
 import {
   Animated,
   Dimensions,
   Image,
+  Modal,
   PanResponder,
   ScrollView,
   Text,
@@ -18,7 +20,7 @@ import "../global.css";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { useUser } from "../hooks/useUser";
 import { getFileUrl, formatPhoneNumber } from "../lib/utils";
-import { Bell, HelpCircle, MonitorSmartphone, Wallet } from "lucide-react-native";
+import { HelpCircle, MonitorSmartphone, Wallet } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 
 import { useTranslation } from "../context/LanguageContext";
@@ -36,11 +38,22 @@ export default function SideMenu({
 }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const { colors } = useThemeStore();
   const { user, loading } = useUser();
   const { logout } = useAuth();
   const { t } = useTranslation();
-  const menuTopOffset = typeof topOffset === "number" ? topOffset : insets.top + 56;
+
+  // Render in a modal so positioning isn't affected by parent screen layout differences.
+  const [mounted, setMounted] = useState(false);
+
+  // Fallback height in case header height is unavailable (should be rare).
+  const DEFAULT_HEADER_HEIGHT = 56;
+  const HEADER_DIVIDER_GAP = 2; // keep the drawer below the header border
+  const menuTopOffset =
+    typeof topOffset === "number"
+      ? topOffset
+      : (headerHeight || insets.top + DEFAULT_HEADER_HEIGHT);
 
 
   const slideAnim = useRef(new Animated.Value(-SCREEN_WIDTH)).current;
@@ -55,11 +68,23 @@ export default function SideMenu({
   ).current;
 
   useEffect(() => {
+    if (isVisible) {
+      setMounted(true);
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 240,
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+
     Animated.timing(slideAnim, {
-      toValue: isVisible ? 0 : -SCREEN_WIDTH,
+      toValue: -SCREEN_WIDTH,
       duration: 240,
       useNativeDriver: true,
-    }).start();
+    }).start(({ finished }) => {
+      if (finished) setMounted(false);
+    });
   }, [isVisible, slideAnim]);
 
   const navigate = (path: string) => {
@@ -80,55 +105,52 @@ export default function SideMenu({
     }
   };
 
-  const renderIcon = (iconName: string, size = 24) => {
-    if (iconName === "folder") return <Ionicons name="folder-outline" size={size} color={colors.foreground} />;
-    if (iconName === "list") return <Ionicons name="list-outline" size={size} color={colors.foreground} />;
-    if (iconName === "home") return <Ionicons name="home-outline" size={size} color={colors.foreground} />;
-    if (iconName === "notifications") return <Bell size={size} color={colors.foreground} />;
-    return <Ionicons name={iconName as any} size={size} color={colors.foreground} />;
-  };
+  if (!mounted) return null;
 
   return (
-    <>
-      {isVisible && (
+    <Modal
+      transparent
+      visible={mounted}
+      animationType="none"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <View style={{ flex: 1 }}>
         <TouchableWithoutFeedback onPress={onClose}>
           <View
             style={{
               position: "absolute",
-              top: menuTopOffset,
+              top: 0,
               bottom: 0,
               left: 0,
               right: 0,
-              backgroundColor: "rgba(0,0,0,0.45)",
-              zIndex: 9998,
+              backgroundColor: "transparent",
             }}
           />
         </TouchableWithoutFeedback>
-      )}
 
-      <Animated.View
-        {...panResponder.panHandlers}
-        style={{
-          transform: [{ translateX: slideAnim }],
-          width: SCREEN_WIDTH * 0.82,
-          position: "absolute",
-          top: menuTopOffset,
-          bottom: 0,
-          left: 0,
-          backgroundColor: colors.background,
-          zIndex: 9999,
-          paddingHorizontal: 24,
-          paddingTop: 12,
-        }}
-      >
-        <View style={{ flex: 1 }}>
+        <Animated.View
+          {...panResponder.panHandlers}
+          style={{
+            transform: [{ translateX: slideAnim }],
+            width: SCREEN_WIDTH * 0.82,
+            position: "absolute",
+            top: menuTopOffset,
+            bottom: 0,
+            left: 0,
+            backgroundColor: colors.background,
+            paddingHorizontal: 24,
+            paddingTop: 0,
+          }}
+        >
+          <View style={{ flex: 1 }}>
           {/* STATIC PROFILE HEADER (Sticky) */}
           <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 24 }}>
-            <TouchableOpacity onPress={() => navigate("/(stack)/profile")}>
+            <TouchableOpacity onPress={() => navigate("/(stack)/profile")} style={{ paddingTop: 12 }}>
               <View className="flex-row items-center">
-                <View
-                  className="w-16 h-16 rounded-full overflow-hidden items-center justify-center"
-                  style={{ backgroundColor: colors.muted }}
+                  <View
+                    className="w-16 h-16 rounded-full overflow-hidden items-center justify-center"
+                    style={{ backgroundColor: colors.muted }}
                 >
                   {user?.profile_picture_url ? (
                     <Image
@@ -215,7 +237,8 @@ export default function SideMenu({
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </Animated.View>
-    </>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }

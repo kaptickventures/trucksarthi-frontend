@@ -1,22 +1,32 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Print from "expo-print";
 import { cacheDirectory, documentDirectory, moveAsync } from "expo-file-system";
-import * as Sharing from "expo-sharing";
 
 import API from "../api/axiosInstance";
+import BottomSheet from "../../components/BottomSheet";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useDrivers from "../../hooks/useDriver";
 import useClients from "../../hooks/useClient";
 import useTrucks from "../../hooks/useTruck";
 import useLocations from "../../hooks/useLocation";
+import { useInvoices } from "../../hooks/useInvoice";
 import { formatDate } from "../../lib/utils";
 import type { Trip, TripEditHistoryEntry } from "../../types/entity";
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 export default function TripDetail() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
+  const router = useRouter();
   const { theme, colors } = useThemeStore();
   const isDark = theme === "dark";
 
@@ -24,10 +34,15 @@ export default function TripDetail() {
   const { clients, fetchClients } = useClients();
   const { trucks, fetchTrucks } = useTrucks();
   const { locations, fetchLocations } = useLocations();
+  const { fetchInvoices, getInvoiceById, createInvoice } = useInvoices();
 
   const [loading, setLoading] = useState(false);
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [downloading, setDownloading] = useState(false);
+
+  const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
+  const [invoiceTaxType, setInvoiceTaxType] = useState<"none" | "igst" | "cgst_sgst">("none");
+  const [invoiceTaxPercentage, setInvoiceTaxPercentage] = useState<0 | 5 | 18>(0);
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
 
   useEffect(() => {
     fetchDrivers();
@@ -51,6 +66,18 @@ export default function TripDetail() {
     };
     loadTrip();
   }, [tripId]);
+
+  const reloadTrip = async () => {
+    if (!tripId) return;
+    try {
+      const res = await API.get(`/api/trips/${tripId}`);
+      setTrip(res.data);
+    } catch {
+      // ignore
+    }
+  };
+
+  const getId = (obj: any): string => (typeof obj === "object" ? String(obj?._id || "") : String(obj || ""));
 
   const getDriverName = (idOrObj: any) => {
     if (!idOrObj) return "N/A";
@@ -119,92 +146,172 @@ export default function TripDetail() {
 
   const totalCost = Number(trip.cost_of_trip || 0) + Number(trip.miscellaneous_expense || 0);
 
-  const downloadTripPDF = async () => {
-    if (!trip || downloading) return;
+  const isBilled = String(trip.invoiced_status || "") === "invoiced";
 
-    try {
-      setDownloading(true);
-      const route = `${getLocationName(trip.start_location)} -> ${getLocationName(trip.end_location)}`;
-      const title = trip.public_id ? `Trip ${trip.public_id}` : "Trip Detail";
-      const dateLabel = trip.trip_date ? formatDate(trip.trip_date) : "-";
+  const buildInvoiceHtml = (invoice: any) => {
+    const route = `${getLocationName(trip.start_location)} -> ${getLocationName(trip.end_location)}`;
+    const tripDate = trip.trip_date ? formatDate(trip.trip_date) : "-";
+    const invoiceDate = invoice?.createdAt ? formatDate(invoice.createdAt) : formatDate(new Date());
 
-      const html = `
+    const subtotal = Number(invoice?.subtotal_amount ?? totalCost);
+    const taxPercentage = Number(invoice?.tax_percentage ?? 0);
+    const tax = Number(invoice?.tax_amount ?? ((subtotal * taxPercentage) / 100));
+    const grandTotal = Number(invoice?.total_amount ?? (subtotal + tax));
+    const taxLabel =
+      invoice?.tax_type === "cgst_sgst"
+        ? `CGST+SGST (${taxPercentage}%)`
+        : invoice?.tax_type === "igst"
+          ? `IGST (${taxPercentage}%)`
+          : "No tax";
+
+    const tripLabel = trip.public_id ? `Trip ${escapeHtml(String(trip.public_id))}` : "Trip";
+
+    return `
 <html>
 <head>
   <meta charset="utf-8" />
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 30px; color: #000; }
-    .title { text-align: center; font-size: 26px; font-weight: 800; margin-bottom: 4px; }
-    .subtitle { text-align: center; font-size: 12px; opacity: 0.75; margin-bottom: 16px; }
-    .card { border: 1px solid #000; border-radius: 10px; padding: 14px; margin-top: 14px; }
-    .row { display: flex; justify-content: space-between; gap: 12px; }
-    .label { font-size: 11px; opacity: 0.6; margin-bottom: 4px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 26px; color: #000; }
+    .title { text-align:center; font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+    .sub { text-align:center; font-size: 12px; opacity: 0.75; margin-bottom: 14px; }
+    .card { border: 1px solid #000; border-radius: 10px; padding: 14px; }
+    .row { display:flex; justify-content:space-between; gap: 12px; margin-bottom: 10px; }
+    .label { font-size: 11px; opacity: 0.65; margin-bottom: 3px; }
     .value { font-size: 13px; font-weight: 700; }
-    .route { font-size: 15px; font-weight: 800; margin: 8px 0 10px 0; }
+    .route { font-size: 14px; font-weight: 800; margin: 8px 0 10px 0; }
+    .divider { height: 1px; background: #000; opacity: 0.2; margin: 10px 0; }
     .total { font-size: 18px; font-weight: 900; }
-    .notes { margin-top: 10px; font-size: 13px; font-style: italic; opacity: 0.85; }
-    .divider { height: 1px; background: #000; opacity: 0.2; margin: 12px 0; }
+    table { width:100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+    td { padding: 8px 0; }
+    td.right { text-align:right; }
   </style>
 </head>
 <body>
-  <div class="title">${title}</div>
-  <div class="subtitle">${dateLabel}</div>
+  <div class="title">Invoice</div>
+  <div class="sub">Invoice #${escapeHtml(String(invoice?.invoice_number || "-"))} • ${escapeHtml(String(invoiceDate))}</div>
   <div class="card">
-    <div class="row">
-      <div>
-        <div class="label">TOTAL</div>
-        <div class="total">Rs ${totalCost.toLocaleString()}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="label">TRIP ID</div>
-        <div class="value">${trip.public_id || "-"}</div>
-      </div>
-    </div>
-    <div class="route">${route}</div>
     <div class="row">
       <div style="flex:1">
         <div class="label">CLIENT</div>
-        <div class="value">${getClientName(trip.client)}</div>
+        <div class="value">${escapeHtml(getClientName(trip.client))}</div>
       </div>
+      <div style="text-align:right">
+        <div class="label">${escapeHtml(tripLabel.toUpperCase())}</div>
+        <div class="value">${escapeHtml(String(tripDate))}</div>
+      </div>
+    </div>
+    <div class="route">${escapeHtml(route)}</div>
+    <div class="row">
       <div style="flex:1">
         <div class="label">TRUCK</div>
-        <div class="value">${getTruckReg(trip.truck)}</div>
+        <div class="value">${escapeHtml(getTruckReg(trip.truck))}</div>
       </div>
       <div style="flex:1">
         <div class="label">DRIVER</div>
-        <div class="value">${getDriverName(trip.driver)}</div>
+        <div class="value">${escapeHtml(getDriverName(trip.driver))}</div>
       </div>
     </div>
     <div class="divider"></div>
-    <div class="row">
-      <div style="flex:1">
-        <div class="label">TRIP COST</div>
-        <div class="value">Rs ${Number(trip.cost_of_trip || 0).toLocaleString()}</div>
-      </div>
-      <div style="flex:1; text-align:right">
-        <div class="label">MISC EXPENSE</div>
-        <div class="value">Rs ${Number(trip.miscellaneous_expense || 0).toLocaleString()}</div>
-      </div>
-    </div>
-    ${trip.notes ? `<div class="notes">Notes: ${String(trip.notes)}</div>` : ""}
+    <table>
+      <tr>
+        <td>Trip cost</td>
+        <td class="right">Rs ${Number(trip.cost_of_trip || 0).toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td>Misc expense</td>
+        <td class="right">Rs ${Number(trip.miscellaneous_expense || 0).toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:800">Subtotal</td>
+        <td class="right" style="font-weight:800">Rs ${Number(subtotal || 0).toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td>${escapeHtml(taxLabel)}</td>
+        <td class="right">Rs ${Number(tax || 0).toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td class="total">Total</td>
+        <td class="right total">Rs ${Number(grandTotal || 0).toLocaleString()}</td>
+      </tr>
+    </table>
   </div>
 </body>
 </html>
 `;
+  };
 
-      const { uri } = await Print.printToFileAsync({ html });
-      const safeId = String(trip.public_id || trip._id || "Trip").replace(/[^a-zA-Z0-9_-]/g, "");
-      const baseDir = documentDirectory || cacheDirectory;
-      const shareUri = baseDir ? `${baseDir}${safeId}.pdf` : uri;
-      if (baseDir) {
-        await moveAsync({ from: uri, to: shareUri });
+  const openInvoicePdf = async (invoice: any) => {
+    const html = buildInvoiceHtml(invoice);
+    const { uri } = await Print.printToFileAsync({ html });
+    const safeId = String(invoice?.invoice_number || invoice?._id || "Invoice").replace(/[^a-zA-Z0-9_-]/g, "");
+    const baseDir = documentDirectory || cacheDirectory;
+    const fileUri = baseDir ? `${baseDir}Invoice-${safeId}.pdf` : uri;
+    if (baseDir) {
+      await moveAsync({ from: uri, to: fileUri });
+    }
+    router.push({
+      pathname: "/(stack)/pdf-viewer",
+      params: { uri: fileUri, title: `Invoice #${invoice?.invoice_number || "-"}` },
+    } as any);
+  };
+
+  const findInvoiceForTrip = (invoiceList: any[], tripIdValue: string) => {
+    const targetId = String(tripIdValue || "");
+    return (invoiceList || []).find((inv) => (inv?.items || []).some((it: any) => String(getId(it?.trip)) === targetId));
+  };
+
+  const handlePreviewInvoice = async () => {
+    try {
+      setInvoiceBusy(true);
+      const list = await fetchInvoices();
+      const match = findInvoiceForTrip(list as any, String(trip._id));
+      if (!match?._id) {
+        Alert.alert("Invoice not found", "This trip is billed but no invoice was found.");
+        return;
       }
-      await Sharing.shareAsync(shareUri);
-    } catch (err) {
-      console.log(err);
-      Alert.alert("Error", "Failed to generate PDF.");
+      const full = await getInvoiceById(String(match._id));
+      await openInvoicePdf(full);
+    } catch (err: any) {
+      Alert.alert("Error", err?.response?.data?.error || "Failed to preview invoice.");
     } finally {
-      setDownloading(false);
+      setInvoiceBusy(false);
+    }
+  };
+
+  const handleGenerateInvoice = async () => {
+    const clientId = getId(trip.client);
+    if (!clientId) {
+      Alert.alert("Error", "Client not found for this trip.");
+      return;
+    }
+
+    try {
+      setInvoiceBusy(true);
+      const effectiveTaxType = invoiceTaxType;
+      const effectiveTaxPercentage: 0 | 5 | 18 = effectiveTaxType === "none" ? 0 : invoiceTaxPercentage;
+      const created = await createInvoice({
+        client_id: clientId,
+        tripIds: [String(trip._id)],
+        due_date: new Date().toISOString(),
+        tax_type: effectiveTaxType,
+        tax_percentage: effectiveTaxPercentage,
+      });
+
+      setShowInvoiceSheet(false);
+      setTrip((prev) => (prev ? { ...prev, invoiced_status: "invoiced" } : prev));
+      await reloadTrip();
+
+      const createdId = created?._id || created?.invoice?._id;
+      if (createdId) {
+        const full = await getInvoiceById(String(createdId));
+        await openInvoicePdf(full);
+      } else {
+        Alert.alert("Invoice created", "Invoice generated successfully.");
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err?.response?.data?.error || "Failed to generate invoice.");
+    } finally {
+      setInvoiceBusy(false);
     }
   };
 
@@ -216,21 +323,28 @@ export default function TripDetail() {
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>Trip Detail</Text>
             <TouchableOpacity
-              onPress={downloadTripPDF}
-              disabled={downloading}
+              onPress={() => {
+                if (isBilled) handlePreviewInvoice();
+                else setShowInvoiceSheet(true);
+              }}
+              disabled={invoiceBusy}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 paddingHorizontal: 12,
                 paddingVertical: 8,
                 borderRadius: 999,
-                backgroundColor: colors.infoSoft,
-                opacity: downloading ? 0.8 : 1,
+                backgroundColor: isBilled ? colors.successSoft : colors.infoSoft,
+                opacity: invoiceBusy ? 0.8 : 1,
               }}
             >
-              <Ionicons name="download-outline" size={18} color={colors.info} />
-              <Text style={{ marginLeft: 8, fontWeight: "700", color: colors.info }}>
-                {downloading ? "Generating..." : "Download PDF"}
+              <Ionicons
+                name={isBilled ? "eye-outline" : "document-text-outline"}
+                size={18}
+                color={isBilled ? colors.success : colors.info}
+              />
+              <Text style={{ marginLeft: 8, fontWeight: "700", color: isBilled ? colors.success : colors.info }}>
+                {invoiceBusy ? (isBilled ? "Opening..." : "Generating...") : (isBilled ? "Preview Invoice" : "Generate Invoice")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -311,6 +425,99 @@ export default function TripDetail() {
           </>
         ) : null}
       </ScrollView>
+
+      <BottomSheet
+        visible={showInvoiceSheet}
+        onClose={() => setShowInvoiceSheet(false)}
+        title="Generate Invoice"
+        subtitle="Choose tax options"
+        maxHeight="60%"
+      >
+        <View style={{ gap: 14, paddingBottom: 10 }}>
+          <Text style={{ color: colors.mutedForeground, fontWeight: "800", fontSize: 11, letterSpacing: 1, textTransform: "uppercase" }}>
+            Tax Type
+          </Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+            {[
+              { id: "none", label: "None" },
+              { id: "igst", label: "IGST" },
+              { id: "cgst_sgst", label: "CGST+SGST" },
+            ].map((opt) => {
+              const active = invoiceTaxType === opt.id;
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  onPress={() => {
+                    setInvoiceTaxType(opt.id as any);
+                    if (opt.id === "none") setInvoiceTaxPercentage(0);
+                  }}
+                  style={{
+                    paddingHorizontal: 14,
+                    height: 40,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: active ? colors.primary : colors.border,
+                    backgroundColor: active ? colors.primary : (isDark ? colors.card : colors.secondary + "10"),
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontWeight: "800" }}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={{ color: colors.mutedForeground, fontWeight: "800", fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginTop: 6 }}>
+            Tax Percentage
+          </Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+            {([0, 5, 18] as const).map((p) => {
+              const disabled = invoiceTaxType === "none" && p !== 0;
+              const active = invoiceTaxPercentage === p;
+              return (
+                <TouchableOpacity
+                  key={`tax-${p}`}
+                  disabled={disabled}
+                  onPress={() => setInvoiceTaxPercentage(p)}
+                  style={{
+                    paddingHorizontal: 14,
+                    height: 40,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: active ? colors.primary : colors.border,
+                    backgroundColor: active ? colors.primary : (isDark ? colors.card : colors.secondary + "10"),
+                    justifyContent: "center",
+                    opacity: disabled ? 0.5 : 1,
+                  }}
+                >
+                  <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontWeight: "800" }}>
+                    {p}%
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            onPress={handleGenerateInvoice}
+            disabled={invoiceBusy}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 16,
+              paddingVertical: 14,
+              alignItems: "center",
+              opacity: invoiceBusy ? 0.75 : 1,
+              marginTop: 12,
+            }}
+          >
+            <Text style={{ color: colors.primaryForeground, fontWeight: "900", fontSize: 15 }}>
+              {invoiceBusy ? "Generating..." : "Generate & Preview"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
     </View>
   );
 }

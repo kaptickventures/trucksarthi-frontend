@@ -738,7 +738,7 @@ export default function AddTrip() {
         fetchTrucks();
       }} onClose={() => setIsTruckModalVisible(false)} />
 
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
     </View>
   );
 }

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { NotificationBadge } from "../../../components/NotificationBadge";
-import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
@@ -156,7 +156,13 @@ export default function TransactionsScreen() {
 
   const toggleFilters = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setShowFilters((prev) => !prev);
+    setShowDatePicker(null);
+    if (showFilters) {
+      setShowFilters(false);
+      return;
+    }
+    // Delay opening so the same tap doesn't immediately trigger the backdrop close.
+    setTimeout(() => setShowFilters(true), 0);
   };
 
   const resetFilters = () => {
@@ -171,22 +177,6 @@ export default function TransactionsScreen() {
   };
 
   const openDatePicker = (field: "start" | "end") => {
-    if (Platform.OS === "android") {
-      DateTimePickerAndroid.open({
-        value: (field === "start" ? filters.startDate : filters.endDate) || new Date(),
-        mode: "date",
-        display: "calendar",
-        onChange: (_, selectedDate) => {
-          if (selectedDate) {
-            setFilters((prev) => ({
-              ...prev,
-              [field === "start" ? "startDate" : "endDate"]: selectedDate,
-            }));
-          }
-        },
-      });
-      return;
-    }
     setShowDatePicker(field);
   };
 
@@ -349,64 +339,6 @@ export default function TransactionsScreen() {
               </TouchableOpacity>
             </View>
 
-            {Platform.OS === "ios" && showDatePicker && (
-              <Modal
-                transparent
-                animationType="slide"
-                visible
-                onRequestClose={closeDatePicker}
-              >
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: "rgba(0,0,0,0.35)",
-                    justifyContent: "flex-end",
-                  }}
-                >
-                  <View
-                    style={{
-                      backgroundColor: colors.card,
-                      borderTopLeftRadius: 16,
-                      borderTopRightRadius: 16,
-                      paddingBottom: 20,
-                      borderTopWidth: 1,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.border,
-                      }}
-                    >
-                      <TouchableOpacity onPress={closeDatePicker}>
-                        <Text style={{ color: colors.destructive, fontWeight: "600" }}>Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={closeDatePicker}>
-                        <Text style={{ color: colors.primary, fontWeight: "700" }}>Done</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <DateTimePicker
-                      value={(showDatePicker === "start" ? filters.startDate : filters.endDate) || new Date()}
-                      mode="date"
-                      display="inline"
-                      onChange={(_, selectedDate) => {
-                        if (!selectedDate) return;
-                        setFilters((prev) => ({
-                          ...prev,
-                          [showDatePicker === "start" ? "startDate" : "endDate"]: selectedDate,
-                        }));
-                      }}
-                    />
-                  </View>
-                </View>
-              </Modal>
-            )}
-
             <FlatList
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -463,10 +395,18 @@ export default function TransactionsScreen() {
         visible={showFilters}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowFilters(false)}
+        onRequestClose={() => {
+          closeDatePicker();
+          setShowFilters(false);
+        }}
       >
         <View style={{ flex: 1, justifyContent: "flex-end" }}>
-          <TouchableWithoutFeedback onPress={() => setShowFilters(false)}>
+          <TouchableWithoutFeedback
+            onPress={() => {
+              closeDatePicker();
+              setShowFilters(false);
+            }}
+          >
             <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.45)" }} />
           </TouchableWithoutFeedback>
 
@@ -485,7 +425,10 @@ export default function TransactionsScreen() {
             <View style={{ paddingHorizontal: 16, paddingBottom: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>Filters</Text>
               <TouchableOpacity
-                onPress={() => setShowFilters(false)}
+                onPress={() => {
+                  closeDatePicker();
+                  setShowFilters(false);
+                }}
                 style={{ padding: 8, borderRadius: 999, backgroundColor: colors.secondary }}
               >
                 <Ionicons name="close" size={18} color={colors.foreground} />
@@ -497,20 +440,20 @@ export default function TransactionsScreen() {
               contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
               showsVerticalScrollIndicator={false}
             >
-              <View
-                style={{
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                  borderRadius: 16,
-                  padding: 14,
-                }}
-              >
-                <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Date Range</Text>
-                <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
-                  <View style={{ flex: 1 }}>
-                    <TouchableOpacity
-                      onPress={() => openDatePicker("start")}
+	              <View
+	                style={{
+	                  backgroundColor: colors.card,
+	                  borderColor: colors.border,
+	                  borderWidth: 1,
+	                  borderRadius: 16,
+	                  padding: 14,
+	                }}
+	              >
+	                <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Date Range</Text>
+	                <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+	                  <View style={{ flex: 1 }}>
+	                    <TouchableOpacity
+	                      onPress={() => openDatePicker("start")}
                       style={{
                         padding: 12,
                         borderWidth: 1,
@@ -523,15 +466,30 @@ export default function TransactionsScreen() {
                       }}
                     >
                       <Calendar size={16} color={colors.mutedForeground} />
-                      <Text style={{ color: colors.foreground }}>
-                        {filters.startDate ? formatDate(filters.startDate) : "Start date"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+	                      <Text style={{ color: colors.foreground }}>
+	                        {filters.startDate ? formatDate(filters.startDate) : "Start date"}
+	                      </Text>
+	                    </TouchableOpacity>
+	                    {showDatePicker === "start" && (
+	                      <DateTimePicker
+	                        value={filters.startDate || new Date()}
+	                        mode="date"
+	                        display="default"
+	                        onChange={(_, selectedDate) => {
+	                          closeDatePicker();
+	                          if (!selectedDate) return;
+	                          setFilters((prev) => ({
+	                            ...prev,
+	                            startDate: selectedDate,
+	                          }));
+	                        }}
+	                      />
+	                    )}
+	                  </View>
 
-                  <View style={{ flex: 1 }}>
-                    <TouchableOpacity
-                      onPress={() => openDatePicker("end")}
+	                  <View style={{ flex: 1 }}>
+	                    <TouchableOpacity
+	                      onPress={() => openDatePicker("end")}
                       style={{
                         padding: 12,
                         borderWidth: 1,
@@ -544,12 +502,27 @@ export default function TransactionsScreen() {
                       }}
                     >
                       <Calendar size={16} color={colors.mutedForeground} />
-                      <Text style={{ color: colors.foreground }}>
-                        {filters.endDate ? formatDate(filters.endDate) : "End date"}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+	                      <Text style={{ color: colors.foreground }}>
+	                        {filters.endDate ? formatDate(filters.endDate) : "End date"}
+	                      </Text>
+	                    </TouchableOpacity>
+	                    {showDatePicker === "end" && (
+	                      <DateTimePicker
+	                        value={filters.endDate || new Date()}
+	                        mode="date"
+	                        display="default"
+	                        onChange={(_, selectedDate) => {
+	                          closeDatePicker();
+	                          if (!selectedDate) return;
+	                          setFilters((prev) => ({
+	                            ...prev,
+	                            endDate: selectedDate,
+	                          }));
+	                        }}
+	                      />
+	                    )}
+	                  </View>
+	                </View>
 
                 <Text style={{ color: colors.mutedForeground, marginBottom: 8 }}>Type</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
@@ -674,7 +647,7 @@ export default function TransactionsScreen() {
         </View>
       </Modal>
 
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
     </View>
   );
 }

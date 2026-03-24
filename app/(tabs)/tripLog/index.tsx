@@ -163,8 +163,8 @@ export default function TripLog() {
     return sId.slice(-6) || "N/A";
   };
 
-  const sortedTrips = useMemo(() => {
-    let filtered = [...(trips || [])];
+	  const sortedTrips = useMemo(() => {
+	    let filtered = [...(trips || [])];
 
     if (filters.driver.length)
       filtered = filtered.filter((t) => filters.driver.includes(getId(t.driver)));
@@ -182,11 +182,13 @@ export default function TripLog() {
           filters.location.includes(getId(t.end_location))
       );
 
-    if (filters.startDate)
-      filtered = filtered.filter((t) => t.trip_date && new Date(t.trip_date) >= filters.startDate!);
+	    const start = filters.startDate ? new Date(filters.startDate) : null;
+	    if (start) start.setHours(0, 0, 0, 0);
+	    if (start) filtered = filtered.filter((t) => t.trip_date && new Date(t.trip_date) >= start);
 
-    if (filters.endDate)
-      filtered = filtered.filter((t) => t.trip_date && new Date(t.trip_date) <= filters.endDate!);
+	    const end = filters.endDate ? new Date(filters.endDate) : null;
+	    if (end) end.setHours(23, 59, 59, 999);
+	    if (end) filtered = filtered.filter((t) => t.trip_date && new Date(t.trip_date) <= end);
 
     return filtered.sort(
       (a, b) => {
@@ -562,7 +564,7 @@ export default function TripLog() {
           )
         }
       </ScrollView >
-      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} topOffset={0} />
+      <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
       <EditTripModal
         visible={isEditVisible}
         onClose={() => setEditVisible(false)}

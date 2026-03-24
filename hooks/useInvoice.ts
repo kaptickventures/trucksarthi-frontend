@@ -15,9 +15,11 @@ export function useInvoices() {
       setLoading(true);
       const res = await API.get("/api/invoices");
       setInvoices(res.data);
+      return res.data as Invoice[];
     } catch (error) {
       console.error("❌ fetchInvoices failed", error);
       Alert.alert("Error", "Failed to load invoices");
+      return [] as Invoice[];
     } finally {
       setLoading(false);
     }

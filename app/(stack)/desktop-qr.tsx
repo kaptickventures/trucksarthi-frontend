@@ -127,8 +127,10 @@ export default function DesktopQrScreen() {
       style={{
         flex: 1,
         backgroundColor: colors.background,
-        paddingTop: insets.top + 24,
         paddingHorizontal: 24,
+        paddingTop: insets.top + 24,
+        paddingBottom: insets.bottom + 24,
+        justifyContent: "center",
       }}
     >
       <View
@@ -182,29 +184,29 @@ export default function DesktopQrScreen() {
           )}
         </View>
 
+        <View style={{ marginTop: 14 }}>
+          {status === "pending" && (
+            <Text className="text-base text-center" style={{ color: colors.mutedForeground }}>
+              {t("desktopQrWaiting")}
+            </Text>
+          )}
+          {status === "approved" && (
+            <Text className="text-base text-center" style={{ color: colors.primary }}>
+              {t("desktopQrApproved")}
+            </Text>
+          )}
+          {(status === "expired" || status === "error") && (
+            <Text className="text-base text-center" style={{ color: colors.destructive }}>
+              {errorText || t("desktopQrExpired")}
+            </Text>
+          )}
+        </View>
+
         {expiresText ? (
           <Text className="mt-3 text-xs" style={{ color: colors.mutedForeground }}>
             {expiresText}
           </Text>
         ) : null}
-      </View>
-
-      <View className="mt-6">
-        {status === "pending" && (
-          <Text className="text-base text-center" style={{ color: colors.mutedForeground }}>
-            {t("desktopQrWaiting")}
-          </Text>
-        )}
-        {status === "approved" && (
-          <Text className="text-base text-center" style={{ color: colors.primary }}>
-            {t("desktopQrApproved")}
-          </Text>
-        )}
-        {(status === "expired" || status === "error") && (
-          <Text className="text-base text-center" style={{ color: colors.destructive }}>
-            {errorText || t("desktopQrExpired")}
-          </Text>
-        )}
       </View>
 
       <TouchableOpacity

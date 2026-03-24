@@ -1,7 +1,6 @@
 import { CheckCircle2, Crown, Wallet } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
-import { useRouter } from "expo-router";
 
 import { useAuth } from "../../context/AuthContext";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -18,55 +17,52 @@ type PlanCard = {
   label?: string;
   accent: string;
   accentSoft: string;
-  action?: "interest" | "contact" | "none";
+  action?: "interest" | "none";
 };
 
-const getPlanCards = (colors: any): PlanCard[] => [
-  {
-    id: "free",
-    name: "Free",
-    period: "Starter plan",
-    originalPrice: null,
-    discountedPrice: "Rs 0",
-    accent: colors.success,
-    accentSoft: colors.successSoft,
-    action: "none",
-  },
-  {
-    id: "quarterly",
-    name: "Quarterly",
-    period: "3 months access",
-    originalPrice: "Rs 2999",
-    discountedPrice: "Rs 1499",
-    discountLabel: "50% OFF",
-    label: "BEST VALUE",
-    accent: colors.info,
-    accentSoft: colors.infoSoft,
-    action: "interest",
-  },
-  {
-    id: "yearly",
-    name: "Yearly",
-    period: "12 months access",
-    originalPrice: "Rs 9999",
-    discountedPrice: "Rs 4999",
-    discountLabel: "50% OFF",
-    accent: colors.primary,
-    accentSoft: colors.successSoft,
-    action: "interest",
-  },
-  {
-    id: "paid",
-    name: "Paid",
-    period: "Custom plan",
-    originalPrice: null,
-    discountedPrice: "Contact support",
-    label: "CUSTOM",
-    accent: colors.warning,
-    accentSoft: colors.warningSoft,
-    action: "contact",
-  },
-];
+const getPlanCards = (colors: any, opts: { includeFree: boolean }): PlanCard[] => {
+  const paid: PlanCard[] = [
+    {
+      id: "quarterly",
+      name: "Quarterly",
+      period: "3 months access",
+      originalPrice: "Rs 2999",
+      discountedPrice: "Rs 1499",
+      discountLabel: "50% OFF",
+      label: "BEST VALUE",
+      accent: colors.info,
+      accentSoft: colors.infoSoft,
+      action: "interest",
+    },
+    {
+      id: "yearly",
+      name: "Yearly",
+      period: "12 months access",
+      originalPrice: "Rs 9999",
+      discountedPrice: "Rs 4999",
+      discountLabel: "50% OFF",
+      accent: colors.primary,
+      accentSoft: colors.successSoft,
+      action: "interest",
+    },
+  ];
+
+  if (!opts.includeFree) return paid;
+
+  return [
+    {
+      id: "free",
+      name: "Free",
+      period: "Starter plan",
+      originalPrice: null,
+      discountedPrice: "Rs 0",
+      accent: colors.success,
+      accentSoft: colors.successSoft,
+      action: "none",
+    },
+    ...paid,
+  ];
+};
 
 const parsePriceValue = (value: string | null) => {
   if (!value) return 0;
@@ -75,20 +71,23 @@ const parsePriceValue = (value: string | null) => {
 };
 
 export default function PlansPricingScreen() {
-  const router = useRouter();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { user } = useAuth();
   const [requestingPlanId, setRequestingPlanId] = useState<string | null>(null);
 
-  const planStatus = user?.plan_status || "free";
-  const isLimited = user?.plan_is_limited ?? true;
+  const rawPlanStatus = user?.plan_status || "free";
   const planLimits = user?.plan_limits;
   const planUsage = user?.plan_usage;
   const planRemaining = user?.plan_remaining;
 
   const trialEndsAt = user?.plan_trial_ends_at ? new Date(user.plan_trial_ends_at) : null;
   const trialDaysLeft = user?.plan_trial_days_left ?? null;
+  const trialExpired = rawPlanStatus === "trial" && trialEndsAt ? Date.now() > trialEndsAt.getTime() : false;
+
+  // If trial ended but backend hasn't flipped the status yet, show Free plan.
+  const planStatus = trialExpired ? "free" : rawPlanStatus;
+  const isLimited = trialExpired ? true : (user?.plan_is_limited ?? true);
   const trialLabel =
     planStatus === "trial" && trialEndsAt
       ? `Trial ends in ${trialDaysLeft ?? 0} day(s) • ${trialEndsAt.toDateString()}`
@@ -225,26 +224,20 @@ export default function PlansPricingScreen() {
           </View>
         ) : null}
 
-        <View className="gap-3">
-          {getPlanCards(colors).map((plan) => {
-            const isCurrent =
-              (plan.id === "free" && (planStatus === "free" || planStatus === "trial")) ||
-              (plan.id === "paid" && planStatus === "paid");
+	        <View className="gap-3">
+	          {getPlanCards(colors, { includeFree: planStatus === "free" }).map((plan) => {
+	            const isCurrent = plan.id === "free" ? planStatus === "free" : false;
 
-            return (
-            <View key={plan.id} className="rounded-3xl" style={{ backgroundColor: colors.background }}>
-              <TouchableOpacity
+	            return (
+	            <View key={plan.id} className="rounded-3xl" style={{ backgroundColor: colors.background }}>
+	              <TouchableOpacity
                 activeOpacity={0.9}
-                onPress={() => {
-                  if (isCurrent) return;
-                  if (plan.action === "contact") {
-                    router.push("/(stack)/helpCenter" as any);
-                    return;
-                  }
-                  if (plan.action === "interest") {
-                    requestPlanCallback(plan);
-                  }
-                }}
+	                onPress={() => {
+	                  if (isCurrent) return;
+	                  if (plan.action === "interest") {
+	                    requestPlanCallback(plan);
+	                  }
+	                }}
                 disabled={isCurrent || requestingPlanId === plan.id}
                 className="rounded-3xl border p-4 overflow-hidden"
                 style={{
@@ -273,18 +266,18 @@ export default function PlansPricingScreen() {
 
                 <View className="flex-row items-start justify-between mb-3">
                   <View className="flex-row items-center gap-2">
-                    <View
-                      className="h-10 w-10 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: plan.accentSoft }}
-                    >
-                      {plan.id === "free" ? (
-                        <CheckCircle2 size={20} color={plan.accent} />
-                      ) : plan.id === "paid" ? (
-                        <Crown size={20} color={plan.accent} />
-                      ) : (
-                        <Wallet size={20} color={plan.accent} />
-                      )}
-                    </View>
+	                    <View
+	                      className="h-10 w-10 items-center justify-center rounded-xl"
+	                      style={{ backgroundColor: plan.accentSoft }}
+	                    >
+	                      {plan.id === "free" ? (
+	                        <CheckCircle2 size={20} color={plan.accent} />
+	                      ) : plan.id === "yearly" ? (
+	                        <Crown size={20} color={plan.accent} />
+	                      ) : (
+	                        <Wallet size={20} color={plan.accent} />
+	                      )}
+	                    </View>
 
                     <View>
                       <Text className="text-lg font-extrabold" style={{ color: colors.foreground }}>
@@ -376,20 +369,7 @@ export default function PlansPricingScreen() {
             </View>
           )})}
         </View>
-
-        <TouchableOpacity
-          onPress={() => router.push("/(stack)/helpCenter" as any)}
-          className="mt-6 rounded-2xl px-4 py-3 border"
-          style={{ backgroundColor: colors.card, borderColor: colors.border }}
-        >
-          <Text className="text-base font-extrabold" style={{ color: colors.foreground }}>
-            Upgrade or contact support
-          </Text>
-          <Text className="text-xs mt-1" style={{ color: colors.mutedForeground }}>
-            Need higher limits? Tap here to reach support.
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
-  );
-}
+	      </ScrollView>
+	    </View>
+	  );
+	}

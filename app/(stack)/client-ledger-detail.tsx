@@ -1547,26 +1547,10 @@ export default function ClientLedgerDetailScreen() {
               )}
             </View>
 
-            <View className="mb-6 rounded-2xl p-4" style={{ borderWidth: 1, borderColor: colors.border + '30', backgroundColor: isDark ? colors.card : colors.secondary + '30' }}>
-              <Text className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: colors.mutedForeground }}>Payment Options</Text>
-              <Text className="text-sm mb-3" style={{ color: colors.mutedForeground }}>Reserved space for invoice payment options.</Text>
-              <View className="flex-row gap-2">
-                {PAYMENT_MODES.map((mode) => (
-                  <View
-                    key={`invoice-payment-${mode}`}
-                    className="px-3 py-2 rounded-xl"
-                    style={{ borderWidth: 1, borderColor: colors.border + '40', backgroundColor: colors.muted }}
-                  >
-                    <Text className="text-xs font-bold" style={{ color: colors.mutedForeground }}>{mode}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleGenerateInvoice}
-              style={{ backgroundColor: colors.primary }}
-              className="py-4 rounded-[18px]"
+	            <TouchableOpacity
+	              onPress={handleGenerateInvoice}
+	              style={{ backgroundColor: colors.primary }}
+	              className="py-4 rounded-[18px]"
             >
               <Text style={{ color: colors.primaryForeground, fontWeight: "900", fontSize: 16 }} className="text-center">
                 CREATE INVOICE

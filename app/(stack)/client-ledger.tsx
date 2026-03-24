@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   Alert,
   RefreshControl,
@@ -37,6 +38,7 @@ export default function ClientLedgerScreen() {
   const [rows, setRows] = useState<ClientRow[]>([]);
   // true while clients are still loading or rows are being built
   const [isBuilding, setIsBuilding] = useState(true);
+  const [summaryRefreshKey, setSummaryRefreshKey] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
 
   const REQUIRED_FIELDS = ["client_name"];
@@ -59,6 +61,12 @@ export default function ClientLedgerScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setSummaryRefreshKey((k) => k + 1);
+    }, [])
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -118,11 +126,12 @@ export default function ClientLedgerScreen() {
     return () => {
       isMounted = false;
     };
-  }, [clients, fetchSummary]);
+  }, [clients, fetchSummary, summaryRefreshKey]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await load();
+    setSummaryRefreshKey((k) => k + 1);
     setRefreshing(false);
   }, [load]);
 
@@ -257,28 +266,28 @@ export default function ClientLedgerScreen() {
                 </View>
               </View>
 
-              <View style={{ flexDirection: "row", gap: 16, marginBottom: 10, alignItems: "center" }}>
-                <View>
-                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('billed').toUpperCase()}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
-                    Rs {row.billed.toLocaleString()}
-                  </Text>
-                </View>
-                <View style={{ width: 1, backgroundColor: colors.border }} />
-                <View>
-                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('settled').toUpperCase()}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}>
-                    Rs {row.settled.toLocaleString()}
-                  </Text>
-                </View>
-                <View style={{ width: 1, backgroundColor: colors.border }} />
-                <View>
-                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{(t('unbilled') || 'Unbilled').toUpperCase()}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: hasOutstanding ? colors.destructive : colors.mutedForeground }}>
-                    Rs {row.unbilled.toLocaleString()}
-                  </Text>
-                </View>
-              </View>
+	              <View style={{ flexDirection: "row", gap: 16, marginBottom: 10, alignItems: "center" }}>
+	                <View>
+	                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{(t('unbilled') || 'Unbilled').toUpperCase()}</Text>
+	                  <Text style={{ fontSize: 13, fontWeight: "700", color: hasOutstanding ? colors.destructive : colors.mutedForeground }}>
+	                    Rs {row.unbilled.toLocaleString()}
+	                  </Text>
+	                </View>
+	                <View style={{ width: 1, backgroundColor: colors.border }} />
+	                <View>
+	                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('billed').toUpperCase()}</Text>
+	                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
+	                    Rs {row.billed.toLocaleString()}
+	                  </Text>
+	                </View>
+	                <View style={{ width: 1, backgroundColor: colors.border }} />
+	                <View>
+	                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('settled').toUpperCase()}</Text>
+	                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}>
+	                    Rs {row.settled.toLocaleString()}
+	                  </Text>
+	                </View>
+	              </View>
 
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
                 <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>{t('viewKhata')}</Text>

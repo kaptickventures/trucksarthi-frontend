@@ -133,45 +133,55 @@ export default function DesktopAuthScreen() {
     }
     if (status === "success") {
       return (
-        <View className="flex-row items-center">
-          <CheckCircle2 size={22} color={colors.success || colors.primary} />
-          <Text className="ml-3 text-base font-semibold" style={{ color: colors.foreground }}>
+        <View
+          style={{
+            backgroundColor: colors.card,
+            borderRadius: 18,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            alignItems: "center",
+          }}
+        >
+          <CheckCircle2 size={26} color={colors.success || colors.primary} />
+          <Text className="mt-3 text-base font-semibold" style={{ color: colors.foreground }}>
             {t("desktopLoginSuccess")}
+          </Text>
+          <Text className="mt-1 text-sm text-center" style={{ color: colors.mutedForeground }}>
+            Linked device: Desktop
+          </Text>
+          <Text className="mt-2 text-xs text-center" style={{ color: colors.mutedForeground }}>
+            Only one device can be linked at a time.
           </Text>
         </View>
       );
     }
     if (status === "error") {
       return (
-        <Text className="text-base" style={{ color: colors.destructive }}>
+        <Text className="text-base text-center" style={{ color: colors.destructive }}>
           {errorText || t("desktopLoginFailed")}
         </Text>
       );
     }
     return (
-      <Text className="text-base" style={{ color: colors.mutedForeground }}>
+      <Text className="text-base text-center" style={{ color: colors.mutedForeground }}>
         {t("desktopLoginWaiting")}
       </Text>
     );
   }, [colors, errorText, status, t]);
 
   const CameraView = (ExpoCamera as any).CameraView;
-  const showCamera = permissionGranted && Platform.OS !== "web" && !!CameraView;
+  const showCamera = permissionGranted && Platform.OS !== "web" && !!CameraView && status !== "success";
   const cameraHeight = Math.min(
     460,
     Math.max(280, Math.floor(Dimensions.get("window").height * 0.42))
   );
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: colors.background,
-      }}
-    >
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         contentContainerStyle={{
-          paddingTop: insets.top + 12,
+          paddingTop: insets.top + 16,
           paddingHorizontal: 20,
           paddingBottom: Math.max(insets.bottom + 20, 24),
           flexGrow: 1,
@@ -179,171 +189,127 @@ export default function DesktopAuthScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={{
-            backgroundColor: colors.card,
-            borderRadius: 20,
-            padding: 18,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-        >
-          <View className="flex-row items-center">
+        <View style={{ alignItems: "center", marginBottom: 18 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <QrCode size={22} color={colors.primary} />
-            <Text className="ml-3 text-lg font-semibold" style={{ color: colors.foreground }}>
+            <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "900" }}>
               {t("desktopLoginTitle")}
             </Text>
           </View>
-
-          <Text className="mt-3 text-sm" style={{ color: colors.mutedForeground }}>
+          <Text style={{ color: colors.mutedForeground, marginTop: 8, textAlign: "center" }}>
             {t("desktopLoginSubtitle")}
           </Text>
-
-          <View className="mt-4">
-            <Text className="text-sm" style={{ color: colors.mutedForeground }}>
-              {t("desktopLoginStep1")}
-            </Text>
-            <Text className="mt-1 text-sm" style={{ color: colors.mutedForeground }}>
-              {t("desktopLoginStep2")}
-            </Text>
-            <Text className="mt-1 text-sm" style={{ color: colors.mutedForeground }}>
-              {t("desktopLoginStep3")}
-            </Text>
-          </View>
         </View>
 
-        <View className="mt-6">
-        {Platform.OS === "web" && (
-          <View
-            style={{
-              backgroundColor: colors.card,
-              borderRadius: 18,
-              padding: 18,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <Text style={{ color: colors.foreground }} className="text-base">
-              {t("desktopLoginWebNotice")}
-            </Text>
-          </View>
-        )}
-
-        {Platform.OS !== "web" && !permissionGranted && (
-          <View
-            style={{
-              backgroundColor: colors.card,
-              borderRadius: 18,
-              padding: 18,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <Text style={{ color: colors.foreground }} className="text-base">
-              {t("desktopLoginCameraNeeded")}
-            </Text>
-            <TouchableOpacity
-              onPress={requestCamera}
-              disabled={permissionLoading}
-              className="mt-4 py-3 rounded-full items-center"
-              style={{ backgroundColor: colors.primary, opacity: permissionLoading ? 0.8 : 1 }}
+        {Platform.OS === "web" ? (
+          <View style={{ flex: 1, justifyContent: "center" }}>
+            <View
+              style={{
+                backgroundColor: colors.card,
+                borderRadius: 18,
+                padding: 18,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
             >
-              <Text className="text-base font-semibold" style={{ color: colors.primaryForeground }}>
-                {t("desktopLoginAllowCamera")}
+              <Text style={{ color: colors.foreground, textAlign: "center" }} className="text-base">
+                {t("desktopLoginWebNotice")}
               </Text>
-            </TouchableOpacity>
+            </View>
           </View>
-        )}
-
-        {showCamera && (
-          <View
-            style={{
-              borderRadius: 22,
-              overflow: "hidden",
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.muted,
-              height: cameraHeight,
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <CameraView
-                style={{ flex: 1 }}
-                barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-                onBarcodeScanned={canScan ? handleBarcodeScanned : undefined}
-              />
-
-              {/* Scan overlay */}
+        ) : !permissionGranted ? (
+          <View style={{ flex: 1, justifyContent: "center" }}>
+            <View
+              style={{
+                backgroundColor: colors.card,
+                borderRadius: 18,
+                padding: 18,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Text style={{ color: colors.foreground, textAlign: "center" }} className="text-base">
+                {t("desktopLoginCameraNeeded")}
+              </Text>
+              <TouchableOpacity
+                onPress={requestCamera}
+                disabled={permissionLoading}
+                className="mt-4 py-3 rounded-full items-center"
+                style={{ backgroundColor: colors.primary, opacity: permissionLoading ? 0.8 : 1 }}
+              >
+                <Text className="text-base font-semibold" style={{ color: colors.primaryForeground }}>
+                  {t("desktopLoginAllowCamera")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <>
+            {showCamera && (
               <View
-                pointerEvents="none"
                 style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  alignItems: "center",
-                  justifyContent: "center",
+                  borderRadius: 22,
+                  overflow: "hidden",
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.muted,
+                  height: cameraHeight,
                 }}
               >
-                <View
-                  style={{
-                    width: "74%",
-                    aspectRatio: 1,
-                    borderRadius: 22,
-                    borderWidth: 2,
-                    borderColor: "rgba(255,255,255,0.9)",
-                    backgroundColor: "rgba(0,0,0,0.10)",
-                  }}
-                />
-                <View
-                  style={{
-                    position: "absolute",
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    paddingHorizontal: 14,
-                    paddingBottom: 14,
-                  }}
-                >
+                <View style={{ flex: 1 }}>
+                  <CameraView
+                    style={{ flex: 1 }}
+                    barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+                    onBarcodeScanned={canScan ? handleBarcodeScanned : undefined}
+                  />
+
                   <View
+                    pointerEvents="none"
                     style={{
-                      alignSelf: "center",
-                      backgroundColor: "rgba(0,0,0,0.55)",
-                      borderRadius: 999,
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>
-                      {canScan ? t("desktopLoginCameraHint") : t("desktopLoginApproving")}
-                    </Text>
+                    <View
+                      style={{
+                        width: "74%",
+                        aspectRatio: 1,
+                        borderRadius: 22,
+                        borderWidth: 2,
+                        borderColor: "rgba(255,255,255,0.92)",
+                        backgroundColor: "rgba(0,0,0,0.10)",
+                      }}
+                    />
                   </View>
                 </View>
               </View>
-            </View>
-          </View>
-        )}
+            )}
 
-        <View className="mt-4">{statusContent}</View>
+            <View style={{ marginTop: 14 }}>{statusContent}</View>
 
-        {(status === "error" || status === "success") && (
-          <TouchableOpacity
-            onPress={() => {
-              scannedRef.current = false;
-              setErrorText("");
-              setStatus("idle");
-            }}
-            className="mt-4 py-3 rounded-full items-center flex-row justify-center"
-            style={{ backgroundColor: colors.secondary }}
-          >
-            <RotateCcw size={18} color={colors.secondaryForeground} />
-            <Text className="ml-2 text-base font-semibold" style={{ color: colors.secondaryForeground }}>
-              {t("desktopLoginTryAgain")}
-            </Text>
-          </TouchableOpacity>
+            {status === "error" && (
+              <TouchableOpacity
+                onPress={() => {
+                  scannedRef.current = false;
+                  setErrorText("");
+                  setStatus("idle");
+                }}
+                className="mt-4 py-3 rounded-full items-center flex-row justify-center"
+                style={{ backgroundColor: colors.secondary }}
+              >
+                <RotateCcw size={18} color={colors.secondaryForeground} />
+                <Text className="ml-2 text-base font-semibold" style={{ color: colors.secondaryForeground }}>
+                  {t("desktopLoginTryAgain")}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
-        </View>
       </ScrollView>
     </View>
   );

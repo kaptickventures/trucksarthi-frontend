@@ -388,14 +388,14 @@ export default function DriverLedgerDetailScreen() {
                 )}
               </View>
 
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
-                  {driver?.driver_name || driver?.name || "Driver"}
-                </Text>
-                <Text style={{ color: colors.mutedForeground, marginTop: 2, fontSize: 13 }}>
-                  {driver?.contact_number || driver?.phone || "-"}
-                </Text>
-              </View>
+	              <View style={{ flex: 1 }}>
+	                <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16 }}>
+	                  {driver?.driver_name || driver?.name || "Driver"}
+	                </Text>
+	                <Text style={{ color: colors.mutedForeground, marginTop: 2, fontSize: 13 }}>
+	                  {driver?.contact_number || driver?.phone || "-"}
+	                </Text>
+	              </View>
             </View>
             <Ionicons name={isProfileExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.mutedForeground} />
           </TouchableOpacity>
@@ -404,19 +404,9 @@ export default function DriverLedgerDetailScreen() {
             Net Balance: Rs {Math.abs(totals.balance).toLocaleString()}
           </Text>
 
-          {isProfileExpanded && (
-            <View style={{ marginTop: 12, gap: 8 }}>
-              <View style={{ gap: 4 }}>
-                <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
-                  {t('driverContact') || "Contact"}: {driver?.contact_number || driver?.phone || "N/A"}
-                </Text>
-                <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
-                  License: {driver?.license_card_url ? "Uploaded" : "Not Uploaded"}
-                </Text>
-                <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
-                  Aadhaar: {driver?.identity_card_url ? "Uploaded" : "Not Uploaded"}
-                </Text>
-              </View>
+	          {isProfileExpanded && (
+	            <View style={{ marginTop: 12, gap: 8 }}>
+	              <View style={{ gap: 4 }} />
 
               <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
                 <View style={{ flex: 1 }}>

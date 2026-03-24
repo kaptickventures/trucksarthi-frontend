@@ -86,9 +86,13 @@ export default function TransactionsScreen() {
 
   const loadData = useCallback(async (activeFilters: typeof filters) => {
     setRefreshing(true);
+    const start = activeFilters.startDate ? new Date(activeFilters.startDate) : null;
+    if (start) start.setHours(0, 0, 0, 0);
+    const end = activeFilters.endDate ? new Date(activeFilters.endDate) : null;
+    if (end) end.setHours(23, 59, 59, 999);
     await fetchTransactions({
-      startDate: activeFilters.startDate ? activeFilters.startDate.toISOString() : undefined,
-      endDate: activeFilters.endDate ? activeFilters.endDate.toISOString() : undefined,
+      startDate: start ? start.toISOString() : undefined,
+      endDate: end ? end.toISOString() : undefined,
       direction: activeFilters.direction,
     });
     setRefreshing(false);
@@ -129,7 +133,8 @@ export default function TransactionsScreen() {
         const category = String(item?.category || "").toUpperCase();
         const direction = String(item?.direction || "").toUpperCase();
         const paymentMode = String(item?.paymentMode || "").toUpperCase();
-        const txDate = new Date(item?.date);
+        const rawDate = item?.date || item?.entry_date || item?.createdAt || item?.updatedAt;
+        const txDate = rawDate ? new Date(rawDate) : new Date(0);
 
         // Keep only owner-to-driver entries from driver khata in this global list.
         if (sourceModule === "DRIVER_KHATA" && category !== "OWNER_TO_DRIVER") return false;
@@ -148,7 +153,11 @@ export default function TransactionsScreen() {
         }
         return true;
       })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort((a, b) => {
+        const ad = a?.date || a?.entry_date || a?.createdAt || a?.updatedAt;
+        const bd = b?.date || b?.entry_date || b?.createdAt || b?.updatedAt;
+        return new Date(ad || 0).getTime() - new Date(bd || 0).getTime();
+      });
 
     let currentBalance = 0;
     const withBalance = base.map((item) => {
@@ -222,7 +231,7 @@ export default function TransactionsScreen() {
           </Text>
           <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
             <Text style={{ fontSize: 10, color: colors.mutedForeground }}>
-              {formatDate(item.date)}
+              {formatDate(item?.date || item?.entry_date || item?.createdAt || item?.updatedAt)}
             </Text>
             {item.approvalStatus === "PENDING" && (
               <Text style={{ fontSize: 10, color: colors.warning, fontWeight: "bold" }}>PENDING</Text>
