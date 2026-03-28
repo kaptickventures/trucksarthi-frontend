@@ -6,8 +6,9 @@ import {
   Share2,
   Trash2,
   User as UserIcon,
+  Check,
 } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import {
   Alert,
   Image,
@@ -38,8 +39,11 @@ export default function DriverProfile() {
   const { t } = useTranslation();
   const { driver_id } = useLocalSearchParams<{ driver_id: string }>();
 
-  const { drivers, loading: driverLoading, uploadLicense, uploadAadhaar, uploadProfilePicture, fetchDrivers, deleteDriver, updateDriver } = useDrivers();
+  const { drivers, loading: driverLoading, uploadLicense, uploadAadhaar, uploadProfilePicture, fetchDrivers, deleteDriver, updateDriver, extractedNumbers } = useDrivers();
   const driver = useMemo(() => drivers.find(d => d._id === driver_id), [drivers, driver_id]);
+  const driverIdKey = String(driver_id || "");
+  const extractedLicense = extractedNumbers[driverIdKey]?.license || (driver as any)?.driving_license_number || "";
+  const extractedAadhaar = extractedNumbers[driverIdKey]?.aadhaar || (driver as any)?.aadhaar_number || "";
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -83,7 +87,7 @@ export default function DriverProfile() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         allowsEditing: true,
         quality: 0.5,
       });
@@ -246,8 +250,20 @@ export default function DriverProfile() {
         <View style={{ marginBottom: 32 }}>
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.foreground, marginBottom: 16 }}>{t('documents')}</Text>
           <View style={{ flexDirection: 'row', gap: 16 }}>
-            <DocumentCard label={t('license')} url={getFileUrl(driver.license_card_url)} onPress={() => driver.license_card_url && setPreviewImage(getFileUrl(driver.license_card_url))} onEdit={() => handleUpload("LICENSE")} />
-            <DocumentCard label={t('aadhaar')} url={getFileUrl(driver.identity_card_url)} onPress={() => driver.identity_card_url && setPreviewImage(getFileUrl(driver.identity_card_url))} onEdit={() => handleUpload("AADHAAR")} />
+            <DocumentCard 
+              label={t('license')} 
+              url={getFileUrl(driver.license_card_url)} 
+              extractedNumber={extractedLicense}
+              onPress={() => driver.license_card_url && setPreviewImage(getFileUrl(driver.license_card_url))} 
+              onEdit={() => handleUpload("LICENSE")} 
+            />
+            <DocumentCard 
+              label={t('aadhaar')} 
+              url={getFileUrl(driver.identity_card_url)} 
+              extractedNumber={extractedAadhaar}
+              onPress={() => driver.identity_card_url && setPreviewImage(getFileUrl(driver.identity_card_url))} 
+              onEdit={() => handleUpload("AADHAAR")} 
+            />
           </View>
         </View>
       </ScrollView>
@@ -278,9 +294,10 @@ export default function DriverProfile() {
   );
 }
 
-function DocumentCard({ label, url, onPress, onEdit }: any) {
+function DocumentCard({ label, url, extractedNumber, onPress, onEdit }: any) {
   const { colors } = useThemeStore();
   const { t } = useTranslation();
+
   return (
     <View style={{ flex: 1 }}>
       <TouchableOpacity
@@ -294,25 +311,67 @@ function DocumentCard({ label, url, onPress, onEdit }: any) {
           overflow: "hidden",
           borderWidth: 1,
           borderColor: colors.border,
-          justifyContent: 'center',
-          alignItems: 'center'
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
         {url ? (
           <>
             <Image source={{ uri: url }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-            <TouchableOpacity onPress={onEdit} style={{ position: "absolute", bottom: 8, right: 8, backgroundColor: "rgba(0,0,0,0.6)", padding: 8, borderRadius: 20 }}>
+            <TouchableOpacity
+              onPress={onEdit}
+              style={{
+                position: "absolute",
+                bottom: 8,
+                right: 8,
+                backgroundColor: "rgba(0,0,0,0.6)",
+                padding: 8,
+                borderRadius: 20,
+              }}
+            >
               <Pencil size={12} color="white" />
             </TouchableOpacity>
+            {extractedNumber && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  left: 8,
+                  backgroundColor: "rgba(0,0,0,0.7)",
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 12,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <Check size={12} color="#4ade80" />
+                <Text style={{ fontSize: 9, color: "#4ade80", fontWeight: "600" }}>OCR</Text>
+              </View>
+            )}
           </>
         ) : (
           <View style={{ alignItems: "center", opacity: 0.7 }}>
             <Ionicons name="add-circle-outline" size={32} color={colors.primary} />
-            <Text style={{ fontSize: 10, fontWeight: "bold", marginTop: 8, color: colors.primary }}>{t('tapToUpload')}</Text>
+            <Text style={{ fontSize: 10, fontWeight: "bold", marginTop: 8, color: colors.primary }}>
+              {t("tapToUpload")}
+            </Text>
           </View>
         )}
       </TouchableOpacity>
-      <Text style={{ textAlign: 'center', fontSize: 12, fontWeight: "bold", marginTop: 8, color: colors.mutedForeground }}>{label}</Text>
+      <View style={{ marginTop: 8 }}>
+        <Text style={{ textAlign: "center", fontSize: 12, fontWeight: "bold", color: colors.mutedForeground }}>
+          {label}
+        </Text>
+        {extractedNumber && (
+          <Text
+            style={{ textAlign: "center", fontSize: 11, marginTop: 4, color: colors.primary, fontWeight: "600" }}
+          >
+            ✓ {extractedNumber}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import {
   Text,
   TextInput,
@@ -41,16 +41,7 @@ export default function LocationFormModal({
   const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const titleInputRef = useRef<TextInput>(null);
   const [resolvingAddress, setResolvingAddress] = useState(false);
-
-  useEffect(() => {
-    if (!visible) return;
-    const timer = setTimeout(() => {
-      titleInputRef.current?.focus();
-    }, 120);
-    return () => clearTimeout(timer);
-  }, [visible]);
 
   const trimmedTitle = String(formData.location_name || "").trim();
   const hasPickedCoordinates = Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude);
@@ -109,7 +100,6 @@ export default function LocationFormModal({
               Location Title <Text style={{ color: colors.destructive }}>*</Text>
             </Text>
             <TextInput
-              ref={titleInputRef}
               className="rounded-2xl p-4 text-base font-bold"
               style={{
                 backgroundColor: isDark ? colors.card : colors.secondary + "40",

@@ -54,10 +54,9 @@ export default function LoginPhone() {
 
   // Formatting phone number
   const formatPhone = (text: string) => {
-    let numbers = text.replace(/\D+/g, "");
-    if (numbers.startsWith("91")) numbers = numbers.slice(2);
-    numbers = numbers.slice(0, 10);
-    setPhoneNumber("+91" + numbers);
+    const rawDigits = text.replace(/\D+/g, "");
+    const numbers = rawDigits.startsWith("91") ? rawDigits.slice(2, 12) : rawDigits.slice(0, 10);
+    setPhoneNumber(`+91${numbers}`);
   };
 
   const handleSendOTP = async () => {
@@ -150,6 +149,7 @@ export default function LoginPhone() {
                       value={phoneNumber}
                       onChangeText={formatPhone}
                       keyboardType="phone-pad"
+                      maxLength={13}
                       placeholder="+91 XXXXX XXXXX"
                       placeholderTextColor={colors.mutedForeground}
                       style={{
@@ -214,9 +214,9 @@ export default function LoginPhone() {
                         flex: 1,
                         paddingVertical: 16,
                         paddingHorizontal: 12,
-                        fontSize: 24,
+                        fontSize: 20,
                         fontWeight: '700',
-                        letterSpacing: 4,
+                        letterSpacing: 3,
                         color: colors.foreground
                       }}
                     />
@@ -282,7 +282,7 @@ export default function LoginPhone() {
 
           <View style={{ padding: 32, alignItems: 'center' }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
-              By continuing, you agree to our <Text style={{ fontWeight: 'bold' }}>Terms of Service</Text> and <Text style={{ fontWeight: 'bold' }}>Privacy Policy</Text>
+              By continuing, you agree to our{"\n"}<Text style={{ fontWeight: 'bold' }}>Terms of Service</Text> and <Text style={{ fontWeight: 'bold' }}>Privacy Policy</Text>
             </Text>
           </View>
         </ScrollView>

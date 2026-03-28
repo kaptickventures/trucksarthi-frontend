@@ -31,13 +31,14 @@ export default function ClientLedgerScreen() {
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
   const isDark = theme === "dark";
-  const { clients, fetchClients, addClient } = useClients();
+  const { clients, loading: clientsLoading, fetchClients, addClient } = useClients();
   const { fetchSummary } = useClientLedger();
 
   const [refreshing, setRefreshing] = useState(false);
   const [rows, setRows] = useState<ClientRow[]>([]);
   // true while clients are still loading or rows are being built
   const [isBuilding, setIsBuilding] = useState(true);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
   const [summaryRefreshKey, setSummaryRefreshKey] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -55,7 +56,9 @@ export default function ClientLedgerScreen() {
   });
 
   const load = useCallback(async () => {
+    setIsBuilding(true);
     await fetchClients();
+    setHasInitialLoad(true);
   }, [fetchClients]);
 
   useEffect(() => {
@@ -112,8 +115,8 @@ export default function ClientLedgerScreen() {
       }
     };
 
-    if (clients === undefined) {
-      // still waiting for initial fetch
+    if (!hasInitialLoad || clientsLoading || clients === undefined) {
+      // still waiting for clients fetch
       return;
     } else if (clients.length > 0) {
       run();
@@ -126,7 +129,7 @@ export default function ClientLedgerScreen() {
     return () => {
       isMounted = false;
     };
-  }, [clients, fetchSummary, summaryRefreshKey]);
+  }, [clients, clientsLoading, fetchSummary, hasInitialLoad, summaryRefreshKey]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -178,7 +181,8 @@ export default function ClientLedgerScreen() {
       });
       Alert.alert(t("success"), `Client ${t("addedSuccessfully")}`);
       setModalVisible(false);
-      fetchClients();
+      await load();
+      setSummaryRefreshKey((k) => k + 1);
     } catch {}
   };
 
@@ -196,7 +200,7 @@ export default function ClientLedgerScreen() {
         </View>
 
         {/* Loading skeleton */}
-        {isBuilding && rows.length === 0 && (
+        {(clientsLoading || isBuilding) && rows.length === 0 && (
           <View style={{ gap: 12 }}>
             {[1, 2, 3].map((i) => (
               <View key={i} style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }}>
@@ -214,12 +218,11 @@ export default function ClientLedgerScreen() {
         )}
 
         {/* Empty state - only show after fully loaded */}
-        {!isBuilding && rows.length === 0 && (
+        {hasInitialLoad && !clientsLoading && !isBuilding && rows.length === 0 && (
           <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 40 }}>No clients found.</Text>
         )}
 
         {rows.map((row) => {
-          const hasOutstanding = row.unbilled > 0;
 
           return (
             <TouchableOpacity
@@ -246,30 +249,12 @@ export default function ClientLedgerScreen() {
                     {row.clientName}
                   </Text>
                 </View>
-                <View
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 20,
-                    backgroundColor: hasOutstanding ? colors.destructiveSoft : colors.successSoft,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "800",
-                      color: hasOutstanding ? colors.destructive : colors.success,
-                    }}
-                  >
-                    {hasOutstanding ? `-Rs ${row.unbilled.toLocaleString()} ${t('due') || 'due'}` : t('settled')}
-                  </Text>
-                </View>
               </View>
 
 	              <View style={{ flexDirection: "row", gap: 16, marginBottom: 10, alignItems: "center" }}>
 	                <View>
 	                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{(t('unbilled') || 'Unbilled').toUpperCase()}</Text>
-	                  <Text style={{ fontSize: 13, fontWeight: "700", color: hasOutstanding ? colors.destructive : colors.mutedForeground }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: row.unbilled > 0 ? colors.destructive : colors.mutedForeground }}>
 	                    Rs {row.unbilled.toLocaleString()}
 	                  </Text>
 	                </View>

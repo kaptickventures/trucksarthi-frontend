@@ -23,6 +23,8 @@ const mapDriverFromApi = (driver: any): Driver => ({
 export default function useDrivers() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(false);
+  const [extractedNumbers, setExtractedNumbers] = useState<Record<string, { license?: string; aadhaar?: string }>>({});
+  
   const toRefId = (value: any) =>
     value && typeof value === "object" ? value._id : value;
   const matchesId = (value: any, id: string) =>
@@ -40,6 +42,16 @@ export default function useDrivers() {
         ? res.data.map(mapDriverFromApi)
         : [];
       setDrivers(normalized);
+      
+      // Store extracted numbers from API response
+      const extracted: Record<string, { license?: string; aadhaar?: string }> = {};
+      normalized.forEach(d => {
+        extracted[d._id] = {
+          license: (d as any).driving_license_number,
+          aadhaar: (d as any).aadhaar_number,
+        };
+      });
+      setExtractedNumbers(extracted);
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to load drivers");
@@ -128,10 +140,29 @@ export default function useDrivers() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
+      // Store extracted license number
+      const extractedNumber = res.data.extracted_number || res.data.driver?.driving_license_number;
+      if (extractedNumber) {
+        setExtractedNumbers(prev => ({
+          ...prev,
+          [driverId]: { ...prev[driverId], license: extractedNumber }
+        }));
+        Alert.alert("OCR Success", `License number extracted: ${extractedNumber}`);
+      } else if (res.data.ocr_error) {
+        console.warn("OCR extraction failed:", res.data.ocr_error);
+        Alert.alert("OCR Info", "Document uploaded but number extraction failed. Please verify manually.");
+      }
+
       setDrivers((prev) =>
         prev.map((d) =>
           d._id === driverId
-            ? { ...d, license_card_url: res.data.file_url || res.data.driver?.license_card_url }
+            ? { 
+                ...d, 
+                license_card_url: res.data.file_url || res.data.driver?.license_card_url,
+                ...(res.data.driver?.driving_license_number && { 
+                  driving_license_number: res.data.driver.driving_license_number 
+                })
+              }
             : d
         )
       );
@@ -153,10 +184,29 @@ export default function useDrivers() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
+      // Store extracted aadhaar number
+      const extractedNumber = res.data.extracted_number || res.data.driver?.aadhaar_number;
+      if (extractedNumber) {
+        setExtractedNumbers(prev => ({
+          ...prev,
+          [driverId]: { ...prev[driverId], aadhaar: extractedNumber }
+        }));
+        Alert.alert("OCR Success", `Aadhaar number extracted: ${extractedNumber}`);
+      } else if (res.data.ocr_error) {
+        console.warn("OCR extraction failed:", res.data.ocr_error);
+        Alert.alert("OCR Info", "Document uploaded but number extraction failed. Please verify manually.");
+      }
+
       setDrivers((prev) =>
         prev.map((d) =>
           d._id === driverId
-            ? { ...d, identity_card_url: res.data.file_url || res.data.driver?.identity_card_url }
+            ? { 
+                ...d, 
+                identity_card_url: res.data.file_url || res.data.driver?.identity_card_url,
+                ...(res.data.driver?.aadhaar_number && { 
+                  aadhaar_number: res.data.driver.aadhaar_number 
+                })
+              }
             : d
         )
       );
@@ -226,6 +276,7 @@ export default function useDrivers() {
   return { 
     drivers, 
     loading, 
+    extractedNumbers,
     fetchDrivers, 
     addDriver, 
     updateDriver, 

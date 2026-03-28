@@ -1,6 +1,7 @@
 import { CheckCircle2, Crown, Wallet } from "lucide-react-native";
 import { useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StatusBar, Text, ToastAndroid, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
 
 import { useAuth } from "../../context/AuthContext";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -64,22 +65,16 @@ const getPlanCards = (colors: any, opts: { includeFree: boolean }): PlanCard[] =
   ];
 };
 
-const parsePriceValue = (value: string | null) => {
-  if (!value) return 0;
-  const digits = value.replace(/[^0-9]/g, "");
-  return Number(digits || 0);
-};
-
 export default function PlansPricingScreen() {
+  const router = useRouter();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { user } = useAuth();
   const [requestingPlanId, setRequestingPlanId] = useState<string | null>(null);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PlanCard | null>(null);
 
   const rawPlanStatus = user?.plan_status || "free";
-  const planLimits = user?.plan_limits;
-  const planUsage = user?.plan_usage;
-  const planRemaining = user?.plan_remaining;
 
   const trialEndsAt = user?.plan_trial_ends_at ? new Date(user.plan_trial_ends_at) : null;
   const trialDaysLeft = user?.plan_trial_days_left ?? null;
@@ -87,42 +82,43 @@ export default function PlansPricingScreen() {
 
   // If trial ended but backend hasn't flipped the status yet, show Free plan.
   const planStatus = trialExpired ? "free" : rawPlanStatus;
-  const isLimited = trialExpired ? true : (user?.plan_is_limited ?? true);
   const trialLabel =
     planStatus === "trial" && trialEndsAt
       ? `Trial ends in ${trialDaysLeft ?? 0} day(s) • ${trialEndsAt.toDateString()}`
       : null;
 
-  const requestPlanCallback = (plan: PlanCard) => {
-    if (requestingPlanId) return;
+  const showSavedToast = () => {
+    const msg = "We have recorded your response";
+    if (Platform.OS === "android") {
+      ToastAndroid.show(msg, ToastAndroid.SHORT);
+      return;
+    }
+    Alert.alert("Saved", msg);
+  };
 
-    Alert.alert(
-      "Request purchase call",
-      "We will contact you soon to help you buy this plan.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Request",
-          onPress: async () => {
-            try {
-              setRequestingPlanId(plan.id);
-              await API.post("/api/plans/interest", {
-                planId: plan.id,
-                planName: plan.name,
-                period: plan.period,
-                originalPrice: plan.originalPrice,
-                discountedPrice: plan.discountedPrice,
-              });
-              Alert.alert("Request sent", "Thanks! We will contact you shortly.");
-            } catch (err: any) {
-              Alert.alert("Error", err?.response?.data?.error || "Failed to send request.");
-            } finally {
-              setRequestingPlanId(null);
-            }
-          },
-        },
-      ]
-    );
+  const saveInterestAndGoSupport = (plan: PlanCard, decision: "yes" | "no") => {
+    if (requestingPlanId || !plan) return;
+    (async () => {
+      try {
+        setRequestingPlanId(plan.id);
+        await API.post("/api/plans/interest", {
+          planId: plan.id,
+          planName: plan.name,
+          period: plan.period,
+          originalPrice: plan.originalPrice,
+          discountedPrice: plan.discountedPrice,
+          decision,
+        });
+        showSavedToast();
+        setConfirmVisible(false);
+        setSelectedPlan(null);
+        router.push("/(stack)/helpCenter" as any);
+      } catch (err: any) {
+        Alert.alert("Error", err?.response?.data?.error || "Failed to send request.");
+      } finally {
+        setRequestingPlanId(null);
+      }
+    })();
   };
 
   return (
@@ -130,6 +126,10 @@ export default function PlansPricingScreen() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        <View className="mb-3 px-0">
+          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>Plans & Pricing</Text>
+        </View>
+
         <View
           className="rounded-3xl border p-5 mb-5 overflow-hidden"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
@@ -157,30 +157,22 @@ export default function PlansPricingScreen() {
             }}
           />
 
-          <Text className="text-[24px] font-black mb-1" style={{ color: colors.foreground }}>
-            Plans & Pricing
-          </Text>
-          <Text className="text-sm mb-3" style={{ color: colors.mutedForeground }}>
-            Transparent plans with clear limits and flexible upgrades.
-          </Text>
-
-          <View
-            className="self-start px-3 py-1 rounded-full"
-            style={{ backgroundColor: colors.warningSoft, borderWidth: 1, borderColor: colors.warning }}
-          >
-            <Text className="text-[11px] font-extrabold" style={{ color: colors.warning }}>
-              {planStatus === "paid" ? "PAID PLAN ACTIVE" : planStatus === "trial" ? "FREE TRIAL ACTIVE" : "FREE PLAN ACTIVE"}
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8, gap: 8 }}>
+            <Text className="text-base font-extrabold" style={{ color: colors.foreground }}>
+              Your plan
             </Text>
+            {planStatus === "trial" ? (
+              <View
+                className="px-3 py-1 rounded-full"
+                style={{ backgroundColor: colors.warningSoft, borderWidth: 1, borderColor: colors.warning }}
+              >
+                <Text className="text-[11px] font-extrabold" style={{ color: colors.warning }}>
+                  FREE TRIAL
+                </Text>
+              </View>
+            ) : null}
           </View>
-        </View>
 
-        <View
-          className="rounded-3xl border p-5 mb-5"
-          style={{ backgroundColor: colors.card, borderColor: colors.border }}
-        >
-          <Text className="text-base font-extrabold mb-2" style={{ color: colors.foreground }}>
-            Your plan
-          </Text>
           <Text className="text-sm mb-2" style={{ color: colors.mutedForeground }}>
             {planStatus === "paid"
               ? "Unlimited access with paid plan."
@@ -195,49 +187,14 @@ export default function PlansPricingScreen() {
           ) : null}
         </View>
 
-        {planLimits && planUsage ? (
-          <View
-            className="rounded-3xl border p-5 mb-5"
-            style={{ backgroundColor: colors.card, borderColor: colors.border }}
-          >
-            <Text className="text-base font-extrabold mb-2" style={{ color: colors.foreground }}>
-              Free plan limits
-            </Text>
-            <Text className="text-xs mb-3" style={{ color: colors.mutedForeground }}>
-              {isLimited ? "Remaining counts shown below." : "Limits are paused during trial or paid plan."}
-            </Text>
-
-            <View className="gap-2">
-              <Text className="text-sm" style={{ color: colors.foreground }}>
-                Trucks: {planUsage.trucks}/{planLimits.trucks}
-                {isLimited && planRemaining ? ` • ${planRemaining.trucks} left` : ""}
-              </Text>
-              <Text className="text-sm" style={{ color: colors.foreground }}>
-                Drivers: {planUsage.drivers}/{planLimits.drivers}
-                {isLimited && planRemaining ? ` • ${planRemaining.drivers} left` : ""}
-              </Text>
-              <Text className="text-sm" style={{ color: colors.foreground }}>
-                Clients: {planUsage.clients}/{planLimits.clients}
-                {isLimited && planRemaining ? ` • ${planRemaining.clients} left` : ""}
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
 	        <View className="gap-3">
 	          {getPlanCards(colors, { includeFree: planStatus === "free" }).map((plan) => {
 	            const isCurrent = plan.id === "free" ? planStatus === "free" : false;
 
 	            return (
 	            <View key={plan.id} className="rounded-3xl" style={{ backgroundColor: colors.background }}>
-	              <TouchableOpacity
+                <TouchableOpacity
                 activeOpacity={0.9}
-	                onPress={() => {
-	                  if (isCurrent) return;
-	                  if (plan.action === "interest") {
-	                    requestPlanCallback(plan);
-	                  }
-	                }}
                 disabled={isCurrent || requestingPlanId === plan.id}
                 className="rounded-3xl border p-4 overflow-hidden"
                 style={{
@@ -343,18 +300,19 @@ export default function PlansPricingScreen() {
                 ) : null}
 
                 {!isCurrent ? (
-                  <View
-                    className="rounded-xl px-3 py-2"
-                    style={{ backgroundColor: plan.accentSoft, borderWidth: 1, borderColor: plan.accent }}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedPlan(plan);
+                      setConfirmVisible(true);
+                    }}
+                    disabled={requestingPlanId === plan.id}
+                    className="rounded-xl px-3 py-3 items-center"
+                    style={{ backgroundColor: plan.accent, opacity: requestingPlanId === plan.id ? 0.75 : 1 }}
                   >
-                    <Text className="text-xs font-bold" style={{ color: colors.foreground }}>
-                      {plan.originalPrice
-                        ? `You save Rs ${parsePriceValue(plan.originalPrice) - parsePriceValue(plan.discountedPrice)} on this plan`
-                        : plan.action === "contact"
-                          ? "Tap to contact support"
-                          : "Tap to request a call back"}
+                    <Text className="text-sm font-black" style={{ color: colors.primaryForeground }}>
+                      Continue
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ) : (
                   <View
                     className="rounded-xl px-3 py-2"
@@ -369,6 +327,65 @@ export default function PlansPricingScreen() {
             </View>
           )})}
         </View>
+
+        <Modal
+          transparent
+          visible={confirmVisible}
+          animationType="fade"
+          onRequestClose={() => setConfirmVisible(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", padding: 24 }}>
+            <View
+              style={{
+                backgroundColor: colors.card,
+                borderRadius: 18,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: 18,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "900", marginBottom: 10 }}>
+                Confirm Plan
+              </Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 14, lineHeight: 20 }}>
+                {`Do you wish to continue with the ${selectedPlan?.name?.toLowerCase() || "selected"} plan?`}
+              </Text>
+
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+                <TouchableOpacity
+                  onPress={() => selectedPlan && saveInterestAndGoSupport(selectedPlan, "no")}
+                  disabled={!!requestingPlanId}
+                  style={{
+                    flex: 1,
+                    height: 42,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: colors.secondary,
+                  }}
+                >
+                  <Text style={{ color: colors.secondaryForeground, fontWeight: "800" }}>No</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => selectedPlan && saveInterestAndGoSupport(selectedPlan, "yes")}
+                  disabled={!!requestingPlanId}
+                  style={{
+                    flex: 1,
+                    height: 42,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: colors.primary,
+                  }}
+                >
+                  <Text style={{ color: colors.primaryForeground, fontWeight: "800" }}>Yes</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 	      </ScrollView>
 	    </View>
 	  );

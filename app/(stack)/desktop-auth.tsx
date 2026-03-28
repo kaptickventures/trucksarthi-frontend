@@ -1,4 +1,4 @@
-import { CheckCircle2, QrCode, RotateCcw } from "lucide-react-native";
+import { CheckCircle2, QrCode, RotateCcw, Unlink } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ExpoCamera from "expo-camera";
 import * as Haptics from "expo-haptics";
@@ -18,6 +19,7 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
 
 type ParsedQr = { sessionId: string; secret: string };
+const LINKED_DEVICE_TTL_MS = 15 * 24 * 60 * 60 * 1000;
 
 const getCameraPermissionsCompat = async () => {
   const direct = (ExpoCamera as any).getCameraPermissionsAsync;
@@ -61,14 +63,40 @@ export default function DesktopAuthScreen() {
   const insets = useSafeAreaInsets();
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [permissionLoading, setPermissionLoading] = useState(false);
-  const [status, setStatus] = useState<"idle" | "approving" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "approving" | "success" | "error" | "linked">("idle");
   const [errorText, setErrorText] = useState<string>("");
+  const [linkedDeviceInfo, setLinkedDeviceInfo] = useState<{ timestamp: string } | null>(null);
   const scannedRef = useRef(false);
 
   const canScan = status === "idle";
 
+  // Check for existing linked device on mount
   useEffect(() => {
     if (Platform.OS === "web") return;
+    const checkLinkedDevice = async () => {
+      try {
+        const saved = await AsyncStorage.getItem("desktopSessionLinked");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const linkedAt = new Date(parsed?.timestamp || 0).getTime();
+          if (!linkedAt || Date.now() - linkedAt >= LINKED_DEVICE_TTL_MS) {
+            await AsyncStorage.removeItem("desktopSessionLinked");
+            setLinkedDeviceInfo(null);
+            setStatus("idle");
+            return;
+          }
+          setLinkedDeviceInfo(parsed);
+          setStatus("linked");
+        }
+      } catch {
+        // ignore
+      }
+    };
+    checkLinkedDevice();
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === "web" || status === "linked") return;
     getCameraPermissionsCompat()
       .then((res) => {
         setPermissionGranted(Boolean(res?.granted));
@@ -77,7 +105,7 @@ export default function DesktopAuthScreen() {
         setErrorText(t("desktopLoginCameraError"));
         setStatus("error");
       });
-  }, [t]);
+  }, [t, status]);
 
   const requestCamera = useCallback(async () => {
     if (Platform.OS === "web") return;
@@ -109,7 +137,13 @@ export default function DesktopAuthScreen() {
         scannedRef.current = true;
         setStatus("approving");
         await API.post("/api/auth/desktop/approve", parsed);
-        setStatus("success");
+        
+        // Save linked device info to AsyncStorage
+        const linkedInfo = { timestamp: new Date().toISOString() };
+        await AsyncStorage.setItem("desktopSessionLinked", JSON.stringify(linkedInfo));
+        setLinkedDeviceInfo(linkedInfo);
+        
+        setStatus("linked");
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
       } catch (err: any) {
         setErrorText(err?.response?.data?.error || err?.message || t("desktopLoginFailed"));
@@ -119,6 +153,23 @@ export default function DesktopAuthScreen() {
     },
     [canScan, t]
   );
+
+  const handleUnlinkDevice = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem("desktopSessionLinked");
+      setLinkedDeviceInfo(null);
+      setStatus("idle");
+      scannedRef.current = false;
+      setErrorText("");
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleLogoutLinkedDevice = useCallback(async () => {
+    await handleUnlinkDevice();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
+  }, [handleUnlinkDevice]);
 
   const statusContent = useMemo(() => {
     if (status === "approving") {
@@ -153,6 +204,51 @@ export default function DesktopAuthScreen() {
           <Text className="mt-2 text-xs text-center" style={{ color: colors.mutedForeground }}>
             Only one device can be linked at a time.
           </Text>
+          <TouchableOpacity
+            onPress={handleLogoutLinkedDevice}
+            className="mt-4 py-3 rounded-full items-center flex-row justify-center"
+            style={{ backgroundColor: colors.secondary }}
+          >
+            <Unlink size={18} color={colors.secondaryForeground} />
+            <Text className="ml-2 text-base font-semibold" style={{ color: colors.secondaryForeground }}>
+              Logout Linked Device
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    if (status === "linked") {
+      return (
+        <View
+          style={{
+            backgroundColor: colors.card,
+            borderRadius: 18,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            alignItems: "center",
+          }}
+        >
+          <CheckCircle2 size={26} color={colors.success || colors.primary} />
+          <Text className="mt-3 text-base font-semibold" style={{ color: colors.foreground }}>
+            Device Linked
+          </Text>
+          <Text className="mt-1 text-sm text-center" style={{ color: colors.mutedForeground }}>
+            Linked device: Desktop
+          </Text>
+          <Text className="mt-2 text-xs text-center" style={{ color: colors.mutedForeground }}>
+            {linkedDeviceInfo?.timestamp ? `Since ${new Date(linkedDeviceInfo.timestamp).toLocaleDateString()}` : ""}
+          </Text>
+          <TouchableOpacity
+            onPress={handleLogoutLinkedDevice}
+            className="mt-4 py-3 rounded-full items-center flex-row justify-center"
+            style={{ backgroundColor: colors.secondary }}
+          >
+            <Unlink size={18} color={colors.secondaryForeground} />
+            <Text className="ml-2 text-base font-semibold" style={{ color: colors.secondaryForeground }}>
+              Logout Linked Device
+            </Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -168,10 +264,10 @@ export default function DesktopAuthScreen() {
         {t("desktopLoginWaiting")}
       </Text>
     );
-  }, [colors, errorText, status, t]);
+  }, [colors, errorText, status, t, linkedDeviceInfo, handleLogoutLinkedDevice]);
 
   const CameraView = (ExpoCamera as any).CameraView;
-  const showCamera = permissionGranted && Platform.OS !== "web" && !!CameraView && status !== "success";
+  const showCamera = permissionGranted && Platform.OS !== "web" && !!CameraView && status !== "success" && status !== "linked";
   const cameraHeight = Math.min(
     460,
     Math.max(280, Math.floor(Dimensions.get("window").height * 0.42))
@@ -216,6 +312,10 @@ export default function DesktopAuthScreen() {
                 {t("desktopLoginWebNotice")}
               </Text>
             </View>
+          </View>
+        ) : status === "linked" ? (
+          <View style={{ flex: 1, justifyContent: "center" }}>
+            {statusContent}
           </View>
         ) : !permissionGranted ? (
           <View style={{ flex: 1, justifyContent: "center" }}>

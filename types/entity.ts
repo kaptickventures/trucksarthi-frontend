@@ -150,6 +150,15 @@ export interface Driver {
   license_card_url?: string;
   profile_picture_url?: string;
   assigned_truck_id?: ObjectId | Truck | null;
+  
+  // OCR extracted fields
+  aadhaar_number?: string;
+  driving_license_number?: string;
+  kyc_data?: {
+    aadhaar_ocr?: any;
+    driving_license_ocr?: any;
+  };
+  
   createdAt?: ISODate;
   updatedAt?: ISODate;
 }
@@ -378,6 +387,89 @@ export interface Invoice {
   due_date?: ISODate;
   status: InvoiceStatus;
   items: InvoiceItem[];
+  createdAt?: ISODate;
+  updatedAt?: ISODate;
+}
+
+// ===============================
+// 11. Bilty (Bill of Lading)
+// ===============================
+
+export type BiltyStatus = "draft" | "generated" | "finalized" | "cancelled";
+export type BiltyPaymentType = "to_pay" | "paid" | "billed";
+
+export interface BiltyParty {
+  _id?: ObjectId;
+  type?: "consignor" | "consignee" | "both";
+  name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  gstin?: string;
+  pan?: string;
+  contact_person?: string;
+  gstin_details?: any;
+  quick_fill_source?: "client" | "manual";
+  source_client_id?: ObjectId;
+}
+
+export interface BiltyGoodsRow {
+  sr_no: number;
+  description?: string;
+  quantity?: number;
+  unit?: string;
+  actual_weight?: number;
+  rate?: number;
+  total?: number;
+}
+
+export interface BiltyCharges {
+  freight?: number;
+  loading?: number;
+  unloading?: number;
+  other?: number;
+  total?: number;
+  advance?: number;
+  balance?: number;
+}
+
+export interface BiltyShipment {
+  from_location?: string;
+  to_location?: string;
+  vehicle_number?: string;
+  driver_name?: string;
+  driver_phone?: string;
+  eway_bill_no?: string;
+  invoice_no?: string;
+  invoice_value?: number;
+  shipment_date?: ISODate;
+}
+
+export interface Bilty {
+  _id: ObjectId;
+  user: ObjectId | User;
+  trip?: ObjectId | Trip;
+  client?: ObjectId | Client;
+
+  bilty_number: string;
+  bilty_date?: ISODate;
+
+  status: BiltyStatus;
+
+  consignor_party?: ObjectId | BiltyParty;
+  consignee_party?: ObjectId | BiltyParty;
+
+  consignor: BiltyParty;
+  consignee: BiltyParty;
+
+  shipment?: BiltyShipment;
+
+  goods_rows?: BiltyGoodsRow[];
+
+  charges?: BiltyCharges;
+  payment_type?: BiltyPaymentType;
+  notes?: string;
+
   createdAt?: ISODate;
   updatedAt?: ISODate;
 }
