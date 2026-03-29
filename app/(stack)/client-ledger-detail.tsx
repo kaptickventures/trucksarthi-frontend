@@ -35,7 +35,7 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrips, { Trip } from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
-import { formatDate } from "../../lib/utils";
+import { formatDate, formatPhoneNumber } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 import API from "../../app/api/axiosInstance";
 
@@ -283,7 +283,7 @@ export default function ClientLedgerDetailScreen() {
         user?.address ||
         (user as any)?.kyc_data?.gstin_details?.principal_place_address ||
         "-";
-      const partyPhone = user?.phone || "-";
+      const partyPhone = user?.phone ? formatPhoneNumber(user.phone) : "-";
       const partyEmail = user?.email || "-";
       const partyBankName = user?.bank_name || "-";
       const partyAccountName = user?.account_holder_name || partyName;
@@ -1219,7 +1219,7 @@ export default function ClientLedgerDetailScreen() {
                   {t('contactPerson')}: {client.contact_person_name || "N/A"}
                 </Text>
                 <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                  {t('clientContact')}: {client.contact_number || "N/A"}
+                  {t('clientContact')}: {client.contact_number ? formatPhoneNumber(client.contact_number) : "N/A"}
                 </Text>
                 <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
                   {t('email')}: {client.email_address || "N/A"}

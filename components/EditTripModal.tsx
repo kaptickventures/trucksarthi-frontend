@@ -190,6 +190,7 @@ export default function EditTripModal({
         onClose={closeModal}
         title="Edit Trip"
         subtitle={`${trip?.public_id ? `${trip.public_id} • ` : ''}Update journey`}
+        maxHeight="80%"
       >
         <KeyboardAwareScrollView
           enableOnAndroid
@@ -197,7 +198,7 @@ export default function EditTripModal({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
+          contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 120 }}
         >
                 {/* Date Selector */}
                 <InputLabel label={"Trip Date"} required />
@@ -447,12 +448,12 @@ export default function EditTripModal({
 
 const styles = StyleSheet.create({
   inputContainer: {
-    height: 56,
+    height: 58,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 1.5,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     marginBottom: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

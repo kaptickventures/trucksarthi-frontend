@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import API from '../app/api/axiosInstance';
+import { normalizeGstinNumber, normalizePanNumber } from '../lib/utils';
 
 export function useKYC() {
   const [loading, setLoading] = useState(false);
@@ -9,7 +10,7 @@ export function useKYC() {
     setLoading(true);
     setError(null);
     try {
-      const res = await API.post('/api/kyc/pan', { pan });
+      const res = await API.post('/api/kyc/pan', { pan: normalizePanNumber(pan) });
       return res.data;
     } catch (err: any) {
       const msg = err.response?.data?.message || 'PAN Verification Failed';
@@ -24,7 +25,7 @@ export function useKYC() {
     setLoading(true);
     setError(null);
     try {
-      const res = await API.post('/api/kyc/gstin', { gstin, business_name: businessName });
+      const res = await API.post('/api/kyc/gstin', { gstin: normalizeGstinNumber(gstin), business_name: businessName });
       return res.data;
     } catch (err: any) {
       const msg = err.response?.data?.message || 'GSTIN Verification Failed';

@@ -705,7 +705,9 @@ export default function ClientProfile() {
                 {client.client_name}
               </Text>
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                {client.contact_person_name || "—"} {client.gstin ? ` • ${client.gstin}` : ""}
+                {client.contact_person_name || "—"}
+                {client.contact_number ? ` • ${formatPhoneNumber(client.contact_number)}` : ""}
+                {client.gstin ? ` • ${client.gstin}` : ""}
               </Text>
             </View>
 

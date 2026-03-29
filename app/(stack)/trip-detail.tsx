@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Edit3, Trash2 } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Print from "expo-print";
 
@@ -16,7 +17,7 @@ import useTrucks from "../../hooks/useTruck";
 import useLocations from "../../hooks/useLocation";
 import { useInvoices } from "../../hooks/useInvoice";
 import { useBilty } from "../../hooks/useBiltyModule";
-import { formatDate } from "../../lib/utils";
+import { formatDate, formatPhoneNumber } from "../../lib/utils";
 import type { Trip, TripEditHistoryEntry } from "../../types/entity";
 
 const escapeHtml = (value: string) =>
@@ -38,7 +39,7 @@ export default function TripDetail() {
   const { clients, fetchClients } = useClients();
   const { trucks, fetchTrucks } = useTrucks();
   const { locations, fetchLocations } = useLocations();
-  const { fetchInvoices, getInvoiceById, createInvoice, deleteInvoice } = useInvoices();
+  const { fetchInvoices, getInvoiceById, createInvoice, updateInvoice, deleteInvoice } = useInvoices();
   const { createBilty, getBiltyByTrip, deleteBilty } = useBilty();
 
   const [loading, setLoading] = useState(false);
@@ -52,6 +53,7 @@ export default function TripDetail() {
   const [showInvoiceDueDatePicker, setShowInvoiceDueDatePicker] = useState(false);
   const [invoiceBusy, setInvoiceBusy] = useState(false);
   const [invoice, setInvoice] = useState<any>(null);
+  const [invoiceEditMode, setInvoiceEditMode] = useState(false);
 
   // Bilty states
   const [showBiltySheet, setShowBiltySheet] = useState(false);
@@ -70,45 +72,69 @@ export default function TripDetail() {
   }, [fetchDrivers, fetchClients, fetchTrucks, fetchLocations]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadTrip = async () => {
       if (!tripId) return;
       try {
         setLoading(true);
-        const res = await API.get(`/api/trips/${tripId}`);
-        setTrip(res.data);
+        const biltyPromise = getBiltyByTrip(String(tripId))
+          .then((existingBilty) => {
+            if (!cancelled) setBilty(existingBilty || null);
+          })
+          .catch((err) => {
+            console.error("Failed to load bilty:", err);
+            if (!cancelled) setBilty(null);
+          });
 
-        // Load invoice if trip is billed
-        if (res.data?.invoiced_status === "invoiced") {
+        const res = await API.get(`/api/trips/${tripId}`);
+        if (cancelled) return;
+
+        setTrip(res.data);
+        setLoading(false);
+
+        // Load invoice and bilty in parallel after trip is rendered.
+        const tripData = res.data;
+        const loadInvoiceTask = async () => {
+          if (tripData?.invoiced_status !== "invoiced") {
+            if (!cancelled) setInvoice(null);
+            return;
+          }
+
           try {
             const invoiceList = await fetchInvoices();
             const matchedInvoice = (invoiceList as any[]).find((inv) =>
-              (inv?.items || []).some((it: any) => String(getId(it?.trip)) === String(res.data._id))
+              (inv?.items || []).some((it: any) => String(getId(it?.trip)) === String(tripData._id))
             );
-            if (matchedInvoice) {
-              const full = await getInvoiceById(String(matchedInvoice._id));
-              setInvoice(full);
+
+            if (!matchedInvoice?._id) {
+              if (!cancelled) setInvoice(null);
+              return;
             }
+
+            const full = await getInvoiceById(String(matchedInvoice._id));
+            if (!cancelled) setInvoice(full);
           } catch (err) {
             console.error("Failed to load invoice:", err);
           }
-        }
+        };
 
-        // Load bilty if exists
-        try {
-          const existingBilty = await getBiltyByTrip(String(res.data._id));
-          if (existingBilty) {
-            setBilty(existingBilty);
-          }
-        } catch (err) {
-          console.error("Failed to load bilty:", err);
-        }
+        void Promise.allSettled([loadInvoiceTask(), biltyPromise]);
       } catch {
-        setTrip(null);
+        if (!cancelled) {
+          setTrip(null);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
     loadTrip();
+
+    return () => {
+      cancelled = true;
+    };
   }, [tripId, fetchInvoices, getInvoiceById, getBiltyByTrip]);
 
   const reloadTrip = async () => {
@@ -230,7 +256,7 @@ export default function TripDetail() {
     const partyName = user?.company_name || user?.name || "TRUCKSARTHI";
     const partyGstin = user?.gstin || (user as any)?.kyc_data?.gstin_details?.gstin || "-";
     const partyAddress = user?.address || (user as any)?.kyc_data?.gstin_details?.principal_place_address || "-";
-    const partyPhone = user?.phone || "-";
+    const partyPhone = user?.phone ? formatPhoneNumber(user.phone) : "-";
     const partyEmail = user?.email || "-";
     const partyBankName = user?.bank_name || "-";
     const partyAccountName = user?.account_holder_name || partyName;
@@ -433,7 +459,7 @@ export default function TripDetail() {
     const partyName = user?.company_name || user?.name || "TRUCKSARTHI";
     const partyGstin = user?.gstin || (user as any)?.kyc_data?.gstin_details?.gstin || "-";
     const partyAddress = user?.address || (user as any)?.kyc_data?.gstin_details?.principal_place_address || "-";
-    const partyPhone = user?.phone || "-";
+    const partyPhone = user?.phone ? formatPhoneNumber(user.phone) : "-";
     const lrNo = doc?.bilty_number || String(doc?._id || "-").slice(-8).toUpperCase();
     const lrDate = formatDate(doc?.bilty_date || doc?.createdAt || new Date());
     const vehicleNo = doc?.vehicle_number || getTruckReg(trip.truck) || "-";
@@ -642,28 +668,61 @@ export default function TripDetail() {
       setInvoiceBusy(true);
       const effectiveTaxType = invoiceTaxType;
       const effectiveTaxPercentage: 0 | 5 | 18 = effectiveTaxType === "none" ? 0 : invoiceTaxPercentage;
-      const created = await createInvoice({
-        client_id: clientId,
-        tripIds: [String(trip._id)],
+      const payload = {
         due_date: invoiceDueDate.toISOString().split("T")[0],
         tax_type: effectiveTaxType,
         tax_percentage: effectiveTaxPercentage,
-      });
+      };
+
+      let targetInvoiceId = invoice?._id;
+      if (invoiceEditMode && invoice?._id) {
+        const updated = await updateInvoice(String(invoice._id), payload);
+        targetInvoiceId = updated?._id || invoice?._id;
+      } else {
+        const created = await createInvoice({
+          client_id: clientId,
+          tripIds: [String(trip._id)],
+          ...payload,
+        });
+        targetInvoiceId = created?._id || created?.invoice?._id;
+        setTrip((prev) => (prev ? { ...prev, invoiced_status: "invoiced" } : prev));
+      }
 
       setShowInvoiceSheet(false);
-      setTrip((prev) => (prev ? { ...prev, invoiced_status: "invoiced" } : prev));
+      setInvoiceEditMode(false);
       await reloadTrip();
-      const createdId = created?._id || created?.invoice?._id;
-      if (createdId) {
-        const full = await getInvoiceById(String(createdId));
+      if (targetInvoiceId) {
+        const full = await getInvoiceById(String(targetInvoiceId));
         setInvoice(full);
         await openInvoicePdf(full);
       }
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.error || "Failed to generate invoice.");
+      Alert.alert(
+        "Error",
+        err?.response?.data?.error || (invoiceEditMode ? "Failed to update invoice." : "Failed to generate invoice.")
+      );
     } finally {
       setInvoiceBusy(false);
     }
+  };
+
+  const handleEditInvoice = () => {
+    if (!invoice) {
+      Alert.alert("Invoice not found", "Could not load invoice details for editing.");
+      return;
+    }
+
+    const taxType = invoice.tax_type === "igst" || invoice.tax_type === "cgst_sgst" ? invoice.tax_type : "none";
+    const taxPercentage = [0, 5, 18].includes(Number(invoice.tax_percentage))
+      ? (Number(invoice.tax_percentage) as 0 | 5 | 18)
+      : 0;
+    const parsedDueDate = invoice.due_date ? new Date(invoice.due_date) : new Date();
+
+    setInvoiceTaxType(taxType);
+    setInvoiceTaxPercentage(taxPercentage);
+    setInvoiceDueDate(Number.isNaN(parsedDueDate.getTime()) ? new Date() : parsedDueDate);
+    setInvoiceEditMode(true);
+    setShowInvoiceSheet(true);
   };
 
   const handleDeleteInvoice = async () => {
@@ -831,86 +890,64 @@ export default function TripDetail() {
         <View className="mb-6">
           <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>Invoice Management</Text>
           
-          {/* Generate/Preview Invoice Button */}
-          <TouchableOpacity
-            onPress={() => {
-              if (isBilled && invoice) handlePreviewInvoice();
-              else setShowInvoiceSheet(true);
-            }}
-            disabled={invoiceBusy}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              borderRadius: 12,
-              backgroundColor: isBilled ? colors.successSoft : colors.infoSoft,
-              opacity: invoiceBusy ? 0.8 : 1,
-              marginBottom: 10,
-            }}
-          >
-            <Ionicons
-              name={isBilled ? "eye-outline" : "document-text-outline"}
-              size={18}
-              color={isBilled ? colors.success : colors.info}
-            />
-            <Text style={{ marginLeft: 8, fontWeight: "700", color: isBilled ? colors.success : colors.info, fontSize: 14 }}>
-              {invoiceBusy ? (isBilled ? "Opening..." : "Generating...") : (isBilled ? "Preview Invoice" : "Generate Invoice")}
-            </Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            {/* Generate/Preview Invoice Button */}
+            <TouchableOpacity
+              onPress={() => {
+                if (isBilled && invoice) handlePreviewInvoice();
+                else {
+                  setInvoiceEditMode(false);
+                  setShowInvoiceSheet(true);
+                }
+              }}
+              disabled={invoiceBusy}
+              style={{
+                width: "75%",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: isBilled ? colors.successSoft : colors.infoSoft,
+                opacity: invoiceBusy ? 0.8 : 1,
+              }}
+            >
+              <Ionicons
+                name={isBilled ? "eye-outline" : "document-text-outline"}
+                size={18}
+                color={isBilled ? colors.success : colors.info}
+              />
+              <Text style={{ marginLeft: 8, fontWeight: "700", color: isBilled ? colors.success : colors.info, fontSize: 14 }}>
+                {invoiceBusy ? (isBilled ? "Opening..." : "Generating...") : (isBilled ? "Preview Invoice" : "Generate Invoice")}
+              </Text>
+            </TouchableOpacity>
 
-          {/* Invoice Action Buttons */}
-          {isBilled && invoice && (
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              {/* Edit Invoice Button (Greyed out for now) */}
+            <View style={{ width: "23%", flexDirection: "row", justifyContent: "flex-end", alignItems: "center" }}>
               <TouchableOpacity
-                disabled={true}
+                onPress={handleEditInvoice}
+                disabled={invoiceBusy || !isBilled || !invoice}
                 style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  borderRadius: 12,
-                  backgroundColor: colors.card,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  opacity: 0.5,
+                  padding: 6,
+                  marginRight: 4,
+                  opacity: invoiceBusy || !isBilled || !invoice ? 0.45 : 1,
                 }}
               >
-                <Ionicons name="create-outline" size={16} color={colors.foreground} />
-                <Text style={{ marginLeft: 6, fontWeight: "700", color: colors.mutedForeground, fontSize: 12 }}>
-                  Edit
-                </Text>
+                <Edit3 size={18} color={colors.info} />
               </TouchableOpacity>
 
-              {/* Delete Invoice Button */}
               <TouchableOpacity
                 onPress={handleDeleteInvoice}
-                disabled={invoiceBusy}
+                disabled={invoiceBusy || !isBilled || !invoice}
                 style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  borderRadius: 12,
-                  backgroundColor: colors.destructive + "20",
-                  borderWidth: 1,
-                  borderColor: colors.destructive,
-                  opacity: invoiceBusy ? 0.6 : 1,
+                  padding: 6,
+                  opacity: invoiceBusy || !isBilled || !invoice ? 0.45 : 1,
                 }}
               >
-                <Ionicons name="trash-outline" size={16} color={colors.destructive} />
-                <Text style={{ marginLeft: 6, fontWeight: "700", color: colors.destructive, fontSize: 12 }}>
-                  Delete
-                </Text>
+                <Trash2 size={18} color={colors.destructive} />
               </TouchableOpacity>
             </View>
-          )}
+          </View>
         </View>
 
         {/* BILTY SECTION */}
@@ -1107,12 +1144,20 @@ export default function TripDetail() {
 
       <BottomSheet
         visible={showInvoiceSheet}
-        onClose={() => setShowInvoiceSheet(false)}
-        title="Generate Invoice"
-        subtitle="Choose tax options"
+        onClose={() => {
+          setShowInvoiceSheet(false);
+          setInvoiceEditMode(false);
+        }}
+        title={invoiceEditMode ? "Edit Invoice" : "Generate Invoice"}
+        subtitle={invoiceEditMode ? "Update tax and due date" : "Choose tax options"}
         maxHeight="70%"
       >
-        <View style={{ gap: 14, paddingBottom: 10 }}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          contentContainerStyle={{ gap: 14, paddingBottom: 10 }}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={{ color: colors.mutedForeground, fontWeight: "800", fontSize: 11, letterSpacing: 1, textTransform: "uppercase" }}>
             Due Date
           </Text>
@@ -1213,10 +1258,12 @@ export default function TripDetail() {
             }}
           >
             <Text style={{ color: colors.primaryForeground, fontWeight: "900", fontSize: 15 }}>
-              {invoiceBusy ? "Generating..." : "Generate & Preview"}
+              {invoiceBusy
+                ? (invoiceEditMode ? "Updating..." : "Generating...")
+                : (invoiceEditMode ? "Update & Preview" : "Generate & Preview")}
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </BottomSheet>
 
       <BiltyModal

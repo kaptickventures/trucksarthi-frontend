@@ -397,6 +397,8 @@ export interface Invoice {
 
 export type BiltyStatus = "draft" | "generated" | "finalized" | "cancelled";
 export type BiltyPaymentType = "to_pay" | "paid" | "billed";
+export type BiltyGstPaidBy = "consignor" | "consignee";
+export type BiltyGstType = "gst" | "igst";
 
 export interface BiltyParty {
   _id?: ObjectId;
@@ -445,6 +447,13 @@ export interface BiltyShipment {
   shipment_date?: ISODate;
 }
 
+export interface BiltyInsurance {
+  policy_number?: string;
+  insurer_name?: string;
+  coverage_amount?: number;
+  expiry_date?: ISODate;
+}
+
 export interface Bilty {
   _id: ObjectId;
   user: ObjectId | User;
@@ -468,6 +477,11 @@ export interface Bilty {
 
   charges?: BiltyCharges;
   payment_type?: BiltyPaymentType;
+  gst_paid_by?: BiltyGstPaidBy;
+  gst_percentage?: 0 | 5 | 18;
+  gst_type?: BiltyGstType;
+  insurance?: BiltyInsurance;
+  signature_url?: string;
   notes?: string;
 
   createdAt?: ISODate;

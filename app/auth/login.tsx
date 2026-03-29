@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { loginWithPhone, postLoginFlow, sendPhoneOtp } from "../../hooks/useAuth";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useAuth as useAuthContext } from "../../context/AuthContext";
+import { formatPhoneNumber, normalizePhoneInput } from "../../lib/utils";
 
 const RESEND_SECONDS = 60;
 
@@ -54,9 +55,7 @@ export default function LoginPhone() {
 
   // Formatting phone number
   const formatPhone = (text: string) => {
-    const rawDigits = text.replace(/\D+/g, "");
-    const numbers = rawDigits.startsWith("91") ? rawDigits.slice(2, 12) : rawDigits.slice(0, 10);
-    setPhoneNumber(`+91${numbers}`);
+    setPhoneNumber(normalizePhoneInput(text));
   };
 
   const handleSendOTP = async () => {
@@ -124,7 +123,7 @@ export default function LoginPhone() {
               </Text>
               <Text style={{ fontSize: 16, color: colors.mutedForeground, marginTop: 8 }}>
                 {otpSent
-                  ? `We've sent a code to ${phoneNumber}`
+                  ? `We've sent a code to ${formatPhoneNumber(phoneNumber)}`
                   : "Enter your phone number to continue"}
               </Text>
             </View>

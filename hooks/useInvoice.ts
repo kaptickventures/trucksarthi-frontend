@@ -59,6 +59,26 @@ export function useInvoices() {
     }
   };
 
+  // ✏️ Update invoice
+  const updateInvoice = async (
+    id: string,
+    data: {
+      due_date?: string;
+      tax_type?: "none" | "igst" | "cgst_sgst";
+      tax_percentage?: 0 | 5 | 18;
+    }
+  ) => {
+    try {
+      const res = await API.put(`/api/invoices/${id}`, data);
+      await fetchInvoices();
+      return res.data as Invoice;
+    } catch (error: any) {
+      console.error("❌ updateInvoice failed", error);
+      Alert.alert("Error", error.response?.data?.error || "Failed to update invoice");
+      throw error;
+    }
+  };
+
   // ❌ Delete invoice
   const deleteInvoice = async (id: string) => {
     try {
@@ -77,6 +97,7 @@ export function useInvoices() {
     fetchInvoices,
     getInvoiceById,
     createInvoice,
+    updateInvoice,
     deleteInvoice,
   };
 }

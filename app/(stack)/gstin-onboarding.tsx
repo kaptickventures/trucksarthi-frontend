@@ -16,10 +16,11 @@ import {
 import { useKYC } from "../../hooks/useKYC";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
+import { normalizeAddressInput, normalizeGstinNumber, normalizePhoneInput } from "../../lib/utils";
 
 type Step = "gstin" | "preview";
 
-const normalizeGstin = (value: string) => value.trim().toUpperCase();
+const normalizeGstin = (value: string) => normalizeGstinNumber(value);
 
 export default function GstinOnboardingScreen() {
   const router = useRouter();
@@ -80,7 +81,7 @@ export default function GstinOnboardingScreen() {
 
   const handleVerifyGstin = async () => {
     const normalized = normalizeGstin(gstin);
-    if (!normalized || normalized.length < 10) {
+    if (normalized.length !== 15) {
       Alert.alert("Input Required", "Please enter a valid GSTIN number.");
       return;
     }
@@ -104,7 +105,8 @@ export default function GstinOnboardingScreen() {
     if (!gstinDetails) return "Please verify your GSTIN to continue.";
     if (!name.trim()) return "Full Name is required";
     if (!company_name.trim()) return "Company Name is required";
-    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return "A valid Mobile Number is required";
+    const normalizedPhone = normalizePhoneInput(phone);
+    if (normalizedPhone && normalizedPhone.length !== 13) return "Please enter a valid Mobile Number";
     if (!email.trim() || !email.includes("@")) return "A valid Email Address is required";
     if (!address.trim()) return "Address is required";
     return null;
@@ -122,9 +124,9 @@ export default function GstinOnboardingScreen() {
       await syncUser({
         name: name.trim(),
         email: email.trim(),
-        phone: phone.trim(),
+        phone: normalizePhoneInput(phone),
         company_name: company_name.trim(),
-        address: address.trim(),
+        address: normalizeAddressInput(address),
         gstin: normalizeGstin(gstin),
         is_gstin_verified: Boolean(gstinDetails),
         kyc_data: gstinDetails
@@ -186,7 +188,7 @@ export default function GstinOnboardingScreen() {
                 <CustomInput
                   label="GSTIN NUMBER"
                   value={gstin}
-                  onChange={(val: string) => setGstin(val)}
+                  onChange={(val: string) => setGstin(normalizeGstin(val))}
                   colors={colors}
                   placeholder="29AAICP2912R1ZR"
                   icon={<Building2 size={18} color={colors.mutedForeground} />}
@@ -195,10 +197,10 @@ export default function GstinOnboardingScreen() {
 
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  disabled={kycLoading || gstin.trim().length < 10}
+                  disabled={kycLoading || normalizeGstin(gstin).length !== 15}
                   onPress={handleVerifyGstin}
                   style={{
-                    backgroundColor: gstin.trim().length >= 10 ? colors.foreground : colors.muted,
+                    backgroundColor: normalizeGstin(gstin).length === 15 ? colors.foreground : colors.muted,
                     borderRadius: 18,
                     paddingVertical: 18,
                     marginTop: 4,
@@ -268,12 +270,12 @@ export default function GstinOnboardingScreen() {
                 <CustomInput
                   label="MOBILE NUMBER"
                   value={phone}
-                  onChange={setPhone}
+                  onChange={(val: string) => setPhone(normalizePhoneInput(val))}
                   colors={colors}
-                  editable={!user?.is_mobile_verified}
                   placeholder="+91 XXXXX XXXXX"
                   icon={<Smartphone size={18} color={colors.mutedForeground} />}
-                  containerStyle={user?.is_mobile_verified ? { opacity: 0.7, backgroundColor: colors.muted } : {}}
+                  keyboardType="phone-pad"
+                  maxLength={13}
                 />
 
                 <CustomInput
@@ -292,7 +294,7 @@ export default function GstinOnboardingScreen() {
                   value={address}
                   onChange={setAddress}
                   colors={colors}
-                  placeholder="Full business address"
+                  placeholder="Address Line 1, Address Line 2, State, Pincode"
                   icon={<MapPin size={18} color={colors.mutedForeground} />}
                   multiline
                   height={100}
@@ -347,6 +349,8 @@ const CustomInput = ({
   editable = true,
   containerStyle,
   autoCapitalize,
+  keyboardType,
+  maxLength,
   colors,
 }: any) => (
   <View>
@@ -376,6 +380,8 @@ const CustomInput = ({
         placeholderTextColor={colors.mutedForeground}
         multiline={multiline}
         autoCapitalize={autoCapitalize}
+        keyboardType={keyboardType}
+        maxLength={maxLength}
         style={{
           flex: 1,
           fontSize: 16,

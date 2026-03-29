@@ -46,12 +46,42 @@ export function formatLabel(label: string | null | undefined): string {
 
 export function formatPhoneNumber(phone: string | null | undefined): string {
   if (!phone) return "N/A";
-  let cleaned = phone.replace(/[\s-]/g, "");
-  if (cleaned.startsWith("+91") && cleaned.length === 13) {
-    return `+91 ${cleaned.slice(3)}`;
-  }
-  if (cleaned.length === 10) {
-    return `+91 ${cleaned}`;
-  }
+  const digits = String(phone).replace(/\D/g, "");
+  const mobile = digits.startsWith("91") ? digits.slice(2, 12) : digits.slice(-10);
+  if (mobile.length === 10) return `+91-${mobile}`;
   return phone;
+}
+
+export function normalizePhoneInput(value: string | null | undefined): string {
+  const digits = String(value || "").replace(/\D/g, "");
+  const mobile = digits.startsWith("91") ? digits.slice(2, 12) : digits.slice(0, 10);
+  return `+91${mobile}`;
+}
+
+export function normalizePanNumber(value: string | null | undefined): string {
+  return String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 10);
+}
+
+export function normalizeGstinNumber(value: string | null | undefined): string {
+  return String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 15);
+}
+
+export function normalizeAddressInput(value: string | null | undefined): string {
+  const parts = String(value || "")
+    .replace(/\r?\n+/g, ",")
+    .split(",")
+    .map((p) => p.trim().replace(/\s+/g, " "))
+    .filter(Boolean);
+
+  if (parts.length >= 4) {
+    return [parts[0], parts[1], parts[2], parts.slice(3).join(" ")].filter(Boolean).join(", ");
+  }
+
+  return parts.join(", ");
 }

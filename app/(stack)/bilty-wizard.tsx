@@ -1,7 +1,13 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 import {
   Alert,
+  findNodeHandle,
+  Image,
+  Keyboard,
+  Platform,
+  PanResponder,
   ScrollView,
   StatusBar,
   Text,
@@ -10,15 +16,22 @@ import {
   View,
 } from "react-native";
 import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
+import { Ionicons } from "@expo/vector-icons";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import Svg, { Path, SvgXml } from "react-native-svg";
 
 import API from "../api/axiosInstance";
+import BottomSheet from "../../components/BottomSheet";
+import EditTripModal from "../../components/EditTripModal";
+import { DatePickerModal } from "../../components/DatePickerModal";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useBilty, type CompanyProfile } from "../../hooks/useBiltyModule";
+import { useUser } from "../../hooks/useUser";
 import useClients from "../../hooks/useClient";
 import useDrivers from "../../hooks/useDriver";
 import useLocations from "../../hooks/useLocation";
 import useTrucks from "../../hooks/useTruck";
+import { formatPhoneNumber, normalizeGstinNumber, normalizePanNumber, normalizePhoneInput } from "../../lib/utils";
 
 const escapeHtml = (value: string) =>
   value
@@ -27,6 +40,18 @@ const escapeHtml = (value: string) =>
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#039;");
+
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+const formatLrNumber = (value: string) => {
+  const cleaned = String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, "")
+    .replace(/^LR/, "")
+    .replace(/^-+/, "");
+  const digits = cleaned.replace(/\D/g, "");
+  if (!digits) return "LR-";
+  return `LR-${digits.slice(0, 6).padStart(3, "0")}`;
+};
 
 type PartyForm = {
   name: string;
@@ -38,6 +63,17 @@ type PartyForm = {
   pan: string;
   gstin_details?: any;
   party_id?: string;
+};
+
+type NewPartyForm = {
+  name: string;
+  phone: string;
+  address_line_1: string;
+  address_line_2: string;
+  state: string;
+  pincode: string;
+  gstin: string;
+  pan: string;
 };
 
 type GoodsRow = {
@@ -65,13 +101,84 @@ const toNumber = (value: string) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const UNIT_OPTIONS = ["Kgs", "Quintle", "Tonnes"] as const;
+const GST_PERCENTAGE_OPTIONS = ["0", "5", "18"] as const;
+
+const splitAddressFields = (address: string) => {
+  const text = String(address || "").trim();
+  if (!text) {
+    return {
+      address_line_1: "",
+      address_line_2: "",
+      state: "",
+      pincode: "",
+    };
+  }
+
+  const compact = text.replace(/\s+/g, " ").trim();
+  const pincodeMatch = compact.match(/(\d{6})(?!.*\d)/);
+  const pincode = pincodeMatch?.[1] || "";
+  const withoutPincode = pincode ? compact.replace(new RegExp(`${pincode}$`), "").trim().replace(/[,-]\s*$/, "") : compact;
+  const parts = withoutPincode
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  const state = parts.length > 0 ? parts[parts.length - 1] : "";
+  const line1 = parts.length > 0 ? parts[0] : withoutPincode;
+  const line2 = parts.length > 2 ? parts.slice(1, -1).join(", ") : parts.length === 2 ? "" : "";
+
+  return {
+    address_line_1: line1,
+    address_line_2: line2,
+    state,
+    pincode,
+  };
+};
+
+const buildCompanyAddress = (profile: Partial<CompanyProfile>) => {
+  const parts = [
+    profile.address_line_1,
+    profile.address_line_2,
+    profile.state,
+    profile.pincode,
+  ]
+    .map((x) => String(x || "").trim())
+    .filter(Boolean);
+  return parts.join(", ");
+};
+
+const normalizeCompanyProfile = (profile?: Partial<CompanyProfile>): CompanyProfile => {
+  const existingAddress = String(profile?.address || "").trim();
+  const split = splitAddressFields(existingAddress);
+  const merged: CompanyProfile = {
+    name: String(profile?.name || ""),
+    address: existingAddress,
+    address_line_1: String(profile?.address_line_1 || split.address_line_1 || ""),
+    address_line_2: String(profile?.address_line_2 || split.address_line_2 || ""),
+    state: String(profile?.state || split.state || ""),
+    pincode: String(profile?.pincode || split.pincode || ""),
+    logo_url: String(profile?.logo_url || ""),
+    phone: normalizePhoneInput(String(profile?.phone || "")),
+    pan: normalizePanNumber(String(profile?.pan || "")),
+    gstin: normalizeGstinNumber(String(profile?.gstin || "")),
+  };
+  return {
+    ...merged,
+    address: buildCompanyAddress(merged),
+  };
+};
+
 export default function BiltyWizardScreen() {
   const { tripId, biltyId } = useLocalSearchParams<{ tripId?: string; biltyId?: string }>();
   const router = useRouter();
   const { theme, colors } = useThemeStore();
   const isDark = theme === "dark";
+  const { user, uploadProfilePicture, refreshUser: refreshUserProfile } = useUser();
 
   const {
+    parties,
+    fetchParties,
     getBiltyById,
     createBilty,
     updateBilty,
@@ -79,9 +186,7 @@ export default function BiltyWizardScreen() {
     gstLookup,
     getCompanyProfile,
     updateCompanyProfile,
-    fetchParties,
     createParty,
-    getQuickFillData,
   } = useBilty();
   const { clients, fetchClients } = useClients();
   const { drivers, fetchDrivers } = useDrivers();
@@ -89,17 +194,33 @@ export default function BiltyWizardScreen() {
   const { locations, fetchLocations } = useLocations();
 
   const [loading, setLoading] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [step, setStep] = useState(1);
+  const [lrNumber, setLrNumber] = useState("LR-001");
+  const [partyEditorTarget, setPartyEditorTarget] = useState<"consignor" | "consignee" | null>(null);
+  const [partyClientSearch, setPartyClientSearch] = useState("");
+  const [isClientModalVisible, setIsClientModalVisible] = useState(false);
+  const [isTripPreviewModalVisible, setIsTripPreviewModalVisible] = useState(false);
+  const [isTripDetailsModalVisible, setIsTripDetailsModalVisible] = useState(false);
+  const [isInsuranceModalVisible, setIsInsuranceModalVisible] = useState(false);
+  const [isSignaturePadVisible, setIsSignaturePadVisible] = useState(false);
+  const [isGoodsModalVisible, setIsGoodsModalVisible] = useState(false);
+  const [isUnitDropdownVisible, setIsUnitDropdownVisible] = useState(false);
+  const [editingGoodsIndex, setEditingGoodsIndex] = useState<number>(0);
+  const [showLrDatePicker, setShowLrDatePicker] = useState(false);
+  const [lrDatePickerValue, setLrDatePickerValue] = useState<Date>(new Date());
+  const [showInsuranceDatePicker, setShowInsuranceDatePicker] = useState(false);
+  const [insuranceExpiryDate, setInsuranceExpiryDate] = useState<Date>(new Date());
+  const [signaturePaths, setSignaturePaths] = useState<string[]>([]);
+  const [activeSignaturePath, setActiveSignaturePath] = useState("");
+  const [signaturePadSize, setSignaturePadSize] = useState({ width: 0, height: 0 });
+  const signaturePathRef = useRef("");
+  const wizardScrollRef = useRef<any>(null);
+  const [linkedTrip, setLinkedTrip] = useState<any>(null);
+  const [partyDraft, setPartyDraft] = useState<PartyForm>({ ...emptyParty });
   const [generatedId, setGeneratedId] = useState<string>(String(biltyId || ""));
-  const [lastPdfUri, setLastPdfUri] = useState<string>("");
 
-  const [companyProfile, setCompanyProfile] = useState<CompanyProfile>({
-    name: "",
-    address: "",
-    phone: "",
-    pan: "",
-    gstin: "",
-  });
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(normalizeCompanyProfile());
 
   const [consignor, setConsignor] = useState<PartyForm>({ ...emptyParty });
   const [consignee, setConsignee] = useState<PartyForm>({ ...emptyParty });
@@ -121,7 +242,7 @@ export default function BiltyWizardScreen() {
       sr_no: 1,
       description: "",
       quantity: "",
-      unit: "Nos",
+      unit: "Tonnes",
       actual_weight: "",
       rate: "",
       total: "",
@@ -139,9 +260,29 @@ export default function BiltyWizardScreen() {
   });
 
   const [paymentType, setPaymentType] = useState<"to_pay" | "paid" | "billed">("to_pay");
+  const [freightPaidBy, setFreightPaidBy] = useState<"consignor" | "consignee">("consignor");
+  const [gstPaidBy, setGstPaidBy] = useState<"consignor" | "consignee">("consignor");
+  const [gstPercentage, setGstPercentage] = useState<"0" | "5" | "18">("0");
+  const [gstType, setGstType] = useState<"gst" | "igst">("gst");
+  const [insurance, setInsurance] = useState({
+    policy_number: "",
+    insurer_name: "",
+    coverage_amount: "",
+    expiry_date: "",
+  });
+  const [signatureUrl, setSignatureUrl] = useState("");
   const [notes, setNotes] = useState("");
 
-  const [partyLibrary, setPartyLibrary] = useState<any[]>([]);
+  const [newPartyForm, setNewPartyForm] = useState<NewPartyForm>({
+    name: "",
+    phone: "",
+    address_line_1: "",
+    address_line_2: "",
+    state: "",
+    pincode: "",
+    gstin: "",
+    pan: "",
+  });
 
   const stepTitle = useMemo(() => {
     return [
@@ -152,32 +293,16 @@ export default function BiltyWizardScreen() {
     ][step - 1];
   }, [step]);
 
-  const recalcCharges = (next: any) => {
-    const freight = toNumber(next.freight);
-    const loadingAmt = toNumber(next.loading);
-    const unloadingAmt = toNumber(next.unloading);
-    const otherAmt = toNumber(next.other);
-    const total = freight + loadingAmt + unloadingAmt + otherAmt;
-    const advance = toNumber(next.advance);
-    const balance = total - advance;
-
-    return {
-      ...next,
-      total: total ? String(total) : "",
-      balance: balance ? String(balance) : "0",
-    };
-  };
-
   const mapPartyFromGST = (result: any): PartyForm => {
     const data = result?.data || result || {};
     return {
       name: data.trade_name_of_business || data.legal_name_of_business || "",
       contact_person: "",
-      phone: data.primary_mobile || "",
+      phone: normalizePhoneInput(data.primary_mobile || ""),
       email: data.primary_email || "",
       address: data.principal_place_address || "",
-      gstin: data.gstin || data.GSTIN || "",
-      pan: data.pan_number || "",
+      gstin: normalizeGstinNumber(data.gstin || data.GSTIN || ""),
+      pan: normalizePanNumber(data.pan_number || ""),
       gstin_details: data,
     };
   };
@@ -185,19 +310,15 @@ export default function BiltyWizardScreen() {
   const loadInitial = async () => {
     try {
       setLoading(true);
-      await Promise.all([fetchClients(), fetchDrivers(), fetchTrucks(), fetchLocations()]);
+      await Promise.all([fetchClients(), fetchDrivers(), fetchTrucks(), fetchLocations(), fetchParties()]);
 
-      const [profile, parties, quickFill] = await Promise.all([
-        getCompanyProfile(),
-        fetchParties(),
-        getQuickFillData(),
-      ]);
+      const profile = await getCompanyProfile();
 
-      setCompanyProfile(profile);
-      setPartyLibrary([...(parties || []), ...(quickFill.recent_parties || [])]);
+      setCompanyProfile(normalizeCompanyProfile(profile));
 
       if (tripId) {
         const trip = (await API.get(`/api/trips/${tripId}`)).data;
+        setLinkedTrip(trip);
         const getLocationName = (value: any) => {
           const id = typeof value === "object" ? value?._id : value;
           const found = locations.find((l) => String(l._id) === String(id));
@@ -247,6 +368,7 @@ export default function BiltyWizardScreen() {
       if (biltyId) {
         const existing = await getBiltyById(String(biltyId));
         setGeneratedId(String(existing._id));
+        setLrNumber(String((existing as any)?.bilty_number || "LR-001"));
         setConsignor({ ...emptyParty, ...(existing.consignor as any) });
         setConsignee({ ...emptyParty, ...(existing.consignee as any) });
         setShipment((prev) => ({
@@ -278,7 +400,35 @@ export default function BiltyWizardScreen() {
           balance: String(existing.charges?.balance || ""),
         });
         setPaymentType(existing.payment_type || "to_pay");
+        setGstPaidBy(((existing as any)?.gst_paid_by === "consignee" ? "consignee" : "consignor"));
+        setGstPercentage(((["0", "5", "18"] as const).includes(String((existing as any)?.gst_percentage || "0") as any)
+          ? String((existing as any)?.gst_percentage || "0")
+          : "0") as "0" | "5" | "18");
+        setGstType(((existing as any)?.gst_type === "igst" ? "igst" : "gst"));
+        setInsurance({
+          policy_number: String((existing as any)?.insurance?.policy_number || ""),
+          insurer_name: String((existing as any)?.insurance?.insurer_name || ""),
+          coverage_amount: String((existing as any)?.insurance?.coverage_amount || ""),
+          expiry_date: String((existing as any)?.insurance?.expiry_date || "").split("T")[0],
+        });
+        const parsedExpiry = String((existing as any)?.insurance?.expiry_date || "");
+        const expiry = parsedExpiry ? new Date(parsedExpiry) : new Date();
+        if (!isNaN(expiry.getTime())) setInsuranceExpiryDate(expiry);
+        setSignatureUrl(String((existing as any)?.signature_url || ""));
         setNotes(existing.notes || "");
+      } else {
+        try {
+          const all = await API.get("/api/bilties");
+          const maxSeq = (all?.data || []).reduce((acc: number, item: any) => {
+            const m = String(item?.bilty_number || "").match(/^LR-(\d+)$/i);
+            if (!m) return acc;
+            const seq = Number(m[1]);
+            return Number.isFinite(seq) && seq > acc ? seq : acc;
+          }, 0);
+          setLrNumber(`LR-${String(maxSeq + 1).padStart(3, "0")}`);
+        } catch {
+          setLrNumber("LR-001");
+        }
       }
     } catch (err: any) {
       Alert.alert("Error", err?.response?.data?.error || "Failed to load bilty wizard");
@@ -292,75 +442,67 @@ export default function BiltyWizardScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId, biltyId]);
 
-  const applyClientQuickFill = (target: "consignor" | "consignee", client: any) => {
-    const payload: PartyForm = {
-      ...emptyParty,
-      name: client.client_name || "",
-      contact_person: client.contact_person_name || "",
-      phone: client.contact_number || "",
-      email: client.email_address || "",
-      address: client.office_address || "",
-      gstin: client.gstin || "",
-      gstin_details: client.gstin_details,
-    };
-    if (target === "consignor") setConsignor(payload);
-    else setConsignee(payload);
+  const mapStoredPartyToForm = (party: any): PartyForm => ({
+    ...emptyParty,
+    party_id: String(party?._id || ""),
+    name: String(party?.name || ""),
+    contact_person: String(party?.contact_person || ""),
+    phone: normalizePhoneInput(String(party?.phone || "")),
+    email: String(party?.email || ""),
+    address: String(party?.address || ""),
+    gstin: normalizeGstinNumber(String(party?.gstin || "")),
+    pan: normalizePanNumber(String(party?.pan || "")),
+    gstin_details: party?.gstin_details,
+  });
+
+  const openCreateClient = () => {
+    setNewPartyForm({
+      name: "",
+      phone: "",
+      address_line_1: "",
+      address_line_2: "",
+      state: "",
+      pincode: "",
+      gstin: "",
+      pan: "",
+    });
+    setIsClientModalVisible(true);
   };
 
-  const applyPartyQuickFill = (target: "consignor" | "consignee", party: any) => {
-    const payload: PartyForm = {
-      ...emptyParty,
-      party_id: String(party._id || ""),
-      name: party.name || "",
-      contact_person: party.contact_person || "",
-      phone: party.phone || "",
-      email: party.email || "",
-      address: party.address || "",
-      gstin: party.gstin || "",
-      pan: party.pan || "",
-      gstin_details: party.gstin_details,
-    };
-    if (target === "consignor") setConsignor(payload);
-    else setConsignee(payload);
+  const openPartyEditor = (target: "consignor" | "consignee") => {
+    const current = target === "consignor" ? consignor : consignee;
+    void fetchParties();
+    setPartyDraft({ ...emptyParty, ...current });
+    setPartyEditorTarget(target);
   };
 
-  const fetchPartyFromGST = async (target: "consignor" | "consignee") => {
-    const gstin = target === "consignor" ? consignor.gstin : consignee.gstin;
-    if (!gstin || gstin.length < 15) {
-      Alert.alert("Invalid GSTIN", "Please enter a valid GSTIN.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const result = await gstLookup(gstin);
-      const mapped = mapPartyFromGST(result);
-      if (target === "consignor") setConsignor((prev) => ({ ...prev, ...mapped }));
-      else setConsignee((prev) => ({ ...prev, ...mapped }));
-      Alert.alert("GST fetched", "Details fetched successfully. You can edit before saving.");
-    } catch (err: any) {
-      Alert.alert("Lookup failed", err?.response?.data?.message || "Unable to fetch GST details.");
-    } finally {
-      setLoading(false);
-    }
+  const closePartyEditor = () => {
+    setPartyEditorTarget(null);
+    setPartyClientSearch("");
+    setPartyDraft({ ...emptyParty });
   };
 
   const ensurePartySaved = async (party: PartyForm, type: "consignor" | "consignee") => {
     if (party.party_id) return party.party_id;
     if (!party.name) return undefined;
-    const saved = await createParty({
-      type,
-      name: party.name,
-      contact_person: party.contact_person,
-      phone: party.phone,
-      email: party.email,
-      address: party.address,
-      gstin: party.gstin,
-      pan: party.pan,
-      gstin_details: party.gstin_details,
-      quick_fill_source: "manual",
-    });
-    return String(saved._id || "");
+    try {
+      const saved = await createParty({
+        type: "both",
+        name: party.name,
+        contact_person: party.contact_person,
+        phone: party.phone,
+        email: party.email,
+        address: party.address,
+        gstin: party.gstin,
+        pan: party.pan,
+        gstin_details: party.gstin_details,
+        quick_fill_source: "manual",
+      });
+      return String(saved._id || "");
+    } catch {
+      // Party save failure should not block bilty generation.
+      return undefined;
+    }
   };
 
   const buildPayload = async (status: "draft" | "generated") => {
@@ -369,6 +511,8 @@ export default function BiltyWizardScreen() {
 
     return {
       trip: tripId ? String(tripId) : undefined,
+      bilty_number: lrNumber,
+      bilty_date: shipment.shipment_date,
       status,
       consignor_party: consignorId,
       consignee_party: consigneeId,
@@ -414,6 +558,16 @@ export default function BiltyWizardScreen() {
         balance: toNumber(charges.balance),
       },
       payment_type: paymentType,
+      gst_paid_by: gstPaidBy,
+      gst_percentage: toNumber(gstPercentage),
+      gst_type: gstType,
+      insurance: {
+        policy_number: insurance.policy_number,
+        insurer_name: insurance.insurer_name,
+        coverage_amount: toNumber(insurance.coverage_amount),
+        expiry_date: insurance.expiry_date || undefined,
+      },
+      signature_url: signatureUrl || undefined,
       notes,
     };
   };
@@ -422,7 +576,8 @@ export default function BiltyWizardScreen() {
     const partyName = companyProfile.name || "TRUCKSARTHI";
     const partyGstin = companyProfile.gstin || "-";
     const partyAddress = companyProfile.address || "-";
-    const partyPhone = companyProfile.phone || "-";
+    const partyPhone = companyProfile.phone ? formatPhoneNumber(companyProfile.phone) : "-";
+    const partyLogo = companyProfile.logo_url || "";
     const lrNo = doc?.bilty_number || String(doc?._id || "-").slice(-8).toUpperCase();
     const lrDate = String(doc?.bilty_date || new Date()).split("T")[0];
 
@@ -434,7 +589,7 @@ export default function BiltyWizardScreen() {
         <div class="copy-pill">${escapeHtml(copyLabel)}</div>
         <div class="sheet">
           <div class="header">
-            <div class="logo-box">TS</div>
+            ${partyLogo ? `<img class="logo-box logo-image" src="${escapeHtml(partyLogo)}" />` : `<div class="logo-box">TS</div>`}
             <div class="company-center">
               <div class="brand">${escapeHtml(partyName)}</div>
               <div class="sub">${escapeHtml(partyAddress)}</div>
@@ -447,7 +602,10 @@ export default function BiltyWizardScreen() {
 
           <div class="top-grid">
             <div class="box"><div class="box-title">Freight Paid By</div><div>${escapeHtml(doc?.payment_type || "to_pay")}</div></div>
-            <div class="box"><div class="box-title">Insurance</div><div>The consignor has not insured the consignment.</div></div>
+            <div class="box"><div class="box-title">GST Paid By</div><div>${escapeHtml(doc?.gst_paid_by || "consignor")}</div></div>
+            <div class="box"><div class="box-title">GST %</div><div>${escapeHtml(String(doc?.gst_percentage ?? 0))}%</div></div>
+            <div class="box"><div class="box-title">GST Type</div><div>${escapeHtml((doc?.gst_type || "gst") === "igst" ? "IGST" : "CGST + SGST")}</div></div>
+            <div class="box"><div class="box-title">Insurance</div><div>${doc?.insurance?.policy_number ? `${escapeHtml(doc?.insurance?.insurer_name || "-")} • ${escapeHtml(doc?.insurance?.policy_number || "-")}` : "Not insured"}</div><div>${doc?.insurance?.coverage_amount ? `Coverage: Rs ${money(doc?.insurance?.coverage_amount || 0)}` : ""}</div></div>
             <div class="box"><div class="box-title">LR Details</div><div><strong>LR No:</strong> ${escapeHtml(lrNo)}</div><div><strong>Date:</strong> ${escapeHtml(lrDate)}</div></div>
           </div>
 
@@ -470,7 +628,7 @@ export default function BiltyWizardScreen() {
           <div class="amount-line"><strong>To Pay:</strong> Rs ${money(doc?.charges?.balance || 0)}</div>
           <div class="warning">Company is not responsible for leakages & thefts</div>
 
-          <div class="footer-grid"><div class="terms"><div class="line-title">Terms & Conditions</div><div>1. This is a digitally generated Bilty/LR copy.</div></div><div class="signature"><div>Certified that the particulars given above are true and correct.</div><div style="margin-top:20px;"><strong>For, ${escapeHtml(partyName)}</strong></div><div class="sign-line">Signature</div></div></div>
+          <div class="footer-grid"><div class="terms"><div class="line-title">Terms & Conditions</div><div>1. This is a digitally generated Bilty/LR copy.</div></div><div class="signature"><div>Certified that the particulars given above are true and correct.</div><div style="margin-top:20px;"><strong>For, ${escapeHtml(partyName)}</strong></div>${doc?.signature_url ? `<img src="${escapeHtml(doc.signature_url)}" style="height:40px; margin-top:8px; object-fit:contain;" />` : ""}<div class="sign-line">Signature</div></div></div>
         </div>
       </div>
     `;
@@ -485,6 +643,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 .sheet { border: 2px solid #111; padding: 10px; }
 .header { display: grid; grid-template-columns: 60px 1fr 220px; gap: 10px; align-items: center; border-bottom: 1px solid #111; padding-bottom: 8px; }
 .logo-box { width: 52px; height: 52px; border: 1px solid #111; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+.logo-image { object-fit: cover; }
 .company-center { text-align: center; }
 .brand { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
 .sub { font-size: 9px; color: #333; margin-top: 4px; }
@@ -512,31 +671,217 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 </style></head><body>${buildCopyPage("Consignor LR")}<div class="page-break"></div>${buildCopyPage("Consignee LR")}</body></html>`;
   };
 
-  const openPdfPreview = async (doc: any) => {
+  const createPdfUri = async (doc: any) => {
     const html = buildBiltyHtml(doc);
     const { uri } = await Print.printToFileAsync({ html });
-    setLastPdfUri(uri);
-    router.push({ pathname: "/(stack)/pdf-viewer", params: { uri, title: "LR Preview" } } as any);
+    return uri;
   };
 
-  const handleSaveCompanyProfile = async () => {
+  const persistCompanyProfile = async (showSuccess = false) => {
     try {
       setLoading(true);
-      const updated = await updateCompanyProfile(companyProfile);
-      setCompanyProfile(updated);
-      Alert.alert("Saved", "Company profile saved.");
+      const payload = {
+        ...companyProfile,
+        address: buildCompanyAddress(companyProfile),
+        logo_url: companyProfile.logo_url || "",
+      };
+      const updated = await updateCompanyProfile(payload);
+      setCompanyProfile(normalizeCompanyProfile(updated));
+      if (showSuccess) {
+        Alert.alert("Saved", "Company profile saved.");
+      }
+      return true;
     } catch {
       // handled in hook
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchCompanyProfileFromGST = async () => {
+    if (!companyProfile.gstin || companyProfile.gstin.length < 15) {
+      Alert.alert("Invalid GSTIN", "Please enter a valid GSTIN.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await gstLookup(companyProfile.gstin, companyProfile.name);
+      const mapped = mapPartyFromGST(result);
+      const split = splitAddressFields(mapped.address || "");
+      setCompanyProfile((prev) => {
+        const next: CompanyProfile = {
+          ...prev,
+          name: mapped.name || prev.name,
+          phone: mapped.phone || prev.phone,
+          pan: mapped.pan || prev.pan,
+          gstin: mapped.gstin || prev.gstin,
+          address_line_1: split.address_line_1 || prev.address_line_1 || "",
+          address_line_2: split.address_line_2 || prev.address_line_2 || "",
+          state:
+            String(mapped.gstin_details?.state_name || split.state || prev.state || ""),
+          pincode:
+            String(mapped.gstin_details?.pincode || split.pincode || prev.pincode || ""),
+          address: prev.address,
+        };
+        return {
+          ...next,
+          address: buildCompanyAddress(next),
+        };
+      });
+      Alert.alert("GST fetched", "Company details fetched successfully.");
+    } catch (err: any) {
+      Alert.alert("GST fetch failed", err?.response?.data?.message || "Unable to fetch GST details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const useCompanyProfilePicture = () => {
+    const profilePic = String(user?.profile_picture_url || "").trim();
+    if (!profilePic) {
+      Alert.alert("No profile picture", "Please upload your company profile picture first.");
+      return;
+    }
+    setCompanyProfile((prev) => ({ ...prev, logo_url: profilePic }));
+  };
+
+  const handleUploadCompanyLogo = async () => {
+    try {
+      const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!granted) {
+        Alert.alert("Permission required", "Please allow photo access to upload logo.");
+        return;
+      }
+
+      const res = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (res.canceled || !res.assets?.length) return;
+
+      setLoading(true);
+      const file = res.assets[0];
+      const uploaded = await uploadProfilePicture(file);
+      const logoUrl = String(uploaded?.file_url || uploaded?.profile_picture_url || file.uri);
+
+      setCompanyProfile((prev) => ({ ...prev, logo_url: logoUrl }));
+      await refreshUserProfile();
+    } catch {
+      Alert.alert("Upload failed", "Unable to upload logo right now.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUploadSignature = async () => {
+    try {
+      const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!granted) {
+        Alert.alert("Permission required", "Please allow photo access to upload signature.");
+        return;
+      }
+
+      const res = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (res.canceled || !res.assets?.length) return;
+
+      setLoading(true);
+      const file = res.assets[0];
+      const uploaded = await uploadProfilePicture(file);
+      const url = String(uploaded?.file_url || uploaded?.profile_picture_url || file.uri);
+      setSignatureUrl(url);
+    } catch {
+      Alert.alert("Upload failed", "Unable to upload signature right now.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearSignatureCanvas = () => {
+    signaturePathRef.current = "";
+    setActiveSignaturePath("");
+    setSignaturePaths([]);
+  };
+
+  const signaturePanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderGrant: (evt) => {
+          const x = clamp(evt.nativeEvent.locationX, 0, Math.max(signaturePadSize.width, 1));
+          const y = clamp(evt.nativeEvent.locationY, 0, Math.max(signaturePadSize.height, 1));
+          const startPath = `M ${x.toFixed(1)} ${y.toFixed(1)}`;
+          signaturePathRef.current = startPath;
+          setActiveSignaturePath(startPath);
+        },
+        onPanResponderMove: (evt) => {
+          if (!signaturePathRef.current) return;
+          const x = clamp(evt.nativeEvent.locationX, 0, Math.max(signaturePadSize.width, 1));
+          const y = clamp(evt.nativeEvent.locationY, 0, Math.max(signaturePadSize.height, 1));
+          const nextPath = `${signaturePathRef.current} L ${x.toFixed(1)} ${y.toFixed(1)}`;
+          signaturePathRef.current = nextPath;
+          setActiveSignaturePath(nextPath);
+        },
+        onPanResponderRelease: () => {
+          if (!signaturePathRef.current) return;
+          setSignaturePaths((prev) => [...prev, signaturePathRef.current]);
+          signaturePathRef.current = "";
+          setActiveSignaturePath("");
+        },
+        onPanResponderTerminate: () => {
+          if (!signaturePathRef.current) return;
+          setSignaturePaths((prev) => [...prev, signaturePathRef.current]);
+          signaturePathRef.current = "";
+          setActiveSignaturePath("");
+        },
+      }),
+    [signaturePadSize.height, signaturePadSize.width]
+  );
+
+  const saveDrawnSignature = () => {
+    const allPaths = [...signaturePaths, activeSignaturePath].filter(Boolean);
+    if (!allPaths.length) {
+      Alert.alert("No signature", "Please draw your signature first.");
+      return;
+    }
+
+    const width = Math.max(300, Math.round(signaturePadSize.width || 320));
+    const height = Math.max(120, Math.round(signaturePadSize.height || 150));
+    const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="white"/>${allPaths
+      .map((d) => `<path d="${d}" stroke="#111827" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`)
+      .join("")}</svg>`;
+    const dataUri = `data:image/svg+xml;utf8,${encodeURIComponent(svgMarkup)}`;
+
+    setSignatureUrl(dataUri);
+    setIsSignaturePadVisible(false);
+    clearSignatureCanvas();
+  };
+
+  const isSvgSignature = signatureUrl.startsWith("data:image/svg+xml");
+  const signatureSvgXml = isSvgSignature ? decodeURIComponent(signatureUrl.split(",").slice(1).join(",")) : "";
+
   const handleSaveDraft = async () => {
     try {
       setLoading(true);
       const payload = await buildPayload("draft");
-      const saved = generatedId ? await saveDraft(payload as any, generatedId) : await saveDraft(payload as any);
+      let saved: any;
+      try {
+        saved = generatedId ? await saveDraft(payload as any, generatedId) : await saveDraft(payload as any);
+      } catch {
+        // Fallback to create if update path fails.
+        saved = await createBilty(payload as any);
+      }
       setGeneratedId(String((saved as any)?._id || generatedId));
       Alert.alert("Draft saved", "Your bilty draft has been saved.");
     } catch {
@@ -547,20 +892,38 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
   };
 
   const handleGenerate = async () => {
-    if (!consignor.name || !consignee.name) {
-      Alert.alert("Missing details", "Consignor and consignee names are required.");
-      return;
-    }
-
     try {
       setLoading(true);
       const payload = await buildPayload("generated");
-      const saved = generatedId
-        ? await updateBilty(generatedId, payload as any)
-        : await createBilty(payload as any);
+      let saved: any;
+      try {
+        saved = generatedId
+          ? await updateBilty(generatedId, payload as any)
+          : await createBilty(payload as any);
+      } catch {
+        // If update/create path fails transiently, force create so generation can proceed.
+        saved = await createBilty(payload as any);
+      }
 
-      setGeneratedId(String((saved as any)?._id || generatedId));
-      await openPdfPreview(saved);
+      const nextGeneratedId = String((saved as any)?._id || generatedId || "");
+      setGeneratedId(nextGeneratedId);
+
+      let generatedPdfUri = "";
+      try {
+        generatedPdfUri = await createPdfUri(saved);
+      } catch {
+        generatedPdfUri = "";
+      }
+
+      router.replace({
+        pathname: "/(stack)/bilty-generated",
+        params: {
+          biltyId: nextGeneratedId,
+          biltyNumber: String(saved?.bilty_number || ""),
+          tripId: String(tripId || ""),
+          uri: generatedPdfUri,
+        },
+      } as any);
     } catch {
       // handled
     } finally {
@@ -568,24 +931,24 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
     }
   };
 
-  const handleShareDownload = async () => {
-    try {
-      let uri = lastPdfUri;
-      if (!uri && generatedId) {
-        const doc = await getBiltyById(generatedId);
-        const html = buildBiltyHtml(doc);
-        const result = await Print.printToFileAsync({ html });
-        uri = result.uri;
-        setLastPdfUri(uri);
-      }
-      if (!uri) {
-        Alert.alert("No PDF", "Generate bilty first.");
+  const handleNext = async () => {
+    if (step === 1) {
+      const saved = await persistCompanyProfile();
+      if (!saved) return;
+    }
+
+    if (step === 2) {
+      if (!shipment.shipment_date) {
+        Alert.alert("Missing Date", "LR date is required.");
         return;
       }
-      await Sharing.shareAsync(uri);
-    } catch (err: any) {
-      Alert.alert("Error", err?.message || "Failed to share/download");
+      if (!lrNumber || !/^LR-\d{3,}$/.test(String(lrNumber).toUpperCase())) {
+        Alert.alert("Invalid LR Number", "Please enter a valid LR number (example: LR-001).");
+        return;
+      }
     }
+
+    setStep((prev) => Math.min(4, prev + 1));
   };
 
   const updateGoodsRow = (idx: number, key: keyof GoodsRow, value: string) => {
@@ -602,85 +965,155 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
   const inputStyle = {
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: isDark ? colors.card : colors.secondary + "10",
+    backgroundColor: isDark ? colors.input : "#FFFFFF",
     color: colors.foreground,
     borderRadius: 12,
     paddingHorizontal: 12,
-    height: 44,
+    height: 50,
     marginBottom: 10,
   } as const;
 
   const cardStyle = {
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.card,
+    backgroundColor: isDark ? colors.card : "#FFFFFF",
     borderRadius: 14,
     padding: 12,
     marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: isDark ? 0 : 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: isDark ? 0 : 2,
   } as const;
 
-  const renderPartyStep = (target: "consignor" | "consignee") => {
-    const party = target === "consignor" ? consignor : consignee;
-    const setParty = target === "consignor" ? setConsignor : setConsignee;
+  const renderPartyCard = (label: string, party: PartyForm, target: "consignor" | "consignee") => {
+    const hasData = Boolean(party.name || party.phone || party.gstin);
     return (
-      <>
-        <TextInput
-          placeholder="GSTIN"
-          placeholderTextColor={colors.mutedForeground}
-          value={party.gstin}
-          onChangeText={(text) => setParty((prev) => ({ ...prev, gstin: text.toUpperCase() }))}
-          style={inputStyle}
-          autoCapitalize="characters"
-        />
-        <TouchableOpacity
-          onPress={() => fetchPartyFromGST(target)}
-          style={{ backgroundColor: colors.primary, paddingVertical: 10, borderRadius: 10, alignItems: "center", marginBottom: 12 }}
-        >
-          <Text style={{ color: colors.primaryForeground, fontWeight: "800" }}>Fetch by GSTIN</Text>
-        </TouchableOpacity>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
-          {clients.slice(0, 20).map((client) => (
-            <TouchableOpacity
-              key={`client-${client._id}`}
-              onPress={() => applyClientQuickFill(target, client)}
-              style={{ paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.successSoft, marginRight: 8 }}
-            >
-              <Text style={{ color: colors.primary, fontWeight: "700" }}>Client: {client.client_name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-          {partyLibrary.slice(0, 30).map((p: any) => (
-            <TouchableOpacity
-              key={`party-${p._id}`}
-              onPress={() => applyPartyQuickFill(target, p)}
-              style={{ paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: colors.border, marginRight: 8 }}
-            >
-              <Text style={{ color: colors.foreground, fontWeight: "600" }}>{p.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        <TextInput placeholder="Name" placeholderTextColor={colors.mutedForeground} value={party.name} onChangeText={(text) => setParty((prev) => ({ ...prev, name: text }))} style={inputStyle} />
-        <TextInput placeholder="Contact Person" placeholderTextColor={colors.mutedForeground} value={party.contact_person} onChangeText={(text) => setParty((prev) => ({ ...prev, contact_person: text }))} style={inputStyle} />
-        <TextInput placeholder="Phone" placeholderTextColor={colors.mutedForeground} value={party.phone} onChangeText={(text) => setParty((prev) => ({ ...prev, phone: text }))} style={inputStyle} keyboardType="phone-pad" />
-        <TextInput placeholder="Email" placeholderTextColor={colors.mutedForeground} value={party.email} onChangeText={(text) => setParty((prev) => ({ ...prev, email: text }))} style={inputStyle} keyboardType="email-address" />
-        <TextInput placeholder="Address" placeholderTextColor={colors.mutedForeground} value={party.address} onChangeText={(text) => setParty((prev) => ({ ...prev, address: text }))} style={[inputStyle, { height: 70, textAlignVertical: "top", paddingTop: 10 }]} multiline />
-        <TextInput placeholder="PAN" placeholderTextColor={colors.mutedForeground} value={party.pan} onChangeText={(text) => setParty((prev) => ({ ...prev, pan: text.toUpperCase() }))} style={inputStyle} autoCapitalize="characters" />
-      </>
+      <TouchableOpacity
+        onPress={() => openPartyEditor(target)}
+        style={{
+          borderWidth: 1,
+          borderStyle: "dashed",
+          borderColor: colors.border,
+          borderRadius: 14,
+          minHeight: 106,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          justifyContent: "center",
+          backgroundColor: isDark ? colors.card : "#FFFFFF",
+          marginBottom: 14,
+        }}
+      >
+        {hasData ? (
+          <>
+            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 16, marginBottom: 4 }}>{party.name || "-"}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Contact: {party.contact_person || "-"}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Phone: {party.phone ? formatPhoneNumber(party.phone) : "-"}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Email: {party.email || "-"}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>GSTIN: {party.gstin || "-"}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>PAN: {party.pan || "-"}</Text>
+          </>
+        ) : (
+          <Text style={{ color: "#111111", fontWeight: "700", textAlign: "center", fontSize: 20 }}>
+            + <Text style={{ fontSize: 22 }}> </Text>Add {label}
+          </Text>
+        )}
+      </TouchableOpacity>
     );
+  };
+
+  const getId = (obj: any) => (typeof obj === "object" ? obj?._id : obj);
+  const getLocationNameById = (value: any) => {
+    const id = getId(value);
+    const found = locations.find((l: any) => String(l._id) === String(id));
+    return found?.location_name || (typeof value === "object" ? value?.location_name : "") || "";
+  };
+  const getTruckNameById = (value: any) => {
+    const id = getId(value);
+    const found = trucks.find((t: any) => String(t._id) === String(id));
+    return found?.registration_number || (typeof value === "object" ? value?.registration_number : "") || "";
+  };
+  const getDriverNameById = (value: any) => {
+    const id = getId(value);
+    const found = drivers.find((d: any) => String(d._id) === String(id));
+    return found?.driver_name || found?.name || (typeof value === "object" ? value?.driver_name || value?.name : "") || "";
+  };
+  const getClientNameById = (value: any) => {
+    const id = getId(value);
+    const found = clients.find((c: any) => String(c._id) === String(id));
+    return found?.client_name || (typeof value === "object" ? value?.client_name : "") || "";
+  };
+
+  const previewTripCard = {
+    date: linkedTrip?.trip_date ? String(linkedTrip.trip_date).split("T")[0] : shipment.shipment_date,
+    totalCost: Number(charges.freight || 0) + Number(charges.other || 0),
+    start: linkedTrip ? getLocationNameById(linkedTrip.start_location) : shipment.from_location,
+    end: linkedTrip ? getLocationNameById(linkedTrip.end_location) : shipment.to_location,
+    client: linkedTrip ? getClientNameById(linkedTrip.client) : (consignee.name || ""),
+    truck: linkedTrip ? getTruckNameById(linkedTrip.truck) : shipment.vehicle_number,
+    driver: linkedTrip ? getDriverNameById(linkedTrip.driver) : shipment.driver_name,
+    tripCost: Number(charges.freight || 0),
+    misc: Number(charges.other || 0),
+    notes: String(linkedTrip?.notes || ""),
+    publicId: String(linkedTrip?.public_id || ""),
   };
 
   const canGoNext = step < 4;
   const canGoBack = step > 1;
 
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    const openingOverlay = Boolean(
+      partyEditorTarget ||
+        isClientModalVisible ||
+        isTripPreviewModalVisible ||
+        isTripDetailsModalVisible ||
+        isInsuranceModalVisible ||
+        isSignaturePadVisible ||
+        isGoodsModalVisible ||
+        showLrDatePicker ||
+        showInsuranceDatePicker
+    );
+
+    if (openingOverlay) Keyboard.dismiss();
+  }, [
+    partyEditorTarget,
+    isClientModalVisible,
+    isTripPreviewModalVisible,
+    isTripDetailsModalVisible,
+    isInsuranceModalVisible,
+    isSignaturePadVisible,
+    isGoodsModalVisible,
+    showLrDatePicker,
+    showInsuranceDatePicker,
+  ]);
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: isDark ? colors.background : "#F4F6F9" }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+      <KeyboardAwareScrollView
+        ref={wizardScrollRef}
+        enableOnAndroid
+        enableAutomaticScroll
+        extraScrollHeight={Platform.OS === "ios" ? 28 : 86}
+        contentContainerStyle={{ padding: 16, paddingBottom: keyboardVisible ? 24 : 120 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+      >
         <Text style={{ color: colors.primary, fontWeight: "900", fontSize: 12, marginBottom: 4 }}>Step {step} of 4</Text>
         <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 22, marginBottom: 14 }}>{stepTitle}</Text>
         <View style={{ height: 4, borderRadius: 999, backgroundColor: isDark ? colors.input : "#E7EAEE", marginBottom: 14 }}>
@@ -695,174 +1128,565 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
         </View>
 
         {step === 1 && (
-          <View style={cardStyle}>
-            <TextInput placeholder="GSTIN" placeholderTextColor={colors.mutedForeground} value={companyProfile.gstin} onChangeText={(text) => setCompanyProfile((prev) => ({ ...prev, gstin: text.toUpperCase() }))} style={inputStyle} autoCapitalize="characters" />
+          <>
+          <View style={{ alignItems: "center", marginBottom: 12 }}>
             <TouchableOpacity
-              onPress={async () => {
-                if (!companyProfile.gstin) return;
-                try {
-                  setLoading(true);
-                  const result = await gstLookup(companyProfile.gstin, companyProfile.name);
-                  const mapped = mapPartyFromGST(result);
-                  setCompanyProfile((prev) => ({
-                    ...prev,
-                    name: mapped.name,
-                    address: mapped.address,
-                    phone: mapped.phone,
-                    pan: mapped.pan,
-                    gstin: mapped.gstin || prev.gstin,
-                  }));
-                } catch (err: any) {
-                  Alert.alert("GST fetch failed", err?.response?.data?.message || "Unable to fetch GST details.");
-                } finally {
-                  setLoading(false);
-                }
+              onPress={handleUploadCompanyLogo}
+              disabled={loading}
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 48,
+                backgroundColor: colors.muted,
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                marginBottom: 10,
               }}
-              style={{ backgroundColor: colors.primary, paddingVertical: 10, borderRadius: 10, alignItems: "center", marginBottom: 12 }}
             >
-              <Text style={{ color: colors.primaryForeground, fontWeight: "800" }}>Autofill from GST</Text>
+              {companyProfile.logo_url ? (
+                <Image source={{ uri: companyProfile.logo_url }} style={{ width: 96, height: 96 }} resizeMode="cover" />
+              ) : (
+                <Ionicons name="cloud-upload-outline" size={30} color={colors.mutedForeground} />
+              )}
             </TouchableOpacity>
 
-            <TextInput placeholder="Company Name" placeholderTextColor={colors.mutedForeground} value={companyProfile.name} onChangeText={(text) => setCompanyProfile((prev) => ({ ...prev, name: text }))} style={inputStyle} />
-            <TextInput placeholder="Address" placeholderTextColor={colors.mutedForeground} value={companyProfile.address} onChangeText={(text) => setCompanyProfile((prev) => ({ ...prev, address: text }))} style={[inputStyle, { height: 70, textAlignVertical: "top", paddingTop: 10 }]} multiline />
-            <TextInput placeholder="Phone" placeholderTextColor={colors.mutedForeground} value={companyProfile.phone} onChangeText={(text) => setCompanyProfile((prev) => ({ ...prev, phone: text }))} style={inputStyle} keyboardType="phone-pad" />
-            <TextInput placeholder="PAN" placeholderTextColor={colors.mutedForeground} value={companyProfile.pan} onChangeText={(text) => setCompanyProfile((prev) => ({ ...prev, pan: text.toUpperCase() }))} style={inputStyle} autoCapitalize="characters" />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity
+                onPress={useCompanyProfilePicture}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  backgroundColor: colors.muted,
+                }}
+              >
+                <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>Use Company Profile Picture</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleSaveCompanyProfile} style={{ backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 12, alignItems: "center" }}>
-              <Text style={{ color: colors.primaryForeground, fontWeight: "900" }}>Save Company Profile</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleUploadCompanyLogo}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  backgroundColor: colors.primary,
+                }}
+              >
+                <Text style={{ color: colors.primaryForeground, fontSize: 12, fontWeight: "700" }}>Upload Logo</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+
+          <View style={cardStyle}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 8 }}>
+              <TextInput
+                placeholder="GSTIN"
+                placeholderTextColor={colors.mutedForeground}
+                value={companyProfile.gstin}
+                onChangeText={(text) =>
+                  setCompanyProfile((prev) => ({ ...prev, gstin: normalizeGstinNumber(text) }))
+                }
+                style={[inputStyle, { flex: 1, marginBottom: 0 }]}
+                autoCapitalize="characters"
+                maxLength={15}
+              />
+              <TouchableOpacity
+                onPress={fetchCompanyProfileFromGST}
+                disabled={loading || !companyProfile.gstin || companyProfile.gstin.length < 15}
+                style={{
+                  height: 44,
+                  minWidth: 72,
+                  paddingHorizontal: 12,
+                  borderRadius: 10,
+                  backgroundColor:
+                    companyProfile.gstin && companyProfile.gstin.length >= 15 ? colors.primary : colors.muted,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: colors.primaryForeground, fontWeight: "800", fontSize: 12 }}>
+                  {loading ? "..." : "Fetch"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              placeholder="Company Name"
+              placeholderTextColor={colors.mutedForeground}
+              value={companyProfile.name}
+              onChangeText={(text) => setCompanyProfile((prev) => ({ ...prev, name: text }))}
+              style={inputStyle}
+            />
+            <TextInput
+              placeholder="Address Line 1"
+              placeholderTextColor={colors.mutedForeground}
+              value={companyProfile.address_line_1 || ""}
+              onChangeText={(text) =>
+                setCompanyProfile((prev) => {
+                  const next = { ...prev, address_line_1: text };
+                  return { ...next, address: buildCompanyAddress(next) };
+                })
+              }
+              style={inputStyle}
+            />
+            <TextInput
+              placeholder="Address Line 2"
+              placeholderTextColor={colors.mutedForeground}
+              value={companyProfile.address_line_2 || ""}
+              onChangeText={(text) =>
+                setCompanyProfile((prev) => {
+                  const next = { ...prev, address_line_2: text };
+                  return { ...next, address: buildCompanyAddress(next) };
+                })
+              }
+              style={inputStyle}
+            />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput
+                placeholder="State"
+                placeholderTextColor={colors.mutedForeground}
+                value={companyProfile.state || ""}
+                onChangeText={(text) =>
+                  setCompanyProfile((prev) => {
+                    const next = { ...prev, state: text };
+                    return { ...next, address: buildCompanyAddress(next) };
+                  })
+                }
+                style={[inputStyle, { flex: 1 }]}
+              />
+              <TextInput
+                placeholder="Pincode"
+                placeholderTextColor={colors.mutedForeground}
+                value={companyProfile.pincode || ""}
+                onChangeText={(text) =>
+                  setCompanyProfile((prev) => {
+                    const next = { ...prev, pincode: text.replace(/[^\d]/g, "").slice(0, 6) };
+                    return { ...next, address: buildCompanyAddress(next) };
+                  })
+                }
+                style={[inputStyle, { flex: 1 }]}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+            <TextInput
+              placeholder="Phone"
+              placeholderTextColor={colors.mutedForeground}
+              value={companyProfile.phone}
+              onChangeText={(text) =>
+                setCompanyProfile((prev) => ({ ...prev, phone: normalizePhoneInput(text) }))
+              }
+              style={inputStyle}
+              keyboardType="phone-pad"
+              maxLength={13}
+            />
+            <TextInput
+              placeholder="PAN"
+              placeholderTextColor={colors.mutedForeground}
+              value={companyProfile.pan}
+              onChangeText={(text) =>
+                setCompanyProfile((prev) => ({ ...prev, pan: normalizePanNumber(text) }))
+              }
+              style={inputStyle}
+              autoCapitalize="characters"
+              maxLength={10}
+            />
+          </View>
+          </>
         )}
 
         {step === 2 && (
           <>
-            <View style={[cardStyle, { borderColor: colors.primary, borderWidth: 2 }]}> 
-              <Text style={{ color: colors.primaryForeground, fontWeight: "800", marginBottom: 8, backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 }}>
-                LR Header
-              </Text>
-              <TextInput placeholder="LR Date (YYYY-MM-DD)" placeholderTextColor={colors.mutedForeground} value={shipment.shipment_date} onChangeText={(text) => setShipment((prev) => ({ ...prev, shipment_date: text }))} style={inputStyle} />
-              <TextInput placeholder="LR Number (optional)" placeholderTextColor={colors.mutedForeground} value={generatedId ? `LR-${generatedId.slice(-4).toUpperCase()}` : ""} editable={false} style={inputStyle} />
+            <View style={[cardStyle, { borderColor: colors.border, borderWidth: 1 }]}> 
+              <TouchableOpacity
+                onPress={() => {
+                  const current = shipment.shipment_date ? new Date(shipment.shipment_date) : new Date();
+                  if (!isNaN(current.getTime())) setLrDatePickerValue(current);
+                  setShowLrDatePicker(true);
+                }}
+                activeOpacity={0.85}
+                style={[inputStyle, { justifyContent: "center", marginBottom: 10, paddingRight: 34 }]}
+              >
+                <Text style={{ color: shipment.shipment_date ? colors.foreground : colors.mutedForeground, fontSize: 14, fontWeight: "600" }}>
+                  {shipment.shipment_date || "LR Date (YYYY-MM-DD)"}
+                </Text>
+                <Ionicons name="calendar-outline" size={16} color={colors.mutedForeground} style={{ position: "absolute", right: 12, top: 17 }} pointerEvents="none" />
+              </TouchableOpacity>
+              <TextInput
+                placeholder="LR Number"
+                placeholderTextColor={colors.mutedForeground}
+                value={lrNumber}
+                onChangeText={(text) => setLrNumber(formatLrNumber(text))}
+                style={inputStyle}
+                autoCapitalize="characters"
+                maxLength={9}
+              />
             </View>
 
-            <View style={cardStyle}>
-              <Text style={{ color: colors.primary, fontWeight: "900", marginBottom: 8 }}>CONSIGNOR DETAILS</Text>
-              {renderPartyStep("consignor")}
-            </View>
+            <Text style={{ color: "#111111", fontWeight: "900", marginBottom: 8, letterSpacing: 0.5 }}>CONSIGNOR DETAILS</Text>
+            {renderPartyCard("Consignor", consignor, "consignor")}
 
-            <View style={cardStyle}>
-              <Text style={{ color: colors.primary, fontWeight: "900", marginBottom: 8 }}>CONSIGNEE DETAILS</Text>
-              {renderPartyStep("consignee")}
-            </View>
+            <Text style={{ color: "#111111", fontWeight: "900", marginBottom: 8, letterSpacing: 0.5 }}>CONSIGNEE DETAILS</Text>
+            {renderPartyCard("Consignee", consignee, "consignee")}
           </>
         )}
 
         {step === 3 && (
           <>
-            <View style={cardStyle}>
-              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 20, marginBottom: 8 }}>Load & Trip Details</Text>
-              <TextInput placeholder="From" placeholderTextColor={colors.mutedForeground} value={shipment.from_location} onChangeText={(text) => setShipment((prev) => ({ ...prev, from_location: text }))} style={inputStyle} />
-              <TextInput placeholder="To" placeholderTextColor={colors.mutedForeground} value={shipment.to_location} onChangeText={(text) => setShipment((prev) => ({ ...prev, to_location: text }))} style={inputStyle} />
-              <TextInput placeholder="Vehicle Number" placeholderTextColor={colors.mutedForeground} value={shipment.vehicle_number} onChangeText={(text) => setShipment((prev) => ({ ...prev, vehicle_number: text.toUpperCase() }))} style={inputStyle} autoCapitalize="characters" />
-              <TextInput placeholder="Driver Name" placeholderTextColor={colors.mutedForeground} value={shipment.driver_name} onChangeText={(text) => setShipment((prev) => ({ ...prev, driver_name: text }))} style={inputStyle} />
-              <TextInput placeholder="Driver Phone" placeholderTextColor={colors.mutedForeground} value={shipment.driver_phone} onChangeText={(text) => setShipment((prev) => ({ ...prev, driver_phone: text }))} style={inputStyle} keyboardType="phone-pad" />
-            </View>
+            <TouchableOpacity
+              activeOpacity={0.92}
+              onPress={() => setIsTripPreviewModalVisible(true)}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 10,
+                backgroundColor: isDark ? colors.card : "#FFFFFF",
+                paddingHorizontal: 12,
+                paddingVertical: 11,
+                marginBottom: 12,
+                shadowColor: "#000",
+                shadowOpacity: isDark ? 0 : 0.06,
+                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 1 },
+                elevation: isDark ? 0 : 1,
+              }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.55 }}>
+                  Party/Customer Name
+                </Text>
+                {tripId ? (
+                  <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, backgroundColor: colors.infoSoft }}>
+                    <Text style={{ color: colors.info, fontSize: 8, fontWeight: "800", letterSpacing: 0.5 }}>LINKED TRIP</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "800", marginBottom: 10 }}>
+                {consignee.name || consignor.name || "-"}
+              </Text>
 
-            <View style={cardStyle}>
-              <Text style={{ color: colors.primary, fontWeight: "900", marginBottom: 8 }}>Load Details</Text>
-              {goodsRows.map((row, idx) => (
-                <View key={`row-${idx}`} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, marginBottom: 10 }}>
-                  <Text style={{ color: colors.foreground, fontWeight: "800", marginBottom: 8 }}>Row {idx + 1}</Text>
-                  <TextInput placeholder="Description" placeholderTextColor={colors.mutedForeground} value={row.description} onChangeText={(text) => updateGoodsRow(idx, "description", text)} style={inputStyle} />
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <TextInput placeholder="Weight" placeholderTextColor={colors.mutedForeground} value={row.actual_weight} onChangeText={(text) => updateGoodsRow(idx, "actual_weight", text)} style={[inputStyle, { flex: 1 }]} keyboardType="numeric" />
-                    <TextInput placeholder="Unit" placeholderTextColor={colors.mutedForeground} value={row.unit} onChangeText={(text) => updateGoodsRow(idx, "unit", text)} style={[inputStyle, { flex: 1 }]} />
-                  </View>
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <TextInput placeholder="Quantity" placeholderTextColor={colors.mutedForeground} value={row.quantity} onChangeText={(text) => updateGoodsRow(idx, "quantity", text)} style={[inputStyle, { flex: 1 }]} keyboardType="numeric" />
-                    <TextInput placeholder="Rate" placeholderTextColor={colors.mutedForeground} value={row.rate} onChangeText={(text) => updateGoodsRow(idx, "rate", text)} style={[inputStyle, { flex: 1 }]} keyboardType="numeric" />
-                  </View>
-                  <TextInput placeholder="Total" placeholderTextColor={colors.mutedForeground} value={row.total} onChangeText={(text) => updateGoodsRow(idx, "total", text)} style={inputStyle} keyboardType="numeric" />
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", marginBottom: 5, letterSpacing: 0.55 }}>Route</Text>
+              <View style={{ marginBottom: 9 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                  <View style={{ width: 7, height: 7, borderRadius: 3.5, borderWidth: 1, borderColor: colors.primary, backgroundColor: "transparent", marginRight: 8 }} />
+                  <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{shipment.from_location || "-"}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginLeft: 5 }}>• {shipment.shipment_date || ""}</Text>
                 </View>
-              ))}
-              <TouchableOpacity
-                onPress={() =>
-                  setGoodsRows((prev) => [
-                    ...prev,
-                    { sr_no: prev.length + 1, description: "", quantity: "", unit: "Nos", actual_weight: "", rate: "", total: "" },
-                  ])
-                }
-                style={{ backgroundColor: colors.successSoft, borderWidth: 1, borderColor: colors.primary, paddingVertical: 10, borderRadius: 10, alignItems: "center" }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: "800" }}>+ Add Row</Text>
-              </TouchableOpacity>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.primary, marginRight: 8 }} />
+                  <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{shipment.to_location || "-"}</Text>
+                </View>
+              </View>
+
+              <View style={{ height: 1, backgroundColor: colors.border, opacity: 0.8, marginBottom: 9 }} />
+
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <View>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.45 }}>FREIGHT AMOUNT</Text>
+                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, fontSize: 14 }}>₹{(Number(charges.freight || 0) || 1258).toLocaleString("en-IN")}</Text>
+                </View>
+                <View>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", textAlign: "right", letterSpacing: 0.45 }}>PARTY BALANCE</Text>
+                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, textAlign: "right", fontSize: 14 }}>₹{(Number(charges.balance || 0) || 1258).toLocaleString("en-IN")}</Text>
+                </View>
+              </View>
+              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700", marginTop: 10 }}>Tap to preview trip details</Text>
+            </TouchableOpacity>
+
+            <View style={{ marginBottom: 10 }}>
+              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 18, marginBottom: 2 }}>Load Details</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Description on load details here</Text>
             </View>
 
-            <View style={cardStyle}>
-              <Text style={{ color: colors.primary, fontWeight: "900", marginBottom: 8 }}>Charges</Text>
-              <TextInput placeholder="Freight" placeholderTextColor={colors.mutedForeground} value={charges.freight} onChangeText={(text) => setCharges((prev) => recalcCharges({ ...prev, freight: text }))} style={inputStyle} keyboardType="numeric" />
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <TextInput placeholder="Loading" placeholderTextColor={colors.mutedForeground} value={charges.loading} onChangeText={(text) => setCharges((prev) => recalcCharges({ ...prev, loading: text }))} style={[inputStyle, { flex: 1 }]} keyboardType="numeric" />
-                <TextInput placeholder="Unloading" placeholderTextColor={colors.mutedForeground} value={charges.unloading} onChangeText={(text) => setCharges((prev) => recalcCharges({ ...prev, unloading: text }))} style={[inputStyle, { flex: 1 }]} keyboardType="numeric" />
-              </View>
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <TextInput placeholder="Total" placeholderTextColor={colors.mutedForeground} value={charges.total} style={[inputStyle, { flex: 1 }]} editable={false} />
-                <TextInput placeholder="Balance" placeholderTextColor={colors.mutedForeground} value={charges.balance} style={[inputStyle, { flex: 1 }]} editable={false} />
-              </View>
+            <View style={{ gap: 8, marginBottom: 8 }}>
+              {goodsRows.map((row, idx) => (
+                <TouchableOpacity
+                  key={`goods-card-${idx}`}
+                  onPress={() => {
+                    setIsUnitDropdownVisible(false);
+                    setEditingGoodsIndex(idx);
+                    setIsGoodsModalVisible(true);
+                  }}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 12,
+                    padding: 12,
+                    backgroundColor: isDark ? colors.card : "#FFFFFF",
+                  }}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "800", marginBottom: 4 }}>
+                    Product {idx + 1}: {row.description || "Unnamed material"}
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Qty: {row.quantity || "-"} {row.unit || "Tonnes"} | Weight: {row.actual_weight || "-"}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                setGoodsRows((prev) => {
+                  const next = [
+                    ...prev,
+                    {
+                      sr_no: prev.length + 1,
+                      description: "",
+                      quantity: "",
+                      unit: "Tonnes",
+                      actual_weight: "",
+                      rate: "",
+                      total: "",
+                    },
+                  ];
+                  setIsUnitDropdownVisible(false);
+                  setEditingGoodsIndex(next.length - 1);
+                  return next;
+                });
+                setIsGoodsModalVisible(true);
+              }}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.primary,
+                borderRadius: 10,
+                paddingVertical: 10,
+                alignItems: "center",
+                marginBottom: 10,
+                backgroundColor: colors.successSoft,
+              }}
+            >
+              <Text style={{ color: colors.primary, fontWeight: "800" }}>+ Add More Product</Text>
+            </TouchableOpacity>
+            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "700", marginBottom: 8 }}>Freight Paid By</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+              {[
+                { id: "consignor", label: "Consignor" },
+                { id: "consignee", label: "Consignee" },
+              ].map((item) => {
+                const active = freightPaidBy === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => setFreightPaidBy(item.id as "consignor" | "consignee")}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 11,
+                      borderRadius: 12,
+                      borderWidth: 1.5,
+                      borderColor: active ? colors.primary : colors.border,
+                      backgroundColor: active ? colors.primary : (isDark ? colors.card : "#FFFFFF"),
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: "800" }}>{item.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "700", marginBottom: 8 }}>GST Paid By</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+              {[
+                { id: "consignor", label: "Consignor" },
+                { id: "consignee", label: "Consignee" },
+              ].map((item) => {
+                const active = gstPaidBy === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => setGstPaidBy(item.id as "consignor" | "consignee")}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 11,
+                      borderRadius: 12,
+                      borderWidth: 1.5,
+                      borderColor: active ? colors.primary : colors.border,
+                      backgroundColor: active ? colors.primary : (isDark ? colors.card : "#FFFFFF"),
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: "800" }}>{item.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "700", marginBottom: 8 }}>GST Percentage</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+              {GST_PERCENTAGE_OPTIONS.map((item) => {
+                const active = gstPercentage === item;
+                return (
+                  <TouchableOpacity
+                    key={`gst-pct-${item}`}
+                    onPress={() => setGstPercentage(item)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 11,
+                      borderRadius: 12,
+                      borderWidth: 1.5,
+                      borderColor: active ? colors.primary : colors.border,
+                      backgroundColor: active ? colors.primary : (isDark ? colors.card : "#FFFFFF"),
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: "800" }}>{item}%</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "700", marginBottom: 8 }}>GST Type</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+              {[
+                { id: "igst", label: "IGST" },
+                { id: "gst", label: "CGST + SGST" },
+              ].map((item) => {
+                const active = gstType === item.id;
+                return (
+                  <TouchableOpacity
+                    key={`gst-type-${item.id}`}
+                    onPress={() => setGstType(item.id as "gst" | "igst")}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 11,
+                      borderRadius: 12,
+                      borderWidth: 1.5,
+                      borderColor: active ? colors.primary : colors.border,
+                      backgroundColor: active ? colors.primary : (isDark ? colors.card : "#FFFFFF"),
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: "800", textAlign: "center", paddingHorizontal: 4 }}>{item.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </>
         )}
 
         {step === 4 && (
           <View style={cardStyle}>
-            <Text style={{ color: colors.primary, fontWeight: "900", marginBottom: 8 }}>Insurance Details</Text>
-            <TouchableOpacity
-              style={{ borderWidth: 1, borderStyle: "dashed", borderColor: colors.border, borderRadius: 12, paddingVertical: 18, alignItems: "center", marginBottom: 14 }}
-            >
-              <Text style={{ color: colors.primary, fontWeight: "700" }}>+ Add Insurance</Text>
-            </TouchableOpacity>
+            <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12, backgroundColor: isDark ? colors.card : "#FFFFFF" }}>
+              <Text style={{ color: "#111111", fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Insurance</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>Optional cover details for this bilty.</Text>
 
-            <Text style={{ color: colors.primary, fontWeight: "900", marginBottom: 8 }}>Waybill Details</Text>
-            <TextInput placeholder="E-Waybill No" placeholderTextColor={colors.mutedForeground} value={shipment.eway_bill_no} onChangeText={(text) => setShipment((prev) => ({ ...prev, eway_bill_no: text }))} style={inputStyle} />
-            <TextInput placeholder="Goods Invoice No" placeholderTextColor={colors.mutedForeground} value={shipment.invoice_no} onChangeText={(text) => setShipment((prev) => ({ ...prev, invoice_no: text }))} style={inputStyle} />
-            <TextInput placeholder="Invoice Value" placeholderTextColor={colors.mutedForeground} value={shipment.invoice_value} onChangeText={(text) => setShipment((prev) => ({ ...prev, invoice_value: text }))} style={inputStyle} keyboardType="numeric" />
+              <TouchableOpacity
+                onPress={() => setIsInsuranceModalVisible(true)}
+                style={{ borderWidth: 1, borderStyle: "dashed", borderColor: colors.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginBottom: insurance.policy_number ? 10 : 0 }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: "700" }}>{insurance.policy_number ? "Edit Insurance" : "+ Add Insurance"}</Text>
+              </TouchableOpacity>
 
-            <Text style={{ color: colors.primary, fontWeight: "900", marginBottom: 8 }}>Payment Type</Text>
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-              {[
-                { id: "to_pay", label: "To Pay" },
-                { id: "paid", label: "Paid" },
-                { id: "billed", label: "Billed" },
-              ].map((item) => {
-                const active = paymentType === item.id;
-                return (
+              {insurance.policy_number ? (
+                <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, backgroundColor: isDark ? colors.input : "#F8FAFC" }}>
+                  <Text style={{ color: colors.foreground, fontWeight: "800", marginBottom: 2 }}>{insurance.insurer_name || "-"}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Policy: {insurance.policy_number}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: ₹{Number(insurance.coverage_amount || 0).toLocaleString("en-IN")}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Expiry: {insurance.expiry_date || "-"}</Text>
                   <TouchableOpacity
-                    key={item.id}
-                    onPress={() => setPaymentType(item.id as any)}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 10,
-                      borderRadius: 10,
-                      borderWidth: 1,
-                      borderColor: active ? colors.primary : colors.border,
-                      backgroundColor: active ? colors.primary : colors.background,
-                      alignItems: "center",
-                    }}
+                    onPress={() => setInsurance({ policy_number: "", insurer_name: "", coverage_amount: "", expiry_date: "" })}
+                    style={{ alignSelf: "flex-start", marginTop: 8 }}
                   >
-                    <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontWeight: "800" }}>{item.label}</Text>
+                    <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "700" }}>Remove insurance</Text>
                   </TouchableOpacity>
-                );
-              })}
+                </View>
+              ) : null}
             </View>
 
-            <Text style={{ color: colors.primary, fontWeight: "900", marginBottom: 8 }}>Terms & Conditions</Text>
-            <TextInput
-              placeholder="Terms"
-              placeholderTextColor={colors.mutedForeground}
-              value={notes}
-              onChangeText={setNotes}
-              style={[inputStyle, { height: 80, textAlignVertical: "top", paddingTop: 10 }]}
-              multiline
-            />
+            <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12, backgroundColor: isDark ? colors.card : "#FFFFFF" }}>
+              <Text style={{ color: "#111111", fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Waybill</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>Invoice and e-waybill references.</Text>
+              <TextInput placeholder="E-Waybill No" placeholderTextColor={colors.mutedForeground} value={shipment.eway_bill_no} onChangeText={(text) => setShipment((prev) => ({ ...prev, eway_bill_no: text }))} style={inputStyle} />
+              <TextInput placeholder="Goods Invoice No" placeholderTextColor={colors.mutedForeground} value={shipment.invoice_no} onChangeText={(text) => setShipment((prev) => ({ ...prev, invoice_no: text }))} style={inputStyle} />
+              <TextInput placeholder="Invoice Value" placeholderTextColor={colors.mutedForeground} value={shipment.invoice_value} onChangeText={(text) => setShipment((prev) => ({ ...prev, invoice_value: text }))} style={inputStyle} keyboardType="numeric" />
+            </View>
+
+            <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 14, backgroundColor: isDark ? colors.card : "#FFFFFF" }}>
+              <Text style={{ color: "#111111", fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Terms & Signature</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>Add legal notes and authorized sign.</Text>
+
+              <TextInput
+                placeholder="Terms"
+                placeholderTextColor={colors.mutedForeground}
+                value={notes}
+                onChangeText={setNotes}
+                style={[inputStyle, { height: 56, textAlignVertical: "top", paddingTop: 10 }]}
+                numberOfLines={2}
+                multiline
+                onFocus={(event) => {
+                  const node = findNodeHandle(event.target as any);
+                  if (!node) return;
+                  setTimeout(() => {
+                    wizardScrollRef.current?.scrollToFocusedInput?.(node);
+                  }, 120);
+                }}
+              />
+
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <Text style={{ color: colors.foreground, fontWeight: "800" }}>Signature</Text>
+                {signatureUrl ? (
+                  <TouchableOpacity onPress={() => setSignatureUrl("")}> 
+                    <Text style={{ color: colors.destructive, fontWeight: "700", fontSize: 12 }}>Remove</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: colors.border,
+                  borderRadius: 12,
+                  paddingVertical: signatureUrl ? 10 : 18,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 10,
+                  backgroundColor: isDark ? colors.input : "#FFFFFF",
+                  minHeight: 88,
+                }}
+              >
+                {signatureUrl ? (
+                  isSvgSignature ? (
+                    <SvgXml xml={signatureSvgXml} width="92%" height={72} />
+                  ) : (
+                    <Image source={{ uri: signatureUrl }} style={{ width: "92%", height: 72, borderRadius: 8 }} resizeMode="contain" />
+                  )
+                ) : (
+                  <Text style={{ color: colors.mutedForeground, fontWeight: "700" }}>No signature added</Text>
+                )}
+              </View>
+
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TouchableOpacity
+                  onPress={handleUploadSignature}
+                  style={{
+                    flex: 1,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 10,
+                    paddingVertical: 11,
+                    alignItems: "center",
+                    backgroundColor: isDark ? colors.input : "#FFFFFF",
+                  }}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "700" }}>Upload Image</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setIsSignaturePadVisible(true)}
+                  style={{
+                    flex: 1,
+                    borderWidth: 1,
+                    borderColor: colors.primary,
+                    borderRadius: 10,
+                    paddingVertical: 11,
+                    alignItems: "center",
+                    backgroundColor: colors.successSoft,
+                  }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "800" }}>Draw Signature</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
             <TouchableOpacity onPress={handleSaveDraft} disabled={loading} style={{ backgroundColor: colors.secondary, paddingVertical: 12, borderRadius: 12, alignItems: "center", marginBottom: 10 }}>
               <Text style={{ color: colors.foreground, fontWeight: "900" }}>{loading ? "Saving..." : "Save Draft"}</Text>
@@ -870,36 +1694,696 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             <TouchableOpacity onPress={handleGenerate} disabled={loading} style={{ backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 12, alignItems: "center", marginBottom: 10 }}>
               <Text style={{ color: colors.primaryForeground, fontWeight: "900" }}>{loading ? "Generating..." : "Done"}</Text>
             </TouchableOpacity>
-
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <TouchableOpacity
-                onPress={async () => {
-                  if (!generatedId) {
-                    Alert.alert("No bilty", "Generate bilty first.");
-                    return;
-                  }
-                  const doc = await getBiltyById(generatedId);
-                  await openPdfPreview(doc);
-                }}
-                style={{ flex: 1, backgroundColor: colors.infoSoft, borderWidth: 1, borderColor: colors.info, paddingVertical: 11, borderRadius: 10, alignItems: "center" }}
-              >
-                <Text style={{ color: colors.info, fontWeight: "800" }}>Preview</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleShareDownload} style={{ flex: 1, backgroundColor: colors.successSoft, borderWidth: 1, borderColor: colors.success, paddingVertical: 11, borderRadius: 10, alignItems: "center" }}>
-                <Text style={{ color: colors.success, fontWeight: "800" }}>Download / Share</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
-      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background, padding: 12, flexDirection: "row", gap: 10 }}>
+      <BottomSheet
+        visible={!!partyEditorTarget}
+        onClose={closePartyEditor}
+        title={partyEditorTarget === "consignor" ? "Add Consignor" : "Add Consignee"}
+        maxHeight="84%"
+        expandedHeight="94%"
+      >
+        <View
+          style={{
+            height: 56,
+            flexDirection: "row",
+            alignItems: "center",
+            borderRadius: 18,
+            borderWidth: 1.5,
+            borderColor: colors.border,
+            backgroundColor: colors.input,
+            paddingHorizontal: 16,
+            marginBottom: 14,
+          }}
+        >
+          <Ionicons name="search" size={18} color={colors.mutedForeground} />
+          <TextInput
+            placeholder="Search..."
+            placeholderTextColor={colors.mutedForeground}
+            value={partyClientSearch}
+            onChangeText={setPartyClientSearch}
+            style={{ flex: 1, marginLeft: 10, color: colors.foreground, fontSize: 16 }}
+          />
+        </View>
+
+        <ScrollView style={{ maxHeight: 360, marginBottom: 16 }} keyboardShouldPersistTaps="handled">
+          {parties
+            .filter((p) => {
+              const q = partyClientSearch.trim().toLowerCase();
+              if (!q) return true;
+              return (
+                String(p?.name || "").toLowerCase().includes(q) ||
+                String(p?.contact_person || "").toLowerCase().includes(q) ||
+                String(p?.phone || "").toLowerCase().includes(q)
+              );
+            })
+            .slice(0, 50)
+            .map((party) => {
+              const selected = String(partyDraft.party_id || "") === String(party?._id || "");
+              return (
+                <TouchableOpacity
+                  key={`party-${party._id}`}
+                  onPress={() => {
+                    const picked = mapStoredPartyToForm(party);
+                    setPartyDraft(picked);
+                    if (partyEditorTarget === "consignor") setConsignor(picked);
+                    else if (partyEditorTarget === "consignee") setConsignee(picked);
+                    closePartyEditor();
+                  }}
+                  style={{
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                    paddingHorizontal: 10,
+                    paddingVertical: 12,
+                    backgroundColor: "transparent",
+                  }}
+                >
+                  <Text style={{ color: selected ? colors.primary : colors.foreground, fontWeight: "500", fontSize: 34/2 }}>
+                    {party.name || "Unnamed party"}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+        </ScrollView>
+
+        <TouchableOpacity
+          onPress={openCreateClient}
+          style={{
+            backgroundColor: colors.success,
+            paddingVertical: 16,
+            borderRadius: 999,
+            alignItems: "center",
+            marginBottom: 8,
+          }}
+        >
+          <Text style={{ color: colors.primaryForeground, fontWeight: "800", fontSize: 34/2 }}>Add New</Text>
+        </TouchableOpacity>
+      </BottomSheet>
+
+      <BottomSheet
+        visible={isGoodsModalVisible}
+        onClose={() => {
+          setIsGoodsModalVisible(false);
+          setIsUnitDropdownVisible(false);
+        }}
+        title={`Product ${editingGoodsIndex + 1}`}
+        maxHeight="80%"
+        expandedHeight="80%"
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          contentContainerStyle={{ paddingBottom: 16 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>MATERIAL CATEGORY</Text>
+          <TextInput
+            placeholder="Eg: Steel"
+            placeholderTextColor={colors.mutedForeground}
+            value={goodsRows[editingGoodsIndex]?.description || ""}
+            onChangeText={(text) => updateGoodsRow(editingGoodsIndex, "description", text)}
+            style={inputStyle}
+          />
+
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>WEIGHT</Text>
+              <TextInput
+                placeholder="Weight"
+                placeholderTextColor={colors.mutedForeground}
+                value={goodsRows[editingGoodsIndex]?.actual_weight || ""}
+                onChangeText={(text) => updateGoodsRow(editingGoodsIndex, "actual_weight", text)}
+                style={inputStyle}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>WEIGHT UNIT</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setIsUnitDropdownVisible((prev) => !prev);
+                }}
+                style={[inputStyle, { justifyContent: "center", marginBottom: 0, paddingRight: 34 }]}
+              >
+                <Text style={{ color: goodsRows[editingGoodsIndex]?.unit ? colors.foreground : colors.mutedForeground, fontWeight: "600" }}>
+                  {goodsRows[editingGoodsIndex]?.unit || "Tonnes"}
+                </Text>
+                <Ionicons name="chevron-down" size={14} color={colors.mutedForeground} style={{ position: "absolute", right: 12, top: 18 }} pointerEvents="none" />
+              </TouchableOpacity>
+              {isUnitDropdownVisible ? (
+                <View
+                  style={{
+                    marginTop: 6,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 10,
+                    backgroundColor: isDark ? colors.card : "#FFFFFF",
+                    overflow: "hidden",
+                  }}
+                >
+                  {UNIT_OPTIONS.map((unit) => {
+                    const active = (goodsRows[editingGoodsIndex]?.unit || "Tonnes") === unit;
+                    return (
+                      <TouchableOpacity
+                        key={`inline-unit-${unit}`}
+                        onPress={() => {
+                          updateGoodsRow(editingGoodsIndex, "unit", unit);
+                          setIsUnitDropdownVisible(false);
+                        }}
+                        style={{
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          borderTopWidth: unit === UNIT_OPTIONS[0] ? 0 : 1,
+                          borderTopColor: colors.border,
+                          backgroundColor: active ? colors.primary + "22" : "transparent",
+                        }}
+                      >
+                        <Text style={{ color: active ? colors.primary : colors.foreground, fontWeight: active ? "800" : "600" }}>
+                          {unit}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>NO. OF BAGS / BOX / SHIPMENTS</Text>
+          <TextInput
+            placeholder="Quantity"
+            placeholderTextColor={colors.mutedForeground}
+            value={goodsRows[editingGoodsIndex]?.quantity || ""}
+            onChangeText={(text) => updateGoodsRow(editingGoodsIndex, "quantity", text)}
+            style={inputStyle}
+            keyboardType="numeric"
+          />
+
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>RATE</Text>
+              <TextInput
+                placeholder="Rate"
+                placeholderTextColor={colors.mutedForeground}
+                value={goodsRows[editingGoodsIndex]?.rate || ""}
+                onChangeText={(text) => updateGoodsRow(editingGoodsIndex, "rate", text)}
+                style={inputStyle}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>TOTAL</Text>
+              <TextInput
+                placeholder="Total"
+                placeholderTextColor={colors.mutedForeground}
+                value={goodsRows[editingGoodsIndex]?.total || ""}
+                onChangeText={(text) => updateGoodsRow(editingGoodsIndex, "total", text)}
+                style={inputStyle}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => {
+              setIsGoodsModalVisible(false);
+              setIsUnitDropdownVisible(false);
+            }}
+            style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: "center", marginTop: 6 }}
+          >
+            <Text style={{ color: colors.primaryForeground, fontWeight: "800" }}>Save Product</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </BottomSheet>
+
+      <BottomSheet
+        visible={isInsuranceModalVisible}
+        onClose={() => setIsInsuranceModalVisible(false)}
+        title="Add Insurance"
+        maxHeight="80%"
+        expandedHeight="80%"
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>POLICY NUMBER</Text>
+          <TextInput
+            placeholder="Policy number"
+            placeholderTextColor={colors.mutedForeground}
+            value={insurance.policy_number}
+            onChangeText={(text) => setInsurance((prev) => ({ ...prev, policy_number: text }))}
+            style={inputStyle}
+          />
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>INSURER NAME</Text>
+          <TextInput
+            placeholder="Insurance company"
+            placeholderTextColor={colors.mutedForeground}
+            value={insurance.insurer_name}
+            onChangeText={(text) => setInsurance((prev) => ({ ...prev, insurer_name: text }))}
+            style={inputStyle}
+          />
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>COVERAGE AMOUNT</Text>
+          <TextInput
+            placeholder="₹ Amount"
+            placeholderTextColor={colors.mutedForeground}
+            value={insurance.coverage_amount}
+            onChangeText={(text) => setInsurance((prev) => ({ ...prev, coverage_amount: text.replace(/[^\d.]/g, "") }))}
+            style={inputStyle}
+            keyboardType="numeric"
+          />
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>EXPIRY DATE</Text>
+          <TouchableOpacity
+            onPress={() => {
+              const current = insurance.expiry_date ? new Date(insurance.expiry_date) : new Date();
+              if (!isNaN(current.getTime())) setInsuranceExpiryDate(current);
+              setShowInsuranceDatePicker(true);
+            }}
+            activeOpacity={0.85}
+            style={[inputStyle, { justifyContent: "center", marginBottom: 10, paddingRight: 34 }]}
+          >
+            <Text style={{ color: insurance.expiry_date ? colors.foreground : colors.mutedForeground, fontSize: 14, fontWeight: "600" }}>
+              {insurance.expiry_date || "yyyy-mm-dd"}
+            </Text>
+            <Ionicons name="calendar-outline" size={16} color={colors.mutedForeground} style={{ position: "absolute", right: 12, top: 17 }} pointerEvents="none" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setIsInsuranceModalVisible(false)}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 10,
+              paddingVertical: 12,
+              alignItems: "center",
+              marginTop: 4,
+            }}
+          >
+            <Text style={{ color: colors.primaryForeground, fontWeight: "800" }}>Save Insurance</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </BottomSheet>
+
+      <BottomSheet
+        visible={isSignaturePadVisible}
+        onClose={() => setIsSignaturePadVisible(false)}
+        title="Draw Signature"
+        maxHeight="68%"
+        expandedHeight="76%"
+      >
+        <View
+          onLayout={(evt) => {
+            const nextWidth = Math.max(1, Math.round(evt.nativeEvent.layout.width));
+            const nextHeight = Math.max(1, Math.round(evt.nativeEvent.layout.height));
+            setSignaturePadSize((prev) =>
+              prev.width === nextWidth && prev.height === nextHeight
+                ? prev
+                : { width: nextWidth, height: nextHeight }
+            );
+          }}
+          style={{
+            height: 190,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 12,
+            backgroundColor: "#FFFFFF",
+            overflow: "hidden",
+            marginBottom: 12,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          {...signaturePanResponder.panHandlers}
+        >
+          <Svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}>
+            {signaturePaths.map((path, idx) => (
+              <Path key={`sig-${idx}`} d={path} stroke="#111827" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            ))}
+            {activeSignaturePath ? <Path d={activeSignaturePath} stroke="#111827" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" fill="none" /> : null}
+          </Svg>
+
+          {!signaturePaths.length && !activeSignaturePath ? (
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>Sign here</Text>
+          ) : null}
+        </View>
+
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <TouchableOpacity
+            onPress={clearSignatureCanvas}
+            style={{
+              flex: 1,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 10,
+              paddingVertical: 11,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: colors.foreground, fontWeight: "700" }}>Clear</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={saveDrawnSignature}
+            style={{
+              flex: 1,
+              backgroundColor: colors.primary,
+              borderRadius: 10,
+              paddingVertical: 11,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: colors.primaryForeground, fontWeight: "800" }}>Use Signature</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
+
+      <DatePickerModal
+        visible={showLrDatePicker}
+        onClose={() => setShowLrDatePicker(false)}
+        date={lrDatePickerValue}
+        onChange={(d) => {
+          setLrDatePickerValue(d);
+          const value = d.toISOString().split("T")[0];
+          setShipment((prev) => ({ ...prev, shipment_date: value }));
+        }}
+      />
+
+      <DatePickerModal
+        visible={showInsuranceDatePicker}
+        onClose={() => setShowInsuranceDatePicker(false)}
+        date={insuranceExpiryDate}
+        onChange={(d) => {
+          setInsuranceExpiryDate(d);
+          const value = d.toISOString().split("T")[0];
+          setInsurance((prev) => ({ ...prev, expiry_date: value }));
+        }}
+      />
+
+      <BottomSheet
+        visible={isTripPreviewModalVisible}
+        onClose={() => setIsTripPreviewModalVisible(false)}
+        title="Trip Preview"
+        maxHeight="78%"
+        expandedHeight="84%"
+      >
+        <View
+          style={{
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 16,
+            backgroundColor: colors.card,
+            padding: 12,
+            marginBottom: 14,
+          }}
+        >
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6, alignItems: "center" }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+              {previewTripCard.date ? new Date(previewTripCard.date).toLocaleDateString() : "No Date"}
+            </Text>
+            <Text style={{ fontSize: 20, fontWeight: "800", color: colors.primary }}>{`Rs ${previewTripCard.totalCost.toLocaleString()}`}</Text>
+          </View>
+
+          <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground, marginBottom: 8 }}>
+            {previewTripCard.start || "-"} {" -> "} {previewTripCard.end || "-"}
+          </Text>
+
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ color: colors.foreground, marginBottom: 2, fontSize: 12 }}>Client: {previewTripCard.client || "-"}</Text>
+            <Text style={{ color: colors.foreground, marginBottom: 2, fontSize: 12 }}>Truck: {previewTripCard.truck || "-"}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 12 }}>Driver: {previewTripCard.driver || "-"}</Text>
+          </View>
+
+          <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 8 }} />
+
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {previewTripCard.tripCost.toLocaleString()}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {previewTripCard.misc.toLocaleString()}</Text>
+          </View>
+
+          {previewTripCard.notes ? (
+            <Text
+              style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              Notes: {previewTripCard.notes}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity
+            onPress={() => setIsTripPreviewModalVisible(false)}
+            style={{
+              flex: 1,
+              backgroundColor: isDark ? colors.card : "#FFFFFF",
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 12,
+              paddingVertical: 12,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: colors.foreground, fontWeight: "700" }}>Close</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => {
+              if (!linkedTrip?._id) {
+                Alert.alert("No linked trip", "This bilty is not linked to an editable trip.");
+                return;
+              }
+              setIsTripPreviewModalVisible(false);
+              setIsTripDetailsModalVisible(true);
+            }}
+            style={{
+              flex: 1,
+              backgroundColor: colors.primary,
+              borderRadius: 12,
+              paddingVertical: 12,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: colors.primaryForeground, fontWeight: "900" }}>Edit Trip</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
+
+      <EditTripModal
+        visible={isTripDetailsModalVisible}
+        onClose={() => setIsTripDetailsModalVisible(false)}
+        trip={linkedTrip}
+        trucks={trucks}
+        drivers={drivers}
+        clients={clients}
+        locations={locations}
+        onSave={async (_id, data) => {
+          setLinkedTrip((prev: any) => ({
+            ...(prev || {}),
+            ...data,
+            _id: _id,
+            truck: data.truck,
+            driver: data.driver,
+            client: data.client,
+            start_location: data.start_location,
+            end_location: data.end_location,
+            cost_of_trip: data.cost_of_trip,
+            miscellaneous_expense: data.miscellaneous_expense,
+            trip_date: data.trip_date,
+            notes: data.notes,
+          }));
+
+          setShipment((prev) => ({
+            ...prev,
+            shipment_date: String(data.trip_date || prev.shipment_date).split("T")[0],
+            from_location: getLocationNameById(data.start_location),
+            to_location: getLocationNameById(data.end_location),
+            vehicle_number: getTruckNameById(data.truck),
+            driver_name: getDriverNameById(data.driver),
+          }));
+
+          setCharges((prev) => ({
+            ...prev,
+            freight: String(data.cost_of_trip ?? prev.freight),
+            other: String(data.miscellaneous_expense ?? prev.other),
+          }));
+        }}
+        onDelete={async () => {
+          setIsTripDetailsModalVisible(false);
+        }}
+      />
+
+      <BottomSheet
+        visible={isClientModalVisible}
+        onClose={() => setIsClientModalVisible(false)}
+        title={partyEditorTarget === "consignor" ? "Add Consignor" : "Add Consignee"}
+        maxHeight="86%"
+        expandedHeight="95%"
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          contentContainerStyle={{ paddingBottom: 18 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>NAME *</Text>
+          <TextInput
+            placeholder="Party name"
+            placeholderTextColor={colors.mutedForeground}
+            value={newPartyForm.name}
+            onChangeText={(text) => setNewPartyForm((prev) => ({ ...prev, name: text }))}
+            style={inputStyle}
+          />
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>PHONE *</Text>
+          <TextInput
+            placeholder="Phone number"
+            placeholderTextColor={colors.mutedForeground}
+            value={newPartyForm.phone}
+            onChangeText={(text) => setNewPartyForm((prev) => ({ ...prev, phone: normalizePhoneInput(text) }))}
+            style={inputStyle}
+            keyboardType="phone-pad"
+            maxLength={13}
+          />
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>ADDRESS LINE 1</Text>
+          <TextInput
+            placeholder="Address line 1"
+            placeholderTextColor={colors.mutedForeground}
+            value={newPartyForm.address_line_1}
+            onChangeText={(text) => setNewPartyForm((prev) => ({ ...prev, address_line_1: text }))}
+            style={inputStyle}
+          />
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>ADDRESS LINE 2</Text>
+          <TextInput
+            placeholder="Address line 2"
+            placeholderTextColor={colors.mutedForeground}
+            value={newPartyForm.address_line_2}
+            onChangeText={(text) => setNewPartyForm((prev) => ({ ...prev, address_line_2: text }))}
+            style={inputStyle}
+          />
+
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>STATE</Text>
+              <TextInput
+                placeholder="State"
+                placeholderTextColor={colors.mutedForeground}
+                value={newPartyForm.state}
+                onChangeText={(text) => setNewPartyForm((prev) => ({ ...prev, state: text }))}
+                style={inputStyle}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>PINCODE</Text>
+              <TextInput
+                placeholder="Pincode"
+                placeholderTextColor={colors.mutedForeground}
+                value={newPartyForm.pincode}
+                onChangeText={(text) => setNewPartyForm((prev) => ({ ...prev, pincode: text.replace(/[^\d]/g, "").slice(0, 6) }))}
+                style={inputStyle}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+          </View>
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>GSTIN</Text>
+          <TextInput
+            placeholder="GST number"
+            placeholderTextColor={colors.mutedForeground}
+            value={newPartyForm.gstin}
+            onChangeText={(text) => setNewPartyForm((prev) => ({ ...prev, gstin: normalizeGstinNumber(text) }))}
+            style={inputStyle}
+            autoCapitalize="characters"
+            maxLength={15}
+          />
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>PAN NUMBER</Text>
+          <TextInput
+            placeholder="PAN number"
+            placeholderTextColor={colors.mutedForeground}
+            value={newPartyForm.pan}
+            onChangeText={(text) => setNewPartyForm((prev) => ({ ...prev, pan: normalizePanNumber(text) }))}
+            style={inputStyle}
+            autoCapitalize="characters"
+            maxLength={10}
+          />
+
+          <TouchableOpacity
+            onPress={async () => {
+              if (!newPartyForm.name?.trim()) {
+                Alert.alert("Missing Fields", "Name is required.");
+                return;
+              }
+              const payload = {
+                type: "both",
+                name: newPartyForm.name.trim(),
+                phone: normalizePhoneInput(newPartyForm.phone),
+                contact_person: "",
+                email: "",
+                address: [
+                  newPartyForm.address_line_1,
+                  newPartyForm.address_line_2,
+                  newPartyForm.state,
+                  newPartyForm.pincode,
+                ]
+                  .map((x) => String(x || "").trim())
+                  .filter(Boolean)
+                  .join(", "),
+                gstin: normalizeGstinNumber(newPartyForm.gstin),
+                pan: normalizePanNumber(newPartyForm.pan),
+                quick_fill_source: "manual" as const,
+              };
+
+              const saved = await createParty(payload as any);
+
+              const picked: PartyForm = {
+                ...emptyParty,
+                party_id: String(saved?._id || ""),
+                name: String(saved?.name || payload.name),
+                contact_person: String(saved?.contact_person || ""),
+                phone: normalizePhoneInput(String(saved?.phone || payload.phone || "")),
+                email: String(saved?.email || ""),
+                address: String(saved?.address || payload.address || ""),
+                gstin: normalizeGstinNumber(String(saved?.gstin || payload.gstin || "")),
+                pan: normalizePanNumber(String(saved?.pan || payload.pan || "")),
+                gstin_details: saved?.gstin_details,
+              };
+              setPartyDraft(picked);
+              if (partyEditorTarget === "consignor") setConsignor(picked);
+              else if (partyEditorTarget === "consignee") setConsignee(picked);
+              setIsClientModalVisible(false);
+              await fetchParties();
+              closePartyEditor();
+            }}
+            style={{
+              backgroundColor: colors.primary,
+              paddingVertical: 14,
+              borderRadius: 12,
+              alignItems: "center",
+              marginTop: 4,
+            }}
+          >
+            <Text style={{ color: colors.primaryForeground, fontWeight: "900" }}>Save</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </BottomSheet>
+
+      {!keyboardVisible && (
+        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: isDark ? colors.card : "#FFFFFF", padding: 12, flexDirection: "row", gap: 10 }}>
         <TouchableOpacity
           disabled={!canGoBack}
           onPress={() => setStep((prev) => Math.max(1, prev - 1))}
           style={{
             flex: 1,
-            backgroundColor: canGoBack ? colors.secondary : colors.card,
+            backgroundColor: canGoBack ? (isDark ? colors.secondary : "#EEF1F5") : colors.card,
             paddingVertical: 12,
             borderRadius: 12,
             alignItems: "center",
@@ -911,7 +2395,9 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
         <TouchableOpacity
           disabled={!canGoNext}
-          onPress={() => setStep((prev) => Math.min(4, prev + 1))}
+          onPress={() => {
+            void handleNext();
+          }}
           style={{
             flex: 1,
             backgroundColor: canGoNext ? colors.primary : colors.card,
@@ -921,9 +2407,10 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             opacity: canGoNext ? 1 : 0.5,
           }}
         >
-          <Text style={{ color: canGoNext ? colors.primaryForeground : colors.foreground, fontWeight: "900" }}>Next</Text>
+          <Text style={{ color: canGoNext ? colors.primaryForeground : colors.foreground, fontWeight: "900" }}>{canGoNext ? "Continue" : "Done"}</Text>
         </TouchableOpacity>
-      </View>
+        </View>
+      )}
     </View>
   );
 }

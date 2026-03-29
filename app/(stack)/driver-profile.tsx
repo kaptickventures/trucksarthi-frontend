@@ -70,7 +70,7 @@ export default function DriverProfile() {
   const handleShare = async () => {
     if (!driver) return;
     try {
-      const message = `${t('driverProfile')}:\nName: ${driver.driver_name}\nContact: ${driver.contact_number}`;
+      const message = `${t('driverProfile')}:\nName: ${driver.driver_name}\nContact: ${formatPhoneNumber(driver.contact_number)}`;
       await Share.share({ message });
     } catch {
       Alert.alert(t('error'), "Could not share driver details.");

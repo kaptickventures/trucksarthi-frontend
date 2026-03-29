@@ -26,7 +26,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useUser } from "../../hooks/useUser";
 import { useThemeStore } from "../../hooks/useThemeStore";
-import { getFileUrl } from "../../lib/utils";
+import { getFileUrl, normalizeAddressInput, normalizePhoneInput } from "../../lib/utils";
 
 export default function BasicDetailsScreen() {
     const router = useRouter();
@@ -91,7 +91,7 @@ export default function BasicDetailsScreen() {
     const validate = () => {
         if (!name.trim()) return "Full Name is required";
         if (!company_name.trim()) return "Company Name is required";
-        if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return "A valid Mobile Number is required";
+        if (normalizePhoneInput(phone).length !== 13) return "A valid Mobile Number is required";
         if (!email.trim() || !email.includes("@")) return "A valid Email Address is required";
         if (!address.trim()) return "Address is required";
         return null;
@@ -109,9 +109,9 @@ export default function BasicDetailsScreen() {
             await syncUser({
                 name: name.trim(),
                 email: email.trim(),
-                phone: phone.trim(),
+                phone: normalizePhoneInput(phone),
                 company_name: company_name.trim(),
-                address: address.trim()
+                address: normalizeAddressInput(address)
             });
 
             Alert.alert("Success", "Profile completed! Welcome to Trucksarthi.", [
@@ -223,7 +223,7 @@ export default function BasicDetailsScreen() {
                             <CustomInput
                                 label="MOBILE NUMBER"
                                 value={phone}
-                                onChange={setPhone}
+                                onChange={(val: string) => setPhone(normalizePhoneInput(val))}
                                 colors={colors}
                                 editable={!user?.is_mobile_verified}
                                 placeholder="+91 XXXXX XXXXX"
@@ -247,7 +247,7 @@ export default function BasicDetailsScreen() {
                                 value={address}
                                 onChange={setAddress}
                                 colors={colors}
-                                placeholder="Full business address"
+                                placeholder="Address Line 1, Address Line 2, State, Pincode"
                                 icon={<MapPin size={18} color={colors.mutedForeground} />}
                                 multiline
                                 height={100}

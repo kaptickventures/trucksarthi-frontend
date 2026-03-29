@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import API from "../app/api/axiosInstance";
+import { normalizePhoneInput } from "../lib/utils";
 
 export type AppUserRole = "driver" | "fleet_owner";
 
@@ -62,7 +63,7 @@ export async function verifyEmailOtp(email: string, otp: string) {
 
 export async function sendPhoneOtp(phone: string, userType?: string) {
   try {
-    await API.post("/api/auth/request-phone-otp", { phone, userType });
+    await API.post("/api/auth/request-phone-otp", { phone: normalizePhoneInput(phone), userType });
     return true;
   } catch (err: any) {
     console.error("Send OTP error:", err.response?.data || err.message);
@@ -72,7 +73,7 @@ export async function sendPhoneOtp(phone: string, userType?: string) {
 
 export async function loginWithPhone(phone: string, otp: string, userType?: string) {
   try {
-    const res = await API.post("/api/auth/verify-phone-otp", { phone, otp, userType });
+    const res = await API.post("/api/auth/verify-phone-otp", { phone: normalizePhoneInput(phone), otp, userType });
     const { token, user } = res.data;
     if (token) {
       await AsyncStorage.setItem("userToken", token);

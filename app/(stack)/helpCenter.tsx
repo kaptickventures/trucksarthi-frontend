@@ -12,6 +12,7 @@ import {
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
+import { formatPhoneNumber } from "../../lib/utils";
 
 const PHONE = "9319595984";
 const EMAIL = "support@trucksarthi.in";
@@ -84,7 +85,7 @@ export default function HelpCenter() {
                   Call Support
                 </Text>
                 <Text className="text-sm mt-1" style={{ color: colors.mutedForeground }}>
-                  +91 {PHONE}
+                  {formatPhoneNumber(PHONE)}
                 </Text>
               </View>
             </View>

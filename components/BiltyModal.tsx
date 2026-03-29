@@ -2,14 +2,16 @@ import React from "react";
 import {
   Text,
   TextInput,
+  ScrollView,
   TouchableOpacity,
   View,
   Alert,
-  ScrollView,
+  Platform,
   ActivityIndicator,
 } from "react-native";
 import { useThemeStore } from "../hooks/useThemeStore";
 import BottomSheet from "./BottomSheet";
+import { normalizeGstinNumber, normalizePhoneInput } from "../lib/utils";
 
 export type BiltyFormData = {
   consignor: {
@@ -101,11 +103,17 @@ export default function BiltyModal({
               ...prev,
               [partyType]: {
                 ...prev[partyType],
-                [fieldName]: text,
+                [fieldName]:
+                  fieldName === "phone"
+                    ? normalizePhoneInput(text)
+                    : fieldName === "gstin"
+                      ? normalizeGstinNumber(text)
+                      : text,
               },
             }))
           }
           keyboardType={keyboardType}
+          maxLength={fieldName === "phone" ? 13 : fieldName === "gstin" ? 15 : undefined}
           style={{
             paddingHorizontal: 14,
             height: 44,
@@ -180,6 +188,8 @@ export default function BiltyModal({
       expandedHeight="95%"
     >
       <ScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         contentContainerStyle={{ paddingBottom: 20 }}
         showsVerticalScrollIndicator={false}
       >

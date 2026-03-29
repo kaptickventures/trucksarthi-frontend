@@ -28,7 +28,7 @@ import FinanceFAB from "../../components/finance/FinanceFAB";
 import useDrivers from "../../hooks/useDriver";
 import useDriverFinance, { TransactionNature } from "../../hooks/useDriverFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
-import { formatDate, getFileUrl } from "../../lib/utils";
+import { formatDate, formatPhoneNumber, getFileUrl } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 
 type TabType = "ALL" | "TO_DRIVER" | "DRIVER_SPENDS";
@@ -393,7 +393,7 @@ export default function DriverLedgerDetailScreen() {
 	                  {driver?.driver_name || driver?.name || "Driver"}
 	                </Text>
 	                <Text style={{ color: colors.mutedForeground, marginTop: 2, fontSize: 13 }}>
-	                  {driver?.contact_number || driver?.phone || "-"}
+                    {driver?.contact_number || driver?.phone ? formatPhoneNumber(driver?.contact_number || driver?.phone) : "-"}
 	                </Text>
 	              </View>
             </View>

@@ -15,6 +15,7 @@ import { useThemeStore } from "../hooks/useThemeStore";
 import * as Contacts from "expo-contacts";
 import API from "../app/api/axiosInstance";
 import BottomSheet from "./BottomSheet";
+import { normalizeGstinNumber, normalizePhoneInput } from "../lib/utils";
 
 export type ClientFormData = {
   client_name: string;
@@ -51,7 +52,7 @@ export default function ClientFormModal({
   const [showManualFields, setShowManualFields] = useState(false);
 
   const verifyGSTIN = async () => {
-    const normalizedGstin = (formData.gstin || "").trim().toUpperCase();
+    const normalizedGstin = normalizeGstinNumber(formData.gstin);
     if (!normalizedGstin || normalizedGstin.length !== 15) {
       Alert.alert("Input Required", "Please enter a valid GSTIN number.");
       return;
@@ -96,12 +97,7 @@ export default function ClientFormModal({
   };
 
   const normalizePhone = (value?: string) => {
-    if (!value) return "";
-    const trimmed = value.trim();
-    const hasPlus = trimmed.startsWith("+");
-    const digits = trimmed.replace(/\D/g, "");
-    if (!digits) return "";
-    return hasPlus ? `+${digits}` : digits;
+    return normalizePhoneInput(value || "");
   };
 
   const handlePickContact = async () => {
@@ -175,7 +171,7 @@ export default function ClientFormModal({
             className="flex-1 py-4 text-base font-bold uppercase tracking-widest"
             style={{ color: colors.foreground }}
             value={formData.gstin}
-            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, gstin: val }))}
+            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, gstin: normalizeGstinNumber(val) }))}
             placeholder="ENTER GSTIN NUMBER"
             placeholderTextColor={colors.mutedForeground + "60"}
             autoCapitalize="characters"
@@ -186,12 +182,12 @@ export default function ClientFormModal({
 
         <TouchableOpacity
           onPress={verifyGSTIN}
-          disabled={verifying || !formData.gstin}
-          style={{ backgroundColor: formData.gstin && formData.gstin.length >= 10 ? colors.primary : colors.muted }}
+          disabled={verifying || normalizeGstinNumber(formData.gstin).length !== 15}
+          style={{ backgroundColor: normalizeGstinNumber(formData.gstin).length === 15 ? colors.primary : colors.muted }}
           className="py-4 rounded-2xl items-center justify-center"
         >
           <Text
-            style={{ color: formData.gstin && formData.gstin.length >= 10 ? "white" : colors.mutedForeground }}
+            style={{ color: normalizeGstinNumber(formData.gstin).length === 15 ? "white" : colors.mutedForeground }}
             className="font-black text-base"
           >
             Search
@@ -236,7 +232,7 @@ export default function ClientFormModal({
               borderColor: colors.border,
             }}
             value={formData.gstin}
-            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, gstin: val }))}
+            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, gstin: normalizeGstinNumber(val) }))}
             placeholder="e.g. 29ABCDE1234F1Z5"
             placeholderTextColor={colors.mutedForeground + "80"}
             autoCapitalize="characters"
@@ -302,7 +298,7 @@ export default function ClientFormModal({
               borderColor: colors.border,
             }}
             value={formData.gstin}
-            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, gstin: val }))}
+            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, gstin: normalizeGstinNumber(val) }))}
             placeholder="e.g. 29ABCDE1234F1Z5"
             placeholderTextColor={colors.mutedForeground + "80"}
             autoCapitalize="characters"
@@ -343,10 +339,11 @@ export default function ClientFormModal({
                   borderColor: colors.border,
                 }}
                 value={formData.contact_number}
-                onChangeText={(val) => setFormData((prev: any) => ({ ...prev, contact_number: val }))}
+                onChangeText={(val) => setFormData((prev: any) => ({ ...prev, contact_number: normalizePhoneInput(val) }))}
                 placeholder="e.g. 9876543210"
                 placeholderTextColor={colors.mutedForeground + "80"}
                 keyboardType="phone-pad"
+                maxLength={13}
               />
             </View>
             <TouchableOpacity

@@ -2,10 +2,16 @@ import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import API from "../app/api/axiosInstance";
 import type { Bilty, BiltyParty } from "../types/entity";
+import { normalizeAddressInput } from "../lib/utils";
 
 export type CompanyProfile = {
   name: string;
   address: string;
+  address_line_1?: string;
+  address_line_2?: string;
+  state?: string;
+  pincode?: string;
+  logo_url?: string;
   phone: string;
   pan: string;
   gstin: string;
@@ -66,6 +72,16 @@ export type BiltyPayload = {
     balance?: number;
   };
   payment_type?: "to_pay" | "paid" | "billed";
+  gst_paid_by?: "consignor" | "consignee";
+  gst_percentage?: 0 | 5 | 18;
+  gst_type?: "gst" | "igst";
+  insurance?: {
+    policy_number?: string;
+    insurer_name?: string;
+    coverage_amount?: number;
+    expiry_date?: string;
+  };
+  signature_url?: string;
   notes?: string;
 };
 
@@ -73,6 +89,20 @@ export function useBilty() {
   const [bilties, setBilties] = useState<Bilty[]>([]);
   const [parties, setParties] = useState<BiltyParty[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const normalizeBiltyPayload = (data: BiltyPayload): BiltyPayload => {
+    return {
+      ...data,
+      consignor: {
+        ...data.consignor,
+        address: normalizeAddressInput(data.consignor?.address || ""),
+      },
+      consignee: {
+        ...data.consignee,
+        address: normalizeAddressInput(data.consignee?.address || ""),
+      },
+    };
+  };
 
   const fetchBilties = useCallback(async (params?: { status?: string; tripId?: string }) => {
     try {
@@ -115,7 +145,7 @@ export function useBilty() {
 
   const createBilty = async (data: BiltyPayload) => {
     try {
-      const res = await API.post(`/api/bilties`, data);
+      const res = await API.post(`/api/bilties`, normalizeBiltyPayload(data));
       return res.data as Bilty;
     } catch (error: any) {
       console.error("createBilty failed", error);
@@ -126,7 +156,16 @@ export function useBilty() {
 
   const updateBilty = async (id: string, data: Partial<BiltyPayload>) => {
     try {
-      const res = await API.put(`/api/bilties/${id}`, data);
+      const normalized: Partial<BiltyPayload> = {
+        ...data,
+        consignor: data.consignor
+          ? { ...data.consignor, address: normalizeAddressInput(data.consignor.address || "") }
+          : data.consignor,
+        consignee: data.consignee
+          ? { ...data.consignee, address: normalizeAddressInput(data.consignee.address || "") }
+          : data.consignee,
+      };
+      const res = await API.put(`/api/bilties/${id}`, normalized);
       return res.data as Bilty;
     } catch (error: any) {
       console.error("updateBilty failed", error);
@@ -158,13 +197,27 @@ export function useBilty() {
       return res.data as CompanyProfile;
     } catch (error) {
       console.error("getCompanyProfile failed", error);
-      return { name: "", address: "", phone: "", pan: "", gstin: "" };
+      return {
+        name: "",
+        address: "",
+        address_line_1: "",
+        address_line_2: "",
+        state: "",
+        pincode: "",
+        logo_url: "",
+        phone: "",
+        pan: "",
+        gstin: "",
+      };
     }
   };
 
   const updateCompanyProfile = async (payload: CompanyProfile) => {
     try {
-      const res = await API.put("/api/bilties/company-profile", payload);
+      const res = await API.put("/api/bilties/company-profile", {
+        ...payload,
+        address: normalizeAddressInput(payload.address),
+      });
       return res.data as CompanyProfile;
     } catch (error: any) {
       console.error("updateCompanyProfile failed", error);
@@ -198,7 +251,10 @@ export function useBilty() {
 
   const createParty = async (payload: Partial<BiltyParty>) => {
     try {
-      const res = await API.post("/api/bilties/parties", payload);
+      const res = await API.post("/api/bilties/parties", {
+        ...payload,
+        address: normalizeAddressInput(payload.address || ""),
+      });
       setParties((prev) => [res.data, ...prev]);
       return res.data as BiltyParty;
     } catch (error: any) {
@@ -210,7 +266,10 @@ export function useBilty() {
 
   const updateParty = async (id: string, payload: Partial<BiltyParty>) => {
     try {
-      const res = await API.put(`/api/bilties/parties/${id}`, payload);
+      const res = await API.put(`/api/bilties/parties/${id}`, {
+        ...payload,
+        address: normalizeAddressInput(payload.address || ""),
+      });
       setParties((prev) => prev.map((p) => (p._id === id ? res.data : p)));
       return res.data as BiltyParty;
     } catch (error: any) {

@@ -17,6 +17,7 @@ import useDrivers from "../../hooks/useDriver";
 import { Skeleton } from "../../components/Skeleton";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
+import { formatPhoneNumber } from "../../lib/utils";
 
 export default function DriverLedgerScreen() {
   const router = useRouter();
@@ -206,7 +207,7 @@ export default function DriverLedgerScreen() {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Ionicons name="call-outline" size={13} color={colors.mutedForeground} />
                   <Text style={{ fontSize: 13, color: colors.mutedForeground, fontWeight: "500" }}>
-                    {d.contact_number || d.phone || "—"}
+                    {d.contact_number || d.phone ? formatPhoneNumber(d.contact_number || d.phone) : "—"}
                   </Text>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>

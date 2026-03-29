@@ -32,7 +32,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import "../../global.css";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
-import { getFileUrl } from "../../lib/utils";
+import { formatPhoneNumber, getFileUrl, normalizeAddressInput, normalizePhoneInput } from "../../lib/utils";
 import API from "../api/axiosInstance";
 import { useTranslation } from "../../context/LanguageContext";
 
@@ -96,7 +96,8 @@ export default function Profile() {
   }, [user]);
 
   const markChanged = (key: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    const nextValue = key === "phone" ? normalizePhoneInput(value) : value;
+    setFormData((prev) => ({ ...prev, [key]: nextValue }));
     setHasChanges(true);
   };
 
@@ -147,6 +148,8 @@ export default function Profile() {
       setLoading(true);
       await updateUser({
         ...formData,
+        phone: normalizePhoneInput(formData.phone),
+        address: normalizeAddressInput(formData.address),
         profile_picture_url: profileImage ?? undefined,
       });
       Alert.alert("Success", "Profile updated!");
@@ -349,7 +352,7 @@ export default function Profile() {
                 numberOfLines={1}
                 style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 6 }}
               >
-                {formData.phone || formData.email || "Add phone/email"}
+                {formData.phone ? formatPhoneNumber(formData.phone) : formData.email || "Add phone/email"}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
                 <View
@@ -551,7 +554,7 @@ export default function Profile() {
                 labelAction="Update PAN"
                 onLabelActionPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "pan" } } as any)}
               />
-              <ProfileInput label="Office Address" value={formData.address} editable={false} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Full street address" />
+              <ProfileInput label="Office Address" value={formData.address} editable={false} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Address Line 1, Address Line 2, State, Pincode" />
             </View>
           )}
 

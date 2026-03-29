@@ -154,6 +154,7 @@ export default function StackLayout() {
           <Stack.Screen name="maintenance-dashboard" options={{ title: "Truck Maintenance" }} />
           <Stack.Screen name="trip-detail" options={{ title: "Trip Detail" }} />
           <Stack.Screen name="bilty-wizard" options={{ title: "Bilty Wizard" }} />
+          <Stack.Screen name="bilty-generated" options={{ title: "Bilty Saved" }} />
           <Stack.Screen name="driver-ledger" options={{ title: "Driver Khata" }} />
           <Stack.Screen name="driver-ledger-detail" options={{ title: "Driver Khata" }} />
           <Stack.Screen name="client-ledger" options={{ title: "Client Khata" }} />

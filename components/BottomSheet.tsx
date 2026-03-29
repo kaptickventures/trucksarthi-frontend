@@ -1,8 +1,6 @@
 import { X } from "lucide-react-native";
 import React, { useEffect, useMemo, useRef } from "react";
 import {
-    KeyboardAvoidingView,
-    Keyboard,
     Platform,
     Text,
     TouchableOpacity,
@@ -50,23 +48,6 @@ export default function BottomSheet({
         } else {
             sheetRef.current?.dismiss();
         }
-    }, [visible]);
-
-    useEffect(() => {
-        if (!visible) return;
-        if (Platform.OS === "web") return;
-
-        const showSub = Keyboard.addListener("keyboardDidShow", () => {
-            sheetRef.current?.snapToIndex(1);
-        });
-        const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-            sheetRef.current?.snapToIndex(0);
-        });
-
-        return () => {
-            showSub.remove();
-            hideSub.remove();
-        };
     }, [visible]);
 
     return (
@@ -141,12 +122,9 @@ export default function BottomSheet({
                 )}
 
                 {/* Content */}
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    style={{ paddingHorizontal: 24 }}
-                >
+                <View style={{ paddingHorizontal: 24 }}>
                     {children}
-                </KeyboardAvoidingView>
+                </View>
             </BottomSheetView>
         </BottomSheetModal>
     );
