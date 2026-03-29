@@ -81,16 +81,17 @@ export default function LocationFormModal({
       onClose={onClose}
       title={editing ? "Edit Location" : "Add Location"}
       subtitle="Location Details"
-      maxHeight="90%"
-      expandedHeight="90%"
+      maxHeight="80%"
+      expandedHeight="92%"
+      disableContentPanningGesture
     >
       <KeyboardAwareScrollView
         enableOnAndroid
-        extraScrollHeight={120}
+        extraScrollHeight={220}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        enableAutomaticScroll={false}
-        scrollEnabled={false}
+        enableAutomaticScroll
+        scrollEnabled
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 80, 100) }}
       >

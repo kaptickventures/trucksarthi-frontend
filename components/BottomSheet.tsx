@@ -23,6 +23,7 @@ type BottomSheetProps = {
     children: React.ReactNode;
     maxHeight?: number | string;
     expandedHeight?: number | string;
+    disableContentPanningGesture?: boolean;
 };
 
 export default function BottomSheet({
@@ -33,6 +34,7 @@ export default function BottomSheet({
     children,
     maxHeight = "70%",
     expandedHeight = "90%",
+    disableContentPanningGesture = false,
 }: BottomSheetProps) {
     const { colors } = useThemeStore();
     const insets = useSafeAreaInsets();
@@ -55,6 +57,8 @@ export default function BottomSheet({
             ref={sheetRef}
             index={0}
             snapPoints={snapPoints}
+            enableDynamicSizing={false}
+            enableContentPanningGesture={!disableContentPanningGesture}
             onDismiss={onClose}
             backdropComponent={(props) => (
                 <BottomSheetBackdrop

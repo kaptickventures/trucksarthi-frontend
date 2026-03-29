@@ -90,7 +90,7 @@ export default function useTrips(options: UseTripsOptions = {}) {
     () =>
       trips.reduce(
         (acc, t) =>
-          acc + Number(t.cost_of_trip || 0) + Number(t.miscellaneous_expense || 0),
+          acc + Number(t.cost_of_trip || 0) + Number(t.miscellaneous_expense || 0) - Number((t as any).advance || 0),
         0
       ),
     [trips]

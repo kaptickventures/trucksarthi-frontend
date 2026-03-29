@@ -32,11 +32,19 @@ import useTrucks from "../../../hooks/useTruck";
 
 const TAG_FILTERS = [
   { key: "ALL", label: "All" },
-  { key: "DRIVER_EXPENSE", label: "Driver Expenses" },
-  { key: "CLIENT_KHATA", label: "Client Khata" },
+  { key: "DRIVER_EXPENSE", label: "Driver Advances" },
+  { key: "CLIENT_KHATA", label: "Client Payments" },
   { key: "TRUCK_EXPENSE", label: "Truck Expenses" },
-  { key: "MISC_KHATA", label: "Misc Khata" },
+  { key: "MISC_KHATA", label: "Misc Payments" },
 ] as const;
+
+const getFriendlyFilterLabel = (value: string) => {
+  const upper = String(value || "").toUpperCase();
+  if (upper === "DRIVER_EXPENSE" || upper === "DRIVER_KHATA" || upper === "DRIVER") return "Driver Advances";
+  if (upper === "CLIENT_PAYMENT" || upper === "CLIENT_KHATA" || upper === "CLIENT") return "Client Payments";
+  if (upper === "MISC_EXPENSE" || upper === "MISC_KHATA" || upper === "MISC") return "Misc Payments";
+  return formatLabel(value);
+};
 
 type TagFilter = (typeof TAG_FILTERS)[number]["key"];
 
@@ -288,7 +296,7 @@ export default function TransactionsScreen() {
             {formatLabel(item.category)}
           </Text>
           <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-            {partyName ? `${partyName} • ` : ""}{item.notes || formatLabel(item.sourceModule)}
+            {partyName ? `${partyName} • ` : ""}{item.notes || getFriendlyFilterLabel(item.sourceModule)}
           </Text>
           <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
             <Text style={{ fontSize: 10, color: colors.mutedForeground }}>

@@ -5,8 +5,8 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { ArrowDownLeft, Banknote, Building2, Calendar, Download, Edit, Eye, FileText, MapPin, Plus, Share2, X } from "lucide-react-native";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ArrowDownLeft, Banknote, Calendar, Download, Edit, Eye, MapPin, Share2 } from "lucide-react-native";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   Alert,
   Linking,
@@ -35,7 +35,7 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrips, { Trip } from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
-import { formatDate, formatPhoneNumber } from "../../lib/utils";
+import { formatDate, formatPhoneNumber, normalizeGstinNumber, normalizePanNumber } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 import API from "../../app/api/axiosInstance";
 
@@ -138,6 +138,7 @@ export default function ClientLedgerDetailScreen() {
     email_address: "",
     office_address: "",
     gstin: "",
+    pan_number: "",
     gstin_details: undefined as any,
   });
   const PAYMENT_MODES = ["CASH", "BANK"] as const;
@@ -675,11 +676,6 @@ export default function ClientLedgerDetailScreen() {
     }
   };
 
-  const handlePreviewInvoice = (invoice: Invoice) => {
-    generateInvoicePDF(invoice, "view");
-  };
-
-
   /* ---------------- DERIVED ---------------- */
   const client = useMemo(() => {
     if (!id) return undefined;
@@ -1015,6 +1011,7 @@ export default function ClientLedgerDetailScreen() {
         email_address: client.email_address || "",
         office_address: client.office_address || "",
         gstin: client.gstin || "",
+        pan_number: client.pan_number || "",
         gstin_details: client.gstin_details || undefined,
       });
       setShowEditModal(true);
@@ -1132,6 +1129,17 @@ export default function ClientLedgerDetailScreen() {
     );
   }
 
+  const clientInitial = String(client?.client_name || "C").trim().charAt(0).toUpperCase() || "C";
+  const hasGstinInEdit = Boolean(String(editFormData.gstin || "").trim());
+  const profileRows = [
+    { label: t("contactPerson"), value: String(client.contact_person_name || "").trim() },
+    { label: t("clientContact"), value: client.contact_number ? formatPhoneNumber(client.contact_number) : "" },
+    { label: t("email"), value: String(client.email_address || "").trim() },
+    { label: t("officeAddress"), value: String(client.office_address || "").trim() },
+    { label: "GSTIN", value: String(client.gstin || "").trim() },
+    { label: "PAN", value: String((client as any).pan_number || "").trim() },
+  ].filter((row) => row.value.length > 0);
+
   /* ---------------- UI ---------------- */
   return (
     <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
@@ -1179,16 +1187,18 @@ export default function ClientLedgerDetailScreen() {
               style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
             >
               <View style={{ width: 56, height: 56, backgroundColor: colors.secondary, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                <Building2 size={26} color={colors.success} />
+                <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '800' }}>{clientInitial}</Text>
               </View>
 
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 16, fontWeight: '600', color: colors.foreground }}>
                   {client.client_name}
                 </Text>
-                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                  GSTIN: {client.gstin || "N/A"}
-                </Text>
+                {client.gstin ? (
+                  <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                    GSTIN: {client.gstin}
+                  </Text>
+                ) : null}
               </View>
 
               <View style={{ paddingRight: 8 }}>
@@ -1203,62 +1213,46 @@ export default function ClientLedgerDetailScreen() {
               >
                 <Edit size={15} color={colors.primary} />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => client.email_address && Linking.openURL(`mailto:${client.email_address}`)}
-                style={{ backgroundColor: colors.muted, padding: 8, borderRadius: 20 }}
-              >
-                <Ionicons name="mail-outline" size={15} color={colors.primary} />
-              </TouchableOpacity>
             </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 16, marginTop: 10 }}>
+            <TouchableOpacity
+              onPress={() =>
+                client.contact_number &&
+                Linking.openURL(`tel:${client.contact_number}`)
+              }
+              style={{ flex: 1, backgroundColor: colors.muted, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
+            >
+              <Text style={{ fontWeight: '600', fontSize: 14, color: colors.foreground }}>{t('call')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() =>
+                client.contact_number &&
+                Linking.openURL(
+                  `https://wa.me/91${client.contact_number}?text=Hello ${client.client_name}`
+                )
+              }
+              style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="logo-whatsapp" size={18} color="white" />
+                <Text style={{ fontWeight: '600', fontSize: 14, color: 'white' }}>
+                  WhatsApp
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {isClientExpanded && (
             <View style={{ marginTop: 14, gap: 8 }}>
               <View style={{ gap: 4 }}>
-                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                  {t('contactPerson')}: {client.contact_person_name || "N/A"}
-                </Text>
-                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                  {t('clientContact')}: {client.contact_number ? formatPhoneNumber(client.contact_number) : "N/A"}
-                </Text>
-                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                  {t('email')}: {client.email_address || "N/A"}
-                </Text>
-                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                  {t('officeAddress')}: {client.office_address || "N/A"}
-                </Text>
-              </View>
-
-              {/* ACTION ROW */}
-              <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
-                {/* CALL */}
-                <TouchableOpacity
-                  onPress={() =>
-                    client.contact_number &&
-                    Linking.openURL(`tel:${client.contact_number}`)
-                  }
-                  style={{ flex: 1, backgroundColor: colors.muted, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
-                >
-                  <Text style={{ fontWeight: '600', fontSize: 14, color: colors.foreground }}>{t('call')}</Text>
-                </TouchableOpacity>
-
-                {/* WHATSAPP */}
-                <TouchableOpacity
-                  onPress={() =>
-                    client.contact_number &&
-                    Linking.openURL(
-                      `https://wa.me/91${client.contact_number}?text=Hello ${client.client_name}`
-                    )
-                  }
-                  style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Ionicons name="logo-whatsapp" size={18} color="white" />
-                    <Text style={{ fontWeight: '600', fontSize: 14, color: 'white' }}>
-                      WhatsApp
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                {profileRows.map((row) => (
+                  <Text key={row.label} style={{ fontSize: 12, color: colors.mutedForeground }}>
+                    {row.label}: {row.value}
+                  </Text>
+                ))}
               </View>
             </View>
           )}
@@ -1328,8 +1322,8 @@ export default function ClientLedgerDetailScreen() {
                 >
                   <View className="flex-row justify-between items-start mb-2">
                     <View>
-                      <Text className="font-bold" style={{ color: colors.foreground }}>Trip #{getId(trip).slice(-6)}</Text>
-                      <Text className="text-xs" style={{ color: colors.mutedForeground }}>{trip.trip_date ? formatDate(trip.trip_date) : "N/A"}</Text>
+                      <Text className="font-bold" style={{ color: colors.foreground }}>Trip #{trip.public_id || getId(trip).slice(-6)}</Text>
+                      {trip.trip_date ? <Text className="text-xs" style={{ color: colors.mutedForeground }}>{formatDate(trip.trip_date)}</Text> : null}
                     </View>
                     <Text className="font-bold text-lg" style={{ color: colors.foreground }}>₹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
                   </View>
@@ -1731,29 +1725,40 @@ export default function ClientLedgerDetailScreen() {
               </View>
 
               <View>
-                <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>GSTIN Number</Text>
+                <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>
+                  {hasGstinInEdit ? "GSTIN Number" : "PAN Number"}
+                </Text>
                 <View className="flex-row gap-2">
                   <View className="flex-1">
                     <TextInput
                       className="p-4 rounded-2xl font-bold"
                       style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
-                      value={editFormData.gstin}
-                      onChangeText={(t) => setEditFormData(prev => ({ ...prev, gstin: t }))}
-                      placeholder="e.g. 29ABCDE1234F1Z5"
+                      value={hasGstinInEdit ? editFormData.gstin : String(editFormData.pan_number || "")}
+                      onChangeText={(t) =>
+                        setEditFormData(prev =>
+                          hasGstinInEdit
+                            ? { ...prev, gstin: normalizeGstinNumber(t) }
+                            : { ...prev, pan_number: normalizePanNumber(t) }
+                        )
+                      }
+                      placeholder={hasGstinInEdit ? "e.g. 29ABCDE1234F1Z5" : "e.g. ABCDE1234F"}
                       placeholderTextColor={colors.mutedForeground + '60'}
                       autoCapitalize="characters"
+                      maxLength={hasGstinInEdit ? 15 : 10}
                     />
                   </View>
-                  <TouchableOpacity
-                    onPress={verifyGSTIN}
-                    disabled={verifyingGstin || !editFormData.gstin}
-                    style={{ backgroundColor: editFormData.gstin ? colors.primary : colors.muted }}
-                    className="w-20 rounded-2xl items-center justify-center border border-border/50"
-                  >
-                    <Text style={{ color: editFormData.gstin ? "white" : colors.mutedForeground }} className="font-bold text-[10px] uppercase tracking-widest text-center px-1">
-                      {verifyingGstin ? "Verifying..." : "Verify\n& Fill"}
-                    </Text>
-                  </TouchableOpacity>
+                  {hasGstinInEdit ? (
+                    <TouchableOpacity
+                      onPress={verifyGSTIN}
+                      disabled={verifyingGstin || !editFormData.gstin}
+                      style={{ backgroundColor: editFormData.gstin ? colors.primary : colors.muted }}
+                      className="w-20 rounded-2xl items-center justify-center border border-border/50"
+                    >
+                      <Text style={{ color: editFormData.gstin ? "white" : colors.mutedForeground }} className="font-bold text-[10px] uppercase tracking-widest text-center px-1">
+                        {verifyingGstin ? "Verifying..." : "Verify\n& Fill"}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               </View>
 

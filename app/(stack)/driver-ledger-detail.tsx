@@ -363,29 +363,55 @@ export default function DriverLedgerDetailScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 10 }}>
               <View
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: colors.muted,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  width: 62,
+                  height: 62,
                   marginRight: 12,
+                  position: "relative",
                 }}
               >
-                {driver?.profile_picture_url ? (
-                  <Image
-                    source={{ uri: getFileUrl(driver.profile_picture_url) || "" }}
-                    style={{ width: "100%", height: "100%" }}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700" }}>
-                    Photo
-                  </Text>
-                )}
+                <View
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
+                    backgroundColor: colors.muted,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  {driver?.profile_picture_url ? (
+                    <Image
+                      source={{ uri: getFileUrl(driver.profile_picture_url) || "" }}
+                      style={{ width: "100%", height: "100%" }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={{ color: colors.mutedForeground, fontSize: 18, fontWeight: "800" }}>
+                      {String(driver?.driver_name || driver?.name || "D").charAt(0).toUpperCase()}
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleUpload("PROFILE")}
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "rgba(0,0,0,0.7)",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.7)",
+                  }}
+                >
+                  <Pencil size={12} color="white" />
+                </TouchableOpacity>
               </View>
 
 	              <View style={{ flex: 1 }}>
@@ -399,10 +425,6 @@ export default function DriverLedgerDetailScreen() {
             </View>
             <Ionicons name={isProfileExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.mutedForeground} />
           </TouchableOpacity>
-
-          <Text style={{ color: totals.balance >= 0 ? colors.success : colors.destructive, marginTop: 8, fontWeight: "800", fontSize: 18 }}>
-            Net Balance: Rs {Math.abs(totals.balance).toLocaleString()}
-          </Text>
 
 	          {isProfileExpanded && (
 	            <View style={{ marginTop: 12, gap: 8 }}>
@@ -543,6 +565,9 @@ export default function DriverLedgerDetailScreen() {
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           <SummaryCard label="Advances" value={totals.advances} tone="green" />
           <SummaryCard label="Expenses" value={totals.expenses} tone="red" />
+        </View>
+        <View style={{ marginBottom: 12 }}>
+          <SummaryCard label="Net Balance" value={totals.balance} tone={totals.balance >= 0 ? "green" : "red"} fullWidth />
         </View>
 
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
@@ -874,13 +899,15 @@ function Field({ label, children }: { label: string; children: any }) {
   );
 }
 
-function SummaryCard({ label, value, tone }: { label: string; value: number; tone: "green" | "red" }) {
+function SummaryCard({ label, value, tone, fullWidth = false }: { label: string; value: number; tone: "green" | "red"; fullWidth?: boolean }) {
   const { colors } = useThemeStore();
   const color = tone === "green" ? colors.success : colors.destructive;
   return (
-    <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border }}>
+    <View style={{ flex: fullWidth ? 0 : 1, width: fullWidth ? "100%" : undefined, backgroundColor: colors.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>{label}</Text>
-      <Text style={{ color, fontWeight: "800", fontSize: 14 }}>Rs {Number(value || 0).toLocaleString()}</Text>
+      <Text style={{ color, fontWeight: "800", fontSize: 14 }}>
+        Rs {Math.abs(Number(value || 0)).toLocaleString()}
+      </Text>
     </View>
   );
 }

@@ -38,6 +38,14 @@ type DatePickerField = "startDate" | "endDate" | null;
 const TAG_PILL_HEIGHT = 40;
 const TYPE_PILL_HEIGHT = 36;
 
+const getFriendlyFilterLabel = (value: string) => {
+  const upper = String(value || "").toUpperCase();
+  if (upper === "DRIVER_EXPENSE" || upper === "DRIVER_KHATA" || upper === "DRIVER") return "Driver Advances";
+  if (upper === "CLIENT_PAYMENT" || upper === "CLIENT_KHATA" || upper === "CLIENT") return "Client Payments";
+  if (upper === "MISC_EXPENSE" || upper === "MISC_KHATA" || upper === "MISC") return "Misc Payments";
+  return formatLabel(value);
+};
+
 export default function TransactionsScreen() {
   const { colors, theme } = useThemeStore();
   const { t } = useTranslation();
@@ -308,7 +316,7 @@ export default function TransactionsScreen() {
                       textAlign: "center",
                     }}
                   >
-                    {formatLabel(item)}
+                    {getFriendlyFilterLabel(item)}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -477,7 +485,7 @@ export default function TransactionsScreen() {
                   }}
                 >
                   <Text style={{ color: active ? "white" : colors.foreground, fontSize: 12, fontWeight: "700" }}>
-                    {module === "ALL" ? "All" : formatLabel(module)}
+                    {module === "ALL" ? "All" : getFriendlyFilterLabel(module)}
                   </Text>
                 </TouchableOpacity>
               );

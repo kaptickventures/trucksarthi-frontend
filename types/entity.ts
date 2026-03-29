@@ -265,6 +265,7 @@ export interface Client {
   alternate_contact_number?: string;
   office_address?: string;
   gstin?: string;
+  pan_number?: string;
   gstin_details?: any;
   createdAt?: ISODate;
   updatedAt?: ISODate;
@@ -329,6 +330,7 @@ export interface TripEditHistoryEntry {
     end_location?: ObjectId | Location;
     cost_of_trip?: number;
     miscellaneous_expense?: number;
+    advance?: number;
     notes?: string;
     invoiced_status?: InvoicedStatus;
     public_id?: string;
@@ -350,6 +352,7 @@ export interface Trip {
 
   cost_of_trip: number;
   miscellaneous_expense?: number;
+  advance?: number;
 
   notes?: string;
   invoiced_status?: InvoicedStatus;
@@ -397,6 +400,7 @@ export interface Invoice {
 
 export type BiltyStatus = "draft" | "generated" | "finalized" | "cancelled";
 export type BiltyPaymentType = "to_pay" | "paid" | "billed";
+export type BiltyFreightPaidBy = "consignor" | "consignee";
 export type BiltyGstPaidBy = "consignor" | "consignee";
 export type BiltyGstType = "gst" | "igst";
 
@@ -476,6 +480,7 @@ export interface Bilty {
   goods_rows?: BiltyGoodsRow[];
 
   charges?: BiltyCharges;
+  freight_paid_by?: BiltyFreightPaidBy;
   payment_type?: BiltyPaymentType;
   gst_paid_by?: BiltyGstPaidBy;
   gst_percentage?: 0 | 5 | 18;

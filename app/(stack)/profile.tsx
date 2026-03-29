@@ -69,9 +69,6 @@ export default function Profile() {
   const [contactOtp, setContactOtp] = useState("");
   const [sendingContactOtp, setSendingContactOtp] = useState(false);
   const [verifyingContactOtp, setVerifyingContactOtp] = useState(false);
-
-  const [verifyingBank, setVerifyingBank] = useState(false);
-  const [bankVerificationResult, setBankVerificationResult] = useState<any>(null);
   const isKycVerified = Boolean(user?.is_pan_verified && user?.is_gstin_verified);
 
   useEffect(() => {
@@ -160,45 +157,6 @@ export default function Profile() {
       Alert.alert("Error", "Could not update profile");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleBankVerification = async () => {
-    if (!formData.account_number || !formData.ifsc_code) {
-      Alert.alert("Missing Information", "Please enter both Account Number and IFSC Code");
-      return;
-    }
-
-    try {
-      setVerifyingBank(true);
-      const response = await API.post("/api/kyc/bank", {
-        bank_account: formData.account_number,
-        ifsc: formData.ifsc_code,
-        name: formData.account_holder_name || formData.name,
-        phone: formData.phone,
-      });
-
-      setBankVerificationResult(response.data);
-
-      if (response.data.verified) {
-        Alert.alert(
-          "✅ Bank Account Verified!",
-          `Account Holder: ${response.data.data.nameAtBank}\n` +
-          `Bank: ${response.data.data.bankName}\n` +
-          `Branch: ${response.data.data.branch}` +
-          (response.data.data.nameMatchResult ? `\n\nName Match: ${response.data.data.nameMatchResult.replace(/_/g, ' ')}` : ""),
-          [{ text: "OK", onPress: () => refreshUser() }]
-        );
-      } else {
-        Alert.alert("Verification Failed", response.data.message || "Unable to verify bank account");
-      }
-    } catch (error: any) {
-      Alert.alert(
-        "Verification Error",
-        error.response?.data?.message || "Failed to verify bank account. Please check your details."
-      );
-    } finally {
-      setVerifyingBank(false);
     }
   };
 
@@ -458,11 +416,11 @@ export default function Profile() {
               <ProfileInput
                 label="Email Address"
                 value={formData.email}
-                editable={!user?.is_email_verified}
+                editable={isEditing}
                 onChange={(v: string) => markChanged("email", v)}
                 icon={<Mail size={18} color={colors.mutedForeground} />}
-                labelAction={!user?.is_email_verified ? (sendingContactOtp && contactOtpType === "email" ? "Sending..." : "Verify") : undefined}
-                onLabelActionPress={!user?.is_email_verified ? () => handleRequestSecondaryOtp("email") : undefined}
+                labelAction={isEditing ? undefined : (sendingContactOtp && contactOtpType === "email" ? "Sending..." : "Verify")}
+                onLabelActionPress={isEditing ? undefined : () => handleRequestSecondaryOtp("email")}
                 rightNode={user?.is_email_verified ? <CheckCircle2 size={18} color={colors.success} /> : undefined}
               />
               {contactOtpType === "email" && (
@@ -542,7 +500,7 @@ export default function Profile() {
                 icon={<Hash size={18} color={colors.mutedForeground} />}
                 placeholder="Optional"
                 labelAction="Update GSTIN"
-                onLabelActionPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "gstin" } } as any)}
+                onLabelActionPress={() => router.push("/(stack)/update-gstin" as any)}
               />
               <ProfileInput
                 label="PAN Number"
@@ -552,7 +510,7 @@ export default function Profile() {
                 icon={<Hash size={18} color={colors.mutedForeground} />}
                 autoCapitalize="characters"
                 labelAction="Update PAN"
-                onLabelActionPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "pan" } } as any)}
+                onLabelActionPress={() => router.push("/(stack)/update-pan" as any)}
               />
               <ProfileInput label="Office Address" value={formData.address} editable={false} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Address Line 1, Address Line 2, State, Pincode" />
             </View>
@@ -572,7 +530,7 @@ export default function Profile() {
                 editable={false}
                 icon={<Landmark size={18} color={colors.mutedForeground} />}
                 labelAction="Update Bank"
-                onLabelActionPress={() => router.push({ pathname: "/kyc-verification", params: { tab: "bank" } } as any)}
+                onLabelActionPress={() => router.push("/(stack)/update-bank" as any)}
               />
               <ProfileInput label="Account Holder" value={formData.account_holder_name} editable={false} icon={<UserIcon size={18} color={colors.mutedForeground} />} />
               <ProfileInput label="Account Number" value={formData.account_number} editable={false} icon={<Hash size={18} color={colors.mutedForeground} />} placeholder="Enter account number" />
@@ -580,13 +538,12 @@ export default function Profile() {
               <ProfileInput
                 label="UPI ID"
                 value={formData.upiId}
-                editable={isEditing}
-                onChange={(v: string) => markChanged("upiId", v.trim())}
+                editable={false}
                 icon={<QrCode size={18} color={colors.mutedForeground} />}
                 placeholder="example@upi"
                 autoCapitalize="none"
-                labelAction={isEditing ? "Save" : "Update UPI ID"}
-                onLabelActionPress={isEditing ? handleSave : () => setIsEditing(true)}
+                labelAction="Update Bank / UPI"
+                onLabelActionPress={() => router.push("/(stack)/update-bank" as any)}
               />
 
             </View>

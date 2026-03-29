@@ -19,7 +19,9 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
 
 type ParsedQr = { sessionId: string; secret: string };
+type LinkedDevice = { id: string; name: string; timestamp: string };
 const LINKED_DEVICE_TTL_MS = 15 * 24 * 60 * 60 * 1000;
+const LINKED_DEVICES_KEY = "desktopLinkedDevices";
 
 const getCameraPermissionsCompat = async () => {
   const direct = (ExpoCamera as any).getCameraPermissionsAsync;
@@ -63,40 +65,49 @@ export default function DesktopAuthScreen() {
   const insets = useSafeAreaInsets();
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [permissionLoading, setPermissionLoading] = useState(false);
-  const [status, setStatus] = useState<"idle" | "approving" | "success" | "error" | "linked">("idle");
+  const [status, setStatus] = useState<"idle" | "approving" | "error" | "linked">("idle");
   const [errorText, setErrorText] = useState<string>("");
-  const [linkedDeviceInfo, setLinkedDeviceInfo] = useState<{ timestamp: string } | null>(null);
+  const [linkedDevices, setLinkedDevices] = useState<LinkedDevice[]>([]);
   const scannedRef = useRef(false);
 
   const canScan = status === "idle";
 
-  // Check for existing linked device on mount
+  const persistLinkedDevices = useCallback(async (devices: LinkedDevice[]) => {
+    await AsyncStorage.setItem(LINKED_DEVICES_KEY, JSON.stringify(devices));
+  }, []);
+
+  // Check linked devices on mount
   useEffect(() => {
     if (Platform.OS === "web") return;
     const checkLinkedDevice = async () => {
       try {
-        const saved = await AsyncStorage.getItem("desktopSessionLinked");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          const linkedAt = new Date(parsed?.timestamp || 0).getTime();
-          if (!linkedAt || Date.now() - linkedAt >= LINKED_DEVICE_TTL_MS) {
-            await AsyncStorage.removeItem("desktopSessionLinked");
-            setLinkedDeviceInfo(null);
-            setStatus("idle");
-            return;
-          }
-          setLinkedDeviceInfo(parsed);
-          setStatus("linked");
-        }
+        const legacy = await AsyncStorage.getItem("desktopSessionLinked");
+        const saved = await AsyncStorage.getItem(LINKED_DEVICES_KEY);
+        const parsed = saved ? (JSON.parse(saved) as LinkedDevice[]) : [];
+        const migrated = legacy
+          ? [{ id: "legacy-desktop", name: "Desktop Web", timestamp: JSON.parse(legacy)?.timestamp || new Date().toISOString() }]
+          : [];
+
+        const merged = [...parsed, ...migrated];
+        const now = Date.now();
+        const valid = merged.filter((d) => {
+          const linkedAt = new Date(d?.timestamp || 0).getTime();
+          return Boolean(linkedAt) && now - linkedAt < LINKED_DEVICE_TTL_MS;
+        });
+
+        if (legacy) await AsyncStorage.removeItem("desktopSessionLinked");
+        await persistLinkedDevices(valid);
+        setLinkedDevices(valid);
+        setStatus(valid.length ? "linked" : "idle");
       } catch {
         // ignore
       }
     };
     checkLinkedDevice();
-  }, []);
+  }, [persistLinkedDevices]);
 
   useEffect(() => {
-    if (Platform.OS === "web" || status === "linked") return;
+    if (Platform.OS === "web" || linkedDevices.length > 0) return;
     getCameraPermissionsCompat()
       .then((res) => {
         setPermissionGranted(Boolean(res?.granted));
@@ -105,7 +116,7 @@ export default function DesktopAuthScreen() {
         setErrorText(t("desktopLoginCameraError"));
         setStatus("error");
       });
-  }, [t, status]);
+  }, [t, linkedDevices.length]);
 
   const requestCamera = useCallback(async () => {
     if (Platform.OS === "web") return;
@@ -138,11 +149,14 @@ export default function DesktopAuthScreen() {
         setStatus("approving");
         await API.post("/api/auth/desktop/approve", parsed);
         
-        // Save linked device info to AsyncStorage
-        const linkedInfo = { timestamp: new Date().toISOString() };
-        await AsyncStorage.setItem("desktopSessionLinked", JSON.stringify(linkedInfo));
-        setLinkedDeviceInfo(linkedInfo);
-        
+        const newDevice: LinkedDevice = {
+          id: parsed.sessionId,
+          name: "Desktop Web",
+          timestamp: new Date().toISOString(),
+        };
+        const deduped = [newDevice, ...linkedDevices.filter((d) => d.id !== newDevice.id)].slice(0, 5);
+        await persistLinkedDevices(deduped);
+        setLinkedDevices(deduped);
         setStatus("linked");
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
       } catch (err: any) {
@@ -151,23 +165,24 @@ export default function DesktopAuthScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => null);
       }
     },
-    [canScan, t]
+    [canScan, t, linkedDevices, persistLinkedDevices]
   );
 
-  const handleUnlinkDevice = useCallback(async () => {
+  const handleUnlinkDevice = useCallback(async (deviceId?: string) => {
     try {
-      await AsyncStorage.removeItem("desktopSessionLinked");
-      setLinkedDeviceInfo(null);
-      setStatus("idle");
+      const next = deviceId ? linkedDevices.filter((d) => d.id !== deviceId) : [];
+      await persistLinkedDevices(next);
+      setLinkedDevices(next);
+      setStatus(next.length ? "linked" : "idle");
       scannedRef.current = false;
       setErrorText("");
     } catch {
       // ignore
     }
-  }, []);
+  }, [linkedDevices, persistLinkedDevices]);
 
-  const handleLogoutLinkedDevice = useCallback(async () => {
-    await handleUnlinkDevice();
+  const handleLogoutLinkedDevice = useCallback(async (deviceId?: string) => {
+    await handleUnlinkDevice(deviceId);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
   }, [handleUnlinkDevice]);
 
@@ -182,41 +197,6 @@ export default function DesktopAuthScreen() {
         </View>
       );
     }
-    if (status === "success") {
-      return (
-        <View
-          style={{
-            backgroundColor: colors.card,
-            borderRadius: 18,
-            padding: 16,
-            borderWidth: 1,
-            borderColor: colors.border,
-            alignItems: "center",
-          }}
-        >
-          <CheckCircle2 size={26} color={colors.success || colors.primary} />
-          <Text className="mt-3 text-base font-semibold" style={{ color: colors.foreground }}>
-            {t("desktopLoginSuccess")}
-          </Text>
-          <Text className="mt-1 text-sm text-center" style={{ color: colors.mutedForeground }}>
-            Linked device: Desktop
-          </Text>
-          <Text className="mt-2 text-xs text-center" style={{ color: colors.mutedForeground }}>
-            Only one device can be linked at a time.
-          </Text>
-          <TouchableOpacity
-            onPress={handleLogoutLinkedDevice}
-            className="mt-4 py-3 rounded-full items-center flex-row justify-center"
-            style={{ backgroundColor: colors.secondary }}
-          >
-            <Unlink size={18} color={colors.secondaryForeground} />
-            <Text className="ml-2 text-base font-semibold" style={{ color: colors.secondaryForeground }}>
-              Logout Linked Device
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
     if (status === "linked") {
       return (
         <View
@@ -226,27 +206,53 @@ export default function DesktopAuthScreen() {
             padding: 16,
             borderWidth: 1,
             borderColor: colors.border,
-            alignItems: "center",
+            gap: 10,
           }}
         >
-          <CheckCircle2 size={26} color={colors.success || colors.primary} />
-          <Text className="mt-3 text-base font-semibold" style={{ color: colors.foreground }}>
-            Device Linked
-          </Text>
-          <Text className="mt-1 text-sm text-center" style={{ color: colors.mutedForeground }}>
-            Linked device: Desktop
-          </Text>
-          <Text className="mt-2 text-xs text-center" style={{ color: colors.mutedForeground }}>
-            {linkedDeviceInfo?.timestamp ? `Since ${new Date(linkedDeviceInfo.timestamp).toLocaleDateString()}` : ""}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <CheckCircle2 size={20} color={colors.success || colors.primary} />
+            <Text className="text-base font-semibold" style={{ color: colors.foreground }}>
+              Linked Devices
+            </Text>
+          </View>
+
+          {linkedDevices.map((device) => (
+            <View
+              key={device.id}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                padding: 12,
+                backgroundColor: colors.background,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.foreground, fontWeight: "700" }}>{device.name}</Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
+                  Since {new Date(device.timestamp).toLocaleString()}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleLogoutLinkedDevice(device.id)}
+                style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: colors.destructiveSoft }}
+              >
+                <Text style={{ color: colors.destructive, fontWeight: "700", fontSize: 12 }}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+
           <TouchableOpacity
-            onPress={handleLogoutLinkedDevice}
-            className="mt-4 py-3 rounded-full items-center flex-row justify-center"
+            onPress={() => handleLogoutLinkedDevice()}
+            className="mt-2 py-3 rounded-full items-center flex-row justify-center"
             style={{ backgroundColor: colors.secondary }}
           >
             <Unlink size={18} color={colors.secondaryForeground} />
             <Text className="ml-2 text-base font-semibold" style={{ color: colors.secondaryForeground }}>
-              Logout Linked Device
+              Logout All Devices
             </Text>
           </TouchableOpacity>
         </View>
@@ -264,10 +270,10 @@ export default function DesktopAuthScreen() {
         {t("desktopLoginWaiting")}
       </Text>
     );
-  }, [colors, errorText, status, t, linkedDeviceInfo, handleLogoutLinkedDevice]);
+  }, [colors, errorText, status, t, linkedDevices, handleLogoutLinkedDevice]);
 
   const CameraView = (ExpoCamera as any).CameraView;
-  const showCamera = permissionGranted && Platform.OS !== "web" && !!CameraView && status !== "success" && status !== "linked";
+  const showCamera = permissionGranted && Platform.OS !== "web" && !!CameraView && linkedDevices.length === 0;
   const cameraHeight = Math.min(
     460,
     Math.max(280, Math.floor(Dimensions.get("window").height * 0.42))
@@ -313,7 +319,7 @@ export default function DesktopAuthScreen() {
               </Text>
             </View>
           </View>
-        ) : status === "linked" ? (
+        ) : linkedDevices.length > 0 ? (
           <View style={{ flex: 1, justifyContent: "center" }}>
             {statusContent}
           </View>

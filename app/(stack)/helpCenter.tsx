@@ -35,7 +35,7 @@ export default function HelpCenter() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 100 }}>
         <View className="mb-3 px-0">
           <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('helpCenter')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>We are available 24x7 to help you</Text>

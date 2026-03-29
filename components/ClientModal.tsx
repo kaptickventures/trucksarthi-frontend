@@ -15,7 +15,7 @@ import { useThemeStore } from "../hooks/useThemeStore";
 import * as Contacts from "expo-contacts";
 import API from "../app/api/axiosInstance";
 import BottomSheet from "./BottomSheet";
-import { normalizeGstinNumber, normalizePhoneInput } from "../lib/utils";
+import { normalizeGstinNumber, normalizePanNumber, normalizePhoneInput } from "../lib/utils";
 
 export type ClientFormData = {
   client_name: string;
@@ -25,6 +25,7 @@ export type ClientFormData = {
   email_address: string;
   office_address: string;
   gstin: string;
+  pan_number?: string;
   gstin_details?: any;
 };
 
@@ -50,6 +51,7 @@ export default function ClientFormModal({
   const insets = useSafeAreaInsets();
   const [verifying, setVerifying] = useState(false);
   const [showManualFields, setShowManualFields] = useState(false);
+  const isGstBasedClient = Boolean(String(formData.gstin || "").trim());
 
   const verifyGSTIN = async () => {
     const normalizedGstin = normalizeGstinNumber(formData.gstin);
@@ -86,6 +88,10 @@ export default function ClientFormModal({
   const handleFormSubmit = () => {
     if (!String(formData.client_name || "").trim()) {
       Alert.alert("Missing Fields", "Please fill CLIENT NAME.");
+      return;
+    }
+    if (!editing && showManualFields && !String(formData.pan_number || "").trim()) {
+      Alert.alert("Missing Fields", "Please fill PAN NUMBER for non-GST clients.");
       return;
     }
     onSubmit();
@@ -221,7 +227,7 @@ export default function ClientFormModal({
           />
 
           <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
-            GSTIN Number (Optional)
+            PAN Number <Text style={{ color: colors.destructive }}>*</Text>
           </Text>
           <TextInput
             className="rounded-2xl p-4 text-base font-bold"
@@ -231,11 +237,12 @@ export default function ClientFormModal({
               borderWidth: 1,
               borderColor: colors.border,
             }}
-            value={formData.gstin}
-            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, gstin: normalizeGstinNumber(val) }))}
-            placeholder="e.g. 29ABCDE1234F1Z5"
+            value={String(formData.pan_number || "")}
+            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, pan_number: normalizePanNumber(val) }))}
+            placeholder="e.g. ABCDE1234F"
             placeholderTextColor={colors.mutedForeground + "80"}
             autoCapitalize="characters"
+            maxLength={10}
           />
         </View>
       )}
@@ -287,7 +294,7 @@ export default function ClientFormModal({
 
         <View className="mb-5">
           <Text style={{ color: colors.mutedForeground }} className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1">
-            GSTIN Number (Optional)
+            {isGstBasedClient ? "GSTIN Number" : "PAN Number"}
           </Text>
           <TextInput
             className="rounded-2xl p-4 text-base font-bold"
@@ -297,11 +304,18 @@ export default function ClientFormModal({
               borderWidth: 1,
               borderColor: colors.border,
             }}
-            value={formData.gstin}
-            onChangeText={(val) => setFormData((prev: any) => ({ ...prev, gstin: normalizeGstinNumber(val) }))}
-            placeholder="e.g. 29ABCDE1234F1Z5"
+            value={isGstBasedClient ? formData.gstin : String(formData.pan_number || "")}
+            onChangeText={(val) =>
+              setFormData((prev: any) =>
+                isGstBasedClient
+                  ? { ...prev, gstin: normalizeGstinNumber(val) }
+                  : { ...prev, pan_number: normalizePanNumber(val) }
+              )
+            }
+            placeholder={isGstBasedClient ? "e.g. 29ABCDE1234F1Z5" : "e.g. ABCDE1234F"}
             placeholderTextColor={colors.mutedForeground + "80"}
             autoCapitalize="characters"
+            maxLength={isGstBasedClient ? 15 : 10}
           />
         </View>
 

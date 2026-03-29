@@ -9,6 +9,7 @@ import * as Print from "expo-print";
 import API from "../api/axiosInstance";
 import BottomSheet from "../../components/BottomSheet";
 import BiltyModal, { BiltyFormData } from "../../components/BiltyModal";
+import EditTripModal from "../../components/EditTripModal";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
 import useDrivers from "../../hooks/useDriver";
@@ -44,6 +45,7 @@ export default function TripDetail() {
 
   const [loading, setLoading] = useState(false);
   const [trip, setTrip] = useState<Trip | null>(null);
+  const [showEditTripModal, setShowEditTripModal] = useState(false);
 
   // Invoice states
   const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
@@ -221,7 +223,11 @@ export default function TripDetail() {
     );
   }
 
-  const totalCost = Number(trip.cost_of_trip || 0) + Number(trip.miscellaneous_expense || 0);
+  const freightAmount = Number(trip.cost_of_trip || 0);
+  const miscAmount = Number(trip.miscellaneous_expense || 0);
+  const advanceAmount = Number(trip.advance || 0);
+  const totalCost = freightAmount + miscAmount;
+  const netTripAmount = Math.max(totalCost - advanceAmount, 0);
   const isBilled = String(trip.invoiced_status || "") === "invoiced";
 
   const buildInvoiceHtml = (invoice: any) => {
@@ -230,14 +236,16 @@ export default function TripDetail() {
         ...trip,
         cost_of_trip: Number(invoice?.items?.[0]?.trip_cost ?? trip.cost_of_trip ?? 0),
         miscellaneous_expense: Number(invoice?.items?.[0]?.misc_expense ?? trip.miscellaneous_expense ?? 0),
+        advance: Number(invoice?.items?.[0]?.advance ?? trip.advance ?? 0),
       },
     ];
 
-    const subtotal = invoiceTrips.reduce(
+    const grossSubtotal = invoiceTrips.reduce(
       (acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0),
       0
     );
-    const invoiceSubtotal = Number(invoice.subtotal_amount ?? subtotal);
+    const advanceSubtotal = invoiceTrips.reduce((acc, t) => acc + Number((t as any).advance || 0), 0);
+    const invoiceSubtotal = Math.max(grossSubtotal - advanceSubtotal, 0);
     const taxPercentage = Number(invoice.tax_percentage ?? 0);
     const tax = Number(invoice.tax_amount ?? (invoiceSubtotal * taxPercentage) / 100);
     const grandTotal = Number(invoice.total_amount ?? (invoiceSubtotal + tax));
@@ -269,6 +277,8 @@ export default function TripDetail() {
     const annexureRows = invoiceTrips
       .map((t, index) => {
         const tripTotal = Number(t.cost_of_trip) + Number(t.miscellaneous_expense || 0);
+        const tripAdvance = Number((t as any).advance || 0);
+        const tripNet = Math.max(tripTotal - tripAdvance, 0);
         return `
           <tr>
             <td class="center">${index + 1}</td>
@@ -279,7 +289,8 @@ export default function TripDetail() {
             <td>${escapeHtml(getLocationName(t.end_location) || "-")}</td>
             <td class="right">${money(Number(t.cost_of_trip || 0))}</td>
             <td class="right">${money(Number(t.miscellaneous_expense || 0))}</td>
-            <td class="right">${money(tripTotal)}</td>
+            <td class="right">${money(tripAdvance)}</td>
+            <td class="right">${money(tripNet)}</td>
           </tr>
         `;
       })
@@ -405,7 +416,9 @@ export default function TripDetail() {
         <div style="margin-top:4px;">Total Invoice Amount: Rs. ${money(grandTotal)} only</div>
       </div>
       <div class="totals-box">
-        <div class="tot-line"><span>Total</span><span>${money(invoiceSubtotal)}</span></div>
+        <div class="tot-line"><span>Freight + Misc</span><span>${money(grossSubtotal)}</span></div>
+        <div class="tot-line"><span>Advance (-)</span><span>${money(advanceSubtotal)}</span></div>
+        <div class="tot-line"><span>Subtotal</span><span>${money(invoiceSubtotal)}</span></div>
         ${taxPercentage > 0 ? (
           invoice.tax_type === "cgst_sgst"
             ? `<div class="tot-line"><span>CGST @ ${taxPercentage / 2}%</span><span>${money(tax / 2)}</span></div><div class="tot-line"><span>SGST @ ${taxPercentage / 2}%</span><span>${money(tax / 2)}</span></div>`
@@ -443,11 +456,12 @@ export default function TripDetail() {
           <th>To</th>
           <th style="width:11%" class="right">Freight</th>
           <th style="width:11%" class="right">Misc.</th>
-          <th style="width:11%" class="right">Total</th>
+          <th style="width:11%" class="right">Advance</th>
+          <th style="width:11%" class="right">Net</th>
         </tr>
       </thead>
       <tbody>
-        ${annexureRows || `<tr><td colspan="9" class="center">No trips found</td></tr>`}
+        ${annexureRows || `<tr><td colspan="10" class="center">No trips found</td></tr>`}
       </tbody>
     </table>
   </div>
@@ -639,19 +653,28 @@ export default function TripDetail() {
     return (invoiceList || []).find((inv) => (inv?.items || []).some((it: any) => String(getId(it?.trip)) === targetId));
   };
 
+  const ensureInvoiceLoaded = async () => {
+    if (invoice?._id) return invoice;
+    const list = await fetchInvoices();
+    const match = findInvoiceForTrip(list as any, String(trip._id));
+    if (!match?._id) {
+      throw new Error("Invoice not found");
+    }
+    const full = await getInvoiceById(String(match._id));
+    setInvoice(full);
+    return full;
+  };
+
   const handlePreviewInvoice = async () => {
     try {
       setInvoiceBusy(true);
-      const list = await fetchInvoices();
-      const match = findInvoiceForTrip(list as any, String(trip._id));
-      if (!match?._id) {
-        Alert.alert("Invoice not found", "This trip is billed but no invoice was found.");
-        return;
-      }
-      const full = await getInvoiceById(String(match._id));
+      const full = await ensureInvoiceLoaded();
       await openInvoicePdf(full);
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.error || "Failed to preview invoice.");
+      const message = err?.message === "Invoice not found"
+        ? "This trip is billed but no invoice was found."
+        : (err?.response?.data?.error || "Failed to preview invoice.");
+      Alert.alert("Error", message);
     } finally {
       setInvoiceBusy(false);
     }
@@ -706,29 +729,37 @@ export default function TripDetail() {
     }
   };
 
-  const handleEditInvoice = () => {
-    if (!invoice) {
+  const handleEditInvoice = async () => {
+    try {
+      setInvoiceBusy(true);
+      const loadedInvoice = await ensureInvoiceLoaded();
+      const taxType = loadedInvoice.tax_type === "igst" || loadedInvoice.tax_type === "cgst_sgst" ? loadedInvoice.tax_type : "none";
+      const taxPercentage = [0, 5, 18].includes(Number(loadedInvoice.tax_percentage))
+        ? (Number(loadedInvoice.tax_percentage) as 0 | 5 | 18)
+        : 0;
+      const parsedDueDate = loadedInvoice.due_date ? new Date(loadedInvoice.due_date) : new Date();
+
+      setInvoiceTaxType(taxType);
+      setInvoiceTaxPercentage(taxPercentage);
+      setInvoiceDueDate(Number.isNaN(parsedDueDate.getTime()) ? new Date() : parsedDueDate);
+      setInvoiceEditMode(true);
+      setShowInvoiceSheet(true);
+    } catch {
       Alert.alert("Invoice not found", "Could not load invoice details for editing.");
-      return;
+    } finally {
+      setInvoiceBusy(false);
     }
-
-    const taxType = invoice.tax_type === "igst" || invoice.tax_type === "cgst_sgst" ? invoice.tax_type : "none";
-    const taxPercentage = [0, 5, 18].includes(Number(invoice.tax_percentage))
-      ? (Number(invoice.tax_percentage) as 0 | 5 | 18)
-      : 0;
-    const parsedDueDate = invoice.due_date ? new Date(invoice.due_date) : new Date();
-
-    setInvoiceTaxType(taxType);
-    setInvoiceTaxPercentage(taxPercentage);
-    setInvoiceDueDate(Number.isNaN(parsedDueDate.getTime()) ? new Date() : parsedDueDate);
-    setInvoiceEditMode(true);
-    setShowInvoiceSheet(true);
   };
 
   const handleDeleteInvoice = async () => {
-    if (!invoice?._id) {
-      Alert.alert("Error", "Invoice not found.");
-      return;
+    let invoiceToDelete = invoice;
+    if (!invoiceToDelete?._id) {
+      try {
+        invoiceToDelete = await ensureInvoiceLoaded();
+      } catch {
+        Alert.alert("Error", "Invoice not found.");
+        return;
+      }
     }
 
     Alert.alert("Delete Invoice", "Are you sure you want to delete this invoice?", [
@@ -738,7 +769,7 @@ export default function TripDetail() {
         onPress: async () => {
           try {
             setInvoiceBusy(true);
-            await deleteInvoice(invoice._id);
+            await deleteInvoice(invoiceToDelete._id);
             setInvoice(null);
             setTrip((prev) => (prev ? { ...prev, invoiced_status: "not_invoiced" as any } : prev));
             await reloadTrip();
@@ -848,6 +879,25 @@ export default function TripDetail() {
     }
   };
 
+  const handleDeleteTrip = async () => {
+    Alert.alert("Delete Trip", "Are you sure you want to delete this trip?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await API.delete(`/api/trips/${trip._id}`);
+            Alert.alert("Success", "Trip deleted successfully.");
+            router.back();
+          } catch (err: any) {
+            Alert.alert("Error", err?.response?.data?.error || "Failed to delete trip.");
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -876,14 +926,33 @@ export default function TripDetail() {
           </View>
           <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 8 }} />
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {Number(trip.cost_of_trip).toLocaleString()}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {Number(trip.miscellaneous_expense || 0).toLocaleString()}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {freightAmount.toLocaleString()}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {miscAmount.toLocaleString()}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Advance: Rs {advanceAmount.toLocaleString()}</Text>
           </View>
+          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 8 }}>
+            Net Amount: Rs {netTripAmount.toLocaleString()}
+          </Text>
           {trip.notes ? (
             <Text style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>
               Notes: {trip.notes}
             </Text>
           ) : null}
+
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 10 }}>
+            <TouchableOpacity
+              onPress={() => setShowEditTripModal(true)}
+              style={{ padding: 6, marginRight: 4 }}
+            >
+              <Edit3 size={18} color={colors.info} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => void handleDeleteTrip()}
+              style={{ padding: 6 }}
+            >
+              <Trash2 size={18} color={colors.destructive} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* INVOICE MANAGEMENT SECTION */}
@@ -894,7 +963,9 @@ export default function TripDetail() {
             {/* Generate/Preview Invoice Button */}
             <TouchableOpacity
               onPress={() => {
-                if (isBilled && invoice) handlePreviewInvoice();
+                if (isBilled) {
+                  void handlePreviewInvoice();
+                }
                 else {
                   setInvoiceEditMode(false);
                   setShowInvoiceSheet(true);
@@ -923,25 +994,38 @@ export default function TripDetail() {
               </Text>
             </TouchableOpacity>
 
-            <View style={{ width: "23%", flexDirection: "row", justifyContent: "flex-end", alignItems: "center" }}>
+            <View style={{ width: "23%", flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
               <TouchableOpacity
-                onPress={handleEditInvoice}
-                disabled={invoiceBusy || !isBilled || !invoice}
+                onPress={() => void handleEditInvoice()}
+                disabled={invoiceBusy || !isBilled}
                 style={{
-                  padding: 6,
-                  marginRight: 4,
-                  opacity: invoiceBusy || !isBilled || !invoice ? 0.45 : 1,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: colors.info,
+                  backgroundColor: colors.infoSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: invoiceBusy || !isBilled ? 0.45 : 1,
                 }}
               >
                 <Edit3 size={18} color={colors.info} />
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleDeleteInvoice}
-                disabled={invoiceBusy || !isBilled || !invoice}
+                onPress={() => void handleDeleteInvoice()}
+                disabled={invoiceBusy || !isBilled}
                 style={{
-                  padding: 6,
-                  opacity: invoiceBusy || !isBilled || !invoice ? 0.45 : 1,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: colors.destructive,
+                  backgroundColor: colors.destructive + "20",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: invoiceBusy || !isBilled ? 0.45 : 1,
                 }}
               >
                 <Trash2 size={18} color={colors.destructive} />
@@ -1274,6 +1358,25 @@ export default function TripDetail() {
         onSubmit={handleBiltySubmit}
         onClose={() => setShowBiltySheet(false)}
         loading={biltyBusy}
+      />
+
+      <EditTripModal
+        visible={showEditTripModal}
+        onClose={() => setShowEditTripModal(false)}
+        trip={trip as any}
+        trucks={trucks}
+        drivers={drivers}
+        clients={clients}
+        locations={locations}
+        onSave={async (id, data) => {
+          await API.put(`/api/trips/${id}`, data);
+          setShowEditTripModal(false);
+          await reloadTrip();
+        }}
+        onDelete={async () => {
+          setShowEditTripModal(false);
+          await handleDeleteTrip();
+        }}
       />
     </View>
   );

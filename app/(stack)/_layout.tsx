@@ -125,6 +125,9 @@ export default function StackLayout() {
           <Stack.Screen name="desktop-qr" options={{ headerShown: false }} />
           <Stack.Screen name="desktop-auth" options={{ title: t('useDesktop') }} />
           <Stack.Screen name="kyc-verification" options={{ title: t('kycVerifications') }} />
+          <Stack.Screen name="update-pan" options={{ title: "Update PAN" }} />
+          <Stack.Screen name="update-gstin" options={{ title: "Update GSTIN" }} />
+          <Stack.Screen name="update-bank" options={{ title: "Update Bank" }} />
 
           <Stack.Screen name="gstin-onboarding" options={{ title: "Trucksarthi" }} />
           <Stack.Screen name="basic-details" options={{ title: "Trucksarthi" }} />

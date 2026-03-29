@@ -1,7 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import { CheckCircle, ShieldCheck, XCircle, Loader2, CreditCard, Building2 } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -29,7 +30,10 @@ const EMPTY_HISTORY: KycHistory = { pan: [], gstin: [], bank: [] };
 
 export default function KYCVerification() {
     useRouter();
-    const params = useLocalSearchParams<{ tab?: "pan" | "gstin" | "bank" }>();
+    const navigation = useNavigation();
+    const params = useLocalSearchParams<{ tab?: "pan" | "gstin" | "bank"; single?: string }>();
+    const tabParam = Array.isArray(params.tab) ? params.tab[0] : params.tab;
+    const singleParam = Array.isArray(params.single) ? params.single[0] : params.single;
     const { colors, theme } = useThemeStore();
     const { t } = useTranslation();
     const isDark = theme === "dark";
@@ -40,10 +44,14 @@ export default function KYCVerification() {
     const [gstin, setGstin] = useState("");
     const [bankAccount, setBankAccount] = useState("");
     const [ifsc, setIfsc] = useState("");
-    const [activeTab, setActiveTab] = useState<"pan" | "gstin" | "bank">(params.tab || "pan");
+    const initialTab: "pan" | "gstin" | "bank" =
+        tabParam === "gstin" || tabParam === "bank" || tabParam === "pan" ? tabParam : "pan";
+    const [activeTab, setActiveTab] = useState<"pan" | "gstin" | "bank">(initialTab);
+    const [upiId, setUpiId] = useState("");
     const [history, setHistory] = useState<KycHistory>(EMPTY_HISTORY);
 
     const [isVerifying, setIsVerifying] = useState(false);
+    const isSingleMode = singleParam === "1";
 
     const hasPanVerifiedMeta = Boolean(
         user?.is_pan_verified ||
@@ -71,6 +79,31 @@ export default function KYCVerification() {
     const isBankVerifiedNow = (hasVerifiedBankMeta || hasSavedBankDetails) && isBankInputMatchingSaved;
     const isKycCompleteNow = Boolean(hasPanVerifiedMeta && hasGstinVerifiedMeta && (hasVerifiedBankMeta || hasSavedBankDetails));
     const historyKey = `kyc_history:${user?._id || "anonymous"}`;
+
+    useEffect(() => {
+        if (tabParam === "pan" || tabParam === "gstin" || tabParam === "bank") {
+            setActiveTab(tabParam);
+        }
+    }, [tabParam]);
+
+    useEffect(() => {
+        setUpiId(String(user?.upiId || ""));
+    }, [user?.upiId]);
+
+    useLayoutEffect(() => {
+        const singleTitle =
+            tabParam === "pan"
+                ? "Update PAN"
+                : tabParam === "gstin"
+                    ? "Update GSTIN"
+                    : tabParam === "bank"
+                        ? "Update Bank"
+                        : t("kycVerifications");
+
+        navigation.setOptions({
+            title: isSingleMode ? singleTitle : t("kycVerifications"),
+        });
+    }, [navigation, isSingleMode, tabParam, t]);
 
     const normalizePan = (value?: string) => (value || "").trim().toUpperCase();
     const normalizeGstin = (value?: string) => (value || "").trim().toUpperCase();
@@ -377,6 +410,7 @@ export default function KYCVerification() {
                                     await updateUser({
                                         account_number: bankAccount,
                                         ifsc_code: ifsc.toUpperCase(),
+                                        upiId: upiId.trim() || undefined,
                                         bank_name: bankData.bank_name || bankData.bankName || user?.bank_name,
                                         account_holder_name: bankData.name_at_bank || bankData.nameAtBank || user?.account_holder_name,
                                         is_bank_verified: true,
@@ -407,6 +441,16 @@ export default function KYCVerification() {
         }
     };
 
+    const handleSaveUpiOnly = async () => {
+        try {
+            await updateUser({ upiId: upiId.trim() || undefined });
+            Alert.alert("Success", "UPI ID updated.");
+            refreshUser();
+        } catch {
+            Alert.alert("Error", "Failed to update UPI ID.");
+        }
+    };
+
     return (
         <View style={{ flex: 1, backgroundColor: colors.background }}>
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -427,27 +471,28 @@ export default function KYCVerification() {
                     </View>
                 )}
 
-                {/* Tabs */}
-                <View style={{ flexDirection: 'row', backgroundColor: colors.card, padding: 4, borderRadius: 12, marginBottom: 24 }}>
-                    <TouchableOpacity
-                        onPress={() => setActiveTab('pan')}
-                        style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'pan' ? colors.background : 'transparent' }}
-                    >
-                        <Text style={{ fontWeight: 'bold', color: activeTab === 'pan' ? colors.primary : colors.mutedForeground }}>PAN</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => setActiveTab('gstin')}
-                        style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'gstin' ? colors.background : 'transparent' }}
-                    >
-                        <Text style={{ fontWeight: 'bold', color: activeTab === 'gstin' ? colors.primary : colors.mutedForeground }}>GSTIN</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => setActiveTab('bank')}
-                        style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'bank' ? colors.background : 'transparent' }}
-                    >
-                        <Text style={{ fontWeight: 'bold', color: activeTab === 'bank' ? colors.primary : colors.mutedForeground }}>Bank</Text>
-                    </TouchableOpacity>
-                </View>
+                {!isSingleMode && (
+                    <View style={{ flexDirection: 'row', backgroundColor: colors.card, padding: 4, borderRadius: 12, marginBottom: 24 }}>
+                        <TouchableOpacity
+                            onPress={() => setActiveTab('pan')}
+                            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'pan' ? colors.background : 'transparent' }}
+                        >
+                            <Text style={{ fontWeight: 'bold', color: activeTab === 'pan' ? colors.primary : colors.mutedForeground }}>PAN</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setActiveTab('gstin')}
+                            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'gstin' ? colors.background : 'transparent' }}
+                        >
+                            <Text style={{ fontWeight: 'bold', color: activeTab === 'gstin' ? colors.primary : colors.mutedForeground }}>GSTIN</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setActiveTab('bank')}
+                            style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10, backgroundColor: activeTab === 'bank' ? colors.background : 'transparent' }}
+                        >
+                            <Text style={{ fontWeight: 'bold', color: activeTab === 'bank' ? colors.primary : colors.mutedForeground }}>Bank</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 {/* PAN Section */}
                 {activeTab === 'pan' && (
@@ -489,7 +534,6 @@ export default function KYCVerification() {
                                         style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                     />
                                     <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 6, fontStyle: 'italic' }}>Name will be auto-fetched from PAN verification</Text>
-                                    <HistoryCards values={history.pan} onSelect={setPan} type="pan" />
                                 </View>
                             </View>
 
@@ -521,6 +565,7 @@ export default function KYCVerification() {
                                 <VerifiedValue label="Type" value={user.kyc_data.pan_details.type} />
                             </View>
                         )}
+                        <HistoryCards values={history.pan} onSelect={setPan} type="pan" />
                     </View>
                 )}
 
@@ -557,7 +602,6 @@ export default function KYCVerification() {
                                         autoCapitalize="characters"
                                         style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                     />
-                                    <HistoryCards values={history.gstin} onSelect={setGstin} type="gstin" />
                                 </View>
                             </View>
 
@@ -587,6 +631,7 @@ export default function KYCVerification() {
                                 <VerifiedValue label="Principal Address" value={user.kyc_data.gstin_details.principal_place_address} />
                             </View>
                         )}
+                        <HistoryCards values={history.gstin} onSelect={setGstin} type="gstin" />
                     </View>
                 )}
 
@@ -623,7 +668,6 @@ export default function KYCVerification() {
                                         keyboardType="numeric"
                                         style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                     />
-                                    <HistoryCards values={history.bank} onSelect={setBankAccount} type="bank" />
                                 </View>
                                 <View>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
@@ -636,6 +680,19 @@ export default function KYCVerification() {
                                         placeholder={user?.ifsc_code || "HDFC0001234"}
                                         placeholderTextColor={colors.mutedForeground}
                                         autoCapitalize="characters"
+                                        style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
+                                    />
+                                </View>
+                                <View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase' }}>UPI ID</Text>
+                                    </View>
+                                    <TextInput
+                                        value={upiId}
+                                        onChangeText={setUpiId}
+                                        placeholder={user?.upiId || "example@upi"}
+                                        placeholderTextColor={colors.mutedForeground}
+                                        autoCapitalize="none"
                                         style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12, color: colors.foreground, fontSize: 16, borderWidth: 1, borderColor: colors.border }}
                                     />
                                 </View>
@@ -655,6 +712,21 @@ export default function KYCVerification() {
                                     )}
                                 </TouchableOpacity>
                             )}
+
+                            <TouchableOpacity
+                                onPress={handleSaveUpiOnly}
+                                style={{
+                                    backgroundColor: colors.infoSoft,
+                                    borderRadius: 12,
+                                    padding: 14,
+                                    alignItems: 'center',
+                                    marginTop: 12,
+                                    borderWidth: 1,
+                                    borderColor: colors.info,
+                                }}
+                            >
+                                <Text style={{ color: colors.info, fontWeight: '700', fontSize: 15 }}>Save UPI ID</Text>
+                            </TouchableOpacity>
                         </View>
 
                         {isBankVerifiedNow && user.kyc_data?.bank_details && (
@@ -665,6 +737,7 @@ export default function KYCVerification() {
                                 <VerifiedValue label="Status" value={user.kyc_data.bank_details.account_status} />
                             </View>
                         )}
+                        <HistoryCards values={history.bank} onSelect={setBankAccount} type="bank" />
                     </View>
                 )}
             </KeyboardAwareScrollView>

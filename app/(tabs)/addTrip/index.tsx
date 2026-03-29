@@ -174,6 +174,7 @@ export default function AddTrip() {
     end_location_id: "",
     cost_of_trip: "",
     miscellaneous_expense: "",
+    advance: "",
     notes: "",
   });
 
@@ -301,6 +302,7 @@ export default function AddTrip() {
         end_location: endLocationId,
         cost_of_trip: Number(cost_of_trip),
         miscellaneous_expense: Number(formData.miscellaneous_expense || 0),
+        advance: Number(formData.advance || 0),
         notes: formData.notes,
         date: formData.date.toISOString(),
       });
@@ -314,6 +316,7 @@ export default function AddTrip() {
         end_location_id: "",
         cost_of_trip: "",
         miscellaneous_expense: "",
+        advance: "",
         notes: "",
       });
       setStartQuery("");
@@ -558,6 +561,22 @@ export default function AddTrip() {
                   placeholderTextColor={colors.mutedForeground}
                 />
               </View>
+            </View>
+          </View>
+
+          <View>
+            <InputLabel label="Advance Received" />
+            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
+              <IndianRupee size={18} color={colors.primary} />
+              <TextInput
+                placeholder="0.00"
+                keyboardType="numeric"
+                className="flex-1 ml-2 text-base"
+                style={{ color: colors.foreground }}
+                value={formData.advance}
+                onChangeText={(t) => setFormData({ ...formData, advance: t })}
+                placeholderTextColor={colors.mutedForeground}
+              />
             </View>
           </View>
 

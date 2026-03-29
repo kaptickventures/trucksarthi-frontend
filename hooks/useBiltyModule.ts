@@ -71,6 +71,7 @@ export type BiltyPayload = {
     advance?: number;
     balance?: number;
   };
+  freight_paid_by?: "consignor" | "consignee";
   payment_type?: "to_pay" | "paid" | "billed";
   gst_paid_by?: "consignor" | "consignee";
   gst_percentage?: 0 | 5 | 18;

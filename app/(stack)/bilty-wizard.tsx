@@ -46,11 +46,11 @@ const formatLrNumber = (value: string) => {
   const cleaned = String(value || "")
     .toUpperCase()
     .replace(/[^A-Z0-9-]/g, "")
-    .replace(/^LR/, "")
+    .replace(/^LRN?/, "")
     .replace(/^-+/, "");
   const digits = cleaned.replace(/\D/g, "");
-  if (!digits) return "LR-";
-  return `LR-${digits.slice(0, 6).padStart(3, "0")}`;
+  if (!digits) return "LRN-";
+  return `LRN-${digits.slice(0, 8).padStart(5, "0")}`;
 };
 
 type PartyForm = {
@@ -197,7 +197,7 @@ export default function BiltyWizardScreen() {
   const [loading, setLoading] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [step, setStep] = useState(1);
-  const [lrNumber, setLrNumber] = useState("LR-001");
+  const [lrNumber, setLrNumber] = useState("LRN-00001");
   const [partyEditorTarget, setPartyEditorTarget] = useState<"consignor" | "consignee" | null>(null);
   const [partyClientSearch, setPartyClientSearch] = useState("");
   const [isClientModalVisible, setIsClientModalVisible] = useState(false);
@@ -218,6 +218,7 @@ export default function BiltyWizardScreen() {
   const [linkedTrip, setLinkedTrip] = useState<any>(null);
   const [partyDraft, setPartyDraft] = useState<PartyForm>({ ...emptyParty });
   const [generatedId, setGeneratedId] = useState<string>(String(biltyId || ""));
+  const [showEditOverview, setShowEditOverview] = useState<boolean>(Boolean(biltyId));
 
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(normalizeCompanyProfile());
 
@@ -367,7 +368,7 @@ export default function BiltyWizardScreen() {
       if (biltyId) {
         const existing = await getBiltyById(String(biltyId));
         setGeneratedId(String(existing._id));
-        setLrNumber(String((existing as any)?.bilty_number || "LR-001"));
+        setLrNumber(String((existing as any)?.bilty_number || "LRN-00001"));
         setConsignor({ ...emptyParty, ...(existing.consignor as any) });
         setConsignee({ ...emptyParty, ...(existing.consignee as any) });
         setShipment((prev) => ({
@@ -399,6 +400,7 @@ export default function BiltyWizardScreen() {
           balance: String(existing.charges?.balance || ""),
         });
         setPaymentType(existing.payment_type || "to_pay");
+        setFreightPaidBy(((existing as any)?.freight_paid_by === "consignee" ? "consignee" : "consignor"));
         setGstPaidBy(((existing as any)?.gst_paid_by === "consignee" ? "consignee" : "consignor"));
         setGstPercentage(((["0", "5", "18"] as const).includes(String((existing as any)?.gst_percentage || "0") as any)
           ? String((existing as any)?.gst_percentage || "0")
@@ -419,14 +421,14 @@ export default function BiltyWizardScreen() {
         try {
           const all = await API.get("/api/bilties");
           const maxSeq = (all?.data || []).reduce((acc: number, item: any) => {
-            const m = String(item?.bilty_number || "").match(/^LR-(\d+)$/i);
+            const m = String(item?.bilty_number || "").match(/^LRN?-(\d+)$/i);
             if (!m) return acc;
             const seq = Number(m[1]);
             return Number.isFinite(seq) && seq > acc ? seq : acc;
           }, 0);
-          setLrNumber(`LR-${String(maxSeq + 1).padStart(3, "0")}`);
+          setLrNumber(`LRN-${String(maxSeq + 1).padStart(5, "0")}`);
         } catch {
-          setLrNumber("LR-001");
+          setLrNumber("LRN-00001");
         }
       }
     } catch (err: any) {
@@ -440,6 +442,10 @@ export default function BiltyWizardScreen() {
     loadInitial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId, biltyId]);
+
+  useEffect(() => {
+    setShowEditOverview(Boolean(biltyId));
+  }, [biltyId]);
 
   const mapStoredPartyToForm = (party: any): PartyForm => ({
     ...emptyParty,
@@ -556,6 +562,7 @@ export default function BiltyWizardScreen() {
         advance: toNumber(charges.advance),
         balance: toNumber(charges.balance),
       },
+      freight_paid_by: freightPaidBy,
       payment_type: paymentType,
       gst_paid_by: gstPaidBy,
       gst_percentage: toNumber(gstPercentage),
@@ -600,12 +607,12 @@ export default function BiltyWizardScreen() {
           </div>
 
           <div class="top-grid">
-            <div class="box"><div class="box-title">Freight Paid By</div><div>${escapeHtml(doc?.payment_type || "to_pay")}</div></div>
+            <div class="box"><div class="box-title">Freight Paid By</div><div>${escapeHtml(doc?.freight_paid_by || "consignor")}</div></div>
             <div class="box"><div class="box-title">GST Paid By</div><div>${escapeHtml(doc?.gst_paid_by || "consignor")}</div></div>
             <div class="box"><div class="box-title">GST %</div><div>${escapeHtml(String(doc?.gst_percentage ?? 0))}%</div></div>
             <div class="box"><div class="box-title">GST Type</div><div>${escapeHtml((doc?.gst_type || "gst") === "igst" ? "IGST" : "CGST + SGST")}</div></div>
             <div class="box"><div class="box-title">Insurance</div><div>${doc?.insurance?.policy_number ? `${escapeHtml(doc?.insurance?.insurer_name || "-")} • ${escapeHtml(doc?.insurance?.policy_number || "-")}` : "Not insured"}</div><div>${doc?.insurance?.coverage_amount ? `Coverage: Rs ${money(doc?.insurance?.coverage_amount || 0)}` : ""}</div></div>
-            <div class="box"><div class="box-title">LR Details</div><div><strong>LR No:</strong> ${escapeHtml(lrNo)}</div><div><strong>Date:</strong> ${escapeHtml(lrDate)}</div></div>
+            <div class="box"><div class="box-title">LR Details</div><div><strong>LR No:</strong> ${escapeHtml(lrNo)}</div><div><strong>Date:</strong> ${escapeHtml(lrDate)}</div><div><strong>Payment:</strong> ${escapeHtml(doc?.payment_type || "to_pay")}</div></div>
           </div>
 
           <div class="party-row">
@@ -905,8 +912,8 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
         Alert.alert("Missing Date", "LR date is required.");
         return;
       }
-      if (!lrNumber || !/^LR-\d{3,}$/.test(String(lrNumber).toUpperCase())) {
-        Alert.alert("Invalid LR Number", "Please enter a valid LR number (example: LR-001).");
+      if (!lrNumber || !/^LRN-\d{5,}$/.test(String(lrNumber).toUpperCase())) {
+        Alert.alert("Invalid LR Number", "Please enter a valid LR number (example: LRN-00001).");
         return;
       }
     }
@@ -1025,6 +1032,79 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
   const canGoNext = step < 4;
   const canGoBack = step > 1;
 
+  const sectionDone = {
+    company: Boolean(companyProfile.name || companyProfile.address || companyProfile.gstin || companyProfile.phone),
+    lrParties: Boolean(lrNumber && (consignor.name || consignee.name)),
+    loadTrip: Boolean(
+      shipment.from_location ||
+      shipment.to_location ||
+      shipment.vehicle_number ||
+      goodsRows.some((row) => row.description || row.quantity || row.total)
+    ),
+    insuranceSignature: Boolean(insurance.policy_number || signatureUrl),
+  };
+
+  const openSectionEditor = (targetStep: 1 | 2 | 3 | 4) => {
+    setStep(targetStep);
+    setShowEditOverview(false);
+  };
+
+  const handlePreviewFromOverview = async () => {
+    const id = String(generatedId || biltyId || "");
+    if (!id) {
+      Alert.alert("Bilty not found", "Please save or generate bilty first.");
+      return;
+    }
+    try {
+      setLoading(true);
+      const doc = await getBiltyById(id);
+      const uri = await createPdfUri(doc);
+      router.push({ pathname: "/(stack)/pdf-viewer", params: { uri, title: "LR Preview" } } as any);
+    } catch {
+      Alert.alert("Error", "Failed to open bilty preview.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderOverviewSection = (
+    title: string,
+    subtitle: string,
+    buttonText: string,
+    done: boolean,
+    onPress: () => void
+  ) => (
+    <View style={{ marginBottom: 20 }}>
+      <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+        <Ionicons
+          name={done ? "checkmark-circle" : "ellipse-outline"}
+          size={20}
+          color={done ? colors.success : colors.mutedForeground}
+          style={{ marginTop: 2, marginRight: 10 }}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 22 / 1.5 }}>{title}</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>{subtitle}</Text>
+          <TouchableOpacity
+            onPress={onPress}
+            style={{
+              marginTop: 10,
+              alignSelf: "flex-start",
+              borderWidth: 1,
+              borderColor: colors.primary,
+              borderRadius: 10,
+              paddingVertical: 9,
+              paddingHorizontal: 14,
+              backgroundColor: isDark ? colors.card : "#FFFFFF",
+            }}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>{buttonText}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
@@ -1077,6 +1157,73 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       >
+        {showEditOverview ? (
+          <>
+            <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 29 / 1.3, marginBottom: 16 }}>Create Online Bilty</Text>
+
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 14,
+                padding: 14,
+                backgroundColor: isDark ? colors.card : "#FFFFFF",
+              }}
+            >
+              {renderOverviewSection(
+                "Company Details",
+                "Your company address, contact & GST Number",
+                "Edit Details",
+                sectionDone.company,
+                () => openSectionEditor(1)
+              )}
+
+              {renderOverviewSection(
+                "LR & Consignor Consignee Details",
+                "Name, Address & GST details of consignor & consignee",
+                "Edit Consignor / Consignee",
+                sectionDone.lrParties,
+                () => openSectionEditor(2)
+              )}
+
+              {renderOverviewSection(
+                "Load & Trip Details",
+                "Add your load & trip details",
+                "Edit Load",
+                sectionDone.loadTrip,
+                () => openSectionEditor(3)
+              )}
+
+              {renderOverviewSection(
+                "Insurance & Signature",
+                "Add insurance and waybill information",
+                "Edit Insurance & Signature",
+                sectionDone.insuranceSignature,
+                () => openSectionEditor(4)
+              )}
+            </View>
+
+            <TouchableOpacity
+              disabled={loading}
+              onPress={() => {
+                void handlePreviewFromOverview();
+              }}
+              style={{
+                backgroundColor: colors.primary,
+                borderRadius: 12,
+                paddingVertical: 14,
+                alignItems: "center",
+                marginTop: 18,
+                opacity: loading ? 0.7 : 1,
+              }}
+            >
+              <Text style={{ color: colors.primaryForeground, fontWeight: "900", fontSize: 18 / 1.2 }}>
+                {loading ? "Opening..." : "Preview Bilty"}
+              </Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
         <Text style={{ color: colors.primary, fontWeight: "900", fontSize: 12, marginBottom: 4 }}>Step {step} of 4</Text>
         <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 22, marginBottom: 14 }}>{stepTitle}</Text>
         <View style={{ height: 4, borderRadius: 999, backgroundColor: isDark ? colors.input : "#E7EAEE", marginBottom: 14 }}>
@@ -1657,7 +1804,25 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             <TouchableOpacity onPress={handleGenerate} disabled={loading} style={{ backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 12, alignItems: "center", marginBottom: 10 }}>
               <Text style={{ color: colors.primaryForeground, fontWeight: "900" }}>{loading ? "Generating..." : "Done"}</Text>
             </TouchableOpacity>
+
+            {Boolean(biltyId) && (
+              <TouchableOpacity
+                onPress={() => setShowEditOverview(true)}
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: isDark ? colors.card : "#FFFFFF",
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "800" }}>Back to Bilty Overview</Text>
+              </TouchableOpacity>
+            )}
           </View>
+        )}
+          </>
         )}
       </KeyboardAwareScrollView>
 
@@ -2335,7 +2500,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
         </ScrollView>
       </BottomSheet>
 
-      {!keyboardVisible && (
+      {!keyboardVisible && !showEditOverview && (
         <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: isDark ? colors.card : "#FFFFFF", paddingTop: 12, paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom, 12), flexDirection: "row", gap: 10 }}>
         <TouchableOpacity
           disabled={!canGoBack}

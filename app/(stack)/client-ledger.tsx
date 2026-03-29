@@ -51,7 +51,8 @@ export default function ClientLedgerScreen() {
     alternate_contact_number: "",
     email_address: "",
     office_address: "",
-    gstin: undefined,
+    gstin: "",
+    pan_number: "",
     gstin_details: undefined
   });
 
@@ -146,7 +147,8 @@ export default function ClientLedgerScreen() {
       alternate_contact_number: "",
       email_address: "",
       office_address: "",
-      gstin: undefined,
+      gstin: "",
+      pan_number: "",
       gstin_details: undefined
     });
     setModalVisible(true);
@@ -178,6 +180,7 @@ export default function ClientLedgerScreen() {
         office_address: formData.office_address.trim(),
         email_address: email,
         gstin: formData.gstin?.trim().toUpperCase() || undefined,
+        pan_number: String(formData.pan_number || "").trim().toUpperCase() || undefined,
       });
       Alert.alert(t("success"), `Client ${t("addedSuccessfully")}`);
       setModalVisible(false);
