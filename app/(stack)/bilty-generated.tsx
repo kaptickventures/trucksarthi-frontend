@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Alert, Text, TouchableOpacity, View } from "react-native";
 import * as Sharing from "expo-sharing";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 
@@ -15,10 +16,21 @@ export default function BiltyGeneratedScreen() {
     uri?: string;
   }>();
 
-  const pdfUri = String(uri || "");
+  const rawUri = String(uri || "");
+  const pdfUri = (() => {
+    try {
+      return decodeURIComponent(rawUri);
+    } catch {
+      return rawUri;
+    }
+  })();
 
   const openPreview = () => {
     if (!pdfUri) {
+      if (tripId) {
+        router.replace({ pathname: "/(stack)/trip-detail", params: { tripId: String(tripId) } } as any);
+        return;
+      }
       Alert.alert("Preview unavailable", "Bilty was generated but preview file is not available.");
       return;
     }
@@ -50,7 +62,7 @@ export default function BiltyGeneratedScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? colors.background : "#F4F6F9", padding: 16, justifyContent: "center" }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: isDark ? colors.background : "#F4F6F9", padding: 16, justifyContent: "center" }}>
       <View
         style={{
           borderWidth: 1,
@@ -127,6 +139,6 @@ export default function BiltyGeneratedScreen() {
           </Text>
         ) : null}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -7,7 +7,6 @@ import {
   Image,
   Keyboard,
   Platform,
-  PanResponder,
   ScrollView,
   StatusBar,
   Text,
@@ -18,7 +17,9 @@ import {
 import * as Print from "expo-print";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import Svg, { Path, SvgXml } from "react-native-svg";
+import { SvgXml } from "react-native-svg";
+import Signature from "react-native-signature-canvas";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import API from "../api/axiosInstance";
 import BottomSheet from "../../components/BottomSheet";
@@ -41,7 +42,6 @@ const escapeHtml = (value: string) =>
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const formatLrNumber = (value: string) => {
   const cleaned = String(value || "")
     .toUpperCase()
@@ -173,6 +173,7 @@ export default function BiltyWizardScreen() {
   const { tripId, biltyId } = useLocalSearchParams<{ tripId?: string; biltyId?: string }>();
   const router = useRouter();
   const { theme, colors } = useThemeStore();
+  const insets = useSafeAreaInsets();
   const isDark = theme === "dark";
   const { user, uploadProfilePicture, refreshUser: refreshUserProfile } = useUser();
 
@@ -211,10 +212,8 @@ export default function BiltyWizardScreen() {
   const [lrDatePickerValue, setLrDatePickerValue] = useState<Date>(new Date());
   const [showInsuranceDatePicker, setShowInsuranceDatePicker] = useState(false);
   const [insuranceExpiryDate, setInsuranceExpiryDate] = useState<Date>(new Date());
-  const [signaturePaths, setSignaturePaths] = useState<string[]>([]);
-  const [activeSignaturePath, setActiveSignaturePath] = useState("");
-  const [signaturePadSize, setSignaturePadSize] = useState({ width: 0, height: 0 });
-  const signaturePathRef = useRef("");
+  const signatureCanvasRef = useRef<any>(null);
+  const [pendingSignatureSave, setPendingSignatureSave] = useState(false);
   const wizardScrollRef = useRef<any>(null);
   const [linkedTrip, setLinkedTrip] = useState<any>(null);
   const [partyDraft, setPartyDraft] = useState<PartyForm>({ ...emptyParty });
@@ -805,67 +804,31 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
   };
 
   const clearSignatureCanvas = () => {
-    signaturePathRef.current = "";
-    setActiveSignaturePath("");
-    setSignaturePaths([]);
+    setPendingSignatureSave(false);
+    signatureCanvasRef.current?.clearSignature();
   };
 
-  const signaturePanResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onStartShouldSetPanResponderCapture: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponderCapture: () => true,
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: (evt) => {
-          const x = clamp(evt.nativeEvent.locationX, 0, Math.max(signaturePadSize.width, 1));
-          const y = clamp(evt.nativeEvent.locationY, 0, Math.max(signaturePadSize.height, 1));
-          const startPath = `M ${x.toFixed(1)} ${y.toFixed(1)}`;
-          signaturePathRef.current = startPath;
-          setActiveSignaturePath(startPath);
-        },
-        onPanResponderMove: (evt) => {
-          if (!signaturePathRef.current) return;
-          const x = clamp(evt.nativeEvent.locationX, 0, Math.max(signaturePadSize.width, 1));
-          const y = clamp(evt.nativeEvent.locationY, 0, Math.max(signaturePadSize.height, 1));
-          const nextPath = `${signaturePathRef.current} L ${x.toFixed(1)} ${y.toFixed(1)}`;
-          signaturePathRef.current = nextPath;
-          setActiveSignaturePath(nextPath);
-        },
-        onPanResponderRelease: () => {
-          if (!signaturePathRef.current) return;
-          setSignaturePaths((prev) => [...prev, signaturePathRef.current]);
-          signaturePathRef.current = "";
-          setActiveSignaturePath("");
-        },
-        onPanResponderTerminate: () => {
-          if (!signaturePathRef.current) return;
-          setSignaturePaths((prev) => [...prev, signaturePathRef.current]);
-          signaturePathRef.current = "";
-          setActiveSignaturePath("");
-        },
-      }),
-    [signaturePadSize.height, signaturePadSize.width]
-  );
-
-  const saveDrawnSignature = () => {
-    const allPaths = [...signaturePaths, activeSignaturePath].filter(Boolean);
-    if (!allPaths.length) {
+  const handleSignatureOK = (signature: string) => {
+    if (!signature) {
       Alert.alert("No signature", "Please draw your signature first.");
+      setPendingSignatureSave(false);
       return;
     }
-
-    const width = Math.max(300, Math.round(signaturePadSize.width || 320));
-    const height = Math.max(120, Math.round(signaturePadSize.height || 150));
-    const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="white"/>${allPaths
-      .map((d) => `<path d="${d}" stroke="#111827" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`)
-      .join("")}</svg>`;
-    const dataUri = `data:image/svg+xml;utf8,${encodeURIComponent(svgMarkup)}`;
-
-    setSignatureUrl(dataUri);
+    setSignatureUrl(signature);
+    setPendingSignatureSave(false);
     setIsSignaturePadVisible(false);
-    clearSignatureCanvas();
+  };
+
+  const handleSignatureEmpty = () => {
+    if (pendingSignatureSave) {
+      Alert.alert("No signature", "Please draw your signature first.");
+      setPendingSignatureSave(false);
+    }
+  };
+
+  const saveDrawnSignature = () => {
+    setPendingSignatureSave(true);
+    signatureCanvasRef.current?.readSignature();
   };
 
   const isSvgSignature = signatureUrl.startsWith("data:image/svg+xml");
@@ -1102,7 +1065,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
   ]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? colors.background : "#F4F6F9" }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: isDark ? colors.background : "#F4F6F9" }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <KeyboardAwareScrollView
@@ -1993,21 +1956,15 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
       <BottomSheet
         visible={isSignaturePadVisible}
-        onClose={() => setIsSignaturePadVisible(false)}
+        onClose={() => {
+          setPendingSignatureSave(false);
+          setIsSignaturePadVisible(false);
+        }}
         title="Draw Signature"
         maxHeight="68%"
         expandedHeight="76%"
       >
         <View
-          onLayout={(evt) => {
-            const nextWidth = Math.max(1, Math.round(evt.nativeEvent.layout.width));
-            const nextHeight = Math.max(1, Math.round(evt.nativeEvent.layout.height));
-            setSignaturePadSize((prev) =>
-              prev.width === nextWidth && prev.height === nextHeight
-                ? prev
-                : { width: nextWidth, height: nextHeight }
-            );
-          }}
           style={{
             height: 190,
             borderWidth: 1,
@@ -2016,21 +1973,23 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             backgroundColor: "#FFFFFF",
             overflow: "hidden",
             marginBottom: 12,
-            justifyContent: "center",
-            alignItems: "center",
           }}
-          {...signaturePanResponder.panHandlers}
         >
-          <Svg width="100%" height="100%" style={{ position: "absolute", top: 0, left: 0 }}>
-            {signaturePaths.map((path, idx) => (
-              <Path key={`sig-${idx}`} d={path} stroke="#111827" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            ))}
-            {activeSignaturePath ? <Path d={activeSignaturePath} stroke="#111827" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" fill="none" /> : null}
-          </Svg>
-
-          {!signaturePaths.length && !activeSignaturePath ? (
-            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>Sign here</Text>
-          ) : null}
+          <Signature
+            ref={signatureCanvasRef}
+            onOK={handleSignatureOK}
+            onEmpty={handleSignatureEmpty}
+            descriptionText=""
+            penColor="#111827"
+            backgroundColor="#FFFFFF"
+            imageType="image/png"
+            autoClear={false}
+            webStyle={`
+              .m-signature-pad--footer {display: none; margin: 0px;}
+              .m-signature-pad {box-shadow: none; border: none;}
+              body,html {width: 100%; height: 100%;}
+            `}
+          />
         </View>
 
         <View style={{ flexDirection: "row", gap: 10 }}>
@@ -2377,7 +2336,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
       </BottomSheet>
 
       {!keyboardVisible && (
-        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: isDark ? colors.card : "#FFFFFF", padding: 12, flexDirection: "row", gap: 10 }}>
+        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: isDark ? colors.card : "#FFFFFF", paddingTop: 12, paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom, 12), flexDirection: "row", gap: 10 }}>
         <TouchableOpacity
           disabled={!canGoBack}
           onPress={() => setStep((prev) => Math.max(1, prev - 1))}
@@ -2411,6 +2370,6 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
         </TouchableOpacity>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

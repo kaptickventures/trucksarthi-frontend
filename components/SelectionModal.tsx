@@ -3,16 +3,12 @@ import {
     View,
     Text,
     TouchableOpacity,
-    FlatList,
-    TextInput,
+    Keyboard,
     StyleSheet,
-    KeyboardAvoidingView,
-    Platform,
 } from 'react-native';
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Search, Plus, X, Check } from 'lucide-react-native';
 import { useThemeStore } from '../hooks/useThemeStore';
-import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
+import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal, BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet';
 
 interface SelectionModalProps {
     visible: boolean;
@@ -39,11 +35,16 @@ export function SelectionModal({
     const { colors, theme } = useThemeStore();
     const isDark = theme === "dark";
     const sheetRef = useRef<BottomSheetModal>(null);
-    const snapPoints = useMemo(() => ["70%"], []);
+    const snapPoints = useMemo(() => ["60%"], []);
 
     useEffect(() => {
-        if (visible) sheetRef.current?.present();
-        else sheetRef.current?.dismiss();
+        if (visible) {
+            setSearch('');
+            sheetRef.current?.present();
+            return;
+        }
+
+        sheetRef.current?.dismiss();
     }, [visible]);
 
     const filteredItems = items.filter(item =>
@@ -70,151 +71,159 @@ export function SelectionModal({
             keyboardBlurBehavior="restore"
             android_keyboardInputMode="adjustResize"
         >
-            <BottomSheetView style={{ flex: 1 }}>
-                <KeyboardAvoidingView
-                    style={{ flex: 1 }}
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                >
-                    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-                        <View style={styles.content}>
-                            <View style={styles.header}>
-                                <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
-                                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                                    <X size={24} color={colors.mutedForeground} />
-                                </TouchableOpacity>
-                            </View>
+            <BottomSheetView style={[styles.content, { backgroundColor: colors.background }]}> 
+                <View style={styles.header}>
+                    <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                        <X size={20} color={colors.mutedForeground} />
+                    </TouchableOpacity>
+                </View>
 
-                            <View style={[styles.searchBar, { backgroundColor: colors.input }]}>
-                                <Search size={20} color={colors.mutedForeground} />
-                                <TextInput
-                                    style={[styles.searchInput, { color: colors.foreground }]}
-                                    placeholder={placeholder}
-                                    value={search}
-                                    onChangeText={setSearch}
-                                    placeholderTextColor={colors.mutedForeground}
-                                />
-                            </View>
+                <View style={[styles.searchBar, { borderColor: colors.border, backgroundColor: colors.input }]}> 
+                    <Search size={18} color={colors.mutedForeground} />
+                    <BottomSheetTextInput
+                        style={[styles.searchInput, { color: colors.foreground }]}
+                        placeholder={placeholder}
+                        value={search}
+                        onChangeText={setSearch}
+                        placeholderTextColor={colors.mutedForeground}
+                    />
+                </View>
 
-                            <FlatList
-                                data={filteredItems}
-                                keyExtractor={(item) => item.value}
-                                renderItem={({ item }) => (
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.item,
-                                            { borderBottomColor: colors.border },
-                                            selectedValue === item.value && { backgroundColor: isDark ? colors.secondary : colors.accent }
-                                        ]}
-                                        onPress={() => {
-                                            onSelect(item.value);
-                                            onClose();
-                                        }}
-                                    >
-                                        <Text style={[
-                                            styles.itemText,
-                                            { color: colors.foreground },
-                                            selectedValue === item.value && { fontWeight: 'bold', color: colors.primary }
-                                        ]}>
-                                            {item.label}
-                                        </Text>
-                                        {selectedValue === item.value && (
-                                            <Check size={20} color={colors.primary} />
-                                        )}
-                                    </TouchableOpacity>
-                                )}
-                                ListEmptyComponent={
-                                    <View style={styles.emptyContainer}>
-                                        <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No results found</Text>
-                                    </View>
-                                }
-                            />
-
-                            {onAddItem && (
-                                <TouchableOpacity
-                                    style={[styles.addButton, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
-                                    onPress={() => {
-                                        onClose();
-                                        onAddItem();
-                                    }}>
-                                    <Plus size={20} color="white" />
-                                    <Text style={styles.addButtonText}>Add New</Text>
-                                </TouchableOpacity>
-                            )}
+                <BottomSheetFlatList
+                    data={filteredItems}
+                    keyExtractor={(item) => item.value}
+                    keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={styles.listContent}
+                    renderItem={({ item }) => {
+                        const isSelected = selectedValue === item.value;
+                        return (
+                            <TouchableOpacity
+                                style={[
+                                    styles.item,
+                                    {
+                                        borderColor: colors.border,
+                                        backgroundColor: isSelected
+                                            ? (isDark ? colors.secondary : colors.accent)
+                                            : colors.background,
+                                    },
+                                ]}
+                                onPress={() => {
+                                    onSelect(item.value);
+                                    onClose();
+                                }}
+                            >
+                                <Text
+                                    style={[
+                                        styles.itemText,
+                                        { color: colors.foreground },
+                                        isSelected && { color: colors.primary, fontWeight: '700' },
+                                    ]}
+                                >
+                                    {item.label}
+                                </Text>
+                                {isSelected && <Check size={18} color={colors.primary} />}
+                            </TouchableOpacity>
+                        );
+                    }}
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No results found</Text>
                         </View>
-                    </SafeAreaView>
-                </KeyboardAvoidingView>
+                    }
+                />
+
+                {onAddItem && (
+                    <TouchableOpacity
+                        style={[styles.addButton, { backgroundColor: colors.primary }]}
+                        onPress={() => {
+                            onClose();
+                            Keyboard.dismiss();
+                            onAddItem();
+                        }}
+                    >
+                        <Plus size={18} color={colors.primaryForeground} />
+                        <Text style={[styles.addButtonText, { color: colors.primaryForeground }]}>Add New</Text>
+                    </TouchableOpacity>
+                )}
             </BottomSheetView>
         </BottomSheetModal>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        height: '100%',
-    },
     content: {
         flex: 1,
-        padding: 24,
+        paddingHorizontal: 16,
+        paddingTop: 10,
+        paddingBottom: 14,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 12,
     },
     title: {
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontSize: 18,
+        fontWeight: '800',
     },
     closeButton: {
-        padding: 4,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        marginBottom: 20,
+        borderRadius: 14,
+        borderWidth: 1,
+        paddingHorizontal: 14,
+        height: 50,
+        marginBottom: 12,
     },
     searchInput: {
         flex: 1,
-        marginLeft: 12,
+        marginLeft: 10,
         fontSize: 16,
+    },
+    listContent: {
+        paddingBottom: 14,
     },
     item: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 16,
-        borderBottomWidth: 1,
+        minHeight: 52,
+        paddingHorizontal: 12,
+        borderWidth: 1,
+        borderRadius: 12,
+        marginBottom: 8,
     },
     itemText: {
         fontSize: 16,
+        fontWeight: '500',
     },
     emptyContainer: {
-        padding: 40,
+        paddingVertical: 28,
         alignItems: 'center',
     },
     emptyText: {
-        fontSize: 16,
+        fontSize: 14,
     },
     addButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 16,
+        minHeight: 48,
         borderRadius: 16,
-        marginTop: 16,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        marginTop: 6,
     },
     addButtonText: {
-        color: 'white',
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '700',
         marginLeft: 8,
     },
 });

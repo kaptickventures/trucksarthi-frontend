@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import "../../global.css";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import API from "../api/axiosInstance";
@@ -276,7 +277,7 @@ export default function NotificationsScreen() {
 
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
@@ -403,6 +404,6 @@ export default function NotificationsScreen() {
           ))
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

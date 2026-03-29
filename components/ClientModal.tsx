@@ -24,7 +24,7 @@ export type ClientFormData = {
   alternate_contact_number: string;
   email_address: string;
   office_address: string;
-  gstin?: string;
+  gstin: string;
   gstin_details?: any;
 };
 

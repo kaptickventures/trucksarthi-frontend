@@ -21,6 +21,24 @@ export function DatePickerModal({
     const sheetRef = useRef<BottomSheetModal>(null);
     const snapPoints = useMemo(() => ["50%"], []);
 
+    if (Platform.OS === 'android') {
+        if (!visible) return null;
+
+        return (
+            <DateTimePicker
+                value={date}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                    if (event.type === 'set' && selectedDate) {
+                        onChange(selectedDate);
+                    }
+                    onClose();
+                }}
+            />
+        );
+    }
+
     useEffect(() => {
         if (visible) sheetRef.current?.present();
         else sheetRef.current?.dismiss();
@@ -58,7 +76,7 @@ export function DatePickerModal({
                 <DateTimePicker
                     value={date}
                     mode="date"
-                    display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
+                    display='inline'
                     onChange={(event, selectedDate) => {
                         if (selectedDate) {
                             onChange(selectedDate);

@@ -23,6 +23,7 @@ import {
   StyleSheet,
   RefreshControl
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   BottomSheetBackdrop,
   BottomSheetFlatList,
@@ -34,7 +35,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { useThemeStore } from "../../../hooks/useThemeStore";
 import { Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Plus, Navigation } from 'lucide-react-native';
 
-import ClientFormModal from "../../../components/ClientModal";
+import ClientFormModal, { type ClientFormData } from "../../../components/ClientModal";
 import DriverFormModal from "../../../components/DriverModal";
 import SideMenu from "../../../components/SideMenu";
 import TruckFormModal from "../../../components/TruckModal";
@@ -52,6 +53,11 @@ import useLocations from "../../../hooks/useLocation";
 import useTrips from "../../../hooks/useTrip";
 import useTrucks from "../../../hooks/useTruck";
 import { useUser } from "../../../hooks/useUser";
+
+type SheetItem = {
+  label: string;
+  value: string;
+};
 
 export default function AddTrip() {
   const navigation = useNavigation();
@@ -204,7 +210,7 @@ export default function AddTrip() {
     sheetRef.current?.dismiss();
   };
 
-  const sheetItems = useMemo(() => {
+  const sheetItems = useMemo<SheetItem[]>(() => {
     const query = sheetSearch.trim().toLowerCase();
     if (sheetType === "truck") {
       return trucks
@@ -228,7 +234,15 @@ export default function AddTrip() {
   const [isClientModalVisible, setIsClientModalVisible] = useState(false);
   const [isDriverModalVisible, setIsDriverModalVisible] = useState(false);
   const [isTruckModalVisible, setIsTruckModalVisible] = useState(false);
-  const [clientFormData, setClientFormData] = useState({ client_name: "", contact_person_name: "", contact_number: "", alternate_contact_number: "", email_address: "", office_address: "", gstin: "" });
+  const [clientFormData, setClientFormData] = useState<ClientFormData>({
+    client_name: "",
+    contact_person_name: "",
+    contact_number: "",
+    alternate_contact_number: "",
+    email_address: "",
+    office_address: "",
+    gstin: "",
+  });
   const [driverFormData, setDriverFormData] = useState({ driver_name: "", contact_number: "", identity_card_url: "", license_card_url: "" });
   const [truckFormData, setTruckFormData] = useState({ registration_number: "", chassis_number: "", engine_number: "", registered_owner_name: "", container_dimension: "", loading_capacity: "" });
   const normalizeLocation = (value: string) => value.trim().toLowerCase();
@@ -317,7 +331,7 @@ export default function AddTrip() {
   const endSuggestions = getLocationSuggestions(endQuery);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAwareScrollView
         enableOnAndroid
         extraScrollHeight={150} // increased to bring to middle
@@ -634,12 +648,12 @@ export default function AddTrip() {
             />
           </View>
 
-          <BottomSheetFlatList
+          <BottomSheetFlatList<SheetItem>
             data={sheetItems}
-            keyExtractor={(item) => item.value}
+            keyExtractor={(item: SheetItem) => item.value}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 16 }}
-            renderItem={({ item }) => {
+            renderItem={({ item }: { item: SheetItem }) => {
               const isSelected =
                 (sheetType === "truck" && formData.truck_id === item.value) ||
                 (sheetType === "driver" && formData.driver_id === item.value) ||
@@ -739,7 +753,7 @@ export default function AddTrip() {
       }} onClose={() => setIsTruckModalVisible(false)} />
 
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
-    </View>
+    </SafeAreaView>
   );
 }
 

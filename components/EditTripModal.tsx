@@ -190,7 +190,7 @@ export default function EditTripModal({
         onClose={closeModal}
         title="Edit Trip"
         subtitle={`${trip?.public_id ? `${trip.public_id} • ` : ''}Update journey`}
-        maxHeight="80%"
+        maxHeight="90%"
       >
         <KeyboardAwareScrollView
           enableOnAndroid
@@ -198,7 +198,7 @@ export default function EditTripModal({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 120 }}
+          contentContainerStyle={{ paddingHorizontal: 6, paddingBottom: 140 }}
         >
                 {/* Date Selector */}
                 <InputLabel label={"Trip Date"} required />
@@ -232,8 +232,7 @@ export default function EditTripModal({
                   <ChevronDown size={20} color={colors.mutedForeground} />
                 </TouchableOpacity>
 
-                <View className="flex-row gap-4">
-                  {/* Origin */}
+                <View className="flex-row gap-3">
                   <View className="flex-1">
                     <InputLabel label={"Origin"} required />
                     <TouchableOpacity
@@ -254,7 +253,6 @@ export default function EditTripModal({
                     </TouchableOpacity>
                   </View>
 
-                  {/* Destination */}
                   <View className="flex-1">
                     <InputLabel label={"Destination"} required />
                     <TouchableOpacity
@@ -276,8 +274,7 @@ export default function EditTripModal({
                   </View>
                 </View>
 
-                <View className="flex-row gap-4">
-                  {/* Truck */}
+                <View className="flex-row gap-3">
                   <View className="flex-1">
                     <InputLabel label={"Truck"} required />
                     <TouchableOpacity
@@ -298,7 +295,6 @@ export default function EditTripModal({
                     </TouchableOpacity>
                   </View>
 
-                  {/* Driver */}
                   <View className="flex-1">
                     <InputLabel label={"Driver"} required />
                     <TouchableOpacity
@@ -320,8 +316,7 @@ export default function EditTripModal({
                   </View>
                 </View>
 
-                {/* Pricing Row */}
-                <View className="flex-row gap-4">
+                <View className="flex-row gap-3">
                   <View className="flex-1">
                     <InputLabel label={"Freight Cost"} required />
                     <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
@@ -337,6 +332,7 @@ export default function EditTripModal({
                       />
                     </View>
                   </View>
+
                   <View className="flex-1">
                     <InputLabel label="Misc Expenses" />
                     <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
@@ -356,7 +352,7 @@ export default function EditTripModal({
 
                 {/* Notes */}
                 <InputLabel label={"Trip Notes"} />
-                <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input, height: 100, alignItems: 'flex-start', paddingTop: 16 }]}>
+                <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input, height: 120, alignItems: 'flex-start', paddingTop: 18 }]}>
                   <View style={{ marginTop: 2 }}>
                     <FileText size={18} color={colors.primary} />
                   </View>
@@ -448,7 +444,7 @@ export default function EditTripModal({
 
 const styles = StyleSheet.create({
   inputContainer: {
-    height: 58,
+    height: 66,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 14,

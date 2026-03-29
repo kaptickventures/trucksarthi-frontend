@@ -144,7 +144,13 @@ export default function StackLayout() {
           <Stack.Screen name="pl-report-detail" options={{ title: "PL Detail" }} />
           <Stack.Screen name="pl-misc-report" options={{ title: "Misc PL" }} />
           <Stack.Screen name="pl-misc-report-detail" options={{ title: "Misc Report Detail" }} />
-          <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
+          <Stack.Screen
+            name="notifications"
+            options={{
+              title: "Notifications",
+              headerRight: () => null,
+            }}
+          />
           <Stack.Screen name="transactions" options={{ title: "Transactions" }} />
           <Stack.Screen name="create-invoice" options={{ title: "Create Invoice" }} />
           <Stack.Screen name="expense-manager" options={{ title: "Expense Manager" }} />

@@ -18,6 +18,7 @@ import {
   UIManager,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowDownLeft, ArrowUpRight, Calendar, Filter } from "lucide-react-native";
 import SideMenu from "../../../components/SideMenu";
 import { Skeleton } from "../../../components/Skeleton";
@@ -32,7 +33,7 @@ import useTrucks from "../../../hooks/useTruck";
 const TAG_FILTERS = [
   { key: "ALL", label: "All" },
   { key: "DRIVER_EXPENSE", label: "Driver Expenses" },
-  { key: "CLIENT_EXPENSE", label: "Client Expenses" },
+  { key: "CLIENT_KHATA", label: "Client Khata" },
   { key: "TRUCK_EXPENSE", label: "Truck Expenses" },
   { key: "MISC_KHATA", label: "Misc Khata" },
 ] as const;
@@ -232,7 +233,7 @@ export default function TransactionsScreen() {
 
       if (activeTag === "MISC_KHATA") return sourceModule === "MISC";
       if (activeTag === "DRIVER_EXPENSE") return sourceModule === "DRIVER_KHATA";
-      if (activeTag === "CLIENT_EXPENSE") return sourceModule === "CLIENT_PAYMENT";
+      if (activeTag === "CLIENT_KHATA") return sourceModule === "CLIENT_PAYMENT";
       if (activeTag === "TRUCK_EXPENSE")
         return (
           sourceModule === "RUNNING_EXPENSE" ||
@@ -314,7 +315,7 @@ export default function TransactionsScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <FlatList
@@ -648,7 +649,7 @@ export default function TransactionsScreen() {
       </Modal>
 
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
-    </View>
+    </SafeAreaView>
   );
 }
 

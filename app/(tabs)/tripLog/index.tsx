@@ -13,6 +13,7 @@ import {
   View,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
@@ -375,7 +376,7 @@ export default function TripLog() {
         </TouchableOpacity>
       ),
     });
-  }, [navigation, menuVisible, foregroundColor, colors.background, colors.foreground, isDark, router]);
+  }, [navigation, menuVisible, foregroundColor, colors.background, colors.border, colors.foreground, isDark, router]);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -394,7 +395,7 @@ export default function TripLog() {
   const formatDateLocal = (d: Date | null) => d ? formatDate(d) : "Select Date";
 
   return (
-    <View className="flex-1 bg-background" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} className="flex-1 bg-background" style={{ backgroundColor: colors.background }}>
       <ScrollView
         contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={
@@ -581,7 +582,7 @@ export default function TripLog() {
           } catch { }
         }}
       />
-    </View >
+    </SafeAreaView >
   );
 }
 
