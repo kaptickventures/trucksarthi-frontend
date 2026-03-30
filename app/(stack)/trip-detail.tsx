@@ -1123,17 +1123,26 @@ export default function TripDetail() {
               }
               disabled={biltyBusy}
               style={{
-                backgroundColor: colors.primary,
-                opacity: biltyBusy ? 0.45 : 1,
+                width: "75%",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: colors.primarySoft,
+                opacity: biltyBusy ? 0.8 : 1,
               }}
-              className="py-4 rounded-[18px]"
             >
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <Ionicons name="add-outline" size={18} color={colors.primaryForeground} />
-                <Text style={{ fontWeight: "900", color: colors.primaryForeground, fontSize: 16 }}>
-                  {biltyBusy ? "Generating..." : "Generate Bilty"}
-                </Text>
-              </View>
+              <Ionicons
+                name="add-outline"
+                size={18}
+                color={colors.primary}
+              />
+              <Text style={{ marginLeft: 8, fontWeight: "700", color: colors.primary, fontSize: 14 }}>
+                {biltyBusy ? "Generating..." : "Generate Bilty"}
+              </Text>
+            </TouchableOpacity>
             </TouchableOpacity>
           )}
         </View>

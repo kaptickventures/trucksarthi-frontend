@@ -622,7 +622,7 @@ export default function DriverLedgerDetailScreen() {
                     </Text>
                   </View>
                   <Text style={{ color: isToDriver ? colors.success : colors.destructive, fontWeight: "800" }}>
-                    {isToDriver ? "+" : "-"}? {entry.amount.toLocaleString()}
+                    {isToDriver ? "+" : "-"}₹ {entry.amount.toLocaleString()}
                   </Text>
                 </View>
               </View>

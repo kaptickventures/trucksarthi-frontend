@@ -71,7 +71,7 @@ export default function FinanceScreen() {
                   <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "600" }}>Income</Text>
                 </View>
                 <Text style={{ fontSize: 20, fontWeight: "bold", color: colors.foreground }}>
-                  +? {(Number(metrics?.income) || 0).toLocaleString()}
+                  +₹ {(Number(metrics?.income) || 0).toLocaleString()}
                 </Text>
               </View>
               <View style={{ flex: 1, backgroundColor: colors.card, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
@@ -82,7 +82,7 @@ export default function FinanceScreen() {
                   <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "600" }}>Expense</Text>
                 </View>
                 <Text style={{ fontSize: 20, fontWeight: "bold", color: colors.foreground }}>
-                  -? {(Number(metrics?.expense) || 0).toLocaleString()}
+                  -₹ {(Number(metrics?.expense) || 0).toLocaleString()}
                 </Text>
               </View>
             </View>
@@ -91,7 +91,7 @@ export default function FinanceScreen() {
               <View>
                 <Text style={{ color: colors.primaryForeground, fontSize: 14, fontWeight: "600", marginBottom: 4, opacity: 0.8 }}>Balance</Text>
                 <Text style={{ color: colors.primaryForeground, fontSize: 28, fontWeight: "bold" }}>
-                  {balance >= 0 ? "+" : "-"}? {Math.abs(balance).toLocaleString()}
+                  {balance >= 0 ? "+" : "-"}₹ {Math.abs(balance).toLocaleString()}
                 </Text>
               </View>
               <View style={{ backgroundColor: colors.overlayOnDark20, padding: 10, borderRadius: 12 }}>

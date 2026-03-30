@@ -1494,11 +1494,11 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <View>
                   <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.45 }}>FREIGHT AMOUNT</Text>
-                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, fontSize: 14 }}>â‚¹{(Number(charges.freight || 0) || 1258).toLocaleString("en-IN")}</Text>
+                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, fontSize: 14 }}>₹{(Number(charges.freight || 0) || 1258).toLocaleString("en-IN")}</Text>
                 </View>
                 <View>
                   <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", textAlign: "right", letterSpacing: 0.45 }}>PARTY BALANCE</Text>
-                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, textAlign: "right", fontSize: 14 }}>â‚¹{(Number(charges.balance || 0) || 1258).toLocaleString("en-IN")}</Text>
+                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, textAlign: "right", fontSize: 14 }}>₹{(Number(charges.balance || 0) || 1258).toLocaleString("en-IN")}</Text>
                 </View>
               </View>
               <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700", marginTop: 10 }}>Tap to preview trip details</Text>
@@ -1691,7 +1691,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                 <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, backgroundColor: isDark ? colors.input : colors.muted }}>
                   <Text style={{ color: colors.foreground, fontWeight: "800", marginBottom: 2 }}>{insurance.insurer_name || "-"}</Text>
                   <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Policy: {insurance.policy_number}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: â‚¹{Number(insurance.coverage_amount || 0).toLocaleString("en-IN")}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: ₹{Number(insurance.coverage_amount || 0).toLocaleString("en-IN")}</Text>
                   <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Expiry: {insurance.expiry_date || "-"}</Text>
                   <TouchableOpacity
                     onPress={() => setInsurance({ policy_number: "", insurer_name: "", coverage_amount: "", expiry_date: "" })}

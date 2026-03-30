@@ -950,7 +950,7 @@ export default function ClientLedgerDetailScreen() {
         if (amount > remainingAmount) {
           Alert.alert(
             t('amountExceedsRemaining'),
-            `Remaining for this invoice is â‚¹${remainingAmount.toLocaleString()}. Please enter a smaller amount.`
+            `Remaining for this invoice is ₹${remainingAmount.toLocaleString()}. Please enter a smaller amount.`
           );
           return;
         }
@@ -1325,7 +1325,7 @@ export default function ClientLedgerDetailScreen() {
                       <Text className="font-bold" style={{ color: colors.foreground }}>Trip #{trip.public_id || getId(trip).slice(-6)}</Text>
                       {trip.trip_date ? <Text className="text-xs" style={{ color: colors.mutedForeground }}>{formatDate(trip.trip_date)}</Text> : null}
                     </View>
-                    <Text className="font-bold text-lg" style={{ color: colors.foreground }}>â‚¹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
+                    <Text className="font-bold text-lg" style={{ color: colors.foreground }}>₹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
                   </View>
                   <View className="flex-row items-center gap-2">
                     <MapPin size={14} color={colors.mutedForeground} />
@@ -1376,11 +1376,11 @@ export default function ClientLedgerDetailScreen() {
                     <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border + '4D' }}>
                       <View>
                         <Text className="font-bold text-lg" style={{ color: colors.foreground }}>
-                          â‚¹{remainingAmount.toLocaleString()}
+                          ₹{remainingAmount.toLocaleString()}
                         </Text>
                         {remainingAmount < totalAmount && (
                           <Text className="text-[11px]" style={{ color: colors.mutedForeground }}>
-                            Balance due (Total: â‚¹{totalAmount.toLocaleString()})
+                            Balance due (Total: ₹{totalAmount.toLocaleString()})
                           </Text>
                         )}
                         {remainingAmount === totalAmount && (
@@ -1435,7 +1435,7 @@ export default function ClientLedgerDetailScreen() {
                         {(entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "PARTIAL" : "FULL"}
                       </Text>
                     </View>
-                    <Text className="font-bold" style={{ color: colors.success }}>â‚¹{Number(entry.amount).toLocaleString()}</Text>
+                    <Text className="font-bold" style={{ color: colors.success }}>₹{Number(entry.amount).toLocaleString()}</Text>
                   </View>
                 </View>
               ))
@@ -1918,7 +1918,7 @@ function SummaryCard({ label, value, green }: any) {
   return (
     <View style={{ backgroundColor: colors.card }} className="flex-1 p-4 rounded-2xl border border-border/50">
       <Text className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{label}</Text>
-      <Text style={{ color: green ? colors.success : colors.foreground }} className="text-lg font-bold">â‚¹{Number(value).toLocaleString()}</Text>
+      <Text style={{ color: green ? colors.success : colors.foreground }} className="text-lg font-bold">₹{Number(value).toLocaleString()}</Text>
     </View>
   );
 }
