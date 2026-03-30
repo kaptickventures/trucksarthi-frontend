@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -153,7 +153,7 @@ export default function PLClientReportScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "800", color: hasOutstanding ? colors.destructive : colors.success }}>
-                    {hasOutstanding ? `-Rs ${row.unbilled.toLocaleString()} ${t('due') || 'due'}` : t('settled')}
+                    {hasOutstanding ? `-₹ ${row.unbilled.toLocaleString()} ${t('due') || 'due'}` : t('settled')}
                   </Text>
                 </View>
               </View>
@@ -161,15 +161,13 @@ export default function PLClientReportScreen() {
               <View style={{ flexDirection: "row", gap: 16, marginBottom: 10 }}>
                 <View>
                   <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('billed').toUpperCase()}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
-                    Rs {row.billed.toLocaleString()}
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}> ₹ {row.billed.toLocaleString()}
                   </Text>
                 </View>
                 <View style={{ width: 1, backgroundColor: colors.border }} />
                 <View>
                   <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('settled').toUpperCase()}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}>
-                    Rs {row.settled.toLocaleString()}
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}> ₹ {row.settled.toLocaleString()}
                   </Text>
                 </View>
               </View>
@@ -190,7 +188,7 @@ export default function PLClientReportScreen() {
                       color: isSettled ? colors.success : hasOutstanding ? colors.warning : colors.mutedForeground,
                     }}
                   >
-                    {isSettled ? `✓ ${t('settled').toUpperCase()}` : hasOutstanding ? t('pending').toUpperCase() : t('noActivity').toUpperCase()}
+                    {isSettled ? `âœ“ ${t('settled').toUpperCase()}` : hasOutstanding ? t('pending').toUpperCase() : t('noActivity').toUpperCase()}
                   </Text>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>

@@ -119,10 +119,10 @@ export default function DriverFormModal({
                                 <TextInput
                                     className="rounded-2xl p-4 text-base font-bold"
                                     style={{
-                                        backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                                        backgroundColor: colors.input,
                                         color: colors.foreground,
                                         borderWidth: 1,
-                                        borderColor: isDark ? colors.border : colors.border + '30'
+                                        borderColor: colors.border
                                     }}
                                     value={formData.driver_name}
                                     onChangeText={(val) => setFormData({ ...formData, driver_name: val })}
@@ -140,7 +140,7 @@ export default function DriverFormModal({
                                     justifyContent: "center",
                                     borderWidth: 1,
                                     borderColor: isDark ? colors.border : colors.border + "40",
-                                    backgroundColor: isDark ? colors.card : colors.secondary + "30",
+                                    backgroundColor: colors.input,
                                 }}
                                 accessibilityRole="button"
                                 accessibilityLabel="Pick from contacts"
@@ -157,10 +157,10 @@ export default function DriverFormModal({
                         <TextInput
                             className="rounded-2xl p-4 text-base font-bold"
                             style={{
-                                backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                                backgroundColor: colors.input,
                                 color: colors.foreground,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : colors.border + '30'
+                                borderColor: colors.border
                             }}
                             value={formData.contact_number}
                             onChangeText={(val) => setFormData({ ...formData, contact_number: val })}

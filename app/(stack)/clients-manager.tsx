@@ -264,7 +264,7 @@ export default function ClientsManager() {
           justifyContent: 'center',
           alignItems: 'center',
           elevation: 5,
-          shadowColor: "#000",
+          shadowColor: colors.shadow,
           shadowOpacity: 0.3,
           shadowRadius: 5,
           shadowOffset: { width: 0, height: 3 },

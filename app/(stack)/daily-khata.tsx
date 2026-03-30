@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
@@ -114,8 +114,7 @@ export default function DailyKhataScreen() {
                     <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 2 }}>
                       TOTAL
                     </Text>
-                    <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }}>
-                      Rs {monthlyExpense.toLocaleString()}
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }}> ₹ {monthlyExpense.toLocaleString()}
                     </Text>
                   </View>
                 </View>

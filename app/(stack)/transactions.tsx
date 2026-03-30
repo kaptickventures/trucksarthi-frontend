@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -235,7 +235,7 @@ export default function TransactionsScreen() {
             {formatLabel(item.category)}
           </Text>
           <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-            {partyName ? `${partyName} • ` : ""}{item.notes || formatLabel(item.sourceModule)}
+            {partyName ? `${partyName} â€¢ ` : ""}{item.notes || formatLabel(item.sourceModule)}
           </Text>
           <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
             <Text style={{ fontSize: 10, color: colors.mutedForeground }}>
@@ -248,10 +248,10 @@ export default function TransactionsScreen() {
         </View>
         <View style={{ alignItems: "flex-end" }}>
           <Text style={{ fontSize: 16, fontWeight: "bold", color: iconColor }}>
-            {isIncome ? "+" : "-"}Rs {Number(item.amount || 0).toLocaleString()}
+            {isIncome ? "+" : "-"}? {Number(item.amount || 0).toLocaleString()}
           </Text>
           <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginTop: 2 }}>
-            Bal: Rs {Number(item.runningBalance || 0).toLocaleString()}
+            Bal: ₹ {Number(item.runningBalance || 0).toLocaleString()}
           </Text>
           <Text style={{ fontSize: 9, color: colors.mutedForeground, marginTop: 1 }}>
             {item.paymentMode || "CASH"}
@@ -310,7 +310,7 @@ export default function TransactionsScreen() {
                   <Text
                     numberOfLines={1}
                     style={{
-                      color: activeTag === item ? "white" : colors.foreground,
+                      color: activeTag === item ? colors.primaryForeground : colors.foreground,
                       fontWeight: "700",
                       fontSize: 12,
                       textAlign: "center",
@@ -363,7 +363,7 @@ export default function TransactionsScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 8,
-                  backgroundColor: isDark ? colors.card : colors.secondary + "10"
+                  backgroundColor: colors.input
                 }}
               >
                 <Calendar size={16} color={colors.mutedForeground} />
@@ -394,7 +394,7 @@ export default function TransactionsScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 8,
-                  backgroundColor: isDark ? colors.card : colors.secondary + "10"
+                  backgroundColor: colors.input
                 }}
               >
                 <Calendar size={16} color={colors.mutedForeground} />
@@ -451,8 +451,7 @@ export default function TransactionsScreen() {
                     textAlign: "center",
                     color:
                       draftFilters.direction === type || (type === "ALL" && !draftFilters.direction)
-                        ? "white"
-                        : colors.foreground,
+                        ? colors.primaryForeground : colors.foreground,
                   }}
                 >
                   {type}
@@ -484,7 +483,7 @@ export default function TransactionsScreen() {
                     justifyContent: "center",
                   }}
                 >
-                  <Text style={{ color: active ? "white" : colors.foreground, fontSize: 12, fontWeight: "700" }}>
+                  <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: "700" }}>
                     {module === "ALL" ? "All" : getFriendlyFilterLabel(module)}
                   </Text>
                 </TouchableOpacity>
@@ -515,7 +514,7 @@ export default function TransactionsScreen() {
                     justifyContent: "center",
                   }}
                 >
-                  <Text style={{ color: active ? "white" : colors.foreground, fontSize: 12, fontWeight: "700" }}>
+                  <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: "700" }}>
                     {mode === "ALL" ? "All" : formatLabel(mode)}
                   </Text>
                 </TouchableOpacity>
@@ -536,7 +535,7 @@ export default function TransactionsScreen() {
               }
               style={{
                 flex: 1,
-                backgroundColor: isDark ? colors.card : colors.secondary + "15",
+                backgroundColor: colors.input,
                 padding: 14,
                 borderRadius: 12,
                 alignItems: "center",
@@ -556,7 +555,7 @@ export default function TransactionsScreen() {
             }}
               style={{ flex: 1, backgroundColor: colors.primary, padding: 14, borderRadius: 12, alignItems: "center" }}
           >
-              <Text style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>Apply Filters</Text>
+              <Text style={{ color: colors.primaryForeground, fontWeight: "bold", fontSize: 15 }}>Apply Filters</Text>
           </TouchableOpacity>
           </View>
         </ScrollView>

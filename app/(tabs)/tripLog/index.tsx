@@ -1,4 +1,4 @@
-
+﻿
 import { useEffect, useLayoutEffect, useMemo, useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
@@ -295,7 +295,7 @@ export default function TripLog() {
     <div class="card">
       <div class="card-top">
         <div>${t.trip_date ? fmt(new Date(t.trip_date)) : "No Date"}</div>
-        <div>Rs ${total.toLocaleString()}</div>
+        <div>₹ ${total.toLocaleString()}</div>
       </div>
       <div class="route">Route: ${getLocationName(t.start_location)} -> ${getLocationName(t.end_location)}</div>
       <div class="meta-row">
@@ -310,8 +310,8 @@ export default function TripLog() {
             )}</div></div>
       </div>
       <div class="cost-row">
-        <div><div class="label">TRIP COST</div><div class="value">Rs ${Number(t.cost_of_trip).toLocaleString()}</div></div>
-        <div><div class="label">MISC EXPENSE</div><div class="value">Rs ${Number(t.miscellaneous_expense).toLocaleString()}</div></div>
+        <div><div class="label">TRIP COST</div><div class="value">₹ ${Number(t.cost_of_trip).toLocaleString()}</div></div>
+        <div><div class="label">MISC EXPENSE</div><div class="value">₹ ${Number(t.miscellaneous_expense).toLocaleString()}</div></div>
       </div>
       ${t.notes ? `<div class="notes">Notes: ${t.notes}</div>` : ""}
     </div>
@@ -320,9 +320,9 @@ export default function TripLog() {
           .join("")}
   <div class="summary">
     <div class="summary-title">Totals</div>
-    <div class="summary-row"><div>Total Cost</div><div>Rs ${totalCost.toLocaleString()}</div></div>
-    <div class="summary-row"><div>Misc Cost</div><div>Rs ${totalMisc.toLocaleString()}</div></div>
-    <div class="summary-row"><div>Total Revenue</div><div>Rs ${totalRevenue.toLocaleString()}</div></div>
+    <div class="summary-row"><div>Total Cost</div><div>₹ ${totalCost.toLocaleString()}</div></div>
+    <div class="summary-row"><div>Misc Cost</div><div>₹ ${totalMisc.toLocaleString()}</div></div>
+    <div class="summary-row"><div>Total Revenue</div><div>₹ ${totalRevenue.toLocaleString()}</div></div>
   </div>
 </body>
 </html>
@@ -417,7 +417,7 @@ export default function TripLog() {
               paddingVertical: 10,
               borderRadius: 999,
               backgroundColor: colors.successSoft,
-              shadowColor: "#000",
+              shadowColor: colors.shadow,
               shadowOpacity: 0.08,
               shadowRadius: 4,
               elevation: 2
@@ -436,7 +436,7 @@ export default function TripLog() {
               paddingVertical: 10,
               borderRadius: 999,
               backgroundColor: colors.infoSoft,
-              shadowColor: "#000",
+              shadowColor: colors.shadow,
               shadowOpacity: 0.08,
               shadowRadius: 4,
               elevation: 2
@@ -464,15 +464,14 @@ export default function TripLog() {
         />
 
         <View
-          className="mt-1 mb-6 p-4 rounded-2xl shadow-sm border"
-          style={{ backgroundColor: colors.card, borderColor: colors.border }}
+          className="mt-1 mb-6 p-4 rounded-2xl border"
+          style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }}
         >
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>
               {sortedTrips.length} trips
             </Text>
-            <Text className="text-3xl font-extrabold" style={{ color: colors.primary }}>
-              Rs {sortedTrips.reduce((acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense), 0).toLocaleString()}
+            <Text className="text-3xl font-extrabold" style={{ color: colors.primary }}> ₹ {sortedTrips.reduce((acc, t) => acc + Number(t.cost_of_trip) + Number(t.miscellaneous_expense), 0).toLocaleString()}
             </Text>
           </View>
         </View>
@@ -490,12 +489,12 @@ export default function TripLog() {
                   <TouchableOpacity
                     activeOpacity={0.9}
                     onPress={() => router.push({ pathname: "/(stack)/trip-detail", params: { tripId: trip._id } } as any)}
-                    className="border rounded-2xl p-3 shadow-sm"
-                    style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                    className="rounded-2xl p-3"
+                    style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }}
                   >
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6, alignItems: "center" }}>
                       <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{trip.trip_date ? formatDate(trip.trip_date) : t("noDate")}</Text>
-                      <Text style={{ fontSize: 20, fontWeight: "800", color: colors.primary }}>{`Rs ${totalCost.toLocaleString()}`}</Text>
+                      <Text style={{ fontSize: 20, fontWeight: "800", color: colors.primary }}>{`₹ ${totalCost.toLocaleString()}`}</Text>
                     </View>
                     <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground, marginBottom: 8 }}>
                       {getLocationName(trip.start_location)}
@@ -509,8 +508,8 @@ export default function TripLog() {
                     </View>
                     <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 8 }} />
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {Number(trip.cost_of_trip).toLocaleString()}</Text>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {Number(trip.miscellaneous_expense).toLocaleString()}</Text>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: ₹ {Number(trip.cost_of_trip).toLocaleString()}</Text>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: ₹ {Number(trip.miscellaneous_expense).toLocaleString()}</Text>
                     </View>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
                       <View style={{ flex: 1, paddingRight: 8 }}>

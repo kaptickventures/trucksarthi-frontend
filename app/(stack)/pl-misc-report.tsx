@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+﻿import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import useFinance from "../../hooks/useFinance";
@@ -104,7 +104,7 @@ export default function PLMiscReportScreen() {
               </View>
               <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: item.net >= 0 ? colors.success + '20' : colors.destructive + '20' }}>
                 <Text style={{ fontSize: 13, fontWeight: "800", color: item.net >= 0 ? colors.success : colors.destructive }}>
-                  {item.net >= 0 ? "+" : "-"}Rs {Math.abs(item.net).toLocaleString()}
+                  {item.net >= 0 ? "+" : "-"}? {Math.abs(item.net).toLocaleString()}
                 </Text>
               </View>
             </View>
@@ -112,12 +112,12 @@ export default function PLMiscReportScreen() {
             <View style={{ flexDirection: "row", gap: 16, marginTop: 4 }}>
               <View>
                 <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('income')?.toUpperCase() || 'INCOME'}</Text>
-                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>Rs {item.income.toLocaleString()}</Text>
+                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}> ₹ {item.income.toLocaleString()}</Text>
               </View>
               <View style={{ width: 1, height: 20, backgroundColor: colors.border, alignSelf: 'center' }} />
               <View>
                 <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('expense')?.toUpperCase() || 'EXPENSE'}</Text>
-                <Text style={{ color: colors.destructive, fontWeight: "700", fontSize: 13 }}>Rs {item.expense.toLocaleString()}</Text>
+                <Text style={{ color: colors.destructive, fontWeight: "700", fontSize: 13 }}> ₹ {item.expense.toLocaleString()}</Text>
               </View>
             </View>
           </TouchableOpacity>

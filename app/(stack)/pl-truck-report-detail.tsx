@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system/legacy";
+﻿import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -120,8 +120,8 @@ export default function PLTruckReportDetailScreen() {
       const rowsHtml = combinedEntries
         .map((item, index) => {
           const isDebit = item.direction === "EXPENSE";
-          const debit = isDebit ? `Rs ${Number(item.amount || 0).toLocaleString()}` : "";
-          const credit = !isDebit ? `Rs ${Number(item.amount || 0).toLocaleString()}` : "";
+          const debit = isDebit ? `₹ ${Number(item.amount || 0).toLocaleString()}` : "";
+          const credit = !isDebit ? `₹ ${Number(item.amount || 0).toLocaleString()}` : "";
           return `
           <tr>
             <td>${index + 1}</td>
@@ -137,12 +137,12 @@ export default function PLTruckReportDetailScreen() {
       const totalsHtml = `
           <tr class="totals">
             <td colspan="4">Totals</td>
-            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
-            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+            <td class="debit">₹ ${debitTotal.toLocaleString()}</td>
+            <td class="credit">₹ ${creditTotal.toLocaleString()}</td>
           </tr>
           <tr class="difference">
             <td colspan="4">Difference (Debit - Credit)</td>
-            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}₹ ${Math.abs(difference).toLocaleString()}</td>
           </tr>`;
 
       const html = `
@@ -173,9 +173,9 @@ export default function PLTruckReportDetailScreen() {
         <div class="sub">Truck: ${escapeHtml(truckName)}</div>
         <div class="sub">Generated on: ${escapeHtml(formatDate(new Date()))}</div>
         <div class="cards">
-          <div class="card"><div class="label">Income</div><div class="value">Rs ${summary.income.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Expense</div><div class="value">Rs ${summary.expense.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Net</div><div class="value">${summary.balance >= 0 ? "+" : "-"}Rs ${Math.abs(summary.balance).toLocaleString()}</div></div>
+          <div class="card"><div class="label">Income</div><div class="value">₹ ${summary.income.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Expense</div><div class="value">₹ ${summary.expense.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Net</div><div class="value">${summary.balance >= 0 ? "+" : "-"}₹ ${Math.abs(summary.balance).toLocaleString()}</div></div>
         </div>
         <table>
           <thead><tr><th>#</th><th>Date</th><th>Entry</th><th>Notes</th><th>Debit</th><th>Credit</th></tr></thead>
@@ -233,7 +233,7 @@ export default function PLTruckReportDetailScreen() {
 
         <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ color: summary.balance >= 0 ? colors.success : colors.destructive, fontWeight: "800", fontSize: 16 }}>
-            Net: {summary.balance >= 0 ? "+" : "-"}Rs {Math.abs(summary.balance).toLocaleString()}
+            Net: {summary.balance >= 0 ? "+" : "-"}? {Math.abs(summary.balance).toLocaleString()}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{combinedEntries.length} entries</Text>
         </View>
@@ -241,11 +241,11 @@ export default function PLTruckReportDetailScreen() {
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 10 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>{(t("income") || "Income").toUpperCase()}</Text>
-            <Text style={{ color: colors.success, marginTop: 6, fontWeight: "800", fontSize: 14 }}>Rs {summary.income.toLocaleString()}</Text>
+            <Text style={{ color: colors.success, marginTop: 6, fontWeight: "800", fontSize: 14 }}> ₹ {summary.income.toLocaleString()}</Text>
           </View>
           <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 10 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>{(t("expense") || "Expense").toUpperCase()}</Text>
-            <Text style={{ color: colors.destructive, marginTop: 6, fontWeight: "800", fontSize: 14 }}>Rs {summary.expense.toLocaleString()}</Text>
+            <Text style={{ color: colors.destructive, marginTop: 6, fontWeight: "800", fontSize: 14 }}> ₹ {summary.expense.toLocaleString()}</Text>
           </View>
         </View>
 
@@ -269,7 +269,7 @@ export default function PLTruckReportDetailScreen() {
                       </Text>
                     </View>
                     <Text style={{ color: isIncome ? colors.success : colors.destructive, fontWeight: "800" }}>
-                      {isIncome ? "+" : "-"}Rs {Math.abs(item.amount).toLocaleString()}
+                      {isIncome ? "+" : "-"}? {Math.abs(item.amount).toLocaleString()}
                     </Text>
                   </View>
                 </View>

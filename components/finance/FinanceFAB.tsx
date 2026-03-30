@@ -20,7 +20,7 @@ export default function FinanceFAB({ onPress }: { onPress: () => void }) {
         justifyContent: "center",
         alignItems: "center",
         elevation: 8,
-        shadowColor: "#000",
+        shadowColor: colors.shadow,
         shadowOpacity: 0.25,
         shadowRadius: 4,
         shadowOffset: { width: 0, height: 2 },

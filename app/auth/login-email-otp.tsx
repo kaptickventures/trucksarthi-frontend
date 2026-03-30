@@ -141,11 +141,11 @@ export default function LoginEmailOTP() {
                                     }}
                                 >
                                     {loading ? (
-                                        <ActivityIndicator color="white" />
+                                        <ActivityIndicator color={colors.primaryForeground} />
                                     ) : (
                                         <>
-                                            <Send size={18} color="white" />
-                                            <Text style={{ color: 'white', fontSize: 16, fontWeight: '700' }}>Send OTP</Text>
+                                            <Send size={18} color={colors.primaryForeground} />
+                                            <Text style={{ color: colors.primaryForeground, fontSize: 16, fontWeight: '700' }}>Send OTP</Text>
                                         </>
                                     )}
                                 </TouchableOpacity>

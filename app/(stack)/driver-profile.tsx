@@ -238,8 +238,8 @@ export default function DriverProfile() {
               style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 16, alignItems: 'center' }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="logo-whatsapp" size={20} color="white" />
-                <Text style={{ fontWeight: '700', fontSize: 14, color: 'white' }}>
+                <Ionicons name="logo-whatsapp" size={20} color={colors.primaryForeground} />
+                <Text style={{ fontWeight: '700', fontSize: 14, color: colors.primaryForeground }}>
                   {t('whatsapp')}
                 </Text>
               </View>
@@ -324,12 +324,12 @@ function DocumentCard({ label, url, extractedNumber, onPress, onEdit }: any) {
                 position: "absolute",
                 bottom: 8,
                 right: 8,
-                backgroundColor: "rgba(0,0,0,0.6)",
+                backgroundColor: colors.overlay60,
                 padding: 8,
                 borderRadius: 20,
               }}
             >
-              <Pencil size={12} color="white" />
+              <Pencil size={12} color={colors.primaryForeground} />
             </TouchableOpacity>
             {extractedNumber && (
               <View
@@ -337,7 +337,7 @@ function DocumentCard({ label, url, extractedNumber, onPress, onEdit }: any) {
                   position: "absolute",
                   top: 8,
                   left: 8,
-                  backgroundColor: "rgba(0,0,0,0.7)",
+                  backgroundColor: colors.overlay70,
                   paddingHorizontal: 8,
                   paddingVertical: 4,
                   borderRadius: 12,
@@ -346,8 +346,8 @@ function DocumentCard({ label, url, extractedNumber, onPress, onEdit }: any) {
                   gap: 4,
                 }}
               >
-                <Check size={12} color="#4ade80" />
-                <Text style={{ fontSize: 9, color: "#4ade80", fontWeight: "600" }}>OCR</Text>
+                <Check size={12} color={colors.success} />
+                <Text style={{ fontSize: 9, color: colors.success, fontWeight: "600" }}>OCR</Text>
               </View>
             )}
           </>

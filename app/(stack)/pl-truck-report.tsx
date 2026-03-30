@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+﻿import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -138,7 +138,7 @@ export default function PLTruckReportScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "800", color: isPositive ? colors.success : colors.destructive }}>
-                    {isPositive ? "+" : "-"}Rs {Math.abs(item.balance).toLocaleString()}
+                    {isPositive ? "+" : "-"}? {Math.abs(item.balance).toLocaleString()}
                   </Text>
                 </View>
               </View>
@@ -146,15 +146,13 @@ export default function PLTruckReportScreen() {
               <View style={{ flexDirection: "row", gap: 16, marginBottom: 10 }}>
                 <View>
                   <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>INCOME</Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
-                    Rs {item.truckIncome.toLocaleString()}
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}> ₹ {item.truckIncome.toLocaleString()}
                   </Text>
                 </View>
                 <View style={{ width: 1, height: 24, backgroundColor: colors.border, alignSelf: 'center' }} />
                 <View>
                   <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>EXPENSE</Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
-                    Rs {item.truckExpense.toLocaleString()}
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}> ₹ {item.truckExpense.toLocaleString()}
                   </Text>
                 </View>
               </View>

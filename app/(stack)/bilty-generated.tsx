@@ -62,23 +62,23 @@ export default function BiltyGeneratedScreen() {
   };
 
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: isDark ? colors.background : "#F4F6F9", padding: 16, justifyContent: "center" }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: isDark ? colors.background : colors.muted, padding: 16, justifyContent: "center" }}>
       <View
         style={{
           borderWidth: 1,
           borderColor: colors.border,
-          backgroundColor: isDark ? colors.card : "#FFFFFF",
+          backgroundColor: isDark ? colors.card : colors.primaryForeground,
           borderRadius: 16,
           padding: 16,
         }}
       >
-        <Text style={{ color: "#111111", fontSize: 24, fontWeight: "900", textAlign: "center", marginBottom: 6 }}>
+        <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: "900", textAlign: "center", marginBottom: 6 }}>
           Bilty Saved
         </Text>
         <Text style={{ color: colors.mutedForeground, textAlign: "center", marginBottom: 8 }}>
           Your bilty was generated successfully.
         </Text>
-        <Text style={{ color: "#111111", fontSize: 20, fontWeight: "900", textAlign: "center", marginBottom: 16 }}>
+        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "900", textAlign: "center", marginBottom: 16 }}>
           {String(biltyNumber || "-")}
         </Text>
 
@@ -92,7 +92,7 @@ export default function BiltyGeneratedScreen() {
         <TouchableOpacity
           onPress={sharePdf}
           style={{
-            backgroundColor: isDark ? colors.input : "#FFFFFF",
+            backgroundColor: isDark ? colors.input : colors.primaryForeground,
             borderWidth: 1,
             borderColor: colors.border,
             borderRadius: 12,
@@ -122,7 +122,7 @@ export default function BiltyGeneratedScreen() {
         <TouchableOpacity
           onPress={goToTrip}
           style={{
-            backgroundColor: isDark ? colors.card : "#FFFFFF",
+            backgroundColor: isDark ? colors.card : colors.primaryForeground,
             borderWidth: 1,
             borderColor: colors.border,
             borderRadius: 12,

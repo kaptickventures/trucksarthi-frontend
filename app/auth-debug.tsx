@@ -95,9 +95,9 @@ export default function AuthDebugScreen() {
           }}
         >
           {checking ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color={colors.primaryForeground} />
           ) : (
-            <Text style={{ color: "white", fontWeight: "700" }}>Refresh Auth + Recompute</Text>
+            <Text style={{ color: colors.primaryForeground, fontWeight: "700" }}>Refresh Auth + Recompute</Text>
           )}
         </TouchableOpacity>
 

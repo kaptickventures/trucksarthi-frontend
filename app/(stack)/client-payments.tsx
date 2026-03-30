@@ -233,7 +233,7 @@ function FilterChip({ label, active, onPress }: { label: string; active: boolean
         backgroundColor: active ? colors.primary : "transparent",
       }}
     >
-      <Text style={{ color: active ? "white" : colors.foreground, fontSize: 11, fontWeight: "700" }}>{label}</Text>
+      <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: "700" }}>{label}</Text>
     </TouchableOpacity>
   );
 }

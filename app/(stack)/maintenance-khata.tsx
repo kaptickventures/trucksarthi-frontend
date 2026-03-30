@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
@@ -108,8 +108,7 @@ export default function MaintenanceKhataScreen() {
                 <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 2 }}>
                   TOTAL MAINTENANCE COST
                 </Text>
-                <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }}>
-                  Rs {totalExpense.toLocaleString()}
+                <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }}> ₹ {totalExpense.toLocaleString()}
                 </Text>
               </View>
 

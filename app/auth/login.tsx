@@ -195,9 +195,9 @@ export default function LoginPhone() {
                   }}
                 >
                   {loading ? (
-                    <ActivityIndicator color="white" />
+                    <ActivityIndicator color={colors.primaryForeground} />
                   ) : (
-                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '700' }}>Get OTP</Text>
+                    <Text style={{ color: colors.primaryForeground, fontSize: 16, fontWeight: '700' }}>Get OTP</Text>
                   )}
                 </TouchableOpacity>
               </View>

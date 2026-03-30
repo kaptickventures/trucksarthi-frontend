@@ -23,7 +23,7 @@ export default function TabBar() {
           backgroundColor: colors.card,
           borderTopWidth: 1,
           borderTopColor: colors.border,
-          shadowColor: "#00000033",
+          shadowColor: colors.shadowSoft,
           shadowOpacity: 0.3,
           shadowRadius: 8,
           shadowOffset: { width: 0, height: -3 },

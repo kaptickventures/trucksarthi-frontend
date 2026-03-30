@@ -1,4 +1,4 @@
-import { CheckCircle2, Crown, Wallet } from "lucide-react-native";
+﻿import { CheckCircle2, Crown, Wallet } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StatusBar, Text, ToastAndroid, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -27,8 +27,8 @@ const getPlanCards = (colors: any, opts: { includeFree: boolean }): PlanCard[] =
       id: "quarterly",
       name: "Quarterly",
       period: "3 months access",
-      originalPrice: "Rs 2999",
-      discountedPrice: "Rs 1499",
+      originalPrice: "₹ 2999",
+      discountedPrice: "₹ 1499",
       discountLabel: "50% OFF",
       label: "BEST VALUE",
       accent: colors.info,
@@ -39,8 +39,8 @@ const getPlanCards = (colors: any, opts: { includeFree: boolean }): PlanCard[] =
       id: "yearly",
       name: "Yearly",
       period: "12 months access",
-      originalPrice: "Rs 9999",
-      discountedPrice: "Rs 4999",
+      originalPrice: "₹ 9999",
+      discountedPrice: "₹ 4999",
       discountLabel: "50% OFF",
       accent: colors.primary,
       accentSoft: colors.successSoft,
@@ -56,7 +56,7 @@ const getPlanCards = (colors: any, opts: { includeFree: boolean }): PlanCard[] =
       name: "Free",
       period: "Starter plan",
       originalPrice: null,
-      discountedPrice: "Rs 0",
+      discountedPrice: "₹ 0",
       accent: colors.success,
       accentSoft: colors.successSoft,
       action: "none",
@@ -84,7 +84,7 @@ export default function PlansPricingScreen() {
   const planStatus = trialExpired ? "free" : rawPlanStatus;
   const trialLabel =
     planStatus === "trial" && trialEndsAt
-      ? `Trial ends in ${trialDaysLeft ?? 0} day(s) • ${trialEndsAt.toDateString()}`
+      ? `Trial ends in ${trialDaysLeft ?? 0} day(s) â€¢ ${trialEndsAt.toDateString()}`
       : null;
 
   const showSavedToast = () => {
@@ -334,7 +334,7 @@ export default function PlansPricingScreen() {
           animationType="fade"
           onRequestClose={() => setConfirmVisible(false)}
         >
-          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", padding: 24 }}>
+          <View style={{ flex: 1, backgroundColor: colors.overlay45, justifyContent: "center", padding: 24 }}>
             <View
               style={{
                 backgroundColor: colors.card,

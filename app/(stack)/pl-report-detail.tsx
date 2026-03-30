@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -174,8 +174,8 @@ export default function PLReportDetailScreen() {
           const direction = String(tx.direction || "").toUpperCase();
           const amount = Number(tx.amount || 0);
           const isCredit = entityType === "driver" ? isCreditForDriver(tx) : direction === "INCOME";
-          const debit = !isCredit ? `Rs ${Math.abs(amount).toLocaleString()}` : "";
-          const credit = isCredit ? `Rs ${Math.abs(amount).toLocaleString()}` : "";
+          const debit = !isCredit ? `₹ ${Math.abs(amount).toLocaleString()}` : "";
+          const credit = isCredit ? `₹ ${Math.abs(amount).toLocaleString()}` : "";
           const status = String(tx.approvalStatus || "PENDING").toUpperCase();
           const category = String(tx.category || "-");
           const sourceModule = String(tx.sourceModule || "-");
@@ -199,13 +199,13 @@ export default function PLReportDetailScreen() {
       const totalsHtml = `
         <tr class="totals">
           <td colspan="5">Totals</td>
-          <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
-          <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+          <td class="debit">₹ ${debitTotal.toLocaleString()}</td>
+          <td class="credit">₹ ${creditTotal.toLocaleString()}</td>
           <td></td>
         </tr>
         <tr class="difference">
           <td colspan="5">Difference (Debit - Credit)</td>
-          <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+          <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}₹ ${Math.abs(difference).toLocaleString()}</td>
           <td></td>
         </tr>`;
 
@@ -244,15 +244,15 @@ export default function PLReportDetailScreen() {
   <div class="cards">
     <div class="card">
       <div class="label">Approved Income</div>
-      <div class="value">Rs ${summary.income.toLocaleString()}</div>
+      <div class="value">₹ ${summary.income.toLocaleString()}</div>
     </div>
     <div class="card">
       <div class="label">Approved Expense</div>
-      <div class="value">Rs ${summary.expense.toLocaleString()}</div>
+      <div class="value">₹ ${summary.expense.toLocaleString()}</div>
     </div>
     <div class="card">
       <div class="label">Net</div>
-      <div class="value">${summary.net >= 0 ? "+" : "-"}Rs ${Math.abs(summary.net).toLocaleString()}</div>
+      <div class="value">${summary.net >= 0 ? "+" : "-"}₹ ${Math.abs(summary.net).toLocaleString()}</div>
     </div>
   </div>
 
@@ -333,7 +333,7 @@ export default function PLReportDetailScreen() {
             {summary.totalEntries} entries | {summary.approvedEntries} approved
           </Text>
           <Text style={{ color: summary.net >= 0 ? colors.success : colors.destructive, marginTop: 8, fontWeight: "800", fontSize: 16 }}>
-            Net: {summary.net >= 0 ? "+" : "-"}Rs {Math.abs(summary.net).toLocaleString()}
+            Net: {summary.net >= 0 ? "+" : "-"}? {Math.abs(summary.net).toLocaleString()}
           </Text>
         </View>
 
@@ -377,7 +377,7 @@ export default function PLReportDetailScreen() {
                       </Text>
                     </View>
                     <Text style={{ color: isIncome ? colors.success : colors.destructive, fontWeight: "800" }}>
-                      {isIncome ? "+" : "-"}Rs {Math.abs(Number(tx.amount || 0)).toLocaleString()}
+                      {isIncome ? "+" : "-"}? {Math.abs(Number(tx.amount || 0)).toLocaleString()}
                     </Text>
                   </View>
                 </View>
@@ -403,8 +403,7 @@ function SummaryCard({ label, value, tone }: { label: string; value: number; ton
   return (
     <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 10 }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>{label}</Text>
-      <Text style={{ color: amountColor, marginTop: 6, fontWeight: "800", fontSize: 14 }}>
-        Rs {Number(value || 0).toLocaleString()}
+      <Text style={{ color: amountColor, marginTop: 6, fontWeight: "800", fontSize: 14 }}> ₹ {Number(value || 0).toLocaleString()}
       </Text>
     </View>
   );

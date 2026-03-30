@@ -56,8 +56,8 @@ export default function DesktopQrScreen() {
         margin: 1,
         width: 280,
         color: {
-          dark: "#111111",
-          light: "#FFFFFF",
+          dark: colors.foreground,
+          light: colors.primaryForeground,
         },
       });
       setQrImage(dataUrl);
@@ -157,7 +157,7 @@ export default function DesktopQrScreen() {
             width: 280,
             height: 280,
             borderRadius: 16,
-            backgroundColor: "#FFFFFF",
+            backgroundColor: colors.primaryForeground,
             alignItems: "center",
             justifyContent: "center",
             borderWidth: 1,
@@ -172,7 +172,7 @@ export default function DesktopQrScreen() {
                 height: 260,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "#FFFFFF",
+                backgroundColor: colors.primaryForeground,
               }}
             >
               <Image

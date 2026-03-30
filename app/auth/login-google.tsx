@@ -64,7 +64,7 @@ export default function LoginGoogle() {
               paddingVertical: 18,
               borderRadius: 16,
               gap: 12,
-              shadowColor: "#000",
+              shadowColor: colors.shadow,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.05,
               shadowRadius: 5,

@@ -749,8 +749,8 @@ export default function ClientProfile() {
               style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="logo-whatsapp" size={18} color="white" />
-                <Text style={{ fontWeight: '600', fontSize: 14, color: 'white' }}>
+                <Ionicons name="logo-whatsapp" size={18} color={colors.primaryForeground} />
+                <Text style={{ fontWeight: '600', fontSize: 14, color: colors.primaryForeground }}>
                   {t('whatsapp')}
                 </Text>
               </View>
@@ -793,7 +793,7 @@ export default function ClientProfile() {
             <View>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('clientName')} *</Text>
               <TextInput
-                style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                 value={editFormData.client_name}
                 onChangeText={(t) => setEditFormData(prev => ({ ...prev, client_name: t }))}
                 placeholder="e.g. Acme Corp"
@@ -803,7 +803,7 @@ export default function ClientProfile() {
             <View>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('contactPerson')}</Text>
               <TextInput
-                style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                 value={editFormData.contact_person_name}
                 onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_person_name: t }))}
                 placeholder="Full Name"
@@ -814,7 +814,7 @@ export default function ClientProfile() {
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('clientContact')} *</Text>
                 <TextInput
-                  style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                  style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                   value={editFormData.contact_number}
                   onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_number: t }))}
                   keyboardType="phone-pad"
@@ -826,7 +826,7 @@ export default function ClientProfile() {
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('alternateContact')}</Text>
                 <TextInput
-                  style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                  style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                   value={editFormData.alternate_contact_number}
                   onChangeText={(t) => setEditFormData(prev => ({ ...prev, alternate_contact_number: t }))}
                   keyboardType="phone-pad"
@@ -837,7 +837,7 @@ export default function ClientProfile() {
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('email')}</Text>
                 <TextInput
-                  style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                  style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                   value={editFormData.email_address}
                   onChangeText={(t) => setEditFormData(prev => ({ ...prev, email_address: t }))}
                   keyboardType="email-address"
@@ -851,7 +851,7 @@ export default function ClientProfile() {
               <View className="flex-row gap-2">
                 <View className="flex-1">
                   <TextInput
-                    style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                    style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                     value={editFormData.gstin}
                     onChangeText={(t) => setEditFormData(prev => ({ ...prev, gstin: t }))}
                     placeholder="e.g. 29ABCDE1234F1Z5"
@@ -865,7 +865,7 @@ export default function ClientProfile() {
                   style={{ backgroundColor: editFormData.gstin ? colors.primary : colors.muted }}
                   className="w-20 rounded-2xl items-center justify-center border border-border/50"
                 >
-                  <Text style={{ color: editFormData.gstin ? "white" : colors.mutedForeground }} className="font-bold text-[10px] uppercase tracking-widest text-center px-1">
+                  <Text style={{ color: editFormData.gstin ? colors.primaryForeground : colors.mutedForeground }} className="font-bold text-[10px] uppercase tracking-widest text-center px-1">
                     {verifyingGstin ? "Verifying..." : "Verify\n& Fill"}
                   </Text>
                 </TouchableOpacity>
@@ -874,7 +874,7 @@ export default function ClientProfile() {
             <View>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('officeAddress')}</Text>
               <TextInput
-                style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                 value={editFormData.office_address}
                 onChangeText={(t) => setEditFormData(prev => ({ ...prev, office_address: t }))}
                 multiline
@@ -889,7 +889,7 @@ export default function ClientProfile() {
             onPress={handleUpdateClient}
             style={{ backgroundColor: colors.primary, paddingVertical: 18, borderRadius: 22, alignItems: 'center', marginTop: 32 }}
           >
-            <Text style={{ color: "white", fontWeight: '900', fontSize: 16 }}>{t('saveUpdates')}</Text>
+            <Text style={{ color: colors.primaryForeground, fontWeight: '900', fontSize: 16 }}>{t('saveUpdates')}</Text>
           </TouchableOpacity>
         </KeyboardAwareScrollView>
       </BottomSheet>
@@ -912,7 +912,7 @@ export default function ClientProfile() {
             <View>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('amount')} *</Text>
               <TextInput
-                style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                 value={paymentAmount}
                 onChangeText={setPaymentAmount}
                 keyboardType="numeric"
@@ -924,7 +924,7 @@ export default function ClientProfile() {
             <View>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('remarks')} *</Text>
               <TextInput
-                style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                 value={paymentRemarks}
                 onChangeText={setPaymentRemarks}
                 placeholder="Payment details..."
@@ -959,7 +959,7 @@ export default function ClientProfile() {
 
             <TouchableOpacity onPress={() => setShowDatePicker(true)}>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('tripDate')}</Text>
-              <View style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", padding: 16, borderRadius: 20, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: "center" }}>
+              <View style={{ backgroundColor: colors.input, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: "center" }}>
                 <Text style={{ color: colors.foreground, fontWeight: "600" }}>{formatDate(paymentDate)}</Text>
                 <Calendar size={18} color={colors.primary} />
               </View>
@@ -970,7 +970,7 @@ export default function ClientProfile() {
             onPress={handleAddPayment}
             style={{ backgroundColor: colors.primary, paddingVertical: 18, borderRadius: 22, alignItems: 'center', marginTop: 32 }}
           >
-            <Text style={{ color: "white", fontWeight: '900', fontSize: 16 }}>{t('saveExpense')}</Text>
+            <Text style={{ color: colors.primaryForeground, fontWeight: '900', fontSize: 16 }}>{t('saveExpense')}</Text>
           </TouchableOpacity>
         </KeyboardAwareScrollView>
       </BottomSheet>

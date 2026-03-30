@@ -349,13 +349,13 @@ export default function LocationsManager() {
         style={{
           backgroundColor: colors.primary,
           elevation: 8,
-          shadowColor: "#000",
+          shadowColor: colors.shadow,
           shadowOpacity: 0.25,
           shadowRadius: 4,
           shadowOffset: { width: 0, height: 2 },
         }}
       >
-        <Plus color="white" size={28} />
+        <Plus color={colors.primaryForeground} size={28} />
       </TouchableOpacity>
 
       <LocationFormModal

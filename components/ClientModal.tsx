@@ -171,7 +171,7 @@ export default function ClientFormModal({
         </Text>
         <View
           className="flex-row items-center rounded-2xl border px-4 mb-3"
-          style={{ borderColor: colors.border, backgroundColor: isDark ? colors.card : colors.secondary + "40" }}
+          style={{ borderColor: colors.border, backgroundColor: colors.input }}
         >
           <TextInput
             className="flex-1 py-4 text-base font-bold uppercase tracking-widest"
@@ -193,7 +193,7 @@ export default function ClientFormModal({
           className="py-4 rounded-2xl items-center justify-center"
         >
           <Text
-            style={{ color: normalizeGstinNumber(formData.gstin).length === 15 ? "white" : colors.mutedForeground }}
+            style={{ color: normalizeGstinNumber(formData.gstin).length === 15 ? colors.primaryForeground : colors.mutedForeground }}
             className="font-black text-base"
           >
             Search
@@ -215,7 +215,7 @@ export default function ClientFormModal({
           <TextInput
             className="rounded-2xl p-4 text-base font-bold mb-4"
             style={{
-              backgroundColor: isDark ? colors.card : colors.secondary + "40",
+              backgroundColor: colors.input,
               color: colors.foreground,
               borderWidth: 1,
               borderColor: colors.border,
@@ -232,7 +232,7 @@ export default function ClientFormModal({
           <TextInput
             className="rounded-2xl p-4 text-base font-bold"
             style={{
-              backgroundColor: isDark ? colors.card : colors.secondary + "40",
+              backgroundColor: colors.input,
               color: colors.foreground,
               borderWidth: 1,
               borderColor: colors.border,
@@ -280,7 +280,7 @@ export default function ClientFormModal({
           <TextInput
             className="rounded-2xl p-4 text-base font-bold"
             style={{
-              backgroundColor: isDark ? colors.card : colors.secondary + "40",
+              backgroundColor: colors.input,
               color: colors.foreground,
               borderWidth: 1,
               borderColor: colors.border,
@@ -299,7 +299,7 @@ export default function ClientFormModal({
           <TextInput
             className="rounded-2xl p-4 text-base font-bold"
             style={{
-              backgroundColor: isDark ? colors.card : colors.secondary + "40",
+              backgroundColor: colors.input,
               color: colors.foreground,
               borderWidth: 1,
               borderColor: colors.border,
@@ -326,7 +326,7 @@ export default function ClientFormModal({
           <TextInput
             className="rounded-2xl p-4 text-base font-bold"
             style={{
-              backgroundColor: isDark ? colors.card : colors.secondary + "40",
+              backgroundColor: colors.input,
               color: colors.foreground,
               borderWidth: 1,
               borderColor: colors.border,
@@ -347,7 +347,7 @@ export default function ClientFormModal({
               <TextInput
                 className="rounded-2xl p-4 text-base font-bold"
                 style={{
-                  backgroundColor: isDark ? colors.card : colors.secondary + "40",
+                  backgroundColor: colors.input,
                   color: colors.foreground,
                   borderWidth: 1,
                   borderColor: colors.border,

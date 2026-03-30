@@ -97,7 +97,7 @@ export default function DocumentManager() {
         marginBottom: 12,
         flexDirection: "row",
         alignItems: "center",
-        shadowColor: "#000",
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 4,

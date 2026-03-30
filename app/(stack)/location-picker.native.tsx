@@ -231,7 +231,7 @@ export default function LocationPicker() {
           <ChevronLeft size={20} color={colors.foreground} />
         </TouchableOpacity>
 
-        <View style={[styles.searchWrap, { borderColor: colors.border, backgroundColor: isDark ? colors.card : colors.secondary + "30" }]}>
+        <View style={[styles.searchWrap, { borderColor: colors.border, backgroundColor: colors.input }]}>
           <Search size={16} color={colors.mutedForeground} />
           <TextInput
             style={[styles.searchInput, { color: colors.foreground }]}
@@ -331,7 +331,7 @@ export default function LocationPicker() {
       </View>
 
       {!!location.complete_address && (
-        <View style={[styles.addressCard, { backgroundColor: isDark ? colors.card : colors.secondary + "30", borderColor: colors.border }]}>
+        <View style={[styles.addressCard, { backgroundColor: colors.input, borderColor: colors.border }]}>
           <MapPin size={15} color={colors.foreground} />
           <Text style={[styles.addressText, { color: colors.foreground }]}>
             {location.complete_address}

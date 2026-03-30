@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
@@ -152,8 +152,8 @@ export default function DailyKhataDashboardScreen() {
         .map((entry: any, index: number) => {
           const direction = String(entry?.direction || "").toUpperCase();
           const isDebit = direction === "EXPENSE";
-          const debit = isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
-          const credit = !isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const debit = isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const credit = !isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
           const title = entry.notes || formatLabel(entry.transactionSubtype || entry.category || "Entry");
           return `
           <tr>
@@ -169,12 +169,12 @@ export default function DailyKhataDashboardScreen() {
       const totalsHtml = `
           <tr class="totals">
             <td colspan="3">Totals</td>
-            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
-            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+            <td class="debit">₹ ${debitTotal.toLocaleString()}</td>
+            <td class="credit">₹ ${creditTotal.toLocaleString()}</td>
           </tr>
           <tr class="difference">
             <td colspan="3">Difference (Debit - Credit)</td>
-            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}₹ ${Math.abs(difference).toLocaleString()}</td>
           </tr>`;
 
       const html = `
@@ -206,8 +206,8 @@ export default function DailyKhataDashboardScreen() {
         <div class="sub">${escapeHtml(selectedTruck?.registration_number || "Truck")}</div>
         <div class="sub">Period: ${escapeHtml(formatDate(downloadRange.startDate))} - ${escapeHtml(formatDate(downloadRange.endDate))}</div>
         <div class="cards">
-          <div class="card"><div class="label">Debit</div><div class="value">Rs ${debitTotal.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Credit</div><div class="value">Rs ${creditTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Debit</div><div class="value">₹ ${debitTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Credit</div><div class="value">₹ ${creditTotal.toLocaleString()}</div></div>
         </div>
         <table>
           <thead><tr><th>#</th><th>Date</th><th>Particulars</th><th>Debit</th><th>Credit</th></tr></thead>
@@ -351,8 +351,7 @@ export default function DailyKhataDashboardScreen() {
           </Text>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
             <View>
-              <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: "800" }}>
-                Rs {monthlyExpense.toLocaleString()}
+              <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: "800" }}> ₹ {monthlyExpense.toLocaleString()}
               </Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
                 Total daily khata costs
@@ -360,8 +359,7 @@ export default function DailyKhataDashboardScreen() {
             </View>
             <View style={{ alignItems: "flex-end" }}>
               <View style={{ backgroundColor: colors.warningSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                <Text style={{ color: colors.warning, fontSize: 13, fontWeight: "800" }}>
-                  Rs {totalsByType.FUEL.toLocaleString()} Fuel
+                <Text style={{ color: colors.warning, fontSize: 13, fontWeight: "800" }}> ₹ {totalsByType.FUEL.toLocaleString()} Fuel
                 </Text>
               </View>
             </View>
@@ -374,8 +372,7 @@ export default function DailyKhataDashboardScreen() {
               <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>
                 {type === "FASTAG" ? "FASTAG" : type}
               </Text>
-              <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "800" }}>
-                Rs {totalsByType[type].toLocaleString()}
+              <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "800" }}> ₹ {totalsByType[type].toLocaleString()}
               </Text>
             </View>
           ))}
@@ -396,7 +393,7 @@ export default function DailyKhataDashboardScreen() {
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: activeCategoryFilter === type ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>
+              <Text style={{ color: activeCategoryFilter === type ? colors.primaryForeground : colors.foreground, fontWeight: "700", fontSize: 11 }}>
                 {type === "FASTAG" ? "Fastag" : formatLabel(type)}
               </Text>
             </TouchableOpacity>
@@ -484,7 +481,7 @@ export default function DailyKhataDashboardScreen() {
                   <Text style={{ fontSize: 12, color: colors.mutedForeground }}>{formatDate(item.date)}</Text>
                 </View>
                 <Text style={{ fontSize: 16, fontWeight: "800", color: colors.destructive }}>
-                  -Rs {Number(item.amount || 0).toLocaleString()}
+                  -? {Number(item.amount || 0).toLocaleString()}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -527,7 +524,7 @@ export default function DailyKhataDashboardScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: expenseCategory === cat ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>
+                <Text style={{ color: expenseCategory === cat ? colors.primaryForeground : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>
                   {cat === "FASTAG" ? "Fastag" : formatLabel(cat)}
                 </Text>
               </TouchableOpacity>
@@ -535,7 +532,7 @@ export default function DailyKhataDashboardScreen() {
           </View>
 
           {/* Amount */}
-          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>AMOUNT (₹)</Text>
+          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>AMOUNT (â‚¹)</Text>
           <TextInput
             placeholder="0"
             placeholderTextColor={colors.mutedForeground + '60'}
@@ -544,7 +541,7 @@ export default function DailyKhataDashboardScreen() {
             onChangeText={setAmount}
             className="rounded-2xl p-4 text-[24px] font-black text-center"
             style={{
-              backgroundColor: isDark ? colors.card : colors.secondary + '40',
+              backgroundColor: colors.input,
               color: colors.foreground,
               borderWidth: 1,
               borderColor: colors.border + '30',
@@ -566,7 +563,7 @@ export default function DailyKhataDashboardScreen() {
                   onChangeText={setLitres}
                   className="rounded-2xl p-4 text-base font-bold"
                   style={{
-                    backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                    backgroundColor: colors.input,
                     color: colors.foreground,
                     borderWidth: 1,
                     borderColor: colors.border + '30'
@@ -583,7 +580,7 @@ export default function DailyKhataDashboardScreen() {
                   onChangeText={setKmReading}
                   className="rounded-2xl p-4 text-base font-bold"
                   style={{
-                    backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                    backgroundColor: colors.input,
                     color: colors.foreground,
                     borderWidth: 1,
                     borderColor: colors.border + '30'
@@ -610,7 +607,7 @@ export default function DailyKhataDashboardScreen() {
                   alignItems: "center"
                 }}
               >
-                <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{mode}</Text>
+                <Text style={{ color: paymentMode === mode ? colors.primaryForeground : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{mode}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -623,7 +620,7 @@ export default function DailyKhataDashboardScreen() {
             onChangeText={setNotes}
             className="rounded-2xl p-4 text-base font-bold"
             style={{
-              backgroundColor: isDark ? colors.card : colors.secondary + '40',
+              backgroundColor: colors.input,
               color: colors.foreground,
               borderWidth: 1,
               borderColor: colors.border + '30',
@@ -638,7 +635,7 @@ export default function DailyKhataDashboardScreen() {
               style={{ backgroundColor: colors.primary }}
               className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
             >
-              <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE EXPENSE</Text>
+              <Text style={{ color: colors.primaryForeground, fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE EXPENSE</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAwareScrollView>
@@ -703,7 +700,7 @@ export default function DailyKhataDashboardScreen() {
 
           {Platform.OS === "ios" && downloadDateField && (
             <Modal transparent animationType="slide" visible onRequestClose={closeDownloadDatePicker}>
-              <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }}>
+              <View style={{ flex: 1, backgroundColor: colors.overlay35, justifyContent: "flex-end" }}>
                 <View
                   style={{
                     backgroundColor: colors.card,

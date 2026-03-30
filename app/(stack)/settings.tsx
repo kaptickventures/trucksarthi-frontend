@@ -131,7 +131,7 @@ export default function Settings() {
                   className={`flex-1 flex-row items-center justify-center gap-2 py-3 rounded-xl ${!isActive ? "opacity-60" : ""}`}
                   style={isActive ? {
                     backgroundColor: colors.background,
-                    shadowColor: "#000",
+                    shadowColor: colors.shadow,
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.1,
                     shadowRadius: 4,

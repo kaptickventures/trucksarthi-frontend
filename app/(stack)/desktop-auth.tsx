@@ -387,8 +387,8 @@ export default function DesktopAuthScreen() {
                         aspectRatio: 1,
                         borderRadius: 22,
                         borderWidth: 2,
-                        borderColor: "rgba(255,255,255,0.92)",
-                        backgroundColor: "rgba(0,0,0,0.10)",
+                        borderColor: colors.overlayOnDark92,
+                        backgroundColor: colors.overlay10,
                       }}
                     />
                   </View>

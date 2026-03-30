@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import API from "../api/axiosInstance";
 import DriverFormModal from "../../components/DriverModal";
+import ProfileAvatar from "../../components/ProfileAvatar";
 import useDrivers from "../../hooks/useDriver";
 import { Skeleton } from "../../components/Skeleton";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -183,36 +184,27 @@ export default function DriverLedgerScreen() {
                 borderColor: colors.border,
               }}
             >
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3 }}>
-                    {d.driver_name || d.name || "Driver"}
-                  </Text>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 0 }}>
+                <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 12, gap: 12 }}>
+                  <ProfileAvatar
+                    name={d.driver_name || d.name || "Driver"}
+                    imageUrl={d.profile_picture_url}
+                    size="medium"
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3 }}>
+                      {d.driver_name || d.name || "Driver"}
+                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+                      <Ionicons name="call-outline" size={12} color={colors.mutedForeground} />
+                      <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: "500" }}>
+                        {d.contact_number || d.phone ? formatPhoneNumber(d.contact_number || d.phone) : "—"}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <View
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 20,
-                    backgroundColor: isPositive ? colors.successSoft : colors.destructiveSoft,
-                  }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: "800", color: isPositive ? colors.success : colors.destructive }}>
-                    {isPositive ? "+" : "-"}Rs {Math.abs(bal).toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Ionicons name="call-outline" size={13} color={colors.mutedForeground} />
-                  <Text style={{ fontSize: 13, color: colors.mutedForeground, fontWeight: "500" }}>
-                    {d.contact_number || d.phone ? formatPhoneNumber(d.contact_number || d.phone) : "—"}
-                  </Text>
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>View Khata</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
                 </View>
               </View>
             </TouchableOpacity>
@@ -227,7 +219,7 @@ export default function DriverLedgerScreen() {
         style={{
           backgroundColor: colors.primary,
           elevation: 8,
-          shadowColor: "#000",
+          shadowColor: colors.shadow,
           shadowOpacity: 0.25,
           shadowRadius: 4,
           shadowOffset: { width: 0, height: 2 },

@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system/legacy";
+﻿import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -115,8 +115,8 @@ export default function PLDriverReportDetailScreen() {
       const rowsHtml = normalized
         .map((entry: any, index: number) => {
           const isDebit = entry.type === "TO_DRIVER";
-          const debit = isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
-          const credit = !isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const debit = isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const credit = !isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
           return `
           <tr>
             <td>${index + 1}</td>
@@ -132,12 +132,12 @@ export default function PLDriverReportDetailScreen() {
       const totalsHtml = `
           <tr class="totals">
             <td colspan="4">Totals</td>
-            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
-            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+            <td class="debit">₹ ${debitTotal.toLocaleString()}</td>
+            <td class="credit">₹ ${creditTotal.toLocaleString()}</td>
           </tr>
           <tr class="difference">
             <td colspan="4">Difference (Debit - Credit)</td>
-            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}₹ ${Math.abs(difference).toLocaleString()}</td>
           </tr>`;
 
       const html = `
@@ -168,9 +168,9 @@ export default function PLDriverReportDetailScreen() {
         <div class="sub">Driver: ${escapeHtml(driver?.driver_name || driver?.name || "Driver")}</div>
         <div class="sub">Generated on: ${escapeHtml(formatDate(new Date()))}</div>
         <div class="cards">
-          <div class="card"><div class="label">To Driver</div><div class="value">Rs ${totals.toDriver.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Driver Spends</div><div class="value">Rs ${totals.driverSpends.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Balance</div><div class="value">${totals.balance >= 0 ? "+" : "-"}Rs ${Math.abs(totals.balance).toLocaleString()}</div></div>
+          <div class="card"><div class="label">To Driver</div><div class="value">₹ ${totals.toDriver.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Driver Spends</div><div class="value">₹ ${totals.driverSpends.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Balance</div><div class="value">${totals.balance >= 0 ? "+" : "-"}₹ ${Math.abs(totals.balance).toLocaleString()}</div></div>
         </div>
         <table>
           <thead><tr><th>#</th><th>Date</th><th>Type</th><th>Remarks</th><th>Debit</th><th>Credit</th></tr></thead>
@@ -228,7 +228,7 @@ export default function PLDriverReportDetailScreen() {
 
         <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ color: totals.balance >= 0 ? colors.success : colors.destructive, fontWeight: "800", fontSize: 16 }}>
-            Net Balance: {totals.balance >= 0 ? "+" : "-"}Rs {Math.abs(totals.balance).toLocaleString()}
+            Net Balance: {totals.balance >= 0 ? "+" : "-"}? {Math.abs(totals.balance).toLocaleString()}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{normalized.length} entries</Text>
         </View>
@@ -236,11 +236,11 @@ export default function PLDriverReportDetailScreen() {
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 10 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>TO DRIVER</Text>
-            <Text style={{ color: colors.success, marginTop: 6, fontWeight: "800", fontSize: 14 }}>Rs {totals.toDriver.toLocaleString()}</Text>
+            <Text style={{ color: colors.success, marginTop: 6, fontWeight: "800", fontSize: 14 }}> ₹ {totals.toDriver.toLocaleString()}</Text>
           </View>
           <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 10 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>DRIVER SPENDS</Text>
-            <Text style={{ color: colors.destructive, marginTop: 6, fontWeight: "800", fontSize: 14 }}>Rs {totals.driverSpends.toLocaleString()}</Text>
+            <Text style={{ color: colors.destructive, marginTop: 6, fontWeight: "800", fontSize: 14 }}> ₹ {totals.driverSpends.toLocaleString()}</Text>
           </View>
         </View>
 
@@ -263,7 +263,7 @@ export default function PLDriverReportDetailScreen() {
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: activeTab === tab.id ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>{tab.label}</Text>
+              <Text style={{ color: activeTab === tab.id ? colors.primaryForeground : colors.foreground, fontWeight: "700", fontSize: 11 }}>{tab.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -287,7 +287,7 @@ export default function PLDriverReportDetailScreen() {
                       </Text>
                     </View>
                     <Text style={{ color: isToDriver ? colors.success : colors.destructive, fontWeight: "800" }}>
-                      {isToDriver ? "+" : "-"}Rs {Math.abs(entry.amount).toLocaleString()}
+                      {isToDriver ? "+" : "-"}? {Math.abs(entry.amount).toLocaleString()}
                     </Text>
                   </View>
                 </View>

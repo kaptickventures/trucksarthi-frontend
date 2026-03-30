@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+﻿import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Platform, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -394,7 +394,7 @@ export default function TripDetail() {
           <th>Particulars</th>
           <th style="width:10%">HSN/SAC</th>
           <th style="width:11%">Rate</th>
-          <th style="width:12%">Total Value Rs.</th>
+          <th style="width:12%">Total Value ? </th>
         </tr>
       </thead>
       <tbody>
@@ -413,7 +413,7 @@ export default function TripDetail() {
     <div class="bottom-wrap">
       <div class="amount-words">
         <div class="label">Rupees in words</div>
-        <div style="margin-top:4px;">Total Invoice Amount: Rs. ${money(grandTotal)} only</div>
+        <div style="margin-top:4px;">Total Invoice Amount: ₹ ${money(grandTotal)} only</div>
       </div>
       <div class="totals-box">
         <div class="tot-line"><span>Freight + Misc</span><span>${money(grossSubtotal)}</span></div>
@@ -905,14 +905,14 @@ export default function TripDetail() {
         <View className="mb-4">
           <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>Trip Detail</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>
-            {trip.public_id ? `${trip.public_id} • ` : ""}{trip.trip_date ? formatDate(trip.trip_date) : "No date"}
+            {trip.public_id ? `${trip.public_id} â€¢ ` : ""}{trip.trip_date ? formatDate(trip.trip_date) : "No date"}
           </Text>
         </View>
 
         <View className="border rounded-2xl p-4 mb-6" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Total</Text>
-            <Text style={{ fontSize: 22, fontWeight: "800", color: colors.primary }}>Rs {totalCost.toLocaleString()}</Text>
+            <Text style={{ fontSize: 22, fontWeight: "800", color: colors.primary }}> ₹ {totalCost.toLocaleString()}</Text>
           </View>
           <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground, marginBottom: 10 }}>
             {getLocationName(trip.start_location)}
@@ -926,12 +926,12 @@ export default function TripDetail() {
           </View>
           <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 8 }} />
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {freightAmount.toLocaleString()}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {miscAmount.toLocaleString()}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Advance: Rs {advanceAmount.toLocaleString()}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: ₹ {freightAmount.toLocaleString()}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: ₹ {miscAmount.toLocaleString()}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Advance: ₹ {advanceAmount.toLocaleString()}</Text>
           </View>
           <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 8 }}>
-            Net Amount: Rs {netTripAmount.toLocaleString()}
+            Net Amount: ₹ {netTripAmount.toLocaleString()}
           </Text>
           {trip.notes ? (
             <Text style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>
@@ -1046,110 +1046,71 @@ export default function TripDetail() {
           </View>
 
           {bilty ? (
-            <View className="border rounded-xl p-4 mb-3" style={{ backgroundColor: colors.card, borderColor: colors.success }}>
-              <View style={{ marginBottom: 8 }}>
-                <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 4 }}>Consignor</Text>
-                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
-                  {bilty.consignor?.name || "N/A"}
-                </Text>
-                {bilty.consignor?.address && (
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
-                    {bilty.consignor.address}
-                  </Text>
-                )}
-              </View>
-              <View style={{ marginBottom: 8 }}>
-                <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 4 }}>Consignee</Text>
-                <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>
-                  {bilty.consignee?.name || "N/A"}
-                </Text>
-                {bilty.consignee?.address && (
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
-                    {bilty.consignee.address}
-                  </Text>
-                )}
-              </View>
-              {bilty.goods_description && (
-                <View>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 4 }}>Goods</Text>
-                  <Text style={{ color: colors.foreground, fontSize: 12 }}>
-                    {bilty.goods_description}
-                  </Text>
-                </View>
-              )}
-              <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+            <View style={{ marginBottom: 6 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <TouchableOpacity
                   onPress={handlePreviewBilty}
                   disabled={biltyBusy}
                   style={{
-                    flex: 1,
+                    width: "75%",
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "center",
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
                     borderRadius: 12,
-                    backgroundColor: colors.infoSoft,
-                    borderWidth: 1,
-                    borderColor: colors.info,
-                    opacity: biltyBusy ? 0.7 : 1,
+                    backgroundColor: colors.successSoft,
+                    opacity: biltyBusy ? 0.8 : 1,
                   }}
                 >
-                  <Ionicons name="eye-outline" size={16} color={colors.info} />
-                  <Text style={{ marginLeft: 6, fontWeight: "700", color: colors.info, fontSize: 12 }}>
+                  <Ionicons name="eye-outline" size={18} color={colors.success} />
+                  <Text style={{ marginLeft: 8, fontWeight: "700", color: colors.success, fontSize: 14 }}>
                     Preview LR
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(stack)/bilty-wizard",
-                      params: { tripId: String(trip._id), biltyId: String(bilty._id) },
-                    } as any)
-                  }
-                  disabled={biltyBusy}
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    borderRadius: 12,
-                    backgroundColor: colors.primary + "20",
-                    borderWidth: 1,
-                    borderColor: colors.primary,
-                  }}
-                >
-                  <Ionicons name="create-outline" size={16} color={colors.primary} />
-                  <Text style={{ marginLeft: 6, fontWeight: "700", color: colors.primary, fontSize: 12 }}>
-                    Edit
-                  </Text>
-                </TouchableOpacity>
+                <View style={{ width: "23%", flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(stack)/bilty-wizard",
+                        params: { tripId: String(trip._id), biltyId: String(bilty._id) },
+                      } as any)
+                    }
+                    disabled={biltyBusy}
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.info,
+                      backgroundColor: colors.infoSoft,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: biltyBusy ? 0.45 : 1,
+                    }}
+                  >
+                    <Edit3 size={18} color={colors.info} />
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={handleDeleteBilty}
-                  disabled={biltyBusy}
-                  style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    borderRadius: 12,
-                    backgroundColor: colors.destructive + "20",
-                    borderWidth: 1,
-                    borderColor: colors.destructive,
-                    opacity: biltyBusy ? 0.6 : 1,
-                  }}
-                >
-                  <Ionicons name="trash-outline" size={16} color={colors.destructive} />
-                  <Text style={{ marginLeft: 6, fontWeight: "700", color: colors.destructive, fontSize: 12 }}>
-                    Delete
-                  </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleDeleteBilty}
+                    disabled={biltyBusy}
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.destructive,
+                      backgroundColor: colors.destructive + "20",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: biltyBusy ? 0.45 : 1,
+                    }}
+                  >
+                    <Trash2 size={18} color={colors.destructive} />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ) : (
@@ -1162,20 +1123,17 @@ export default function TripDetail() {
               }
               disabled={biltyBusy}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                borderRadius: 12,
                 backgroundColor: colors.primary,
-                opacity: biltyBusy ? 0.8 : 1,
+                opacity: biltyBusy ? 0.45 : 1,
               }}
+              className="py-4 rounded-[18px]"
             >
-              <Ionicons name="add-outline" size={18} color={colors.primaryForeground} />
-              <Text style={{ marginLeft: 8, fontWeight: "700", color: colors.primaryForeground, fontSize: 14 }}>
-                {biltyBusy ? "Generating..." : "Generate Bilty"}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <Ionicons name="add-outline" size={18} color={colors.primaryForeground} />
+                <Text style={{ fontWeight: "900", color: colors.primaryForeground, fontSize: 16 }}>
+                  {biltyBusy ? "Generating..." : "Generate Bilty"}
+                </Text>
+              </View>
             </TouchableOpacity>
           )}
         </View>
@@ -1210,10 +1168,10 @@ export default function TripDetail() {
                   <Text style={{ color: colors.foreground, fontSize: 12 }}>Truck: {getTruckReg(snap.truck)}</Text>
                   <Text style={{ color: colors.foreground, fontSize: 12, marginBottom: 6 }}>Driver: {getDriverName(snap.driver)}</Text>
                   <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {Number(snap.cost_of_trip || 0).toLocaleString()}</Text>
-                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {Number(snap.miscellaneous_expense || 0).toLocaleString()}</Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: ₹ {Number(snap.cost_of_trip || 0).toLocaleString()}</Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: ₹ {Number(snap.miscellaneous_expense || 0).toLocaleString()}</Text>
                   </View>
-                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 6 }}>Total: Rs {snapTotal.toLocaleString()}</Text>
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 6 }}>Total: ₹ {snapTotal.toLocaleString()}</Text>
                   {snap.notes ? (
                     <Text style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11, marginTop: 6 }}>
                       Notes: {snap.notes}
@@ -1253,7 +1211,7 @@ export default function TripDetail() {
               borderRadius: 12,
               borderWidth: 1,
               borderColor: colors.border,
-              backgroundColor: isDark ? colors.card : colors.secondary + "10",
+              backgroundColor: colors.input,
               justifyContent: "center",
             }}
           >

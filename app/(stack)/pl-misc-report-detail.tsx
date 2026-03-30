@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system/legacy";
+﻿import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -93,8 +93,8 @@ export default function PLMiscReportDetailScreen() {
       const rowsHtml = filtered
         .map((tx: any, index: number) => {
           const isIncome = String(tx.direction || "").toUpperCase() === "INCOME";
-          const debit = isIncome ? "" : `Rs ${Math.abs(Number(tx.amount || 0)).toLocaleString()}`;
-          const credit = isIncome ? `Rs ${Math.abs(Number(tx.amount || 0)).toLocaleString()}` : "";
+          const debit = isIncome ? "" : `₹ ${Math.abs(Number(tx.amount || 0)).toLocaleString()}`;
+          const credit = isIncome ? `₹ ${Math.abs(Number(tx.amount || 0)).toLocaleString()}` : "";
           return `
           <tr>
             <td>${index + 1}</td>
@@ -111,12 +111,12 @@ export default function PLMiscReportDetailScreen() {
       const totalsHtml = `
           <tr class="totals">
             <td colspan="5">Totals</td>
-            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
-            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+            <td class="debit">₹ ${debitTotal.toLocaleString()}</td>
+            <td class="credit">₹ ${creditTotal.toLocaleString()}</td>
           </tr>
           <tr class="difference">
             <td colspan="5">Difference (Debit - Credit)</td>
-            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}₹ ${Math.abs(difference).toLocaleString()}</td>
           </tr>`;
 
       const html = `
@@ -147,9 +147,9 @@ export default function PLMiscReportDetailScreen() {
         <div class="sub">Category: ${escapeHtml(category.replace(/_/g, " "))}</div>
         <div class="sub">Generated on: ${escapeHtml(formatDate(new Date()))}</div>
         <div class="cards">
-          <div class="card"><div class="label">Income</div><div class="value">Rs ${summary.income.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Expense</div><div class="value">Rs ${summary.expense.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Net</div><div class="value">${summary.balance >= 0 ? "+" : "-"}Rs ${Math.abs(summary.balance).toLocaleString()}</div></div>
+          <div class="card"><div class="label">Income</div><div class="value">₹ ${summary.income.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Expense</div><div class="value">₹ ${summary.expense.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Net</div><div class="value">${summary.balance >= 0 ? "+" : "-"}₹ ${Math.abs(summary.balance).toLocaleString()}</div></div>
         </div>
         <table>
           <thead><tr><th>#</th><th>Date</th><th>Entry</th><th>Status</th><th>Mode</th><th>Debit</th><th>Credit</th></tr></thead>
@@ -197,7 +197,7 @@ export default function PLMiscReportDetailScreen() {
 
         <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ color: summary.balance >= 0 ? colors.success : colors.destructive, fontWeight: "800", fontSize: 16 }}>
-            Net: {summary.balance >= 0 ? "+" : "-"}Rs {Math.abs(summary.balance).toLocaleString()}
+            Net: {summary.balance >= 0 ? "+" : "-"}? {Math.abs(summary.balance).toLocaleString()}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>
             {summary.approvedCount} approved of {summary.totalCount} entries
@@ -207,11 +207,11 @@ export default function PLMiscReportDetailScreen() {
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           <View style={{ flex: 1, borderRadius: 12, padding: 10, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>{(t("income") || "Income").toUpperCase()}</Text>
-            <Text style={{ color: colors.success, marginTop: 6, fontWeight: "800", fontSize: 14 }}>Rs {summary.income.toLocaleString()}</Text>
+            <Text style={{ color: colors.success, marginTop: 6, fontWeight: "800", fontSize: 14 }}> ₹ {summary.income.toLocaleString()}</Text>
           </View>
           <View style={{ flex: 1, borderRadius: 12, padding: 10, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>{(t("expense") || "Expense").toUpperCase()}</Text>
-            <Text style={{ color: colors.destructive, marginTop: 6, fontWeight: "800", fontSize: 14 }}>Rs {summary.expense.toLocaleString()}</Text>
+            <Text style={{ color: colors.destructive, marginTop: 6, fontWeight: "800", fontSize: 14 }}> ₹ {summary.expense.toLocaleString()}</Text>
           </View>
         </View>
 
@@ -235,7 +235,7 @@ export default function PLMiscReportDetailScreen() {
                       </Text>
                     </View>
                     <Text style={{ color: isIncome ? colors.success : colors.destructive, fontWeight: "800" }}>
-                      {isIncome ? "+" : "-"}Rs {Math.abs(Number(tx.amount || 0)).toLocaleString()}
+                      {isIncome ? "+" : "-"}? {Math.abs(Number(tx.amount || 0)).toLocaleString()}
                     </Text>
                   </View>
                 </View>

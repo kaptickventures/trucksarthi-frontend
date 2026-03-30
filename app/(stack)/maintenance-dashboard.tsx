@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
@@ -144,8 +144,8 @@ export default function MaintenanceDashboardScreen() {
         .map((entry: any, index: number) => {
           const direction = String(entry?.direction || "").toUpperCase();
           const isDebit = direction === "EXPENSE";
-          const debit = isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
-          const credit = !isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const debit = isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const credit = !isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
           const title = entry.notes || (String(entry.serviceType || entry.category || "").toUpperCase() === "DOCUMENT" ? "Document Processing" : "Service & Repair");
           return `
           <tr>
@@ -161,12 +161,12 @@ export default function MaintenanceDashboardScreen() {
       const totalsHtml = `
           <tr class="totals">
             <td colspan="3">Totals</td>
-            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
-            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+            <td class="debit">₹ ${debitTotal.toLocaleString()}</td>
+            <td class="credit">₹ ${creditTotal.toLocaleString()}</td>
           </tr>
           <tr class="difference">
             <td colspan="3">Difference (Debit - Credit)</td>
-            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}₹ ${Math.abs(difference).toLocaleString()}</td>
           </tr>`;
 
       const html = `
@@ -198,8 +198,8 @@ export default function MaintenanceDashboardScreen() {
         <div class="sub">${escapeHtml(selectedTruck?.registration_number || "Truck")}</div>
         <div class="sub">Period: ${escapeHtml(formatDate(downloadRange.startDate))} - ${escapeHtml(formatDate(downloadRange.endDate))}</div>
         <div class="cards">
-          <div class="card"><div class="label">Debit</div><div class="value">Rs ${debitTotal.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Credit</div><div class="value">Rs ${creditTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Debit</div><div class="value">₹ ${debitTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Credit</div><div class="value">₹ ${creditTotal.toLocaleString()}</div></div>
         </div>
         <table>
           <thead><tr><th>#</th><th>Date</th><th>Particulars</th><th>Debit</th><th>Credit</th></tr></thead>
@@ -338,8 +338,7 @@ export default function MaintenanceDashboardScreen() {
             {t('lifetimeMaintenance')}
           </Text>
           <View>
-            <Text style={{ color: colors.destructive, fontSize: 24, fontWeight: "800" }}>
-              Rs {lifetimeTotal.toLocaleString()}
+            <Text style={{ color: colors.destructive, fontSize: 24, fontWeight: "800" }}> ₹ {lifetimeTotal.toLocaleString()}
             </Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
               Total repairs & document costs
@@ -371,7 +370,7 @@ export default function MaintenanceDashboardScreen() {
                   style={{
                     fontSize: 13,
                     fontWeight: "700",
-                    color: filterType === f.value ? "white" : colors.foreground,
+                    color: filterType === f.value ? colors.primaryForeground : colors.foreground,
                   }}
                 >
                   {f.label}
@@ -446,7 +445,7 @@ export default function MaintenanceDashboardScreen() {
                   <Text style={{ fontSize: 12, color: colors.mutedForeground }}>{formatDate(item.date)}</Text>
                 </View>
                 <Text style={{ fontSize: 16, fontWeight: "800", color: colors.destructive }}>
-                  -Rs {Number(item.amount || 0).toLocaleString()}
+                  -? {Number(item.amount || 0).toLocaleString()}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -488,13 +487,13 @@ export default function MaintenanceDashboardScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: entryType === action.value ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{action.label}</Text>
+                <Text style={{ color: entryType === action.value ? colors.primaryForeground : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{action.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
           {/* Amount */}
-          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>AMOUNT (₹)</Text>
+          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>AMOUNT (â‚¹)</Text>
           <TextInput
             placeholder="0"
             placeholderTextColor={colors.mutedForeground + '60'}
@@ -503,7 +502,7 @@ export default function MaintenanceDashboardScreen() {
             onChangeText={setAmount}
             className="rounded-2xl p-4 text-[24px] font-black text-center"
             style={{
-              backgroundColor: isDark ? colors.card : colors.secondary + '40',
+              backgroundColor: colors.input,
               color: colors.foreground,
               borderWidth: 1,
               borderColor: colors.border + '30',
@@ -529,7 +528,7 @@ export default function MaintenanceDashboardScreen() {
                   alignItems: "center"
                 }}
               >
-                <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{mode}</Text>
+                <Text style={{ color: paymentMode === mode ? colors.primaryForeground : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{mode}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -544,7 +543,7 @@ export default function MaintenanceDashboardScreen() {
             numberOfLines={3}
             className="rounded-2xl p-4 text-base font-bold"
             style={{
-              backgroundColor: isDark ? colors.card : colors.secondary + '40',
+              backgroundColor: colors.input,
               color: colors.foreground,
               borderWidth: 1,
               borderColor: colors.border + '30',
@@ -560,7 +559,7 @@ export default function MaintenanceDashboardScreen() {
               style={{ backgroundColor: colors.primary }}
               className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
             >
-              <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE RECORD</Text>
+              <Text style={{ color: colors.primaryForeground, fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE RECORD</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAwareScrollView>
@@ -625,7 +624,7 @@ export default function MaintenanceDashboardScreen() {
 
           {Platform.OS === "ios" && downloadDateField && (
             <Modal transparent animationType="slide" visible onRequestClose={closeDownloadDatePicker}>
-              <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }}>
+              <View style={{ flex: 1, backgroundColor: colors.overlay35, justifyContent: "flex-end" }}>
                 <View
                   style={{
                     backgroundColor: colors.card,

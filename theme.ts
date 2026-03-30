@@ -1,105 +1,187 @@
 import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
 
-export const THEME = {
+/**
+ * WhatsApp-inspired design system for Truck Sarthi
+ * Clean + scalable + semantic
+ */
+
+const base = {
+  radius: 10,
+};
+
+const PALETTES = {
   light: {
-    background: "#FFFFFF",
-    foreground: "#111B21",
+    ...base,
 
-    card: "#F7F7F7",
-    cardForeground: "#111B21",
+    colors: {
+      // Core
+      bg: "#FFFFFF",
+      text: "#111B21",
 
-    popover: "#FFFFFF",
-    popoverForeground: "#111B21",
+      // Surfaces
+      surface: "#F7F7F7",
+      surfaceAlt: "#ECECEC",
 
-    primary: "#25D366",           // WhatsApp green
-    primaryForeground: "#FFFFFF",
+      // Brand (WhatsApp style)
+      primary: "#25D366",
+      primaryText: "#FFFFFF",
 
-    secondary: "#ECECEC",
-    secondaryForeground: "#1A1A1A",
+      // Secondary UI
+      secondary: "#ECECEC",
+      secondaryText: "#1A1A1A",
 
-    muted: "#F0F0F0",
-    mutedForeground: "#666666",
+      // Accents
+      accent: "#E6FFEE",
+      accentText: "#128C7E",
 
-    accent: "#E6FFEE",           // light green tint
-    accentForeground: "#128C7E",
+      // States
+      success: "#25D366",
+      warning: "#F4B400",
+      error: "#FF4B4B",
+      info: "#1D4ED8",
 
-    success: "#25D366",
-    successSoft: "#E6FFEE",
-    destructive: "#FF4B4B",
-    destructiveSoft: "#FEE2E2",
-    warning: "#F4B400",
-    warningSoft: "#FEF3C7",
-    info: "#1D4ED8",
-    infoSoft: "#DBEAFE",
+      // Soft backgrounds (for badges, alerts)
+      successBg: "#E6FFEE",
+      warningBg: "#FEF3C7",
+      errorBg: "#FEE2E2",
+      infoBg: "#DBEAFE",
 
-    border: "#D1D1D1",
-    input: "#F0F0F0",
-    ring: "#25D366",
+      // UI Elements
+      border: "#DDE3EA",
+      input: "#F8FAFC",
+      ring: "#25D366",
+      transparent: "transparent",
+      shadow: "#000000",
+      shadowSoft: "#00000033",
+      overlay10: "rgba(0,0,0,0.10)",
+      overlay35: "rgba(0,0,0,0.35)",
+      overlay45: "rgba(0,0,0,0.45)",
+      overlay60: "rgba(0,0,0,0.60)",
+      overlay70: "rgba(0,0,0,0.70)",
+      overlayOnDark20: "rgba(255,255,255,0.20)",
+      overlayOnDark70: "rgba(255,255,255,0.70)",
+      overlayOnDark92: "rgba(255,255,255,0.92)",
 
-    radius: "0.625rem",
+      // Muted
+      muted: "#F0F0F0",
+      mutedText: "#666666",
 
-    chart1: "#25D366",
-    chart2: "#1DAA61",
-    chart3: "#F4B400",
-    chart4: "#34B7F1",
-    chart5: "#FF6D6D",
+      // Charts
+      chart: ["#25D366", "#1DAA61", "#F4B400", "#34B7F1", "#FF6D6D"],
+    },
   },
 
   dark: {
-    background: "#111B21",
-    foreground: "#EDEDED",
+    ...base,
 
-    card: "#1A2230",
-    cardForeground: "#EDEDED",
+    colors: {
+      // Core
+      bg: "#111B21",
+      text: "#EDEDED",
 
-    popover: "#1E2A33",
-    popoverForeground: "#EDEDED",
+      // Surfaces
+      surface: "#F7F7F7",
+      surfaceAlt: "#202C33",
 
-    primary: "#1FA855",         // WhatsApp green dark
-    primaryForeground: "#FFFFFF",
+      // Brand
+      primary: "#1FA855",
+      primaryText: "#FFFFFF",
 
-    secondary: "#202C33",
-    secondaryForeground: "#EDEDED",
+      // Secondary
+      secondary: "#202C33",
+      secondaryText: "#EDEDED",
 
-    muted: "#1F2A30",
-    mutedForeground: "#BFBFBF",
+      // Accents
+      accent: "#1F3A37",
+      accentText: "#FFFFFF",
 
-    accent: "#1F3A37",          // dark teal accent
-    accentForeground: "#FFFFFF",
+      // States
+      success: "#1FA855",
+      warning: "#F4C430",
+      error: "#FF5C5C",
+      info: "#3B82F6",
 
-    success: "#1FA855",
-    successSoft: "#0A3325",
-    destructive: "#FF5C5C",
-    destructiveSoft: "#450A0A",
-    warning: "#F4C430",
-    warningSoft: "#3A2A05",
-    info: "#3B82F6",
-    infoSoft: "#111B3C",
+      // Soft backgrounds
+      successBg: "#0A3325",
+      warningBg: "#3A2A05",
+      errorBg: "#450A0A",
+      infoBg: "#111B3C",
 
-    border: "#2A343C",
-    input: "#26333B",
-    ring: "#1FA855",
+      // UI Elements
+      border: "#DDE3EA",
+      input: "#F8FAFC",
+      ring: "#1FA855",
+      transparent: "transparent",
+      shadow: "#000000",
+      shadowSoft: "#00000033",
+      overlay10: "rgba(0,0,0,0.10)",
+      overlay35: "rgba(0,0,0,0.35)",
+      overlay45: "rgba(0,0,0,0.45)",
+      overlay60: "rgba(0,0,0,0.60)",
+      overlay70: "rgba(0,0,0,0.70)",
+      overlayOnDark20: "rgba(255,255,255,0.20)",
+      overlayOnDark70: "rgba(255,255,255,0.70)",
+      overlayOnDark92: "rgba(255,255,255,0.92)",
 
-    radius: "0.625rem",
+      // Muted
+      muted: "#1F2A30",
+      mutedText: "#BFBFBF",
 
-    chart1: "#1FA855",
-    chart2: "#3DDC84",
-    chart3: "#F4C430",
-    chart4: "#7A5CFA",
-    chart5: "#FF4F6D",
+      // Charts
+      chart: ["#1FA855", "#3DDC84", "#F4C430", "#7A5CFA", "#FF4F6D"],
+    },
   },
 };
 
+const toLegacyColors = (palette: typeof PALETTES.light) => {
+  const c = palette.colors;
+  return {
+    // New palette tokens
+    ...c,
+
+    // Legacy/compat tokens used in existing screens
+    background: c.bg,
+    foreground: c.text,
+    card: c.input,
+    cardForeground: c.text,
+    popover: c.surface,
+    popoverForeground: c.text,
+    primaryForeground: c.primaryText,
+    secondaryForeground: c.secondaryText,
+    accentForeground: c.accentText,
+    destructive: c.error,
+    destructiveSoft: c.errorBg,
+    successSoft: c.successBg,
+    warningSoft: c.warningBg,
+    infoSoft: c.infoBg,
+    mutedForeground: c.mutedText,
+    radius: `${palette.radius}px`,
+    chart1: c.chart[0],
+    chart2: c.chart[1],
+    chart3: c.chart[2],
+    chart4: c.chart[3],
+    chart5: c.chart[4],
+  };
+};
+
+export const THEME = {
+  light: toLegacyColors(PALETTES.light),
+  dark: toLegacyColors(PALETTES.dark),
+};
+
+/**
+ * React Navigation theme mapping
+ */
 export const NAV_THEME: Record<"light" | "dark", Theme> = {
   light: {
     ...DefaultTheme,
     colors: {
       background: THEME.light.background,
-      border: THEME.light.border,
       card: THEME.light.card,
-      notification: THEME.light.destructive,
-      primary: THEME.light.primary,
       text: THEME.light.foreground,
+      border: THEME.light.border,
+      primary: THEME.light.primary,
+      notification: THEME.light.destructive,
     },
   },
 
@@ -107,11 +189,11 @@ export const NAV_THEME: Record<"light" | "dark", Theme> = {
     ...DarkTheme,
     colors: {
       background: THEME.dark.background,
-      border: THEME.dark.border,
       card: THEME.dark.card,
-      notification: THEME.dark.destructive,
-      primary: THEME.dark.primary,
       text: THEME.dark.foreground,
+      border: THEME.dark.border,
+      primary: THEME.dark.primary,
+      notification: THEME.dark.destructive,
     },
   },
 };

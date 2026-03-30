@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+﻿import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -611,7 +611,7 @@ export default function BiltyWizardScreen() {
             <div class="box"><div class="box-title">GST Paid By</div><div>${escapeHtml(doc?.gst_paid_by || "consignor")}</div></div>
             <div class="box"><div class="box-title">GST %</div><div>${escapeHtml(String(doc?.gst_percentage ?? 0))}%</div></div>
             <div class="box"><div class="box-title">GST Type</div><div>${escapeHtml((doc?.gst_type || "gst") === "igst" ? "IGST" : "CGST + SGST")}</div></div>
-            <div class="box"><div class="box-title">Insurance</div><div>${doc?.insurance?.policy_number ? `${escapeHtml(doc?.insurance?.insurer_name || "-")} • ${escapeHtml(doc?.insurance?.policy_number || "-")}` : "Not insured"}</div><div>${doc?.insurance?.coverage_amount ? `Coverage: Rs ${money(doc?.insurance?.coverage_amount || 0)}` : ""}</div></div>
+            <div class="box"><div class="box-title">Insurance</div><div>${doc?.insurance?.policy_number ? `${escapeHtml(doc?.insurance?.insurer_name || "-")} â€¢ ${escapeHtml(doc?.insurance?.policy_number || "-")}` : "Not insured"}</div><div>${doc?.insurance?.coverage_amount ? `Coverage: ₹ ${money(doc?.insurance?.coverage_amount || 0)}` : ""}</div></div>
             <div class="box"><div class="box-title">LR Details</div><div><strong>LR No:</strong> ${escapeHtml(lrNo)}</div><div><strong>Date:</strong> ${escapeHtml(lrDate)}</div><div><strong>Payment:</strong> ${escapeHtml(doc?.payment_type || "to_pay")}</div></div>
           </div>
 
@@ -631,7 +631,7 @@ export default function BiltyWizardScreen() {
             .join("")}
           </tbody></table>
 
-          <div class="amount-line"><strong>To Pay:</strong> Rs ${money(doc?.charges?.balance || 0)}</div>
+          <div class="amount-line"><strong>To Pay:</strong> ₹ ${money(doc?.charges?.balance || 0)}</div>
           <div class="warning">Company is not responsible for leakages & thefts</div>
 
           <div class="footer-grid"><div class="terms"><div class="line-title">Terms & Conditions</div><div>1. This is a digitally generated Bilty/LR copy.</div></div><div class="signature"><div>Certified that the particulars given above are true and correct.</div><div style="margin-top:20px;"><strong>For, ${escapeHtml(partyName)}</strong></div>${doc?.signature_url ? `<img src="${escapeHtml(doc.signature_url)}" style="height:40px; margin-top:8px; object-fit:contain;" />` : ""}<div class="sign-line">Signature</div></div></div>
@@ -935,7 +935,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
   const inputStyle = {
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: isDark ? colors.input : "#FFFFFF",
+    backgroundColor: isDark ? colors.input : colors.primaryForeground,
     color: colors.foreground,
     borderRadius: 12,
     paddingHorizontal: 12,
@@ -946,11 +946,11 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
   const cardStyle = {
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: isDark ? colors.card : "#FFFFFF",
+    backgroundColor: isDark ? colors.card : colors.primaryForeground,
     borderRadius: 14,
     padding: 12,
     marginBottom: 12,
-    shadowColor: "#000",
+    shadowColor: colors.shadow,
     shadowOpacity: isDark ? 0 : 0.05,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -971,7 +971,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
           paddingHorizontal: 16,
           paddingVertical: 14,
           justifyContent: "center",
-          backgroundColor: isDark ? colors.card : "#FFFFFF",
+          backgroundColor: isDark ? colors.card : colors.primaryForeground,
           marginBottom: 14,
         }}
       >
@@ -985,7 +985,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>PAN: {party.pan || "-"}</Text>
           </>
         ) : (
-          <Text style={{ color: "#111111", fontWeight: "700", textAlign: "center", fontSize: 20 }}>
+          <Text style={{ color: colors.foreground, fontWeight: "700", textAlign: "center", fontSize: 20 }}>
             + <Text style={{ fontSize: 22 }}> </Text>Add {label}
           </Text>
         )}
@@ -1095,7 +1095,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               borderRadius: 10,
               paddingVertical: 9,
               paddingHorizontal: 14,
-              backgroundColor: isDark ? colors.card : "#FFFFFF",
+              backgroundColor: isDark ? colors.card : colors.primaryForeground,
             }}
           >
             <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>{buttonText}</Text>
@@ -1145,7 +1145,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
   ]);
 
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: isDark ? colors.background : "#F4F6F9" }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: isDark ? colors.background : colors.muted }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <KeyboardAwareScrollView
@@ -1167,7 +1167,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                 borderColor: colors.border,
                 borderRadius: 14,
                 padding: 14,
-                backgroundColor: isDark ? colors.card : "#FFFFFF",
+                backgroundColor: isDark ? colors.card : colors.primaryForeground,
               }}
             >
               {renderOverviewSection(
@@ -1226,7 +1226,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
           <>
         <Text style={{ color: colors.primary, fontWeight: "900", fontSize: 12, marginBottom: 4 }}>Step {step} of 4</Text>
         <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 22, marginBottom: 14 }}>{stepTitle}</Text>
-        <View style={{ height: 4, borderRadius: 999, backgroundColor: isDark ? colors.input : "#E7EAEE", marginBottom: 14 }}>
+        <View style={{ height: 4, borderRadius: 999, backgroundColor: isDark ? colors.input : colors.muted, marginBottom: 14 }}>
           <View
             style={{
               width: `${(step / 4) * 100}%`,
@@ -1434,10 +1434,10 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               />
             </View>
 
-            <Text style={{ color: "#111111", fontWeight: "900", marginBottom: 8, letterSpacing: 0.5 }}>CONSIGNOR DETAILS</Text>
+            <Text style={{ color: colors.foreground, fontWeight: "900", marginBottom: 8, letterSpacing: 0.5 }}>CONSIGNOR DETAILS</Text>
             {renderPartyCard("Consignor", consignor, "consignor")}
 
-            <Text style={{ color: "#111111", fontWeight: "900", marginBottom: 8, letterSpacing: 0.5 }}>CONSIGNEE DETAILS</Text>
+            <Text style={{ color: colors.foreground, fontWeight: "900", marginBottom: 8, letterSpacing: 0.5 }}>CONSIGNEE DETAILS</Text>
             {renderPartyCard("Consignee", consignee, "consignee")}
           </>
         )}
@@ -1451,11 +1451,11 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                 borderWidth: 1,
                 borderColor: colors.border,
                 borderRadius: 10,
-                backgroundColor: isDark ? colors.card : "#FFFFFF",
+                backgroundColor: isDark ? colors.card : colors.primaryForeground,
                 paddingHorizontal: 12,
                 paddingVertical: 11,
                 marginBottom: 12,
-                shadowColor: "#000",
+                shadowColor: colors.shadow,
                 shadowOpacity: isDark ? 0 : 0.06,
                 shadowRadius: 4,
                 shadowOffset: { width: 0, height: 1 },
@@ -1481,7 +1481,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                 <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
                   <View style={{ width: 7, height: 7, borderRadius: 3.5, borderWidth: 1, borderColor: colors.primary, backgroundColor: "transparent", marginRight: 8 }} />
                   <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{shipment.from_location || "-"}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginLeft: 5 }}>• {shipment.shipment_date || ""}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginLeft: 5 }}>â€¢ {shipment.shipment_date || ""}</Text>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.primary, marginRight: 8 }} />
@@ -1494,11 +1494,11 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <View>
                   <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.45 }}>FREIGHT AMOUNT</Text>
-                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, fontSize: 14 }}>₹{(Number(charges.freight || 0) || 1258).toLocaleString("en-IN")}</Text>
+                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, fontSize: 14 }}>â‚¹{(Number(charges.freight || 0) || 1258).toLocaleString("en-IN")}</Text>
                 </View>
                 <View>
                   <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", textAlign: "right", letterSpacing: 0.45 }}>PARTY BALANCE</Text>
-                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, textAlign: "right", fontSize: 14 }}>₹{(Number(charges.balance || 0) || 1258).toLocaleString("en-IN")}</Text>
+                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, textAlign: "right", fontSize: 14 }}>â‚¹{(Number(charges.balance || 0) || 1258).toLocaleString("en-IN")}</Text>
                 </View>
               </View>
               <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700", marginTop: 10 }}>Tap to preview trip details</Text>
@@ -1523,7 +1523,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                     borderColor: colors.border,
                     borderRadius: 12,
                     padding: 12,
-                    backgroundColor: isDark ? colors.card : "#FFFFFF",
+                    backgroundColor: isDark ? colors.card : colors.primaryForeground,
                   }}
                 >
                   <Text style={{ color: colors.foreground, fontWeight: "800", marginBottom: 4 }}>
@@ -1584,7 +1584,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                       borderRadius: 12,
                       borderWidth: 1.5,
                       borderColor: active ? colors.primary : colors.border,
-                      backgroundColor: active ? colors.primary : (isDark ? colors.card : "#FFFFFF"),
+                      backgroundColor: active ? colors.primary : (isDark ? colors.card : colors.primaryForeground),
                       alignItems: "center",
                     }}
                   >
@@ -1611,7 +1611,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                       borderRadius: 12,
                       borderWidth: 1.5,
                       borderColor: active ? colors.primary : colors.border,
-                      backgroundColor: active ? colors.primary : (isDark ? colors.card : "#FFFFFF"),
+                      backgroundColor: active ? colors.primary : (isDark ? colors.card : colors.primaryForeground),
                       alignItems: "center",
                     }}
                   >
@@ -1635,7 +1635,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                       borderRadius: 12,
                       borderWidth: 1.5,
                       borderColor: active ? colors.primary : colors.border,
-                      backgroundColor: active ? colors.primary : (isDark ? colors.card : "#FFFFFF"),
+                      backgroundColor: active ? colors.primary : (isDark ? colors.card : colors.primaryForeground),
                       alignItems: "center",
                     }}
                   >
@@ -1662,7 +1662,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                       borderRadius: 12,
                       borderWidth: 1.5,
                       borderColor: active ? colors.primary : colors.border,
-                      backgroundColor: active ? colors.primary : (isDark ? colors.card : "#FFFFFF"),
+                      backgroundColor: active ? colors.primary : (isDark ? colors.card : colors.primaryForeground),
                       alignItems: "center",
                     }}
                   >
@@ -1676,8 +1676,8 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
         {step === 4 && (
           <View style={cardStyle}>
-            <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12, backgroundColor: isDark ? colors.card : "#FFFFFF" }}>
-              <Text style={{ color: "#111111", fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Insurance</Text>
+            <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12, backgroundColor: isDark ? colors.card : colors.primaryForeground }}>
+              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Insurance</Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>Optional cover details for this bilty.</Text>
 
               <TouchableOpacity
@@ -1688,10 +1688,10 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               </TouchableOpacity>
 
               {insurance.policy_number ? (
-                <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, backgroundColor: isDark ? colors.input : "#F8FAFC" }}>
+                <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, backgroundColor: isDark ? colors.input : colors.muted }}>
                   <Text style={{ color: colors.foreground, fontWeight: "800", marginBottom: 2 }}>{insurance.insurer_name || "-"}</Text>
                   <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Policy: {insurance.policy_number}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: ₹{Number(insurance.coverage_amount || 0).toLocaleString("en-IN")}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: â‚¹{Number(insurance.coverage_amount || 0).toLocaleString("en-IN")}</Text>
                   <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Expiry: {insurance.expiry_date || "-"}</Text>
                   <TouchableOpacity
                     onPress={() => setInsurance({ policy_number: "", insurer_name: "", coverage_amount: "", expiry_date: "" })}
@@ -1703,16 +1703,16 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               ) : null}
             </View>
 
-            <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12, backgroundColor: isDark ? colors.card : "#FFFFFF" }}>
-              <Text style={{ color: "#111111", fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Waybill</Text>
+            <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12, backgroundColor: isDark ? colors.card : colors.primaryForeground }}>
+              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Waybill</Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>Invoice and e-waybill references.</Text>
               <TextInput placeholder="E-Waybill No" placeholderTextColor={colors.mutedForeground} value={shipment.eway_bill_no} onChangeText={(text) => setShipment((prev) => ({ ...prev, eway_bill_no: text }))} style={inputStyle} />
               <TextInput placeholder="Goods Invoice No" placeholderTextColor={colors.mutedForeground} value={shipment.invoice_no} onChangeText={(text) => setShipment((prev) => ({ ...prev, invoice_no: text }))} style={inputStyle} />
               <TextInput placeholder="Invoice Value" placeholderTextColor={colors.mutedForeground} value={shipment.invoice_value} onChangeText={(text) => setShipment((prev) => ({ ...prev, invoice_value: text }))} style={inputStyle} keyboardType="numeric" />
             </View>
 
-            <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 14, backgroundColor: isDark ? colors.card : "#FFFFFF" }}>
-              <Text style={{ color: "#111111", fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Terms & Signature</Text>
+            <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 14, backgroundColor: isDark ? colors.card : colors.primaryForeground }}>
+              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Terms & Signature</Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>Add legal notes and authorized sign.</Text>
 
               <TextInput
@@ -1751,7 +1751,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                   alignItems: "center",
                   justifyContent: "center",
                   marginBottom: 10,
-                  backgroundColor: isDark ? colors.input : "#FFFFFF",
+                  backgroundColor: isDark ? colors.input : colors.primaryForeground,
                   minHeight: 88,
                 }}
               >
@@ -1776,7 +1776,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                     borderRadius: 10,
                     paddingVertical: 11,
                     alignItems: "center",
-                    backgroundColor: isDark ? colors.input : "#FFFFFF",
+                    backgroundColor: isDark ? colors.input : colors.primaryForeground,
                   }}
                 >
                   <Text style={{ color: colors.foreground, fontWeight: "700" }}>Upload Image</Text>
@@ -1811,7 +1811,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                 style={{
                   borderWidth: 1,
                   borderColor: colors.border,
-                  backgroundColor: isDark ? colors.card : "#FFFFFF",
+                  backgroundColor: isDark ? colors.card : colors.primaryForeground,
                   borderRadius: 12,
                   paddingVertical: 12,
                   alignItems: "center",
@@ -1968,7 +1968,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                     borderWidth: 1,
                     borderColor: colors.border,
                     borderRadius: 10,
-                    backgroundColor: isDark ? colors.card : "#FFFFFF",
+                    backgroundColor: isDark ? colors.card : colors.primaryForeground,
                     overflow: "hidden",
                   }}
                 >
@@ -2080,7 +2080,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>COVERAGE AMOUNT</Text>
           <TextInput
-            placeholder="₹ Amount"
+            placeholder="â‚¹ Amount"
             placeholderTextColor={colors.mutedForeground}
             value={insurance.coverage_amount}
             onChangeText={(text) => setInsurance((prev) => ({ ...prev, coverage_amount: text.replace(/[^\d.]/g, "") }))}
@@ -2135,7 +2135,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             borderWidth: 1,
             borderColor: colors.border,
             borderRadius: 12,
-            backgroundColor: "#FFFFFF",
+            backgroundColor: colors.primaryForeground,
             overflow: "hidden",
             marginBottom: 12,
           }}
@@ -2145,8 +2145,8 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             onOK={handleSignatureOK}
             onEmpty={handleSignatureEmpty}
             descriptionText=""
-            penColor="#111827"
-            backgroundColor="#FFFFFF"
+            penColor={colors.foreground}
+            backgroundColor={colors.primaryForeground}
             imageType="image/png"
             autoClear={false}
             webStyle={`
@@ -2229,7 +2229,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
               {previewTripCard.date ? new Date(previewTripCard.date).toLocaleDateString() : "No Date"}
             </Text>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: colors.primary }}>{`Rs ${previewTripCard.totalCost.toLocaleString()}`}</Text>
+            <Text style={{ fontSize: 20, fontWeight: "800", color: colors.primary }}>{`₹ ${previewTripCard.totalCost.toLocaleString()}`}</Text>
           </View>
 
           <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground, marginBottom: 8 }}>
@@ -2245,8 +2245,8 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
           <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 8 }} />
 
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {previewTripCard.tripCost.toLocaleString()}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {previewTripCard.misc.toLocaleString()}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: ₹ {previewTripCard.tripCost.toLocaleString()}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: ₹ {previewTripCard.misc.toLocaleString()}</Text>
           </View>
 
           {previewTripCard.notes ? (
@@ -2265,7 +2265,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             onPress={() => setIsTripPreviewModalVisible(false)}
             style={{
               flex: 1,
-              backgroundColor: isDark ? colors.card : "#FFFFFF",
+              backgroundColor: isDark ? colors.card : colors.primaryForeground,
               borderWidth: 1,
               borderColor: colors.border,
               borderRadius: 12,
@@ -2501,13 +2501,13 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
       </BottomSheet>
 
       {!keyboardVisible && !showEditOverview && (
-        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: isDark ? colors.card : "#FFFFFF", paddingTop: 12, paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom, 12), flexDirection: "row", gap: 10 }}>
+        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: isDark ? colors.card : colors.primaryForeground, paddingTop: 12, paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom, 12), flexDirection: "row", gap: 10 }}>
         <TouchableOpacity
           disabled={!canGoBack}
           onPress={() => setStep((prev) => Math.max(1, prev - 1))}
           style={{
             flex: 1,
-            backgroundColor: canGoBack ? (isDark ? colors.secondary : "#EEF1F5") : colors.card,
+            backgroundColor: canGoBack ? (isDark ? colors.secondary : colors.secondary) : colors.card,
             paddingVertical: 12,
             borderRadius: 12,
             alignItems: "center",

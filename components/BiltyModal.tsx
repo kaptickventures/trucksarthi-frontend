@@ -120,7 +120,7 @@ export default function BiltyModal({
             borderRadius: 12,
             borderWidth: 1,
             borderColor: colors.border,
-            backgroundColor: isDark ? colors.card : colors.secondary + "10",
+            backgroundColor: colors.input,
             color: colors.foreground,
             fontWeight: "600",
           }}
@@ -168,7 +168,7 @@ export default function BiltyModal({
             borderRadius: 12,
             borderWidth: 1,
             borderColor: colors.border,
-            backgroundColor: isDark ? colors.card : colors.secondary + "10",
+            backgroundColor: colors.input,
             color: colors.foreground,
             fontWeight: "600",
           }}

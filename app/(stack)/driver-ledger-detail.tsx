@@ -1,4 +1,4 @@
-import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+﻿import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
@@ -148,8 +148,8 @@ export default function DriverLedgerDetailScreen() {
       const rowsHtml = entriesForRange
         .map((entry: any, index: number) => {
           const isDebit = entry.type === "TO_DRIVER";
-          const debit = isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
-          const credit = !isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const debit = isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const credit = !isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
           return `
           <tr>
             <td>${index + 1}</td>
@@ -164,12 +164,12 @@ export default function DriverLedgerDetailScreen() {
       const totalsHtml = `
           <tr class="totals">
             <td colspan="3">Totals</td>
-            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
-            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+            <td class="debit">₹ ${debitTotal.toLocaleString()}</td>
+            <td class="credit">₹ ${creditTotal.toLocaleString()}</td>
           </tr>
           <tr class="difference">
             <td colspan="3">Difference (Debit - Credit)</td>
-            <td colspan="2" class="diff">${balance >= 0 ? "" : "-"}Rs ${Math.abs(balance).toLocaleString()}</td>
+            <td colspan="2" class="diff">${balance >= 0 ? "" : "-"}₹ ${Math.abs(balance).toLocaleString()}</td>
           </tr>`;
 
       const html = `
@@ -203,9 +203,9 @@ export default function DriverLedgerDetailScreen() {
         <div class="sub">Period: ${escapeHtml(formatDate(downloadRange.startDate))} - ${escapeHtml(formatDate(downloadRange.endDate))}</div>
         <div class="sub">Generated on: ${escapeHtml(formatDate(new Date()))}</div>
         <div class="cards">
-          <div class="card"><div class="label">Debit</div><div class="value">Rs ${debitTotal.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Credit</div><div class="value">Rs ${creditTotal.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Balance</div><div class="value">${balance >= 0 ? "" : "-"}Rs ${Math.abs(balance).toLocaleString()}</div></div>
+          <div class="card"><div class="label">Debit</div><div class="value">₹ ${debitTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Credit</div><div class="value">₹ ${creditTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Balance</div><div class="value">${balance >= 0 ? "" : "-"}₹ ${Math.abs(balance).toLocaleString()}</div></div>
         </div>
         <table>
           <thead><tr><th>#</th><th>Date</th><th>Particulars</th><th>Debit</th><th>Credit</th></tr></thead>
@@ -405,12 +405,12 @@ export default function DriverLedgerDetailScreen() {
                     borderRadius: 11,
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: "rgba(0,0,0,0.7)",
+                    backgroundColor: colors.overlay70,
                     borderWidth: 1,
-                    borderColor: "rgba(255,255,255,0.7)",
+                    borderColor: colors.overlayOnDark70,
                   }}
                 >
-                  <Pencil size={12} color="white" />
+                  <Pencil size={12} color={colors.primaryForeground} />
                 </TouchableOpacity>
               </View>
 
@@ -467,12 +467,12 @@ export default function DriverLedgerDetailScreen() {
                         position: "absolute",
                         bottom: 8,
                         right: 8,
-                        backgroundColor: "rgba(0,0,0,0.6)",
+                        backgroundColor: colors.overlay60,
                         padding: 8,
                         borderRadius: 20,
                       }}
                     >
-                      <Pencil size={12} color="white" />
+                      <Pencil size={12} color={colors.primaryForeground} />
                     </TouchableOpacity>
                   </TouchableOpacity>
                   <Text style={{ textAlign: "center", fontSize: 12, fontWeight: "700", marginTop: 8, color: colors.mutedForeground }}>
@@ -516,12 +516,12 @@ export default function DriverLedgerDetailScreen() {
                         position: "absolute",
                         bottom: 8,
                         right: 8,
-                        backgroundColor: "rgba(0,0,0,0.6)",
+                        backgroundColor: colors.overlay60,
                         padding: 8,
                         borderRadius: 20,
                       }}
                     >
-                      <Pencil size={12} color="white" />
+                      <Pencil size={12} color={colors.primaryForeground} />
                     </TouchableOpacity>
                   </TouchableOpacity>
                   <Text style={{ textAlign: "center", fontSize: 12, fontWeight: "700", marginTop: 8, color: colors.mutedForeground }}>
@@ -589,7 +589,7 @@ export default function DriverLedgerDetailScreen() {
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: activeTab === tab.id ? "white" : colors.foreground, fontWeight: "700", fontSize: 11 }}>
+              <Text style={{ color: activeTab === tab.id ? colors.primaryForeground : colors.foreground, fontWeight: "700", fontSize: 11 }}>
                 {tab.label}
               </Text>
             </TouchableOpacity>
@@ -622,7 +622,7 @@ export default function DriverLedgerDetailScreen() {
                     </Text>
                   </View>
                   <Text style={{ color: isToDriver ? colors.success : colors.destructive, fontWeight: "800" }}>
-                    {isToDriver ? "+" : "-"}Rs {entry.amount.toLocaleString()}
+                    {isToDriver ? "+" : "-"}? {entry.amount.toLocaleString()}
                   </Text>
                 </View>
               </View>
@@ -672,7 +672,7 @@ export default function DriverLedgerDetailScreen() {
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: quickType === type.id ? "white" : colors.foreground, fontSize: 13, fontWeight: "800", textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Text style={{ color: quickType === type.id ? colors.primaryForeground : colors.foreground, fontSize: 13, fontWeight: "800", textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   {type.label}
                 </Text>
               </TouchableOpacity>
@@ -688,7 +688,7 @@ export default function DriverLedgerDetailScreen() {
               onChangeText={setAmount}
               className="rounded-2xl p-4 text-[24px] font-black text-center"
               style={{
-                backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                backgroundColor: colors.input,
                 color: colors.foreground,
                 borderWidth: 1,
                 borderColor: colors.border + '30',
@@ -705,7 +705,7 @@ export default function DriverLedgerDetailScreen() {
               onChangeText={setPurpose}
               className="rounded-2xl p-4 text-base font-bold"
               style={{
-                backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                backgroundColor: colors.input,
                 color: colors.foreground,
                 borderWidth: 1,
                 borderColor: colors.border + '30',
@@ -730,7 +730,7 @@ export default function DriverLedgerDetailScreen() {
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ color: paymentMode === mode ? "white" : colors.foreground, fontSize: 12, fontWeight: "800", textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  <Text style={{ color: paymentMode === mode ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: "800", textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {mode}
                   </Text>
                 </TouchableOpacity>
@@ -744,7 +744,7 @@ export default function DriverLedgerDetailScreen() {
               style={{ backgroundColor: colors.primary }}
               className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
             >
-              <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">
+              <Text style={{ color: colors.primaryForeground, fontWeight: "900", fontSize: 18 }} className="text-center font-black">
                 {loading ? "SAVING..." : "SAVE ENTRY"}
               </Text>
             </TouchableOpacity>
@@ -811,7 +811,7 @@ export default function DriverLedgerDetailScreen() {
 
           {Platform.OS === "ios" && downloadDateField && (
             <Modal transparent animationType="slide" visible onRequestClose={closeDownloadDatePicker}>
-              <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }}>
+              <View style={{ flex: 1, backgroundColor: colors.overlay35, justifyContent: "flex-end" }}>
                 <View
                   style={{
                     backgroundColor: colors.card,
@@ -905,8 +905,7 @@ function SummaryCard({ label, value, tone, fullWidth = false }: { label: string;
   return (
     <View style={{ flex: fullWidth ? 0 : 1, width: fullWidth ? "100%" : undefined, backgroundColor: colors.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", marginBottom: 4 }}>{label}</Text>
-      <Text style={{ color, fontWeight: "800", fontSize: 14 }}>
-        Rs {Math.abs(Number(value || 0)).toLocaleString()}
+      <Text style={{ color, fontWeight: "800", fontSize: 14 }}> ₹ {Math.abs(Number(value || 0)).toLocaleString()}
       </Text>
     </View>
   );

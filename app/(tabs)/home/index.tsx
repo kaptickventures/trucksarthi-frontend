@@ -296,6 +296,17 @@ export default function HomeScreen() {
   }, [docReminders, truckFieldReminders, getTruckName]);
 
   const totalReminderCount = docReminders.length + truckFieldReminders.length;
+  const statsCardStyle = { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border } as const;
+  const sectionCardStyle = {
+    backgroundColor: isDark ? "rgba(255,255,255,0.03)" : colors.card,
+    borderWidth: 1,
+    borderColor: isDark ? "rgba(255,255,255,0.12)" : colors.border,
+  } as const;
+  const nestedListCardStyle = {
+    backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.04)",
+    borderWidth: 1,
+    borderColor: isDark ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.1)",
+  } as const;
 
   useEffect(() => {
     setRecentTripsVisibleCount(5);
@@ -430,13 +441,13 @@ export default function HomeScreen() {
         }
       >
         <View style={{ marginBottom: 8 }}>
-          <Text style={{ color: colors.foreground, fontSize: 30, fontWeight: "900" }}>Welcome!</Text>
+          <Text style={{ color: colors.foreground, fontSize: 26, fontWeight: "900" }}>Welcome!</Text>
         </View>
 
         {/* ====== Stats Section ====== */}
-        <View className="flex-row justify-between mb-4">
+        <View className="flex-row justify-between mb-4 mt-2">
           <View
-            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+            style={statsCardStyle}
             className="flex-1 rounded-2xl p-4 mr-2"
           >
             <Text className="text-muted-foreground text-xs">{t('monthlyRevenue')}</Text>
@@ -445,7 +456,7 @@ export default function HomeScreen() {
             </Text>
           </View>
           <View
-            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+            style={statsCardStyle}
             className="flex-1 rounded-2xl p-4 ml-2"
           >
             <Text className="text-muted-foreground text-xs">{t('numberOfTrips')}</Text>
@@ -461,7 +472,7 @@ export default function HomeScreen() {
           style={{ backgroundColor: colors.primary }}
           className="rounded-full p-4 flex-row justify-center items-center mb-3"
         >
-          <Ionicons name="add-outline" size={20} color="white" />
+          <Ionicons name="add-outline" size={20} color={colors.primaryForeground} />
           <Text style={{ color: colors.primaryForeground }} className="font-semibold text-base ml-2">{t('addTrip')}</Text>
         </TouchableOpacity>
 
@@ -479,10 +490,6 @@ export default function HomeScreen() {
                   minHeight: 92,
                   borderWidth: 1,
                   borderColor: colors.border,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.06,
-                  shadowRadius: 6,
-                  elevation: 2,
                 }}
                 className="rounded-2xl items-center justify-center px-2 py-2"
               >
@@ -513,10 +520,6 @@ export default function HomeScreen() {
                   minHeight: 92,
                   borderWidth: 1,
                   borderColor: colors.border,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.06,
-                  shadowRadius: 6,
-                  elevation: 2,
                 }}
                 className="rounded-2xl items-center justify-center px-2 py-2"
               >
@@ -539,7 +542,7 @@ export default function HomeScreen() {
 
         {/* ====== Reminders Card ====== */}
         <View
-          style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+          style={sectionCardStyle}
           className="rounded-2xl p-4 mb-6"
         >
           <View className="flex-row justify-between items-center mb-3">
@@ -558,11 +561,11 @@ export default function HomeScreen() {
               return (
                 <View
                   key={item.key}
-                  style={{ backgroundColor: colors.secondary }}
+                  style={nestedListCardStyle}
                   className="flex-row justify-between items-center p-3 rounded-xl mb-2"
                 >
                   <View className="flex-1">
-                    <Text style={{ color: colors.secondaryForeground }} className="font-medium text-sm">
+                    <Text style={{ color: colors.foreground }} className="font-medium text-sm">
                       {item.label}
                     </Text>
                     <Text className="text-muted-foreground text-[10px] mt-1">
@@ -593,7 +596,7 @@ export default function HomeScreen() {
 
         {/* ====== Recent Trips ====== */}
         <View
-          style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+          style={sectionCardStyle}
           className="rounded-2xl p-4 mb-6"
         >
           <View className="flex-row justify-between items-center mb-3">
@@ -619,11 +622,11 @@ export default function HomeScreen() {
               return (
                 <View
                   key={tripId}
-                  style={{ backgroundColor: colors.secondary }}
+                  style={nestedListCardStyle}
                   className="flex-row justify-between items-center p-3 rounded-xl mb-2"
                 >
                   <View className="flex-1">
-                    <Text style={{ color: colors.secondaryForeground }} className="font-medium text-sm">
+                    <Text style={{ color: colors.foreground }} className="font-medium text-sm">
                       {getLocationName(trip.start_location)} → {getLocationName(trip.end_location)}
                     </Text>
                     <Text className="text-muted-foreground text-[10px] mt-1" numberOfLines={1} ellipsizeMode="tail">

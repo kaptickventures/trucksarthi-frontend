@@ -422,7 +422,7 @@ export default function TruckProfile() {
         <View style={{ padding: 24, backgroundColor: colors.card, borderRadius: 24, marginBottom: 24, borderWidth: 1, borderColor: colors.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
             <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-              <Truck size={32} color="white" />
+              <Truck size={32} color={colors.primaryForeground} />
             </View>
             <View style={{ marginLeft: 16, flex: 1 }}>
               <Text style={{ fontSize: 22, fontWeight: 'bold', color: colors.foreground }} className="uppercase tracking-tight">{truck.registration_number}</Text>
@@ -529,13 +529,13 @@ export default function TruckProfile() {
                 onChangeText={t => setEditForm(p => ({ ...p, container_dimension: t }))}
                 placeholder="e.g. 20ft / 32ft"
                 placeholderTextColor={colors.mutedForeground}
-                style={{ backgroundColor: isDark ? colors.card : colors.secondary + "10", color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
               />
             </View>
           </View>
 
           <TouchableOpacity onPress={handleUpdateTruck} style={{ backgroundColor: colors.primary, padding: 18, borderRadius: 22, alignItems: 'center', marginTop: 32 }}>
-            <Text style={{ color: "white", fontWeight: '900', fontSize: 16 }}>{t('updateDetails')}</Text>
+            <Text style={{ color: colors.primaryForeground, fontWeight: '900', fontSize: 16 }}>{t('updateDetails')}</Text>
           </TouchableOpacity>
         </KeyboardAwareScrollView>
       </BottomSheet>
@@ -572,7 +572,7 @@ export default function TruckProfile() {
                   borderColor: selectedTags[item.key] ? colors.primary : colors.border
                 }}
               >
-                <Text style={{ color: selectedTags[item.key] ? "white" : colors.mutedForeground, fontSize: 12, fontWeight: "800" }}>
+                <Text style={{ color: selectedTags[item.key] ? colors.primaryForeground : colors.mutedForeground, fontSize: 12, fontWeight: "800" }}>
                   {item.label}
                 </Text>
               </TouchableOpacity>

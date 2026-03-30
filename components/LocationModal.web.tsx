@@ -102,10 +102,10 @@ export default function LocationFormModal({
             <TextInput
               className="rounded-2xl p-4 text-base font-bold"
               style={{
-                backgroundColor: isDark ? colors.card : colors.secondary + "40",
+                backgroundColor: colors.input,
                 color: colors.foreground,
                 borderWidth: 1,
-                borderColor: isDark ? colors.border : colors.border + "30",
+                borderColor: colors.border,
               }}
               value={formData.location_name}
               onChangeText={(val) => setFormData((prev) => ({ ...prev, location_name: val }))}

@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import ClientFormModal, { ClientFormData } from "../../components/ClientModal";
+import ProfileAvatar from "../../components/ProfileAvatar";
 import useClients from "../../hooks/useClient";
 import { useClientLedger } from "../../hooks/useClientLedger";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -158,7 +159,7 @@ export default function ClientLedgerScreen() {
     const missingFields = REQUIRED_FIELDS.filter(f => !String(formData[f as keyof typeof formData] || "").trim());
     if (missingFields.length > 0) {
       const labels = missingFields.map(f => f.replaceAll("_", " ").toUpperCase());
-      Alert.alert(t("missingFields"), `Please fill the following required fields:\n\nâ€¢ ${labels.join("\nâ€¢ ")}`);
+      Alert.alert(t("missingFields"), `Please fill the following required fields:\n\nÃ¢â‚¬Â¢ ${labels.join("\nÃ¢â‚¬Â¢ ")}`);
       return;
     }
 
@@ -246,41 +247,42 @@ export default function ClientLedgerScreen() {
                 borderColor: colors.border,
               }}
             >
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text style={{ fontSize: 17, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3 }}>
-                    {row.clientName}
-                  </Text>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <ProfileAvatar
+                    name={row.clientName}
+                    size="medium"
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: "800", color: colors.foreground, letterSpacing: -0.3 }}>
+                      {row.clientName}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
                 </View>
               </View>
 
-	              <View style={{ flexDirection: "row", gap: 16, marginBottom: 10, alignItems: "center" }}>
+	              <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
 	                <View>
 	                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{(t('unbilled') || 'Unbilled').toUpperCase()}</Text>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: row.unbilled > 0 ? colors.destructive : colors.mutedForeground }}>
-	                    Rs {row.unbilled.toLocaleString()}
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: row.unbilled > 0 ? colors.destructive : colors.mutedForeground }}> ₹ {row.unbilled.toLocaleString()}
 	                  </Text>
 	                </View>
 	                <View style={{ width: 1, backgroundColor: colors.border }} />
 	                <View>
 	                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('billed').toUpperCase()}</Text>
-	                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
-	                    Rs {row.billed.toLocaleString()}
+	                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}> ₹ {row.billed.toLocaleString()}
 	                  </Text>
 	                </View>
 	                <View style={{ width: 1, backgroundColor: colors.border }} />
 	                <View>
 	                  <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginBottom: 1 }}>{t('settled').toUpperCase()}</Text>
-	                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}>
-	                    Rs {row.settled.toLocaleString()}
+	                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}> ₹ {row.settled.toLocaleString()}
 	                  </Text>
 	                </View>
 	              </View>
-
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
-                <Text style={{ fontSize: 11, color: colors.mutedForeground, fontWeight: "600" }}>{t('viewKhata')}</Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
-              </View>
             </TouchableOpacity>
           );
         })}
@@ -301,7 +303,7 @@ export default function ClientLedgerScreen() {
           justifyContent: 'center',
           alignItems: 'center',
           elevation: 5,
-          shadowColor: "#000",
+          shadowColor: colors.shadow,
           shadowOpacity: 0.3,
           shadowRadius: 5,
           shadowOffset: { width: 0, height: 3 },

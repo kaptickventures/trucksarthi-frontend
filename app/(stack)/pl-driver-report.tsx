@@ -144,7 +144,7 @@ export default function PLDriverReportScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "800", color: isPositive ? colors.success : colors.destructive }}>
-                    {isPositive ? "+" : "-"}Rs {Math.abs(bal).toLocaleString()}
+                    {isPositive ? "+" : "-"}? {Math.abs(bal).toLocaleString()}
                   </Text>
                 </View>
               </View>

@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx";
+﻿import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
  
 export function cn(...inputs: ClassValue[]) {
@@ -33,7 +33,7 @@ export function formatSignedAmount(
   direction: "INCOME" | "EXPENSE" | "CREDIT" | "DEBIT"
 ): string {
   const sign = direction === "INCOME" || direction === "CREDIT" ? "+" : "-";
-  return `${sign}Rs ${Math.abs(Number(amount || 0)).toLocaleString()}`;
+  return `${sign}₹ ${Math.abs(Number(amount || 0)).toLocaleString()}`;
 }
 
 export function formatLabel(label: string | null | undefined): string {

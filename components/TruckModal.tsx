@@ -170,7 +170,7 @@ export default function TruckFormModal({
                                             <TextInput
                                                 className="rounded-2xl p-4 text-base font-bold"
                                                 style={{
-                                                    backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                                                    backgroundColor: colors.input,
                                                     color: colors.foreground,
                                                     borderWidth: 1,
                                                     borderColor: (field.key === "registration_number" && isVerified) ? colors.success : (isDark ? colors.border : colors.border + '30')
@@ -207,11 +207,11 @@ export default function TruckFormModal({
                                                 }}
                                             >
                                                 {isFetching ? (
-                                                    <ActivityIndicator color="white" size="small" />
+                                                    <ActivityIndicator color={colors.primaryForeground} size="small" />
                                                 ) : isVerified ? (
                                                     <CheckCircle2 color={colors.success} size={24} />
                                                 ) : (
-                                                    <Search color="white" size={24} />
+                                                    <Search color={colors.primaryForeground} size={24} />
                                                 )}
                                             </TouchableOpacity>
                                         )}

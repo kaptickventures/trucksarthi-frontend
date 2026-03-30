@@ -63,6 +63,7 @@ export default function AddTrip() {
   const navigation = useNavigation();
   const router = useRouter();
   const { colors, theme } = useThemeStore();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isDark = theme === "dark";
   const { t } = useTranslation();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -406,84 +407,85 @@ export default function AddTrip() {
             <ChevronDown size={20} color={colors.mutedForeground} />
           </TouchableOpacity>
 
-          {/* Origin */}
-          <View>
-            <InputLabel label={t('origin')} required />
-            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
-              <MapPin size={20} color={colors.primary} />
-              <TextInput
-                placeholder={t('from')}
-                className="flex-1 ml-2 text-base"
-                style={{ color: colors.foreground }}
-                value={startQuery}
-                onChangeText={(text) => {
-                  setStartQuery(text);
-                  if (formData.start_location_id) setFormData((prev) => ({ ...prev, start_location_id: "" }));
-                }}
-                placeholderTextColor={colors.mutedForeground}
-              />
-            </View>
-            {startQuery.trim().length > 0 && !formData.start_location_id && (
-              <View style={[styles.suggestionBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                {startSuggestions.map((loc) => (
-                  <TouchableOpacity
-                    key={loc._id}
-                    style={[styles.suggestionItem, { borderBottomColor: colors.border + "55" }]}
-                    onPress={() => {
-                      setStartQuery(loc.location_name);
-                      setFormData((prev) => ({ ...prev, start_location_id: loc._id }));
-                    }}
-                  >
-                    <Text style={{ color: colors.foreground }} numberOfLines={1}>{loc.location_name}</Text>
-                  </TouchableOpacity>
-                ))}
-                {startSuggestions.length === 0 && (
-                  <View style={styles.suggestionEmpty}>
-                    <Text style={{ color: colors.mutedForeground }} numberOfLines={1}>No match. Will add on save.</Text>
-                  </View>
-                )}
+          {/* Origin + Destination */}
+          <View className="flex-row gap-4">
+            <View className="flex-1">
+              <InputLabel label={t('origin')} required />
+              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
+                <MapPin size={20} color={colors.primary} />
+                <TextInput
+                  placeholder={t('from')}
+                  className="flex-1 ml-2 text-base"
+                  style={{ color: colors.foreground }}
+                  value={startQuery}
+                  onChangeText={(text) => {
+                    setStartQuery(text);
+                    if (formData.start_location_id) setFormData((prev) => ({ ...prev, start_location_id: "" }));
+                  }}
+                  placeholderTextColor={colors.mutedForeground}
+                />
               </View>
-            )}
-          </View>
+              {startQuery.trim().length > 0 && !formData.start_location_id && (
+                <View style={[styles.suggestionBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                  {startSuggestions.map((loc) => (
+                    <TouchableOpacity
+                      key={loc._id}
+                      style={[styles.suggestionItem, { borderBottomColor: colors.border + "55" }]}
+                      onPress={() => {
+                        setStartQuery(loc.location_name);
+                        setFormData((prev) => ({ ...prev, start_location_id: loc._id }));
+                      }}
+                    >
+                      <Text style={{ color: colors.foreground }} numberOfLines={1}>{loc.location_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {startSuggestions.length === 0 && (
+                    <View style={styles.suggestionEmpty}>
+                      <Text style={{ color: colors.mutedForeground }} numberOfLines={1}>No match. Will add on save.</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
 
-          {/* Destination */}
-          <View>
-            <InputLabel label={t('destination')} required />
-            <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
-              <Navigation size={20} color={colors.primary} />
-              <TextInput
-                placeholder={t('to')}
-                className="flex-1 ml-2 text-base"
-                style={{ color: colors.foreground }}
-                value={endQuery}
-                onChangeText={(text) => {
-                  setEndQuery(text);
-                  if (formData.end_location_id) setFormData((prev) => ({ ...prev, end_location_id: "" }));
-                }}
-                placeholderTextColor={colors.mutedForeground}
-              />
-            </View>
-            {endQuery.trim().length > 0 && !formData.end_location_id && (
-              <View style={[styles.suggestionBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                {endSuggestions.map((loc) => (
-                  <TouchableOpacity
-                    key={loc._id}
-                    style={[styles.suggestionItem, { borderBottomColor: colors.border + "55" }]}
-                    onPress={() => {
-                      setEndQuery(loc.location_name);
-                      setFormData((prev) => ({ ...prev, end_location_id: loc._id }));
-                    }}
-                  >
-                    <Text style={{ color: colors.foreground }} numberOfLines={1}>{loc.location_name}</Text>
-                  </TouchableOpacity>
-                ))}
-                {endSuggestions.length === 0 && (
-                  <View style={styles.suggestionEmpty}>
-                    <Text style={{ color: colors.mutedForeground }} numberOfLines={1}>No match. Will add on save.</Text>
-                  </View>
-                )}
+            <View className="flex-1">
+              <InputLabel label={t('destination')} required />
+              <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.input }]}>
+                <Navigation size={20} color={colors.primary} />
+                <TextInput
+                  placeholder={t('to')}
+                  className="flex-1 ml-2 text-base"
+                  style={{ color: colors.foreground }}
+                  value={endQuery}
+                  onChangeText={(text) => {
+                    setEndQuery(text);
+                    if (formData.end_location_id) setFormData((prev) => ({ ...prev, end_location_id: "" }));
+                  }}
+                  placeholderTextColor={colors.mutedForeground}
+                />
               </View>
-            )}
+              {endQuery.trim().length > 0 && !formData.end_location_id && (
+                <View style={[styles.suggestionBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                  {endSuggestions.map((loc) => (
+                    <TouchableOpacity
+                      key={loc._id}
+                      style={[styles.suggestionItem, { borderBottomColor: colors.border + "55" }]}
+                      onPress={() => {
+                        setEndQuery(loc.location_name);
+                        setFormData((prev) => ({ ...prev, end_location_id: loc._id }));
+                      }}
+                    >
+                      <Text style={{ color: colors.foreground }} numberOfLines={1}>{loc.location_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {endSuggestions.length === 0 && (
+                    <View style={styles.suggestionEmpty}>
+                      <Text style={{ color: colors.mutedForeground }} numberOfLines={1}>No match. Will add on save.</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
           </View>
 
           <View className="flex-row gap-4">
@@ -614,9 +616,9 @@ export default function AddTrip() {
           >
             <View className="flex-row items-center">
               {isSaving ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color={colors.primaryForeground} />
               ) : (
-                <Plus size={24} color="white" strokeWidth={3} />
+                <Plus size={24} color={colors.primaryForeground} strokeWidth={3} />
               )}
               <Text className="text-white text-xl font-bold ml-2">
                 {isSaving ? "Saving..." : t('recordTrip')}
@@ -785,20 +787,15 @@ function InputLabel({ label, required }: { label: string; required?: boolean }) 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   inputContainer: {
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1.5,
+    borderRadius: 12,
+    borderWidth: 1,
     paddingHorizontal: 16,
     marginBottom: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   suggestionBox: {
     borderRadius: 14,

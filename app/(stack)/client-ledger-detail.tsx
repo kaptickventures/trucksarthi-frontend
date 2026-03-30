@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+﻿import { Ionicons } from "@expo/vector-icons";
 import { NotificationBadge } from "../../components/NotificationBadge";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -235,7 +235,7 @@ export default function ClientLedgerDetailScreen() {
   }, [locations]);
 
 
-  // ✅ ADD — Invoice PDF (same approach as TripLog)
+  // âœ… ADD â€” Invoice PDF (same approach as TripLog)
   const generateInvoicePDF = async (invoice: Invoice, mode: "share" | "view" = "share") => {
     try {
       const invoiceTrips = invoice.items.map(item => {
@@ -564,7 +564,7 @@ export default function ClientLedgerDetailScreen() {
           <th>Particulars</th>
           <th style="width:10%">HSN/SAC</th>
           <th style="width:11%">Rate</th>
-          <th style="width:12%">Total Value Rs.</th>
+          <th style="width:12%">Total Value ? </th>
         </tr>
       </thead>
       <tbody>
@@ -586,7 +586,7 @@ export default function ClientLedgerDetailScreen() {
     <div class="bottom-wrap">
       <div class="amount-words">
         <div class="label">Rupees in words</div>
-        <div style="margin-top:4px;">Total Invoice Amount: Rs. ${money(grandTotal)} only</div>
+        <div style="margin-top:4px;">Total Invoice Amount: ₹ ${money(grandTotal)} only</div>
       </div>
       <div class="totals-box">
         <div class="tot-line">
@@ -692,7 +692,7 @@ export default function ClientLedgerDetailScreen() {
     (t: Trip) => t && getId(t.client) === id
   );
 
-  // 💰 CALCULATED AMOUNTS
+  // ðŸ’° CALCULATED AMOUNTS
   const unbilledAmount = useMemo(() => {
     return clientTrips
       .filter((t) => t && normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced")
@@ -751,8 +751,8 @@ export default function ClientLedgerDetailScreen() {
         .map((entry: any, index: number) => {
           const type = String(entry?.entry_type || "").toLowerCase();
           const isDebit = type === "debit";
-          const debit = isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
-          const credit = !isDebit ? `Rs ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const debit = isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const credit = !isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
           const title = entry.remarks || (isDebit ? "Invoice" : "Payment Received");
           return `
           <tr>
@@ -768,12 +768,12 @@ export default function ClientLedgerDetailScreen() {
       const totalsHtml = `
           <tr class="totals">
             <td colspan="3">Totals</td>
-            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
-            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+            <td class="debit">₹ ${debitTotal.toLocaleString()}</td>
+            <td class="credit">₹ ${creditTotal.toLocaleString()}</td>
           </tr>
           <tr class="difference">
             <td colspan="3">Difference (Debit - Credit)</td>
-            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}₹ ${Math.abs(difference).toLocaleString()}</td>
           </tr>`;
 
       const html = `
@@ -806,8 +806,8 @@ export default function ClientLedgerDetailScreen() {
         <div class="client">${escapeHtml(client?.client_name || "Client")}</div>
         <div class="sub">Period: ${escapeHtml(formatDate(downloadRange.startDate))} - ${escapeHtml(formatDate(downloadRange.endDate))}</div>
         <div class="cards">
-          <div class="card"><div class="label">Debit</div><div class="value">Rs ${debitTotal.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Credit</div><div class="value">Rs ${creditTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Debit</div><div class="value">₹ ${debitTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Credit</div><div class="value">₹ ${creditTotal.toLocaleString()}</div></div>
         </div>
         <table>
           <thead><tr><th>#</th><th>Date</th><th>Particulars</th><th>Debit</th><th>Credit</th></tr></thead>
@@ -950,7 +950,7 @@ export default function ClientLedgerDetailScreen() {
         if (amount > remainingAmount) {
           Alert.alert(
             t('amountExceedsRemaining'),
-            `Remaining for this invoice is ₹${remainingAmount.toLocaleString()}. Please enter a smaller amount.`
+            `Remaining for this invoice is â‚¹${remainingAmount.toLocaleString()}. Please enter a smaller amount.`
           );
           return;
         }
@@ -1056,7 +1056,7 @@ export default function ClientLedgerDetailScreen() {
 
     if (missingFields.length > 0) {
       const labels = missingFields.map(f => f.replaceAll("_", " ").toUpperCase());
-      Alert.alert("⚠️ Missing Fields", `Please fill the following required fields:\n\n• ${labels.join("\n• ")}`);
+      Alert.alert("âš ï¸ Missing Fields", `Please fill the following required fields:\n\nâ€¢ ${labels.join("\nâ€¢ ")}`);
       return;
     }
 
@@ -1072,7 +1072,7 @@ export default function ClientLedgerDetailScreen() {
     }
   };
 
-  // Still loading or clients array not yet populated — show skeleton
+  // Still loading or clients array not yet populated â€” show skeleton
   if (userLoading || clientsLoading || !id || (clients.length > 0 && !client)) {
     return (
       <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
@@ -1237,8 +1237,8 @@ export default function ClientLedgerDetailScreen() {
               style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="logo-whatsapp" size={18} color="white" />
-                <Text style={{ fontWeight: '600', fontSize: 14, color: 'white' }}>
+                <Ionicons name="logo-whatsapp" size={18} color={colors.primaryForeground} />
+                <Text style={{ fontWeight: '600', fontSize: 14, color: colors.primaryForeground }}>
                   WhatsApp
                 </Text>
               </View>
@@ -1273,7 +1273,7 @@ export default function ClientLedgerDetailScreen() {
               className="flex-1 py-3 rounded-xl items-center"
               style={{
                 backgroundColor: activeTab === tab ? colors.card : 'transparent',
-                shadowColor: activeTab === tab ? "#000" : 'transparent',
+                shadowColor: activeTab === tab ? colors.shadow : colors.transparent,
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: activeTab === tab ? 0.1 : 0,
                 shadowRadius: 4,
@@ -1325,12 +1325,12 @@ export default function ClientLedgerDetailScreen() {
                       <Text className="font-bold" style={{ color: colors.foreground }}>Trip #{trip.public_id || getId(trip).slice(-6)}</Text>
                       {trip.trip_date ? <Text className="text-xs" style={{ color: colors.mutedForeground }}>{formatDate(trip.trip_date)}</Text> : null}
                     </View>
-                    <Text className="font-bold text-lg" style={{ color: colors.foreground }}>₹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
+                    <Text className="font-bold text-lg" style={{ color: colors.foreground }}>â‚¹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
                   </View>
                   <View className="flex-row items-center gap-2">
                     <MapPin size={14} color={colors.mutedForeground} />
                     <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1}>
-                      {locationMap[getId(trip.start_location)]} → {locationMap[getId(trip.end_location)]}
+                      {locationMap[getId(trip.start_location)]} â†’ {locationMap[getId(trip.end_location)]}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -1376,11 +1376,11 @@ export default function ClientLedgerDetailScreen() {
                     <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border + '4D' }}>
                       <View>
                         <Text className="font-bold text-lg" style={{ color: colors.foreground }}>
-                          ₹{remainingAmount.toLocaleString()}
+                          â‚¹{remainingAmount.toLocaleString()}
                         </Text>
                         {remainingAmount < totalAmount && (
                           <Text className="text-[11px]" style={{ color: colors.mutedForeground }}>
-                            Balance due (Total: ₹{totalAmount.toLocaleString()})
+                            Balance due (Total: â‚¹{totalAmount.toLocaleString()})
                           </Text>
                         )}
                         {remainingAmount === totalAmount && (
@@ -1435,7 +1435,7 @@ export default function ClientLedgerDetailScreen() {
                         {(entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "PARTIAL" : "FULL"}
                       </Text>
                     </View>
-                    <Text className="font-bold" style={{ color: colors.success }}>₹{Number(entry.amount).toLocaleString()}</Text>
+                    <Text className="font-bold" style={{ color: colors.success }}>â‚¹{Number(entry.amount).toLocaleString()}</Text>
                   </View>
                 </View>
               ))
@@ -1467,7 +1467,7 @@ export default function ClientLedgerDetailScreen() {
                 <TouchableOpacity
                   onPress={() => setShowInvoiceDueDatePicker(true)}
                   className="flex-row items-center rounded-2xl px-4 py-4"
-                  style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', borderWidth: 1, borderColor: colors.border + '30' }}
+                  style={{ backgroundColor: colors.input, borderWidth: 1, borderColor: colors.border + '30' }}
                 >
                   <Ionicons name="calendar-outline" size={20} color={colors.primary} style={{ marginRight: 12 }} />
                   <Text className="text-base font-bold" style={{ color: colors.foreground }}>{formatDate(invoiceDueDate)}</Text>
@@ -1574,7 +1574,7 @@ export default function ClientLedgerDetailScreen() {
               <TouchableOpacity
                 onPress={() => setShowDatePicker(true)}
                 className="flex-row items-center rounded-2xl px-4 py-4"
-                style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', borderWidth: 1, borderColor: colors.border + '30' }}
+                style={{ backgroundColor: colors.input, borderWidth: 1, borderColor: colors.border + '30' }}
               >
                 <Ionicons name="calendar-outline" size={20} color={colors.primary} style={{ marginRight: 12 }} />
                 <Text className="text-base font-bold" style={{ color: colors.foreground }}>{formatDate(paymentDate)}</Text>
@@ -1587,7 +1587,7 @@ export default function ClientLedgerDetailScreen() {
             {/* AMOUNT */}
             <View className="mb-6">
               <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>Amount</Text>
-              <View className="flex-row items-center rounded-2xl px-5 py-4" style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', borderWidth: 1, borderColor: colors.border + '30' }}>
+              <View className="flex-row items-center rounded-2xl px-5 py-4" style={{ backgroundColor: colors.input, borderWidth: 1, borderColor: colors.border + '30' }}>
                 <Banknote size={24} color={colors.success} />
                 <TextInput
                   placeholder="0"
@@ -1613,7 +1613,7 @@ export default function ClientLedgerDetailScreen() {
                 textAlignVertical="top"
                 className="text-base font-bold rounded-2xl p-4"
                 style={{
-                  backgroundColor: isDark ? colors.card : colors.secondary + '40',
+                  backgroundColor: colors.input,
                   borderWidth: 1,
                   borderColor: colors.border + '30',
                   color: colors.foreground,
@@ -1642,7 +1642,7 @@ export default function ClientLedgerDetailScreen() {
                         borderColor: selected ? colors.primary : colors.border + '30',
                       }}
                     >
-                      <Text style={{ color: selected ? "white" : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{mode}</Text>
+                      <Text style={{ color: selected ? colors.primaryForeground : colors.foreground, fontWeight: "800", fontSize: 13, textTransform: 'uppercase' }}>{mode}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -1655,7 +1655,7 @@ export default function ClientLedgerDetailScreen() {
                 style={{ backgroundColor: colors.primary }}
                 className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
               >
-                <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE PAYMENT</Text>
+                <Text style={{ color: colors.primaryForeground, fontWeight: "900", fontSize: 18 }} className="text-center font-black">SAVE PAYMENT</Text>
               </TouchableOpacity>
             </View>
           </KeyboardAwareScrollView>
@@ -1681,7 +1681,7 @@ export default function ClientLedgerDetailScreen() {
                 <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>{t('clientName')} *</Text>
                 <TextInput
                   className="p-4 rounded-2xl font-bold"
-                  style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
+                  style={{ backgroundColor: colors.input, color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
                   value={editFormData.client_name}
                   onChangeText={(t) => setEditFormData(prev => ({ ...prev, client_name: t }))}
                   placeholder="e.g. Acme Corp"
@@ -1692,7 +1692,7 @@ export default function ClientLedgerDetailScreen() {
                 <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>{t('contactPerson')} *</Text>
                 <TextInput
                   className="p-4 rounded-2xl font-bold"
-                  style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
+                  style={{ backgroundColor: colors.input, color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
                   value={editFormData.contact_person_name}
                   onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_person_name: t }))}
                   placeholder="Full Name"
@@ -1704,7 +1704,7 @@ export default function ClientLedgerDetailScreen() {
                   <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>{t('clientContact')} *</Text>
                   <TextInput
                     className="p-4 rounded-2xl font-bold"
-                    style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
+                    style={{ backgroundColor: colors.input, color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
                     value={editFormData.contact_number}
                     onChangeText={(t) => setEditFormData(prev => ({ ...prev, contact_number: t }))}
                     keyboardType="phone-pad"
@@ -1715,7 +1715,7 @@ export default function ClientLedgerDetailScreen() {
                   <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>{t('email')} *</Text>
                   <TextInput
                     className="p-4 rounded-2xl font-bold"
-                    style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
+                    style={{ backgroundColor: colors.input, color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
                     value={editFormData.email_address}
                     onChangeText={(t) => setEditFormData(prev => ({ ...prev, email_address: t }))}
                     keyboardType="email-address"
@@ -1732,7 +1732,7 @@ export default function ClientLedgerDetailScreen() {
                   <View className="flex-1">
                     <TextInput
                       className="p-4 rounded-2xl font-bold"
-                      style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
+                      style={{ backgroundColor: colors.input, color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
                       value={hasGstinInEdit ? editFormData.gstin : String(editFormData.pan_number || "")}
                       onChangeText={(t) =>
                         setEditFormData(prev =>
@@ -1754,7 +1754,7 @@ export default function ClientLedgerDetailScreen() {
                       style={{ backgroundColor: editFormData.gstin ? colors.primary : colors.muted }}
                       className="w-20 rounded-2xl items-center justify-center border border-border/50"
                     >
-                      <Text style={{ color: editFormData.gstin ? "white" : colors.mutedForeground }} className="font-bold text-[10px] uppercase tracking-widest text-center px-1">
+                      <Text style={{ color: editFormData.gstin ? colors.primaryForeground : colors.mutedForeground }} className="font-bold text-[10px] uppercase tracking-widest text-center px-1">
                         {verifyingGstin ? "Verifying..." : "Verify\n& Fill"}
                       </Text>
                     </TouchableOpacity>
@@ -1766,7 +1766,7 @@ export default function ClientLedgerDetailScreen() {
                 <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>{t('officeAddress')} *</Text>
                 <TextInput
                   className="p-4 rounded-2xl font-bold"
-                  style={{ backgroundColor: isDark ? colors.card : colors.secondary + '40', color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
+                  style={{ backgroundColor: colors.input, color: colors.foreground, borderWidth: 1, borderColor: colors.border + '30' }}
                   value={editFormData.office_address}
                   onChangeText={(t) => setEditFormData(prev => ({ ...prev, office_address: t }))}
                   multiline
@@ -1783,7 +1783,7 @@ export default function ClientLedgerDetailScreen() {
                   className="py-5 rounded-[22px] shadow-lg shadow-green-500/20"
                   style={{ backgroundColor: colors.primary }}
                 >
-                  <Text style={{ color: "white", fontWeight: "900", fontSize: 18 }} className="text-center font-black">{t('saveUpdates').toUpperCase()}</Text>
+                  <Text style={{ color: colors.primaryForeground, fontWeight: "900", fontSize: 18 }} className="text-center font-black">{t('saveUpdates').toUpperCase()}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1849,7 +1849,7 @@ export default function ClientLedgerDetailScreen() {
 
             {Platform.OS === "ios" && downloadDateField && (
               <Modal transparent animationType="slide" visible onRequestClose={closeDownloadDatePicker}>
-                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }}>
+                <View style={{ flex: 1, backgroundColor: colors.overlay35, justifyContent: "flex-end" }}>
                   <View
                     style={{
                       backgroundColor: colors.card,
@@ -1918,7 +1918,7 @@ function SummaryCard({ label, value, green }: any) {
   return (
     <View style={{ backgroundColor: colors.card }} className="flex-1 p-4 rounded-2xl border border-border/50">
       <Text className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{label}</Text>
-      <Text style={{ color: green ? colors.success : colors.foreground }} className="text-lg font-bold">₹{Number(value).toLocaleString()}</Text>
+      <Text style={{ color: green ? colors.success : colors.foreground }} className="text-lg font-bold">â‚¹{Number(value).toLocaleString()}</Text>
     </View>
   );
 }

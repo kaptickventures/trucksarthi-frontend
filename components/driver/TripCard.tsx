@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Truck } from 'lucide-react-native';
+﻿import { Calendar, MapPin, Truck } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { DriverTripView } from '../../context/DriverAppContext';
@@ -22,7 +22,8 @@ export function TripCard({ trip, onPress, isActive = false, totalExpenses, expen
         {
           backgroundColor: colors.card,
           borderColor: isActive ? colors.primary : colors.border,
-          borderWidth: isActive ? 2 : 1
+          borderWidth: isActive ? 2 : 1,
+          shadowColor: colors.shadow,
         }
       ]}
       onPress={onPress}
@@ -57,7 +58,7 @@ export function TripCard({ trip, onPress, isActive = false, totalExpenses, expen
       {totalExpenses !== undefined && totalExpenses > 0 && (
         <View style={[styles.expenseRow, { borderTopColor: colors.border }]}>
           <Text style={[styles.detailText, { color: colors.mutedForeground, marginLeft: 0 }]}>{expensesLabel || 'Expenses'}:</Text>
-          <Text style={[styles.expenseText, { color: colors.destructive }]}>Rs {totalExpenses}</Text>
+          <Text style={[styles.expenseText, { color: colors.destructive }]}> ₹ {totalExpenses}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -69,7 +70,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

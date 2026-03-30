@@ -1,5 +1,5 @@
 import { X, Calendar, MapPin, Truck, User, IndianRupee, FileText, ChevronDown, Navigation, Plus } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Platform,
@@ -55,6 +55,7 @@ export default function EditTripModal({
   onDelete,
 }: Props) {
   const { colors, theme } = useThemeStore();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isDark = theme === "dark";
   const insets = useSafeAreaInsets();
 
@@ -442,19 +443,14 @@ export default function EditTripModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   inputContainer: {
     height: 66,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1.5,
+    borderRadius: 12,
+    borderWidth: 1,
     paddingHorizontal: 14,
     marginBottom: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   }
 });

@@ -1,4 +1,4 @@
-import * as FileSystem from "expo-file-system/legacy";
+﻿import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -101,8 +101,8 @@ export default function PLClientReportDetailScreen() {
 
       const rowsHtml = normalizedEntries
         .map((entry: any, index: number) => {
-          const debit = entry.isCredit ? "" : `Rs ${Math.abs(entry.amount).toLocaleString()}`;
-          const credit = entry.isCredit ? `Rs ${Math.abs(entry.amount).toLocaleString()}` : "";
+          const debit = entry.isCredit ? "" : `₹ ${Math.abs(entry.amount).toLocaleString()}`;
+          const credit = entry.isCredit ? `₹ ${Math.abs(entry.amount).toLocaleString()}` : "";
           return `
           <tr>
             <td>${index + 1}</td>
@@ -119,12 +119,12 @@ export default function PLClientReportDetailScreen() {
       const totalsHtml = `
           <tr class="totals">
             <td colspan="5">Totals</td>
-            <td class="debit">Rs ${debitTotal.toLocaleString()}</td>
-            <td class="credit">Rs ${creditTotal.toLocaleString()}</td>
+            <td class="debit">₹ ${debitTotal.toLocaleString()}</td>
+            <td class="credit">₹ ${creditTotal.toLocaleString()}</td>
           </tr>
           <tr class="difference">
             <td colspan="5">Difference (Debit - Credit)</td>
-            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}Rs ${Math.abs(difference).toLocaleString()}</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}₹ ${Math.abs(difference).toLocaleString()}</td>
           </tr>`;
 
       const html = `
@@ -155,9 +155,9 @@ export default function PLClientReportDetailScreen() {
         <div class="sub">Client: ${escapeHtml(clientName)}</div>
         <div class="sub">Generated on: ${escapeHtml(formatDate(new Date()))}</div>
         <div class="cards">
-          <div class="card"><div class="label">Billed</div><div class="value">Rs ${summary.total_debits.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Settled</div><div class="value">Rs ${summary.total_credits.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Outstanding</div><div class="value">Rs ${summary.outstanding.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Billed</div><div class="value">₹ ${summary.total_debits.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Settled</div><div class="value">₹ ${summary.total_credits.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Outstanding</div><div class="value">₹ ${summary.outstanding.toLocaleString()}</div></div>
         </div>
         <table>
           <thead><tr><th>#</th><th>Date</th><th>Entry</th><th>Reference</th><th>Mode</th><th>Debit</th><th>Credit</th></tr></thead>
@@ -215,7 +215,7 @@ export default function PLClientReportDetailScreen() {
 
         <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ color: summary.outstanding > 0 ? colors.destructive : colors.success, fontWeight: "800", fontSize: 16 }}>
-            Outstanding: Rs {summary.outstanding.toLocaleString()}
+            Outstanding: ₹ {summary.outstanding.toLocaleString()}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>
             {normalizedEntries.length} entries
@@ -225,11 +225,11 @@ export default function PLClientReportDetailScreen() {
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 10 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>{(t("billed") || "Billed").toUpperCase()}</Text>
-            <Text style={{ color: colors.foreground, marginTop: 6, fontWeight: "800", fontSize: 14 }}>Rs {summary.total_debits.toLocaleString()}</Text>
+            <Text style={{ color: colors.foreground, marginTop: 6, fontWeight: "800", fontSize: 14 }}> ₹ {summary.total_debits.toLocaleString()}</Text>
           </View>
           <View style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 10 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>{(t("settled") || "Settled").toUpperCase()}</Text>
-            <Text style={{ color: colors.success, marginTop: 6, fontWeight: "800", fontSize: 14 }}>Rs {summary.total_credits.toLocaleString()}</Text>
+            <Text style={{ color: colors.success, marginTop: 6, fontWeight: "800", fontSize: 14 }}> ₹ {summary.total_credits.toLocaleString()}</Text>
           </View>
         </View>
 
@@ -255,7 +255,7 @@ export default function PLClientReportDetailScreen() {
                     </Text>
                   </View>
                   <Text style={{ color: item.isCredit ? colors.success : colors.destructive, fontWeight: "800" }}>
-                    {item.isCredit ? "+" : "-"}Rs {Math.abs(item.amount).toLocaleString()}
+                    {item.isCredit ? "+" : "-"}? {Math.abs(item.amount).toLocaleString()}
                   </Text>
                 </View>
               </View>
