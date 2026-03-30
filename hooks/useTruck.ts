@@ -6,7 +6,13 @@ import { Truck } from "../types/entity";
 
 /* ---------------- HOOK ---------------- */
 
-export default function useTrucks() {
+const isAuthError = (error: any) => {
+  const status = Number(error?.response?.status || 0);
+  const message = String(error?.response?.data?.error || "").toLowerCase();
+  return status === 401 || status === 403 || message.includes("not authorized") || message.includes("no token");
+};
+
+export default function useTrucks(autoFetch: boolean = true, silentAuthErrors: boolean = false) {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [loading, setLoading] = useState(false);
   const toRefId = (value: any) =>
@@ -26,6 +32,7 @@ export default function useTrucks() {
       setTrucks(res.data);
     } catch (error: any) {
       console.error(error);
+      if (silentAuthErrors && isAuthError(error)) return;
       Alert.alert(
         "Error",
         error?.response?.data?.error || "Failed to load trucks"
@@ -126,8 +133,9 @@ export default function useTrucks() {
   };
 
   useEffect(() => {
+    if (!autoFetch) return;
     fetchTrucks();
-  }, [fetchTrucks]);
+  }, [fetchTrucks, autoFetch]);
 
   return {
     trucks,

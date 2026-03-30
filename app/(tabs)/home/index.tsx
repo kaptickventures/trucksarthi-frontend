@@ -429,6 +429,10 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        <View style={{ marginBottom: 8 }}>
+          <Text style={{ color: colors.foreground, fontSize: 30, fontWeight: "900" }}>Welcome!</Text>
+        </View>
+
         {/* ====== Stats Section ====== */}
         <View className="flex-row justify-between mb-4">
           <View

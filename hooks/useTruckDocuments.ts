@@ -6,7 +6,13 @@ import { TruckDocument } from "../types/entity";
 
 /* ---------------- HOOK ---------------- */
 
-export default function useTruckDocuments(truck_id?: string) {
+const isAuthError = (error: any) => {
+  const status = Number(error?.response?.status || 0);
+  const message = String(error?.response?.data?.error || "").toLowerCase();
+  return status === 401 || status === 403 || message.includes("not authorized") || message.includes("no token");
+};
+
+export default function useTruckDocuments(truck_id?: string, autoFetch: boolean = true, silentAuthErrors: boolean = false) {
   const [documents, setDocuments] = useState<TruckDocument[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -22,6 +28,7 @@ export default function useTruckDocuments(truck_id?: string) {
       setDocuments(res.data);
     } catch (error: any) {
       console.error(error);
+      if (silentAuthErrors && isAuthError(error)) return;
       Alert.alert(
         "Error",
         error?.response?.data?.error || "Failed to load documents"
@@ -119,8 +126,9 @@ export default function useTruckDocuments(truck_id?: string) {
 
   /* ---------------- AUTO FETCH ---------------- */
   useEffect(() => {
+    if (!autoFetch) return;
     fetchDocuments();
-  }, [fetchDocuments]);
+  }, [fetchDocuments, autoFetch]);
 
   return {
     documents,

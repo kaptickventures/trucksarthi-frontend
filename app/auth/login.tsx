@@ -1,13 +1,13 @@
 import { useRouter } from "expo-router";
 import { ChevronLeft, Smartphone, Lock } from "lucide-react-native";
 import { useEffect, useState } from "react";
+import * as WebBrowser from "expo-web-browser";
 import {
   ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -28,7 +28,7 @@ export default function LoginPhone() {
   const isDark = theme === "dark";
   const canGoBack = typeof router.canGoBack === "function" ? router.canGoBack() : false;
 
-  const [phoneNumber, setPhoneNumber] = useState("+91");
+  const [phoneDigits, setPhoneDigits] = useState("");
   const [code, setCode] = useState("");
   const userType: "fleet_owner" = "fleet_owner";
   const [loading, setLoading] = useState(false);
@@ -53,9 +53,25 @@ export default function LoginPhone() {
     return `${mins}:${secs}`;
   };
 
-  // Formatting phone number
-  const formatPhone = (text: string) => {
-    setPhoneNumber(normalizePhoneInput(text));
+  const phoneNumber = normalizePhoneInput(phoneDigits);
+
+  const updatePhoneDigits = (text: string) => {
+    const digits = String(text || "").replace(/\D/g, "").slice(0, 10);
+    setPhoneDigits(digits);
+  };
+
+  const openPolicy = async (kind: "terms" | "privacy") => {
+    const termsUrl = process.env.EXPO_PUBLIC_TERMS_URL || "https://trucksarthi.in/termsofservice";
+    const privacyUrl = process.env.EXPO_PUBLIC_PRIVACY_URL || "https://trucksarthi.in/privacypolicy";
+    const url = kind === "terms" ? termsUrl : privacyUrl;
+    try {
+      await WebBrowser.openBrowserAsync(url, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+        controlsColor: colors.primary,
+      });
+    } catch {
+      Alert.alert("Unable to open", "Could not open policy page right now.");
+    }
   };
 
   const handleSendOTP = async () => {
@@ -94,11 +110,7 @@ export default function LoginPhone() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={{ flex: 1 }}>
           {/* Header */}
           <View style={{ padding: 24, flexDirection: 'row', alignItems: 'center' }}>
             {canGoBack ? (
@@ -144,12 +156,15 @@ export default function LoginPhone() {
                     paddingHorizontal: 16
                   }}>
                     <Smartphone size={20} color={colors.mutedForeground} />
+                    <Text style={{ color: colors.mutedForeground, fontSize: 20, fontWeight: "800", marginLeft: 10 }}>
+                      +91
+                    </Text>
                     <TextInput
-                      value={phoneNumber}
-                      onChangeText={formatPhone}
+                      value={phoneDigits}
+                      onChangeText={updatePhoneDigits}
                       keyboardType="phone-pad"
-                      maxLength={13}
-                      placeholder="+91 XXXXX XXXXX"
+                      maxLength={10}
+                      placeholder="98765 43210"
                       placeholderTextColor={colors.mutedForeground}
                       style={{
                         flex: 1,
@@ -281,10 +296,17 @@ export default function LoginPhone() {
 
           <View style={{ padding: 32, alignItems: 'center' }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
-              By continuing, you agree to our{"\n"}<Text style={{ fontWeight: 'bold' }}>Terms of Service</Text> and <Text style={{ fontWeight: 'bold' }}>Privacy Policy</Text>
+              By continuing, you agree to our{"\n"}
+              <Text onPress={() => void openPolicy("terms")} style={{ fontWeight: 'bold', color: colors.primary }}>
+                Terms of Service
+              </Text>
+              {" and "}
+              <Text onPress={() => void openPolicy("privacy")} style={{ fontWeight: 'bold', color: colors.primary }}>
+                Privacy Policy
+              </Text>
             </Text>
           </View>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

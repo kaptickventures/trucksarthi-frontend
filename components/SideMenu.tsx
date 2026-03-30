@@ -49,7 +49,6 @@ export default function SideMenu({
 
   // Fallback height in case header height is unavailable (should be rare).
   const DEFAULT_HEADER_HEIGHT = 56;
-  const HEADER_DIVIDER_GAP = 2; // keep the drawer below the header border
   const menuTopOffset =
     typeof topOffset === "number"
       ? topOffset
@@ -145,8 +144,8 @@ export default function SideMenu({
         >
           <View style={{ flex: 1 }}>
           {/* STATIC PROFILE HEADER (Sticky) */}
-          <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 24 }}>
-            <TouchableOpacity onPress={() => navigate("/(stack)/profile")} style={{ paddingTop: 12 }}>
+          <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 16 }}>
+            <TouchableOpacity onPress={() => navigate("/(stack)/profile")}>
               <View className="flex-row items-center">
                   <View
                     className="w-16 h-16 rounded-full overflow-hidden items-center justify-center"

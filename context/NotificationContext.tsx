@@ -15,8 +15,8 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
-    const { trucks, fetchTrucks } = useTrucks();
-    const { documents, fetchDocuments } = useTruckDocuments();
+    const { trucks, fetchTrucks } = useTrucks(Boolean(user), true);
+    const { documents, fetchDocuments } = useTruckDocuments(undefined, Boolean(user), true);
     const [notifications, setNotifications] = useState<any[]>([]);
 
     const fetchNotifications = useCallback(async () => {
@@ -30,12 +30,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }, [user]);
 
     const refresh = useCallback(async () => {
+        if (!user) return;
         await Promise.all([
             fetchNotifications(),
             fetchTrucks(),
             fetchDocuments()
         ]);
-    }, [fetchNotifications, fetchTrucks, fetchDocuments]);
+    }, [user, fetchNotifications, fetchTrucks, fetchDocuments]);
 
     useEffect(() => {
         if (user) {

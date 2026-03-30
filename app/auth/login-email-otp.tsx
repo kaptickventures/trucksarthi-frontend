@@ -7,7 +7,6 @@ import {
     Image,
     KeyboardAvoidingView,
     Platform,
-    ScrollView,
     Text,
     TextInput,
     TouchableOpacity,
@@ -64,10 +63,7 @@ export default function LoginEmailOTP() {
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
             >
-                <ScrollView
-                    contentContainerStyle={{ flexGrow: 1 }}
-                    keyboardShouldPersistTaps="handled"
-                >
+                <View style={{ flex: 1 }}>
                     {/* Header */}
                     <View style={{ padding: 24, flexDirection: 'row', alignItems: 'center' }}>
                         <TouchableOpacity
@@ -239,7 +235,7 @@ export default function LoginEmailOTP() {
                             <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>ENCRYPTED SESSION</Text>
                         </View>
                     </View>
-                </ScrollView>
+                </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
