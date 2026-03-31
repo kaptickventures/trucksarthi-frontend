@@ -18,8 +18,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRouter } from "expo-router";
 import { NotificationBadge } from "../../../components/NotificationBadge";
-
-import EditTripModal from "../../../components/EditTripModal";
 import SideMenu from "../../../components/SideMenu";
 
 import useClients from "../../../hooks/useClient";
@@ -64,7 +62,6 @@ export default function TripLog() {
     trips,
     loading: tripsLoading,
     fetchTrips,
-    updateTrip,
     deleteTrip,
   } = useTrips();
 
@@ -117,9 +114,6 @@ export default function TripLog() {
   const [showDatePicker, setShowDatePicker] = useState<{
     field: "startDate" | "endDate" | null;
   }>({ field: null });
-
-  const [isEditVisible, setEditVisible] = useState(false);
-  const [selectedTrip, setSelectedTrip] = useState<any | null>(null);
 
   // Helper functions
   const getId = (obj: any): string => (typeof obj === "object" ? obj?._id : obj);
@@ -527,8 +521,7 @@ export default function TripLog() {
                         <TouchableOpacity
                           onPress={(e) => {
                             e.stopPropagation?.();
-                            setSelectedTrip(trip);
-                            setEditVisible(true);
+                            router.push({ pathname: "/(stack)/edit-trip", params: { tripId: String(trip._id) } } as any);
                           }}
                           style={{ padding: 6, marginRight: 4 }}
                         >
@@ -565,22 +558,6 @@ export default function TripLog() {
         }
       </ScrollView >
       <SideMenu isVisible={menuVisible} onClose={() => setMenuVisible(false)} />
-      <EditTripModal
-        visible={isEditVisible}
-        onClose={() => setEditVisible(false)}
-        trip={selectedTrip}
-        trucks={trucks}
-        drivers={drivers}
-        clients={clients}
-        locations={locations}
-        onSave={async (id, data) => { await updateTrip(id, data); fetchTrips(); }}
-        onDelete={async (id) => {
-          try {
-            await deleteTrip(id);
-            await fetchTrips();
-          } catch { }
-        }}
-      />
     </SafeAreaView >
   );
 }

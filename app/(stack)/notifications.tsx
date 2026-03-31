@@ -9,6 +9,8 @@ import {
   RefreshControl,
   TouchableOpacity,
   StatusBar,
+  Animated,
+  PanResponder,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "../../global.css";
@@ -48,6 +50,9 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [swipeAnimations] = useState(() => new Map<string, Animated.Value>());
+  const [panResponders] = useState(() => new Map<string, any>());
   const emptyIconColor = colors.mutedForeground;
 
   const { documents, loading: docsLoading, fetchDocuments } = useTruckDocuments();
@@ -226,6 +231,20 @@ export default function NotificationsScreen() {
 
   const visibleItems = activeTab === "reminders" ? groupedReminders : sortedNotifications;
 
+  const dismissCard = (id: string, slideAnim?: Animated.Value) => {
+    if (slideAnim) {
+      Animated.timing(slideAnim, {
+        toValue: -100,
+        duration: 200,
+        useNativeDriver: false,
+      }).start(() => {
+        setDismissedIds((prev) => new Set([...prev, id]));
+      });
+      return;
+    }
+    setDismissedIds((prev) => new Set([...prev, id]));
+  };
+
   const fetchNotifications = async () => {
     try {
       const response = await API.get("/api/notifications/my");
@@ -349,68 +368,131 @@ export default function NotificationsScreen() {
             </Text>
           </View>
         ) : (
-          visibleItems.map((n) => (
-            <TouchableOpacity
-              key={n._id}
-              className={`rounded-2xl p-4 mb-3 flex-row items-start border`}
-              style={{
-                backgroundColor: colors.card,
-                borderColor: n.is_reminder ? colors.primary + '4D' : colors.border + '1A'
-              }}
-            >
-              <View className="mr-3 mt-1 p-2 rounded-xl" style={{ backgroundColor: colors.primary + '1A' }}>
-                <Ionicons
-                  name={getStatusIcon(n.type)}
-                  size={24}
-                  color={colors.primary}
-                />
-              </View>
+          visibleItems
+            .filter(n => !dismissedIds.has(n._id))
+            .map((n) => {
+              // Initialize animation and responder for this notification if not exist
+              if (!swipeAnimations.has(n._id)) {
+                swipeAnimations.set(n._id, new Animated.Value(0));
+                const slideAnim = swipeAnimations.get(n._id)!;
+                panResponders.set(n._id, PanResponder.create({
+                  onStartShouldSetPanResponder: () => true,
+                  onMoveShouldSetPanResponder: (_, { dx, dy }) => Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy),
+                  onPanResponderMove: (_, { dx }) => {
+                    if (dx < 0) {
+                      slideAnim.setValue(Math.max(dx, -80));
+                    }
+                  },
+                  onPanResponderRelease: (_, { dx, vx }) => {
+                    if (dx < -40 || vx < -0.5) {
+                      dismissCard(n._id, slideAnim);
+                    } else {
+                      Animated.spring(slideAnim, {
+                        toValue: 0,
+                        useNativeDriver: false,
+                      }).start();
+                    }
+                  },
+                }));
+              }
 
-              <View className="flex-1">
-                <View className="flex-row justify-between items-center mb-1">
-                  <Text className="font-bold text-base" style={{ color: colors.foreground }}>
-                    {n.title}
-                  </Text>
-                  {n.status === "SCHEDULED" && (
-                    <View
-                      style={{
-                        backgroundColor: colors.warningSoft,
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
-                        borderRadius: 999,
-                      }}
-                    >
-                      <Text style={{ color: colors.warning, fontSize: 10, fontWeight: "900", textTransform: "uppercase" }}>
-                        {t("pending")}
-                      </Text>
+              const slideAnim = swipeAnimations.get(n._id)!;
+              const panResponder = panResponders.get(n._id)!;
+
+              return (
+                <Animated.View
+                  key={n._id}
+                  style={{ transform: [{ translateX: slideAnim }], marginBottom: 12 }}
+                  {...panResponder.panHandlers}
+                >
+                  <TouchableOpacity
+                    className={`rounded-2xl p-4 flex-row items-start border`}
+                    style={{
+                      backgroundColor: colors.card,
+                      borderColor: n.is_reminder ? colors.primary + '4D' : colors.border + '1A'
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View className="mr-3 mt-1 p-2 rounded-xl" style={{ backgroundColor: colors.primary + '1A' }}>
+                      <Ionicons
+                        name={getStatusIcon(n.type)}
+                        size={24}
+                        color={colors.primary}
+                      />
                     </View>
-                  )}
-                </View>
 
-                <Text className="text-sm font-medium leading-5 mb-2" style={{ color: colors.mutedForeground }}>
-                  {n.message}
-                </Text>
-                {activeTab === "reminders" && Array.isArray((n as any).groupedTruckDetails) && (n as any).groupedTruckDetails.length > 0 && (
-                  <View className="mb-2">
-                    {(n as any).groupedTruckDetails.map((item: { truckName: string; expiryDate: Date }) => (
-                      <Text key={`${n._id}-${item.truckName}`} className="text-sm leading-5" style={{ color: colors.mutedForeground }}>
-                        * {item.truckName} - {getDaysLeftLabel(item.expiryDate)}
+                    <View className="flex-1">
+                      <View className="flex-row justify-between items-center mb-1">
+                        <Text className="font-bold text-base" style={{ color: colors.foreground }}>
+                          {n.title}
+                        </Text>
+                        {n.status === "SCHEDULED" && (
+                          <View
+                            style={{
+                              backgroundColor: colors.warningSoft,
+                              paddingHorizontal: 8,
+                              paddingVertical: 2,
+                              borderRadius: 999,
+                            }}
+                          >
+                            <Text style={{ color: colors.warning, fontSize: 10, fontWeight: "900", textTransform: "uppercase" }}>
+                              {t("pending")}
+                            </Text>
+                          </View>
+                        )}
+                        <TouchableOpacity
+                          onPress={() => dismissCard(n._id, slideAnim)}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                          style={{ marginLeft: 8 }}
+                        >
+                          <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+                        </TouchableOpacity>
+                      </View>
+
+                      <Text className="text-sm font-medium leading-5 mb-2" style={{ color: colors.mutedForeground }}>
+                        {n.message}
                       </Text>
-                    ))}
-                  </View>
-                )}
+                      {activeTab === "reminders" && Array.isArray((n as any).groupedTruckDetails) && (n as any).groupedTruckDetails.length > 0 && (
+                        <View className="mb-2">
+                          {(n as any).groupedTruckDetails.map((item: { truckName: string; expiryDate: Date }) => (
+                            <Text key={`${n._id}-${item.truckName}`} className="text-sm leading-5" style={{ color: colors.mutedForeground }}>
+                              * {item.truckName} - {getDaysLeftLabel(item.expiryDate)}
+                            </Text>
+                          ))}
+                        </View>
+                      )}
 
-                {!n.is_reminder && (
-                  <View className="flex-row items-center">
-                    <Ionicons name="time-outline" size={12} color={emptyIconColor} />
-                    <Text className="text-xs ml-1" style={{ color: colors.mutedForeground }}>
-                      {getTimeAgo(n.scheduled_at)}
-                    </Text>
+                      {!n.is_reminder && (
+                        <View className="flex-row items-center">
+                          <Ionicons name="time-outline" size={12} color={emptyIconColor} />
+                          <Text className="text-xs ml-1" style={{ color: colors.mutedForeground }}>
+                            {getTimeAgo(n.scheduled_at)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Swipe hint */}
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      width: 80,
+                      backgroundColor: colors.destructive,
+                      borderRadius: 16,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      zIndex: -1,
+                    }}
+                  >
+                    <Ionicons name="trash-outline" size={24} color={colors.primaryForeground} />
                   </View>
-                )}
-                </View>
-              </TouchableOpacity>
-          ))
+                </Animated.View>
+              );
+            })
         )}
       </ScrollView>
     </SafeAreaView>

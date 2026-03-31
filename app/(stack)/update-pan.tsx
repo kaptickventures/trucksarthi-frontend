@@ -155,6 +155,31 @@ export default function UpdatePanScreen() {
           </TouchableOpacity>
         </View>
 
+        {!!user?.is_pan_verified && !!user?.kyc_data?.pan_details && (
+          <View
+            style={{
+              marginTop: 16,
+              borderWidth: 1,
+              borderColor: colors.success,
+              backgroundColor: colors.successSoft,
+              borderRadius: 14,
+              padding: 14,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+              <Text style={{ color: colors.success, fontWeight: "800", marginLeft: 8 }}>Verified PAN Details</Text>
+            </View>
+            <Text style={{ color: colors.foreground, fontSize: 12, marginBottom: 4 }}>PAN: {String(user?.pan_number || "-").toUpperCase()}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 12, marginBottom: 4 }}>
+              Name: {user?.kyc_data?.pan_details?.registered_name || "-"}
+            </Text>
+            <Text style={{ color: colors.foreground, fontSize: 12 }}>
+              Type: {user?.kyc_data?.pan_details?.type || user?.kyc_data?.pan_details?.pan_type || "-"}
+            </Text>
+          </View>
+        )}
+
         {history.length > 0 && (
           <View style={{ marginTop: 16 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
@@ -179,31 +204,6 @@ export default function UpdatePanScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
-        )}
-
-        {!!user?.is_pan_verified && !!user?.kyc_data?.pan_details && (
-          <View
-            style={{
-              marginTop: 16,
-              borderWidth: 1,
-              borderColor: colors.success,
-              backgroundColor: colors.successSoft,
-              borderRadius: 14,
-              padding: 14,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-              <Text style={{ color: colors.success, fontWeight: "800", marginLeft: 8 }}>Verified PAN Details</Text>
-            </View>
-            <Text style={{ color: colors.foreground, fontSize: 12, marginBottom: 4 }}>PAN: {String(user?.pan_number || "-").toUpperCase()}</Text>
-            <Text style={{ color: colors.foreground, fontSize: 12, marginBottom: 4 }}>
-              Name: {user?.kyc_data?.pan_details?.registered_name || "-"}
-            </Text>
-            <Text style={{ color: colors.foreground, fontSize: 12 }}>
-              Type: {user?.kyc_data?.pan_details?.type || user?.kyc_data?.pan_details?.pan_type || "-"}
-            </Text>
           </View>
         )}
       </KeyboardAwareScrollView>

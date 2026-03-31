@@ -49,10 +49,6 @@ export default function BiltyGeneratedScreen() {
     }
   };
 
-  const goToCreateAnother = () => {
-    router.replace({ pathname: "/(stack)/bilty-wizard", params: { tripId: String(tripId || "") } } as any);
-  };
-
   const goToTrip = () => {
     if (!tripId) {
       router.replace("/(tabs)" as any);
@@ -105,21 +101,6 @@ export default function BiltyGeneratedScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={goToCreateAnother}
-          style={{
-            backgroundColor: colors.successSoft,
-            borderWidth: 1,
-            borderColor: colors.primary,
-            borderRadius: 12,
-            paddingVertical: 12,
-            alignItems: "center",
-            marginBottom: 10,
-          }}
-        >
-          <Text style={{ color: colors.primary, fontWeight: "800" }}>Create Another</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
           onPress={goToTrip}
           style={{
             backgroundColor: isDark ? colors.card : colors.primaryForeground,
@@ -132,12 +113,6 @@ export default function BiltyGeneratedScreen() {
         >
           <Text style={{ color: colors.foreground, fontWeight: "700" }}>Back to Trip</Text>
         </TouchableOpacity>
-
-        {biltyId ? (
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 12, textAlign: "center" }}>
-            ID: {String(biltyId)}
-          </Text>
-        ) : null}
       </View>
     </SafeAreaView>
   );

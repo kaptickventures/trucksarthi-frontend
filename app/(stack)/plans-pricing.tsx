@@ -1,6 +1,6 @@
 ﻿import { CheckCircle2, Crown, Wallet } from "lucide-react-native";
-import { useState } from "react";
-import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StatusBar, Text, ToastAndroid, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Modal, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { useAuth } from "../../context/AuthContext";
@@ -73,6 +73,8 @@ export default function PlansPricingScreen() {
   const [requestingPlanId, setRequestingPlanId] = useState<string | null>(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanCard | null>(null);
+  const [showSavedToast, setShowSavedToast] = useState(false);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const rawPlanStatus = user?.plan_status || "free";
 
@@ -87,13 +89,23 @@ export default function PlansPricingScreen() {
       ? `Trial ends in ${trialDaysLeft ?? 0} day(s) | ${trialEndsAt.toDateString()}`
       : null;
 
-  const showSavedToast = () => {
-    const msg = "We have recorded your response";
-    if (Platform.OS === "android") {
-      ToastAndroid.show(msg, ToastAndroid.SHORT);
-      return;
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const openSavedToast = () => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
     }
-    Alert.alert("Saved", msg);
+    setShowSavedToast(true);
+    toastTimeoutRef.current = setTimeout(() => {
+      setShowSavedToast(false);
+      toastTimeoutRef.current = null;
+    }, 3000);
   };
 
   const saveInterestAndGoSupport = (plan: PlanCard, decision: "yes" | "no") => {
@@ -109,7 +121,7 @@ export default function PlansPricingScreen() {
           discountedPrice: plan.discountedPrice,
           decision,
         });
-        showSavedToast();
+        openSavedToast();
         setConfirmVisible(false);
         setSelectedPlan(null);
         router.push("/(stack)/helpCenter" as any);
@@ -387,6 +399,31 @@ export default function PlansPricingScreen() {
           </View>
         </Modal>
 	      </ScrollView>
+
+      {showSavedToast ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: 20,
+            right: 20,
+            bottom: 24,
+            borderRadius: 12,
+            paddingVertical: 12,
+            paddingHorizontal: 14,
+            backgroundColor: colors.foreground,
+            shadowColor: colors.shadow,
+            shadowOpacity: 0.22,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 6,
+          }}
+        >
+          <Text style={{ color: colors.background, fontWeight: "800", textAlign: "center" }}>
+            We have recorded your response
+          </Text>
+        </View>
+      ) : null}
 	    </View>
 	  );
 	}

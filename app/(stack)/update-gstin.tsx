@@ -158,33 +158,6 @@ export default function UpdateGstinScreen() {
           </TouchableOpacity>
         </View>
 
-        {history.length > 0 && (
-          <View style={{ marginTop: 16 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
-              Previously Used GSTIN
-            </Text>
-            <View style={{ gap: 10 }}>
-              {history.map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  onPress={() => setGstin(item)}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    backgroundColor: colors.card,
-                    borderRadius: 12,
-                    paddingHorizontal: 14,
-                    paddingVertical: 12,
-                  }}
-                >
-                  <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>{item}</Text>
-                  <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 11 }}>Tap to use</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
-
         {!!user?.is_gstin_verified && !!user?.kyc_data?.gstin_details && (
           <View
             style={{
@@ -216,6 +189,33 @@ export default function UpdateGstinScreen() {
             <Text style={{ color: colors.foreground, fontSize: 12 }}>
               Address: {user?.kyc_data?.gstin_details?.principal_place_address || "-"}
             </Text>
+          </View>
+        )}
+
+        {history.length > 0 && (
+          <View style={{ marginTop: 16 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
+              Previously Used GSTIN
+            </Text>
+            <View style={{ gap: 10 }}>
+              {history.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  onPress={() => setGstin(item)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
+                    borderRadius: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                  }}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>{item}</Text>
+                  <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 11 }}>Tap to use</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         )}
       </KeyboardAwareScrollView>

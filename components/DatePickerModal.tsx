@@ -18,8 +18,8 @@ export function DatePickerModal({
     const { colors } = useThemeStore();
     const { width, height } = useWindowDimensions();
     const [viewMonth, setViewMonth] = useState(new Date(date.getFullYear(), date.getMonth(), 1));
-    const [draftDate, setDraftDate] = useState(date);
-
+    const [draftDate, setDraftDate] = useState(date);    const [lastTapTime, setLastTapTime] = useState<number | null>(null);
+    const [lastTappedDay, setLastTappedDay] = useState<number | null>(null);
     const cardWidth = Math.min(420, width - 24);
     const cardMaxHeight = Math.floor(height * 0.78);
     const calendarHorizontalPadding = 14;
@@ -63,21 +63,38 @@ export function DatePickerModal({
         setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
     };
 
-    const pickToday = () => {
-        const today = new Date();
-        setDraftDate(today);
-        setViewMonth(new Date(today.getFullYear(), today.getMonth(), 1));
-    };
-
     const handleDone = () => {
         onChange(draftDate);
         onClose();
+    };
+
+    const handleDayPress = (day: number, cellDate: Date | null) => {
+        if (!cellDate) return;
+
+        const now = Date.now();
+        const timeSinceLastTap = lastTapTime === null ? 0 : now - lastTapTime;
+        
+        // Double-tap detection (within 500ms and same day)
+        if (timeSinceLastTap < 500 && lastTappedDay === day) {
+            // Double-tap detected - select and close
+            onChange(cellDate);
+            onClose();
+            setLastTapTime(null);
+            setLastTappedDay(null);
+        } else {
+            // Single tap - just update the draft date
+            setDraftDate(cellDate);
+            setLastTapTime(now);
+            setLastTappedDay(day);
+        }
     };
 
     useEffect(() => {
         if (!visible) return;
         setDraftDate(date);
         setViewMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+        setLastTapTime(null);
+        setLastTappedDay(null);
     }, [visible, date]);
 
     const modalCardStyle = useMemo(
@@ -104,12 +121,12 @@ export function DatePickerModal({
 
                 <View style={[styles.modalCard, modalCardStyle]}>
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                    <TouchableOpacity onPress={onClose}>
-                        <Text style={[styles.cancelText, { color: colors.destructive }]}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleDone}>
-                        <Text style={[styles.doneText, { color: colors.primary }]}>Done</Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity onPress={onClose}>
+                            <Text style={[styles.cancelText, { color: colors.destructive }]}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleDone}>
+                            <Text style={[styles.doneText, { color: colors.primary }]}>Done</Text>
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.container}>
@@ -149,9 +166,7 @@ export function DatePickerModal({
                                         <TouchableOpacity
                                             key={`day-${index}`}
                                             disabled={!cell.date}
-                                            onPress={() => {
-                                                if (cell.date) setDraftDate(cell.date);
-                                            }}
+                                            onPress={() => handleDayPress(cell.day, cell.date)}
                                             style={[
                                                 styles.dayCell,
                                                 {
@@ -192,13 +207,6 @@ export function DatePickerModal({
                                     );
                                 })}
                             </View>
-
-                            <TouchableOpacity
-                                onPress={pickToday}
-                                style={[styles.todayButton, { borderColor: colors.border, backgroundColor: colors.input }]}
-                            >
-                                <Text style={{ color: colors.primary, fontWeight: '800' }}>Today</Text>
-                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
@@ -287,12 +295,6 @@ const styles = StyleSheet.create({
     dayNumber: {
         textAlign: 'center',
         includeFontPadding: false,
-    },
-    todayButton: {
-        borderWidth: 1,
-        borderRadius: 10,
-        paddingVertical: 10,
-        alignItems: 'center',
     },
     cancelText: {
         fontSize: 16,

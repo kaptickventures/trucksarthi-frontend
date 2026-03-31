@@ -9,7 +9,6 @@ import * as Print from "expo-print";
 import API from "../api/axiosInstance";
 import BottomSheet from "../../components/BottomSheet";
 import BiltyModal, { BiltyFormData } from "../../components/BiltyModal";
-import EditTripModal from "../../components/EditTripModal";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
 import useDrivers from "../../hooks/useDriver";
@@ -41,11 +40,11 @@ export default function TripDetail() {
   const { trucks, fetchTrucks } = useTrucks();
   const { locations, fetchLocations } = useLocations();
   const { fetchInvoices, getInvoiceById, createInvoice, updateInvoice, deleteInvoice } = useInvoices();
-  const { createBilty, getBiltyByTrip, deleteBilty } = useBilty();
+  const { createBilty, getBiltyByTrip, deleteBilty, getCompanyProfile } = useBilty();
 
   const [loading, setLoading] = useState(false);
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [showEditTripModal, setShowEditTripModal] = useState(false);
+  const [companyProfile, setCompanyProfile] = useState<any>(null);
 
   // Invoice states
   const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
@@ -71,7 +70,17 @@ export default function TripDetail() {
     fetchClients();
     fetchTrucks();
     fetchLocations();
-  }, [fetchDrivers, fetchClients, fetchTrucks, fetchLocations]);
+    void (async () => {
+      try {
+        const profile = await getCompanyProfile();
+        setCompanyProfile(profile || null);
+      } catch {
+        setCompanyProfile(null);
+      }
+    })();
+    // Run only once on initial screen mount to avoid repeated heavy lookups.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,7 +146,9 @@ export default function TripDetail() {
     return () => {
       cancelled = true;
     };
-  }, [tripId, fetchInvoices, getInvoiceById, getBiltyByTrip]);
+    // Keeping dependency scoped to tripId prevents repeated refetch loops from unstable hook callbacks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId]);
 
   const reloadTrip = async () => {
     if (!tripId) return;
@@ -470,28 +481,24 @@ export default function TripDetail() {
   };
 
   const buildBiltyHtml = (doc: any) => {
-    const partyName = user?.company_name || user?.name || "TRUCKSARTHI";
-    const partyGstin = user?.gstin || (user as any)?.kyc_data?.gstin_details?.gstin || "-";
-    const partyAddress = user?.address || (user as any)?.kyc_data?.gstin_details?.principal_place_address || "-";
-    const partyPhone = user?.phone ? formatPhoneNumber(user.phone) : "-";
+    const partyName = companyProfile?.name || user?.company_name || user?.name || "TRUCKSARTHI";
+    const partyGstin = companyProfile?.gstin || user?.gstin || (user as any)?.kyc_data?.gstin_details?.gstin || "-";
+    const partyAddress = companyProfile?.address || user?.address || (user as any)?.kyc_data?.gstin_details?.principal_place_address || "-";
+    const partyPhone = companyProfile?.phone ? formatPhoneNumber(companyProfile.phone) : user?.phone ? formatPhoneNumber(user.phone) : "-";
+    const partyLogo = companyProfile?.logo_url || "";
     const lrNo = doc?.bilty_number || String(doc?._id || "-").slice(-8).toUpperCase();
-    const lrDate = formatDate(doc?.bilty_date || doc?.createdAt || new Date());
-    const vehicleNo = doc?.vehicle_number || getTruckReg(trip.truck) || "-";
-    const fromCity = getLocationName(trip.start_location) || "-";
-    const toCity = getLocationName(trip.end_location) || "-";
-    const goodsDescription = doc?.goods_description || trip?.notes || "Transport goods";
-    const packages = Number(doc?.total_packages || 0);
-    const totalWeight = Number(doc?.total_weight || 0);
-    const charges = Number(doc?.charges || trip.cost_of_trip || 0);
+    const lrDate = String(doc?.bilty_date || new Date()).split("T")[0];
 
     const money = (value: number) => Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+    const rows = doc?.goods_rows || [];
+    const termsLine = String(doc?.notes || "This is a digitally generated Bilty/LR copy.");
 
     const buildCopyPage = (copyLabel: string) => `
       <div class="page">
         <div class="copy-pill">${escapeHtml(copyLabel)}</div>
         <div class="sheet">
           <div class="header">
-            <div class="logo-box">TS</div>
+            ${partyLogo ? `<img class="logo-box logo-image" src="${escapeHtml(partyLogo)}" />` : `<div class="logo-box">TS</div>`}
             <div class="company-center">
               <div class="brand">${escapeHtml(partyName)}</div>
               <div class="sub">${escapeHtml(partyAddress)}</div>
@@ -499,80 +506,101 @@ export default function TripDetail() {
             <div class="company-right">
               <div><strong>Phone:</strong> ${escapeHtml(partyPhone)}</div>
               <div><strong>GSTIN:</strong> ${escapeHtml(partyGstin)}</div>
+              <div><strong>PAN:</strong> ${escapeHtml(doc?.company_pan || "-")}</div>
             </div>
           </div>
 
-          <div class="top-grid">
-            <div class="box">
-              <div class="box-title">Freight Paid By</div>
-              <div>Consignor: <strong>Yes</strong></div>
-              <div style="margin-top:12px;"><strong>Vehicle:</strong> ${escapeHtml(vehicleNo)}</div>
-            </div>
-            <div class="box">
-              <div class="box-title">Insurance</div>
-              <div>The consignor has not insured the consignment.</div>
-            </div>
-            <div class="box">
-              <div class="box-title">Delivery / LR Details</div>
-              <div><strong>LR No:</strong> ${escapeHtml(lrNo)}</div>
-              <div><strong>Date:</strong> ${escapeHtml(lrDate)}</div>
-            </div>
+          <div class="lr-details-box">
+            <div class="lr-box"><div class="box-title">LR No</div><div><strong>${escapeHtml(lrNo)}</strong></div></div>
+            <div class="lr-box"><div class="box-title">Date</div><div><strong>${escapeHtml(lrDate)}</strong></div></div>
+            <div class="lr-box"><div class="box-title">Payment</div><div>${escapeHtml(doc?.payment_type || "to_pay")}</div></div>
           </div>
 
-          <div class="party-row">
+          <div class="party-section">
             <div class="party-block">
-              <div class="line-title">Consignor's Name & Address</div>
-              <div>${escapeHtml(doc?.consignor?.name || "-")}</div>
-              <div class="muted">${escapeHtml(doc?.consignor?.address || "-")}</div>
-              <div class="muted">${escapeHtml(doc?.consignor?.gstin ? `GST: ${doc.consignor.gstin}` : "")}</div>
+              <div class="section-title">Consignor</div>
+              <div style="font-weight: 700; margin-bottom: 4px;">${escapeHtml(doc?.consignor?.name || "-")}</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>Phone:</strong> ${escapeHtml(doc?.consignor?.phone || "-")}</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>Address:</strong> ${escapeHtml(doc?.consignor?.address || "-")}</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>GSTIN:</strong> ${escapeHtml(doc?.consignor?.gstin || "-")}</div>
             </div>
             <div class="party-block">
-              <div class="line-title">Consignee's Name & Address</div>
-              <div>${escapeHtml(doc?.consignee?.name || "-")}</div>
-              <div class="muted">${escapeHtml(doc?.consignee?.address || "-")}</div>
-              <div class="muted">${escapeHtml(doc?.consignee?.gstin ? `GST: ${doc.consignee.gstin}` : "")}</div>
+              <div class="section-title">Consignee</div>
+              <div style="font-weight: 700; margin-bottom: 4px;">${escapeHtml(doc?.consignee?.name || "-")}</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>Phone:</strong> ${escapeHtml(doc?.consignee?.phone || "-")}</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>Address:</strong> ${escapeHtml(doc?.consignee?.address || "-")}</div>
+              <div style="font-size: 9px;"><strong>GSTIN:</strong> ${escapeHtml(doc?.consignee?.gstin || "-")}</div>
             </div>
           </div>
 
-          <div class="route-box">
-            <div><strong>From:</strong> ${escapeHtml(fromCity)}</div>
-            <div><strong>To:</strong> ${escapeHtml(toCity)}</div>
+          <div class="shipment-insurance-row">
+            <div class="shipment-section">
+              <div class="section-title">Shipment Details</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>From:</strong> ${escapeHtml(doc?.shipment?.from_location || "-")}</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>To:</strong> ${escapeHtml(doc?.shipment?.to_location || "-")}</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>Vehicle:</strong> ${escapeHtml(doc?.shipment?.vehicle_number || "-")}</div>
+            </div>
+            <div class="insurance-section">
+              <div class="section-title">Insurance</div>
+              ${doc?.insurance?.policy_number ? `
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>Insurer:</strong> ${escapeHtml(doc?.insurance?.insurer_name || "-")}</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>Policy:</strong> ${escapeHtml(doc?.insurance?.policy_number || "-")}</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>Coverage:</strong> ₹ ${money(doc?.insurance?.coverage_amount || 0)}</div>
+              <div style="font-size: 9px;"><strong>Expiry:</strong> ${escapeHtml(doc?.insurance?.expiry_date || "-")}</div>
+              ` : `<div style="font-size: 9px; color: #666;">Not insured</div>`}
+            </div>
           </div>
 
-          <table class="items">
-            <thead>
-              <tr>
-                <th>Sr No.</th>
-                <th>No. of Packets</th>
-                <th>Description</th>
-                <th>Actual Weight</th>
-                <th>Unit</th>
-                <th>Freight Amt</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="center">1</td>
-                <td class="center">${packages || "-"}</td>
-                <td>${escapeHtml(goodsDescription)}</td>
-                <td class="center">${totalWeight || "-"}</td>
-                <td class="center">Tonnes</td>
-                <td class="right">${money(charges)}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="freight-vehicle-row">
+            <div class="freight-section">
+              <div class="section-title">Freight Details</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>Paid By:</strong> ${escapeHtml(String(doc?.freight_paid_by || "-").toUpperCase())}</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>GST %:</strong> ${escapeHtml(String(doc?.gst_percentage ?? 0))}%</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>GST Type:</strong> ${escapeHtml((doc?.gst_type || "gst") === "igst" ? "IGST" : "CGST + SGST")}</div>
+              <div style="font-size: 9px;"><strong>GST Paid By:</strong> ${escapeHtml(String(doc?.gst_paid_by || "-").toUpperCase())}</div>
+            </div>
+            <div class="vehicle-section">
+              <div class="section-title">Vehicle Details</div>
+              <div style="font-size: 9px; margin-bottom: 2px;"><strong>Vehicle:</strong> ${escapeHtml(doc?.shipment?.vehicle_number || "-")}</div>
+              <div style="font-size: 9px;"><strong>Phone:</strong> ${escapeHtml(doc?.shipment?.driver_phone || "-")}</div>
+            </div>
+          </div>
 
-          <div class="amount-line"><strong>Amount in words:</strong> Rupees ${money(charges)} only</div>
-          <div class="warning">Company is not responsible for leakages & thefts</div>
+          <div class="goods-and-route">
+            <div class="goods-column">
+              <div class="section-title">Goods Details</div>
+              <table class="items-compact"><tbody>
+              ${rows
+                .map(
+                  (row: any, idx: number) =>
+                    `<tr><td class="sr">${idx + 1}</td><td class="desc">${escapeHtml(row.description || "-")}</td><td class="qty">${row.quantity || "-"} ${row.unit}</td><td class="amt">${money(row.total || 0)}</td></tr>`
+                )
+                .join("")}
+              </tbody></table>
+            </div>
+          </div>
+
+          <div class="charges-section">
+            <table class="charges-table"><tbody>
+              <tr><td><strong>Freight</strong></td><td class="right">₹ ${money(doc?.charges?.freight || 0)}</td></tr>
+              <tr><td><strong>Loading</strong></td><td class="right">₹ ${money(doc?.charges?.loading || 0)}</td></tr>
+              <tr><td><strong>Unloading</strong></td><td class="right">₹ ${money(doc?.charges?.unloading || 0)}</td></tr>
+              <tr><td><strong>Other</strong></td><td class="right">₹ ${money(doc?.charges?.other || 0)}</td></tr>
+              <tr style="border-top: 2px solid #111;"><td><strong>Total</strong></td><td class="right"><strong>₹ ${money(doc?.charges?.total || 0)}</strong></td></tr>
+              <tr><td><strong>Advance</strong></td><td class="right">₹ ${money(doc?.charges?.advance || 0)}</td></tr>
+              <tr style="border-top: 1px solid #111; font-weight: 700;"><td><strong>Balance</strong></td><td class="right"><strong>₹ ${money(doc?.charges?.balance || 0)}</strong></td></tr>
+            </tbody></table>
+          </div>
 
           <div class="footer-grid">
             <div class="terms">
-              <div class="line-title">Terms & Conditions</div>
-              <div>1. This is a digitally generated Bilty/LR copy.</div>
+              <div class="section-title">Terms & Conditions</div>
+              <div style="font-size: 8px; line-height: 1.3;">1. ${escapeHtml(termsLine)}</div>
             </div>
             <div class="signature">
-              <div>Certified that the particulars given above are true and correct.</div>
-              <div style="margin-top:20px;"><strong>For, ${escapeHtml(partyName)}</strong></div>
+              <div style="font-size: 9px; margin-bottom: 8px;">Certified that the particulars given above are true and correct.</div>
+              <div style="font-size: 9px; margin-bottom: 8px;"><strong>For, ${escapeHtml(partyName)}</strong></div>
+              ${doc?.signature_url ? `<img src="${escapeHtml(doc.signature_url)}" style="height:32px; margin-bottom:4px; object-fit:contain;" />` : ""}
               <div class="sign-line">Signature</div>
             </div>
           </div>
@@ -581,51 +609,49 @@ export default function TripDetail() {
     `;
 
     return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <style>
-    @page { size: A4; margin: 8mm; }
-    body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-size: 10px; background: #fff; }
-    .page { width: 100%; }
-    .page-break { page-break-before: always; }
-    .copy-pill { display: inline-block; border: 1px solid #333; border-radius: 999px; padding: 4px 10px; font-weight: 700; margin: 4px 0 8px; }
-    .sheet { border: 2px solid #111; padding: 10px; }
-    .header { display: grid; grid-template-columns: 60px 1fr 220px; gap: 10px; align-items: center; border-bottom: 1px solid #111; padding-bottom: 8px; }
-    .logo-box { width: 52px; height: 52px; border: 1px solid #111; display: flex; align-items: center; justify-content: center; font-weight: 800; }
-    .company-center { text-align: center; }
-    .brand { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
-    .sub { font-size: 9px; color: #333; margin-top: 4px; }
-    .company-right { font-size: 9px; line-height: 1.4; }
-    .top-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
-    .box { border: 1px solid #111; border-radius: 6px; padding: 8px; min-height: 56px; }
-    .box-title { font-weight: 700; margin-bottom: 6px; }
-    .party-row { margin-top: 10px; border-top: 1px solid #111; border-bottom: 1px solid #111; }
-    .party-block { padding: 6px 2px; border-bottom: 1px solid #999; }
-    .party-block:last-child { border-bottom: 0; }
-    .line-title { font-weight: 700; margin-bottom: 4px; }
-    .muted { color: #333; margin-top: 2px; }
-    .route-box { margin-top: 8px; border: 1px solid #111; border-radius: 6px; padding: 6px 8px; display: flex; gap: 22px; }
-    .items { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
-    .items th, .items td { border: 1px solid #111; padding: 5px 4px; font-size: 9px; }
-    .items th { background: #f5f5f5; }
-    .center { text-align: center; }
-    .right { text-align: right; }
-    .amount-line { margin-top: 8px; text-align: center; }
-    .warning { margin-top: 8px; border: 1px solid #111; border-radius: 6px; padding: 8px; text-align: center; }
-    .footer-grid { margin-top: 10px; display: grid; grid-template-columns: 2fr 1fr; border: 1px solid #111; }
-    .terms { padding: 8px; min-height: 82px; border-right: 1px solid #111; }
-    .signature { padding: 8px; min-height: 82px; position: relative; }
-    .sign-line { position: absolute; right: 8px; bottom: 8px; }
-  </style>
-</head>
-<body>
-  ${buildCopyPage("Consignor LR")}
-  <div class="page-break"></div>
-  ${buildCopyPage("Consignee LR")}
-</body>
-</html>`;
+<!DOCTYPE html><html><head><meta charset="utf-8" /><style>
+@page { size: A4; margin: 6mm; }
+body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-size: 10px; background: #fff; }
+.page { width: 100%; }
+.page-break { page-break-before: always; }
+.copy-pill { display: inline-block; border: 1px solid #333; border-radius: 999px; padding: 3px 8px; font-weight: 700; margin: 0 0 6px 0; font-size: 9px; }
+.sheet { border: 2px solid #111; padding: 8px; }
+.header { display: grid; grid-template-columns: 50px 1fr 200px; gap: 8px; align-items: center; border-bottom: 2px solid #111; padding-bottom: 6px; margin-bottom: 6px; }
+.logo-box { width: 48px; height: 48px; border: 1px solid #111; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; }
+.logo-image { object-fit: cover; width: 100%; height: 100%; }
+.company-center { text-align: center; }
+.brand { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
+.sub { font-size: 8px; color: #333; margin-top: 2px; }
+.company-right { font-size: 8px; line-height: 1.3; }
+.lr-details-box { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-bottom: 6px; }
+.lr-box { border: 1px solid #111; padding: 4px 6px; font-size: 8px; }
+.box-title { font-weight: 700; font-size: 7px; margin-bottom: 2px; }
+.party-section { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px; border-bottom: 1px solid #111; padding-bottom: 4px; }
+.party-block { padding: 4px; font-size: 8px; }
+.section-title { font-weight: 700; margin-bottom: 3px; font-size: 9px; border-bottom: 1px solid #999; padding-bottom: 2px; }
+.shipment-insurance-row { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px; border-bottom: 1px solid #111; padding-bottom: 4px; }
+.shipment-section { font-size: 8px; padding: 4px; }
+.insurance-section { font-size: 8px; padding: 4px; }
+.freight-vehicle-row { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px; border-bottom: 1px solid #111; padding-bottom: 4px; }
+.freight-section { font-size: 8px; padding: 4px; }
+.vehicle-section { font-size: 8px; padding: 4px; }
+.goods-and-route { display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 6px; }
+.goods-column { font-size: 8px; padding: 4px; }
+.items-compact { width: 100%; border-collapse: collapse; font-size: 8px; }
+.items-compact td { border: 1px solid #999; padding: 3px 2px; }
+.sr { text-align: center; width: 20px; }
+.desc { flex: 1; }
+.qty { text-align: center; width: 40px; }
+.amt { text-align: right; width: 40px; }
+.charges-section { margin-bottom: 6px; border: 1px solid #111; padding: 4px; }
+.charges-table { width: 100%; border-collapse: collapse; font-size: 8px; }
+.charges-table td { padding: 2px 4px; }
+.right { text-align: right; }
+.footer-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid #111; gap: 2px; margin-top: 4px; }
+.terms { padding: 4px; border-right: 1px solid #111; min-height: 60px; }
+.signature { padding: 4px; min-height: 60px; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+.sign-line { font-size: 8px; margin-top: 2px; }
+</style></head><body>${buildCopyPage("Consignor LR")}<div class="page-break"></div>${buildCopyPage("Consignee LR")}</body></html>`;
   };
 
   const openInvoicePdf = async (invoice: any) => {
@@ -911,7 +937,9 @@ export default function TripDetail() {
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 2 }}>
             <TouchableOpacity
-              onPress={() => setShowEditTripModal(true)}
+              onPress={() =>
+                router.push({ pathname: "/(stack)/edit-trip", params: { tripId: String(trip._id) } } as any)
+              }
               style={{ padding: 6 }}
             >
               <Edit3 size={18} color={colors.info} />
@@ -959,7 +987,16 @@ export default function TripDetail() {
 
         {/* INVOICE MANAGEMENT SECTION */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold mb-3" style={{ color: colors.foreground }}>Invoice Management</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>Invoice Management</Text>
+            {isBilled && invoice && (
+              <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: colors.success + "20" }}>
+                <Text style={{ color: colors.success, fontSize: 11, fontWeight: "700" }}>
+                  Generated {invoice.createdAt ? formatDate(invoice.createdAt) : ""}
+                </Text>
+              </View>
+            )}
+          </View>
           
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             {/* Generate/Preview Invoice Button */}
@@ -1042,7 +1079,9 @@ export default function TripDetail() {
             <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>Bilty / Bill of Lading</Text>
             {bilty && (
               <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: colors.success + "20" }}>
-                <Text style={{ color: colors.success, fontSize: 11, fontWeight: "700" }}>Generated</Text>
+                <Text style={{ color: colors.success, fontSize: 11, fontWeight: "700" }}>
+                  Generated {bilty.createdAt ? formatDate(bilty.createdAt) : ""}
+                </Text>
               </View>
             )}
           </View>
@@ -1320,24 +1359,6 @@ export default function TripDetail() {
         loading={biltyBusy}
       />
 
-      <EditTripModal
-        visible={showEditTripModal}
-        onClose={() => setShowEditTripModal(false)}
-        trip={trip as any}
-        trucks={trucks}
-        drivers={drivers}
-        clients={clients}
-        locations={locations}
-        onSave={async (id, data) => {
-          await API.put(`/api/trips/${id}`, data);
-          setShowEditTripModal(false);
-          await reloadTrip();
-        }}
-        onDelete={async () => {
-          setShowEditTripModal(false);
-          await handleDeleteTrip();
-        }}
-      />
     </View>
   );
 }
