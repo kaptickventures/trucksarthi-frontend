@@ -32,7 +32,7 @@ import useClients from "../../hooks/useClient";
 import useDrivers from "../../hooks/useDriver";
 import useLocations from "../../hooks/useLocation";
 import useTrucks from "../../hooks/useTruck";
-import { formatPhoneNumber, normalizeGstinNumber, normalizePanNumber, normalizePhoneInput } from "../../lib/utils";
+import { formatPhoneNumber, normalizeGstinNumber, normalizePanNumber, normalizePhoneInput, toLocalYmd } from "../../lib/utils";
 
 const escapeHtml = (value: string) =>
   value
@@ -103,6 +103,7 @@ const toNumber = (value: string) => {
 
 const UNIT_OPTIONS = ["Kgs", "Quintle", "Tonnes"] as const;
 const GST_PERCENTAGE_OPTIONS = ["0", "5", "18"] as const;
+const DEFAULT_TERMS_TEXT = "This is electronically generated version therefore does not require signature.";
 
 const splitAddressFields = (address: string) => {
   const text = String(address || "").trim();
@@ -183,7 +184,6 @@ export default function BiltyWizardScreen() {
     getBiltyById,
     createBilty,
     updateBilty,
-    saveDraft,
     gstLookup,
     getCompanyProfile,
     updateCompanyProfile,
@@ -206,8 +206,10 @@ export default function BiltyWizardScreen() {
   const [isInsuranceModalVisible, setIsInsuranceModalVisible] = useState(false);
   const [isSignaturePadVisible, setIsSignaturePadVisible] = useState(false);
   const [isGoodsModalVisible, setIsGoodsModalVisible] = useState(false);
+  const [isTermsModalVisible, setIsTermsModalVisible] = useState(false);
   const [isUnitDropdownVisible, setIsUnitDropdownVisible] = useState(false);
   const [editingGoodsIndex, setEditingGoodsIndex] = useState<number>(0);
+  const [isCreatingGoodsRow, setIsCreatingGoodsRow] = useState(false);
   const [showLrDatePicker, setShowLrDatePicker] = useState(false);
   const [lrDatePickerValue, setLrDatePickerValue] = useState<Date>(new Date());
   const [showInsuranceDatePicker, setShowInsuranceDatePicker] = useState(false);
@@ -234,7 +236,7 @@ export default function BiltyWizardScreen() {
     eway_bill_no: "",
     invoice_no: "",
     invoice_value: "",
-    shipment_date: new Date().toISOString().split("T")[0],
+    shipment_date: toLocalYmd(new Date()),
   });
 
   const [goodsRows, setGoodsRows] = useState<GoodsRow[]>([
@@ -262,8 +264,8 @@ export default function BiltyWizardScreen() {
   const [paymentType, setPaymentType] = useState<"to_pay" | "paid" | "billed">("to_pay");
   const [freightPaidBy, setFreightPaidBy] = useState<"consignor" | "consignee">("consignor");
   const [gstPaidBy, setGstPaidBy] = useState<"consignor" | "consignee">("consignor");
-  const [gstPercentage, setGstPercentage] = useState<"0" | "5" | "18">("0");
-  const [gstType, setGstType] = useState<"gst" | "igst">("gst");
+  const [gstPercentage, setGstPercentage] = useState<"" | "0" | "5" | "18">("");
+  const [gstType, setGstType] = useState<"" | "gst" | "igst">("");
   const [insurance, setInsurance] = useState({
     policy_number: "",
     insurer_name: "",
@@ -271,7 +273,7 @@ export default function BiltyWizardScreen() {
     expiry_date: "",
   });
   const [signatureUrl, setSignatureUrl] = useState("");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(DEFAULT_TERMS_TEXT);
 
   const [newPartyForm, setNewPartyForm] = useState<NewPartyForm>({
     name: "",
@@ -402,10 +404,10 @@ export default function BiltyWizardScreen() {
         setPaymentType(existing.payment_type || "to_pay");
         setFreightPaidBy(((existing as any)?.freight_paid_by === "consignee" ? "consignee" : "consignor"));
         setGstPaidBy(((existing as any)?.gst_paid_by === "consignee" ? "consignee" : "consignor"));
-        setGstPercentage(((["0", "5", "18"] as const).includes(String((existing as any)?.gst_percentage || "0") as any)
-          ? String((existing as any)?.gst_percentage || "0")
-          : "0") as "0" | "5" | "18");
-        setGstType(((existing as any)?.gst_type === "igst" ? "igst" : "gst"));
+        setGstPercentage(((["0", "5", "18"] as const).includes(String((existing as any)?.gst_percentage || "") as any)
+          ? String((existing as any)?.gst_percentage || "")
+          : "") as "" | "0" | "5" | "18");
+        setGstType(((existing as any)?.gst_type === "igst" ? "igst" : (existing as any)?.gst_type === "gst" ? "gst" : ""));
         setInsurance({
           policy_number: String((existing as any)?.insurance?.policy_number || ""),
           insurer_name: String((existing as any)?.insurance?.insurer_name || ""),
@@ -416,7 +418,7 @@ export default function BiltyWizardScreen() {
         const expiry = parsedExpiry ? new Date(parsedExpiry) : new Date();
         if (!isNaN(expiry.getTime())) setInsuranceExpiryDate(expiry);
         setSignatureUrl(String((existing as any)?.signature_url || ""));
-        setNotes(existing.notes || "");
+        setNotes(String(existing.notes || DEFAULT_TERMS_TEXT));
       } else {
         try {
           const all = await API.get("/api/bilties");
@@ -565,8 +567,8 @@ export default function BiltyWizardScreen() {
       freight_paid_by: freightPaidBy,
       payment_type: paymentType,
       gst_paid_by: gstPaidBy,
-      gst_percentage: toNumber(gstPercentage),
-      gst_type: gstType,
+      gst_percentage: gstPercentage ? toNumber(gstPercentage) : undefined,
+      gst_type: gstType || undefined,
       insurance: {
         policy_number: insurance.policy_number,
         insurer_name: insurance.insurer_name,
@@ -590,6 +592,8 @@ export default function BiltyWizardScreen() {
     const money = (value: number) => Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
     const rows = doc?.goods_rows || [];
 
+    const termsLine = String(doc?.notes || DEFAULT_TERMS_TEXT);
+
     const buildCopyPage = (copyLabel: string) => `
       <div class="page">
         <div class="copy-pill">${escapeHtml(copyLabel)}</div>
@@ -611,7 +615,7 @@ export default function BiltyWizardScreen() {
             <div class="box"><div class="box-title">GST Paid By</div><div>${escapeHtml(doc?.gst_paid_by || "consignor")}</div></div>
             <div class="box"><div class="box-title">GST %</div><div>${escapeHtml(String(doc?.gst_percentage ?? 0))}%</div></div>
             <div class="box"><div class="box-title">GST Type</div><div>${escapeHtml((doc?.gst_type || "gst") === "igst" ? "IGST" : "CGST + SGST")}</div></div>
-            <div class="box"><div class="box-title">Insurance</div><div>${doc?.insurance?.policy_number ? `${escapeHtml(doc?.insurance?.insurer_name || "-")} â€¢ ${escapeHtml(doc?.insurance?.policy_number || "-")}` : "Not insured"}</div><div>${doc?.insurance?.coverage_amount ? `Coverage: ₹ ${money(doc?.insurance?.coverage_amount || 0)}` : ""}</div></div>
+            <div class="box"><div class="box-title">Insurance</div><div>${doc?.insurance?.policy_number ? `${escapeHtml(doc?.insurance?.insurer_name || "-")} | ${escapeHtml(doc?.insurance?.policy_number || "-")}` : "Not insured"}</div><div>${doc?.insurance?.coverage_amount ? `Coverage: ₹ ${money(doc?.insurance?.coverage_amount || 0)}` : ""}</div></div>
             <div class="box"><div class="box-title">LR Details</div><div><strong>LR No:</strong> ${escapeHtml(lrNo)}</div><div><strong>Date:</strong> ${escapeHtml(lrDate)}</div><div><strong>Payment:</strong> ${escapeHtml(doc?.payment_type || "to_pay")}</div></div>
           </div>
 
@@ -634,7 +638,7 @@ export default function BiltyWizardScreen() {
           <div class="amount-line"><strong>To Pay:</strong> ₹ ${money(doc?.charges?.balance || 0)}</div>
           <div class="warning">Company is not responsible for leakages & thefts</div>
 
-          <div class="footer-grid"><div class="terms"><div class="line-title">Terms & Conditions</div><div>1. This is a digitally generated Bilty/LR copy.</div></div><div class="signature"><div>Certified that the particulars given above are true and correct.</div><div style="margin-top:20px;"><strong>For, ${escapeHtml(partyName)}</strong></div>${doc?.signature_url ? `<img src="${escapeHtml(doc.signature_url)}" style="height:40px; margin-top:8px; object-fit:contain;" />` : ""}<div class="sign-line">Signature</div></div></div>
+          <div class="footer-grid"><div class="terms"><div class="line-title">Terms & Conditions</div><div>1. ${escapeHtml(termsLine)}</div></div><div class="signature"><div>Certified that the particulars given above are true and correct.</div><div style="margin-top:20px;"><strong>For, ${escapeHtml(partyName)}</strong></div>${doc?.signature_url ? `<img src="${escapeHtml(doc.signature_url)}" style="height:40px; margin-top:8px; object-fit:contain;" />` : ""}<div class="sign-line">Signature</div></div></div>
         </div>
       </div>
     `;
@@ -838,30 +842,79 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
     signatureCanvasRef.current?.readSignature();
   };
 
-  const isSvgSignature = signatureUrl.startsWith("data:image/svg+xml");
-  const signatureSvgXml = isSvgSignature ? decodeURIComponent(signatureUrl.split(",").slice(1).join(",")) : "";
+  const isGoodsRowEmpty = (row?: GoodsRow) => {
+    if (!row) return true;
+    return !String(row.description || "").trim() && !String(row.quantity || "").trim() && !String(row.actual_weight || "").trim() && !String(row.rate || "").trim() && !String(row.total || "").trim();
+  };
 
-  const handleSaveDraft = async () => {
-    try {
-      setLoading(true);
-      const payload = await buildPayload("draft");
-      let saved: any;
-      try {
-        saved = generatedId ? await saveDraft(payload as any, generatedId) : await saveDraft(payload as any);
-      } catch {
-        // Fallback to create if update path fails.
-        saved = await createBilty(payload as any);
-      }
-      setGeneratedId(String((saved as any)?._id || generatedId));
-      Alert.alert("Draft saved", "Your bilty draft has been saved.");
-    } catch {
-      // handled
-    } finally {
-      setLoading(false);
+  const closeGoodsModal = () => {
+    setGoodsRows((prev) => {
+      if (!isCreatingGoodsRow) return prev;
+      const current = prev[editingGoodsIndex];
+      if (!isGoodsRowEmpty(current)) return prev;
+      const filtered = prev.filter((_, idx) => idx !== editingGoodsIndex);
+      return filtered.map((row, idx) => ({ ...row, sr_no: idx + 1 }));
+    });
+    setIsCreatingGoodsRow(false);
+    setIsGoodsModalVisible(false);
+    setIsUnitDropdownVisible(false);
+  };
+
+  const saveGoodsModal = () => {
+    const row = goodsRows[editingGoodsIndex];
+    const missing: string[] = [];
+    if (!String(row?.description || "").trim()) missing.push("Material Name");
+    if (!String(row?.quantity || "").trim()) missing.push("Quantity");
+    if (missing.length) {
+      Alert.alert("Missing Fields", `Please fill the following fields:\n\n- ${missing.join("\n- ")}`);
+      return;
+    }
+    setIsCreatingGoodsRow(false);
+    setIsGoodsModalVisible(false);
+    setIsUnitDropdownVisible(false);
+  };
+
+  const removeGoodsRow = (idx: number) => {
+    setGoodsRows((prev) => {
+      const filtered = prev.filter((_, i) => i !== idx);
+      return filtered.map((row, i) => ({ ...row, sr_no: i + 1 }));
+    });
+    if (editingGoodsIndex === idx) {
+      setEditingGoodsIndex(0);
+      setIsGoodsModalVisible(false);
+      setIsUnitDropdownVisible(false);
+      setIsCreatingGoodsRow(false);
     }
   };
 
+  const validateInsuranceIfProvided = () => {
+    const hasAnyInsuranceField = Boolean(
+      String(insurance.policy_number || "").trim() ||
+      String(insurance.insurer_name || "").trim() ||
+      String(insurance.coverage_amount || "").trim() ||
+      String(insurance.expiry_date || "").trim()
+    );
+    if (!hasAnyInsuranceField) return true;
+
+    const missing: string[] = [];
+    if (!String(insurance.policy_number || "").trim()) missing.push("Policy Number");
+    if (!String(insurance.insurer_name || "").trim()) missing.push("Insurer Name");
+    if (!String(insurance.coverage_amount || "").trim()) missing.push("Coverage Amount");
+    if (!String(insurance.expiry_date || "").trim()) missing.push("Expiry Date");
+
+    if (missing.length > 0) {
+      Alert.alert("Missing Insurance Details", `Please fill the following fields:\n\n- ${missing.join("\n- ")}`);
+      return false;
+    }
+
+    return true;
+  };
+
+  const isSvgSignature = signatureUrl.startsWith("data:image/svg+xml");
+  const signatureSvgXml = isSvgSignature ? decodeURIComponent(signatureUrl.split(",").slice(1).join(",")) : "";
+
   const handleGenerate = async () => {
+    if (!validateInsuranceIfProvided()) return;
     try {
       setLoading(true);
       const payload = await buildPayload("generated");
@@ -903,6 +956,17 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
   const handleNext = async () => {
     if (step === 1) {
+      const missingCompanyFields: string[] = [];
+      if (!String(companyProfile.name || "").trim()) missingCompanyFields.push("Business Name");
+      if (!String(companyProfile.address_line_1 || "").trim()) missingCompanyFields.push("Address Line 1");
+      if (!String(companyProfile.state || "").trim()) missingCompanyFields.push("State");
+      if (!/^\d{6}$/.test(String(companyProfile.pincode || "").trim())) missingCompanyFields.push("Pincode (6 digits)");
+
+      if (missingCompanyFields.length > 0) {
+        Alert.alert("Missing Fields", `Please fill the following fields:\n\n- ${missingCompanyFields.join("\n- ")}`);
+        return;
+      }
+
       const saved = await persistCompanyProfile();
       if (!saved) return;
     }
@@ -914,6 +978,46 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
       }
       if (!lrNumber || !/^LRN-\d{5,}$/.test(String(lrNumber).toUpperCase())) {
         Alert.alert("Invalid LR Number", "Please enter a valid LR number (example: LRN-00001).");
+        return;
+      }
+
+      const getPartyMissing = (party: PartyForm, label: string) => {
+        const split = splitAddressFields(party.address || "");
+        const missing: string[] = [];
+        if (!String(party.name || "").trim()) missing.push(`${label} Name`);
+        if (!String(party.phone || "").trim()) missing.push(`${label} Phone Number`);
+        if (!String(split.address_line_1 || "").trim()) missing.push(`${label} Address Line 1`);
+        if (!String(split.state || "").trim()) missing.push(`${label} State`);
+        if (!/^\d{6}$/.test(String(split.pincode || "").trim())) missing.push(`${label} Pincode (6 digits)`);
+        return missing;
+      };
+
+      const missingPartyFields = [
+        ...getPartyMissing(consignor, "Consignor"),
+        ...getPartyMissing(consignee, "Consignee"),
+      ];
+
+      if (missingPartyFields.length > 0) {
+        Alert.alert("Missing Fields", `Please fill the following fields:\n\n- ${missingPartyFields.join("\n- ")}`);
+        return;
+      }
+    }
+
+    if (step === 3) {
+      const hasValidRows = goodsRows.some((row) => String(row.description || "").trim() && String(row.quantity || "").trim());
+      const hasPartiallyFilled = goodsRows.some((row) => {
+        const hasAny = Boolean(String(row.description || "").trim() || String(row.quantity || "").trim() || String(row.actual_weight || "").trim() || String(row.rate || "").trim() || String(row.total || "").trim());
+        const hasRequired = Boolean(String(row.description || "").trim() && String(row.quantity || "").trim());
+        return hasAny && !hasRequired;
+      });
+
+      if (!hasValidRows) {
+        Alert.alert("Missing Product", "Please add at least one product with material name and quantity.");
+        return;
+      }
+
+      if (hasPartiallyFilled) {
+        Alert.alert("Incomplete Product", "Each product must include material name and quantity.");
         return;
       }
     }
@@ -1024,12 +1128,13 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
     truck: linkedTrip ? getTruckNameById(linkedTrip.truck) : shipment.vehicle_number,
     driver: linkedTrip ? getDriverNameById(linkedTrip.driver) : shipment.driver_name,
     tripCost: Number(charges.freight || 0),
+    advance: Number(charges.advance || 0),
     misc: Number(charges.other || 0),
     notes: String(linkedTrip?.notes || ""),
     publicId: String(linkedTrip?.public_id || ""),
   };
 
-  const canGoNext = step < 4;
+  const canGoNext = !loading;
   const canGoBack = step > 1;
 
   const sectionDone = {
@@ -1145,13 +1250,14 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
   ]);
 
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: isDark ? colors.background : colors.muted }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <KeyboardAwareScrollView
         ref={wizardScrollRef}
         enableOnAndroid
         enableAutomaticScroll
+        scrollEnabled={!isSignaturePadVisible}
         extraScrollHeight={Platform.OS === "ios" ? 28 : 86}
         contentContainerStyle={{ padding: 16, paddingBottom: keyboardVisible ? 24 : 120 }}
         keyboardShouldPersistTaps="handled"
@@ -1321,15 +1427,17 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               </TouchableOpacity>
             </View>
 
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>BUSINESS NAME *</Text>
             <TextInput
-              placeholder="Company Name"
+              placeholder="Company name"
               placeholderTextColor={colors.mutedForeground}
               value={companyProfile.name}
               onChangeText={(text) => setCompanyProfile((prev) => ({ ...prev, name: text }))}
               style={inputStyle}
             />
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>ADDRESS LINE 1 *</Text>
             <TextInput
-              placeholder="Address Line 1"
+              placeholder="Address line 1"
               placeholderTextColor={colors.mutedForeground}
               value={companyProfile.address_line_1 || ""}
               onChangeText={(text) =>
@@ -1340,6 +1448,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               }
               style={inputStyle}
             />
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>ADDRESS LINE 2</Text>
             <TextInput
               placeholder="Address Line 2"
               placeholderTextColor={colors.mutedForeground}
@@ -1353,33 +1462,40 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               style={inputStyle}
             />
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <TextInput
-                placeholder="State"
-                placeholderTextColor={colors.mutedForeground}
-                value={companyProfile.state || ""}
-                onChangeText={(text) =>
-                  setCompanyProfile((prev) => {
-                    const next = { ...prev, state: text };
-                    return { ...next, address: buildCompanyAddress(next) };
-                  })
-                }
-                style={[inputStyle, { flex: 1 }]}
-              />
-              <TextInput
-                placeholder="Pincode"
-                placeholderTextColor={colors.mutedForeground}
-                value={companyProfile.pincode || ""}
-                onChangeText={(text) =>
-                  setCompanyProfile((prev) => {
-                    const next = { ...prev, pincode: text.replace(/[^\d]/g, "").slice(0, 6) };
-                    return { ...next, address: buildCompanyAddress(next) };
-                  })
-                }
-                style={[inputStyle, { flex: 1 }]}
-                keyboardType="number-pad"
-                maxLength={6}
-              />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>STATE *</Text>
+                <TextInput
+                  placeholder="State"
+                  placeholderTextColor={colors.mutedForeground}
+                  value={companyProfile.state || ""}
+                  onChangeText={(text) =>
+                    setCompanyProfile((prev) => {
+                      const next = { ...prev, state: text };
+                      return { ...next, address: buildCompanyAddress(next) };
+                    })
+                  }
+                  style={[inputStyle, { flex: 1 }]}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>PINCODE *</Text>
+                <TextInput
+                  placeholder="Pincode"
+                  placeholderTextColor={colors.mutedForeground}
+                  value={companyProfile.pincode || ""}
+                  onChangeText={(text) =>
+                    setCompanyProfile((prev) => {
+                      const next = { ...prev, pincode: text.replace(/[^\d]/g, "").slice(0, 6) };
+                      return { ...next, address: buildCompanyAddress(next) };
+                    })
+                  }
+                  style={[inputStyle, { flex: 1 }]}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+              </View>
             </View>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>PHONE</Text>
             <TextInput
               placeholder="Phone"
               placeholderTextColor={colors.mutedForeground}
@@ -1391,6 +1507,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               keyboardType="phone-pad"
               maxLength={13}
             />
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>PAN</Text>
             <TextInput
               placeholder="PAN"
               placeholderTextColor={colors.mutedForeground}
@@ -1419,12 +1536,12 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                 style={[inputStyle, { justifyContent: "center", marginBottom: 10, paddingRight: 34 }]}
               >
                 <Text style={{ color: shipment.shipment_date ? colors.foreground : colors.mutedForeground, fontSize: 14, fontWeight: "600" }}>
-                  {shipment.shipment_date || "LR Date (YYYY-MM-DD)"}
+                  {shipment.shipment_date || "LR Date (YYYY-MM-DD) *"}
                 </Text>
                 <Ionicons name="calendar-outline" size={16} color={colors.mutedForeground} style={{ position: "absolute", right: 12, top: 17 }} pointerEvents="none" />
               </TouchableOpacity>
               <TextInput
-                placeholder="LR Number"
+                placeholder="LR Number *"
                 placeholderTextColor={colors.mutedForeground}
                 value={lrNumber}
                 onChangeText={(text) => setLrNumber(formatLrNumber(text))}
@@ -1434,10 +1551,10 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               />
             </View>
 
-            <Text style={{ color: colors.foreground, fontWeight: "900", marginBottom: 8, letterSpacing: 0.5 }}>CONSIGNOR DETAILS</Text>
+            <Text style={{ color: colors.foreground, fontWeight: "900", marginBottom: 8, letterSpacing: 0.5 }}>CONSIGNOR DETAILS *</Text>
             {renderPartyCard("Consignor", consignor, "consignor")}
 
-            <Text style={{ color: colors.foreground, fontWeight: "900", marginBottom: 8, letterSpacing: 0.5 }}>CONSIGNEE DETAILS</Text>
+            <Text style={{ color: colors.foreground, fontWeight: "900", marginBottom: 8, letterSpacing: 0.5 }}>CONSIGNEE DETAILS *</Text>
             {renderPartyCard("Consignee", consignee, "consignee")}
           </>
         )}
@@ -1481,7 +1598,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                 <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
                   <View style={{ width: 7, height: 7, borderRadius: 3.5, borderWidth: 1, borderColor: colors.primary, backgroundColor: "transparent", marginRight: 8 }} />
                   <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{shipment.from_location || "-"}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginLeft: 5 }}>â€¢ {shipment.shipment_date || ""}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginLeft: 5 }}>| {shipment.shipment_date || ""}</Text>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.primary, marginRight: 8 }} />
@@ -1501,6 +1618,10 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                   <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, textAlign: "right", fontSize: 14 }}>₹{(Number(charges.balance || 0) || 1258).toLocaleString("en-IN")}</Text>
                 </View>
               </View>
+              <View style={{ marginTop: 7 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.45 }}>ADVANCE</Text>
+                <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, fontSize: 13 }}>₹{Number(charges.advance || 0).toLocaleString("en-IN")}</Text>
+              </View>
               <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700", marginTop: 10 }}>Tap to preview trip details</Text>
             </TouchableOpacity>
 
@@ -1516,6 +1637,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                   onPress={() => {
                     setIsUnitDropdownVisible(false);
                     setEditingGoodsIndex(idx);
+                    setIsCreatingGoodsRow(false);
                     setIsGoodsModalVisible(true);
                   }}
                   style={{
@@ -1526,9 +1648,30 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                     backgroundColor: isDark ? colors.card : colors.primaryForeground,
                   }}
                 >
-                  <Text style={{ color: colors.foreground, fontWeight: "800", marginBottom: 4 }}>
-                    Product {idx + 1}: {row.description || "Unnamed material"}
-                  </Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                    <Text style={{ color: colors.foreground, fontWeight: "800", flex: 1, paddingRight: 8 }}>
+                      Product {idx + 1}: {row.description || "Unnamed material"}
+                    </Text>
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setIsUnitDropdownVisible(false);
+                          setEditingGoodsIndex(idx);
+                          setIsCreatingGoodsRow(false);
+                          setIsGoodsModalVisible(true);
+                        }}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Ionicons name="create-outline" size={16} color={colors.primary} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => removeGoodsRow(idx)}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={colors.destructive} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                   <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Qty: {row.quantity || "-"} {row.unit || "Tonnes"} | Weight: {row.actual_weight || "-"}</Text>
                 </TouchableOpacity>
               ))}
@@ -1551,6 +1694,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                   ];
                   setIsUnitDropdownVisible(false);
                   setEditingGoodsIndex(next.length - 1);
+                  setIsCreatingGoodsRow(true);
                   return next;
                 });
                 setIsGoodsModalVisible(true);
@@ -1623,6 +1767,20 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
             <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "700", marginBottom: 8 }}>GST Percentage</Text>
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+              <TouchableOpacity
+                onPress={() => setGstPercentage("")}
+                style={{
+                  flex: 1,
+                  paddingVertical: 11,
+                  borderRadius: 12,
+                  borderWidth: 1.5,
+                  borderColor: gstPercentage === "" ? colors.primary : colors.border,
+                  backgroundColor: gstPercentage === "" ? colors.primary : (isDark ? colors.card : colors.primaryForeground),
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: gstPercentage === "" ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: "800" }}>None</Text>
+              </TouchableOpacity>
               {GST_PERCENTAGE_OPTIONS.map((item) => {
                 const active = gstPercentage === item;
                 return (
@@ -1647,6 +1805,20 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
             <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "700", marginBottom: 8 }}>GST Type</Text>
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+              <TouchableOpacity
+                onPress={() => setGstType("")}
+                style={{
+                  flex: 1,
+                  paddingVertical: 11,
+                  borderRadius: 12,
+                  borderWidth: 1.5,
+                  borderColor: gstType === "" ? colors.primary : colors.border,
+                  backgroundColor: gstType === "" ? colors.primary : (isDark ? colors.card : colors.primaryForeground),
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: gstType === "" ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: "800", textAlign: "center", paddingHorizontal: 4 }}>None</Text>
+              </TouchableOpacity>
               {[
                 { id: "igst", label: "IGST" },
                 { id: "gst", label: "CGST + SGST" },
@@ -1655,7 +1827,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                 return (
                   <TouchableOpacity
                     key={`gst-type-${item.id}`}
-                    onPress={() => setGstType(item.id as "gst" | "igst")}
+                    onPress={() => setGstType(item.id as "" | "gst" | "igst")}
                     style={{
                       flex: 1,
                       paddingVertical: 11,
@@ -1677,30 +1849,37 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
         {step === 4 && (
           <View style={cardStyle}>
             <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12, backgroundColor: isDark ? colors.card : colors.primaryForeground }}>
-              <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Insurance</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                <Ionicons name="shield-checkmark-outline" size={16} color={colors.foreground} />
+                <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 16 }}>Insurance</Text>
+              </View>
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>Optional cover details for this bilty.</Text>
-
-              <TouchableOpacity
-                onPress={() => setIsInsuranceModalVisible(true)}
-                style={{ borderWidth: 1, borderStyle: "dashed", borderColor: colors.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginBottom: insurance.policy_number ? 10 : 0 }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: "700" }}>{insurance.policy_number ? "Edit Insurance" : "+ Add Insurance"}</Text>
-              </TouchableOpacity>
-
-              {insurance.policy_number ? (
-                <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, backgroundColor: isDark ? colors.input : colors.muted }}>
-                  <Text style={{ color: colors.foreground, fontWeight: "800", marginBottom: 2 }}>{insurance.insurer_name || "-"}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Policy: {insurance.policy_number}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: ₹{Number(insurance.coverage_amount || 0).toLocaleString("en-IN")}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Expiry: {insurance.expiry_date || "-"}</Text>
-                  <TouchableOpacity
-                    onPress={() => setInsurance({ policy_number: "", insurer_name: "", coverage_amount: "", expiry_date: "" })}
-                    style={{ alignSelf: "flex-start", marginTop: 8 }}
-                  >
-                    <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "700" }}>Remove insurance</Text>
+              <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, backgroundColor: isDark ? colors.input : colors.muted }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                  <Text style={{ color: colors.foreground, fontWeight: "800", flex: 1, paddingRight: 8 }}>
+                    {insurance.policy_number ? (insurance.insurer_name || "-") : "No insurance added"}
+                  </Text>
+                  <TouchableOpacity onPress={() => setIsInsuranceModalVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name={insurance.policy_number ? "create-outline" : "add-circle-outline"} size={17} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
-              ) : null}
+
+                {insurance.policy_number ? (
+                  <>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Policy: {insurance.policy_number}</Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: ₹{Number(insurance.coverage_amount || 0).toLocaleString("en-IN")}</Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Expiry: {insurance.expiry_date || "-"}</Text>
+                    <TouchableOpacity
+                      onPress={() => setInsurance({ policy_number: "", insurer_name: "", coverage_amount: "", expiry_date: "" })}
+                      style={{ alignSelf: "flex-start", marginTop: 8 }}
+                    >
+                      <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "700" }}>Remove insurance</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Tap the + icon to add insurance details.</Text>
+                )}
+              </View>
             </View>
 
             <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12, backgroundColor: isDark ? colors.card : colors.primaryForeground }}>
@@ -1715,22 +1894,23 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Terms & Signature</Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>Add legal notes and authorized sign.</Text>
 
-              <TextInput
-                placeholder="Terms"
-                placeholderTextColor={colors.mutedForeground}
-                value={notes}
-                onChangeText={setNotes}
-                style={[inputStyle, { height: 56, textAlignVertical: "top", paddingTop: 10 }]}
-                numberOfLines={2}
-                multiline
-                onFocus={(event) => {
-                  const node = findNodeHandle(event.target as any);
-                  if (!node) return;
-                  setTimeout(() => {
-                    wizardScrollRef.current?.scrollToFocusedInput?.(node);
-                  }, 120);
+              <TouchableOpacity
+                onPress={() => setIsTermsModalVisible(true)}
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 12,
+                  paddingHorizontal: 12,
+                  paddingVertical: 12,
+                  backgroundColor: isDark ? colors.input : colors.primaryForeground,
+                  marginBottom: 10,
                 }}
-              />
+              >
+                <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }} numberOfLines={2}>
+                  {String(notes || DEFAULT_TERMS_TEXT)}
+                </Text>
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginTop: 6 }}>Edit Terms</Text>
+              </TouchableOpacity>
 
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <Text style={{ color: colors.foreground, fontWeight: "800" }}>Signature</Text>
@@ -1797,29 +1977,6 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
                 </TouchableOpacity>
               </View>
             </View>
-
-            <TouchableOpacity onPress={handleSaveDraft} disabled={loading} style={{ backgroundColor: colors.secondary, paddingVertical: 12, borderRadius: 12, alignItems: "center", marginBottom: 10 }}>
-              <Text style={{ color: colors.foreground, fontWeight: "900" }}>{loading ? "Saving..." : "Save Draft"}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleGenerate} disabled={loading} style={{ backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 12, alignItems: "center", marginBottom: 10 }}>
-              <Text style={{ color: colors.primaryForeground, fontWeight: "900" }}>{loading ? "Generating..." : "Done"}</Text>
-            </TouchableOpacity>
-
-            {Boolean(biltyId) && (
-              <TouchableOpacity
-                onPress={() => setShowEditOverview(true)}
-                style={{
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  backgroundColor: isDark ? colors.card : colors.primaryForeground,
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  alignItems: "center",
-                }}
-              >
-                <Text style={{ color: colors.foreground, fontWeight: "800" }}>Back to Bilty Overview</Text>
-              </TouchableOpacity>
-            )}
           </View>
         )}
           </>
@@ -1912,10 +2069,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
       <BottomSheet
         visible={isGoodsModalVisible}
-        onClose={() => {
-          setIsGoodsModalVisible(false);
-          setIsUnitDropdownVisible(false);
-        }}
+        onClose={closeGoodsModal}
         title={`Product ${editingGoodsIndex + 1}`}
         maxHeight="80%"
         expandedHeight="80%"
@@ -1926,7 +2080,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
           contentContainerStyle={{ paddingBottom: 16 }}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>MATERIAL CATEGORY</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>MATERIAL NAME *</Text>
           <TextInput
             placeholder="Eg: Steel"
             placeholderTextColor={colors.mutedForeground}
@@ -2000,7 +2154,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             </View>
           </View>
 
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>NO. OF BAGS / BOX / SHIPMENTS</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>NO. OF BAGS / BOX / SHIPMENTS *</Text>
           <TextInput
             placeholder="Quantity"
             placeholderTextColor={colors.mutedForeground}
@@ -2036,15 +2190,44 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
           </View>
 
           <TouchableOpacity
-            onPress={() => {
-              setIsGoodsModalVisible(false);
-              setIsUnitDropdownVisible(false);
-            }}
+            onPress={saveGoodsModal}
             style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: "center", marginTop: 6 }}
           >
             <Text style={{ color: colors.primaryForeground, fontWeight: "800" }}>Save Product</Text>
           </TouchableOpacity>
         </ScrollView>
+      </BottomSheet>
+
+      <BottomSheet
+        visible={isTermsModalVisible}
+        onClose={() => setIsTermsModalVisible(false)}
+        title="Edit Terms"
+        maxHeight="70%"
+        expandedHeight="76%"
+      >
+        <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>TERMS & CONDITIONS</Text>
+        <TextInput
+          placeholder="Enter terms"
+          placeholderTextColor={colors.mutedForeground}
+          value={notes}
+          onChangeText={setNotes}
+          style={[inputStyle, { height: 140, textAlignVertical: "top", paddingTop: 10 }]}
+          multiline
+          numberOfLines={6}
+          onFocus={(event) => {
+            const node = findNodeHandle(event.target as any);
+            if (!node) return;
+            setTimeout(() => {
+              wizardScrollRef.current?.scrollToFocusedInput?.(node);
+            }, 120);
+          }}
+        />
+        <TouchableOpacity
+          onPress={() => setIsTermsModalVisible(false)}
+          style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: "center" }}
+        >
+          <Text style={{ color: colors.primaryForeground, fontWeight: "800" }}>Save Terms</Text>
+        </TouchableOpacity>
       </BottomSheet>
 
       <BottomSheet
@@ -2080,7 +2263,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>COVERAGE AMOUNT</Text>
           <TextInput
-            placeholder="â‚¹ Amount"
+            placeholder="₹ Amount"
             placeholderTextColor={colors.mutedForeground}
             value={insurance.coverage_amount}
             onChangeText={(text) => setInsurance((prev) => ({ ...prev, coverage_amount: text.replace(/[^\d.]/g, "") }))}
@@ -2105,7 +2288,10 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setIsInsuranceModalVisible(false)}
+            onPress={() => {
+              if (!validateInsuranceIfProvided()) return;
+              setIsInsuranceModalVisible(false);
+            }}
             style={{
               backgroundColor: colors.primary,
               borderRadius: 10,
@@ -2135,7 +2321,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             borderWidth: 1,
             borderColor: colors.border,
             borderRadius: 12,
-            backgroundColor: colors.primaryForeground,
+            backgroundColor: colors.input,
             overflow: "hidden",
             marginBottom: 12,
           }}
@@ -2146,13 +2332,15 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             onEmpty={handleSignatureEmpty}
             descriptionText=""
             penColor={colors.foreground}
-            backgroundColor={colors.primaryForeground}
+            backgroundColor={colors.input}
             imageType="image/png"
             autoClear={false}
             webStyle={`
               .m-signature-pad--footer {display: none; margin: 0px;}
               .m-signature-pad {box-shadow: none; border: none;}
-              body,html {width: 100%; height: 100%;}
+              .m-signature-pad--body {position: absolute; inset: 0;}
+              .m-signature-pad--body canvas {width: 100% !important; height: 100% !important; touch-action: none;}
+              body,html {width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; position: fixed;}
             `}
           />
         </View>
@@ -2192,7 +2380,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
         date={lrDatePickerValue}
         onChange={(d) => {
           setLrDatePickerValue(d);
-          const value = d.toISOString().split("T")[0];
+          const value = toLocalYmd(d);
           setShipment((prev) => ({ ...prev, shipment_date: value }));
         }}
       />
@@ -2203,7 +2391,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
         date={insuranceExpiryDate}
         onChange={(d) => {
           setInsuranceExpiryDate(d);
-          const value = d.toISOString().split("T")[0];
+          const value = toLocalYmd(d);
           setInsurance((prev) => ({ ...prev, expiry_date: value }));
         }}
       />
@@ -2246,6 +2434,10 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: ₹ {previewTripCard.tripCost.toLocaleString()}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Advance: ₹ {previewTripCard.advance.toLocaleString()}</Text>
+          </View>
+
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: ₹ {previewTripCard.misc.toLocaleString()}</Text>
           </View>
 
@@ -2375,7 +2567,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             maxLength={13}
           />
 
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>ADDRESS LINE 1</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>ADDRESS LINE 1 *</Text>
           <TextInput
             placeholder="Address line 1"
             placeholderTextColor={colors.mutedForeground}
@@ -2395,7 +2587,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
           <View style={{ flexDirection: "row", gap: 8 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>STATE</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>STATE *</Text>
               <TextInput
                 placeholder="State"
                 placeholderTextColor={colors.mutedForeground}
@@ -2405,7 +2597,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>PINCODE</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>PINCODE *</Text>
               <TextInput
                 placeholder="Pincode"
                 placeholderTextColor={colors.mutedForeground}
@@ -2442,8 +2634,15 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 
           <TouchableOpacity
             onPress={async () => {
-              if (!newPartyForm.name?.trim()) {
-                Alert.alert("Missing Fields", "Name is required.");
+              const missingPartyFields: string[] = [];
+              if (!newPartyForm.name?.trim()) missingPartyFields.push("Name");
+              if (!newPartyForm.phone?.trim()) missingPartyFields.push("Phone Number");
+              if (!newPartyForm.address_line_1?.trim()) missingPartyFields.push("Address Line 1");
+              if (!newPartyForm.state?.trim()) missingPartyFields.push("State");
+              if (!/^\d{6}$/.test(String(newPartyForm.pincode || "").trim())) missingPartyFields.push("Pincode (6 digits)");
+
+              if (missingPartyFields.length > 0) {
+                Alert.alert("Missing Fields", `Please fill the following fields:\n\n- ${missingPartyFields.join("\n- ")}`);
                 return;
               }
               const payload = {
@@ -2520,6 +2719,10 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
         <TouchableOpacity
           disabled={!canGoNext}
           onPress={() => {
+            if (step === 4) {
+              void handleGenerate();
+              return;
+            }
             void handleNext();
           }}
           style={{
@@ -2531,7 +2734,7 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
             opacity: canGoNext ? 1 : 0.5,
           }}
         >
-          <Text style={{ color: canGoNext ? colors.primaryForeground : colors.foreground, fontWeight: "900" }}>{canGoNext ? "Continue" : "Done"}</Text>
+          <Text style={{ color: canGoNext ? colors.primaryForeground : colors.foreground, fontWeight: "900" }}>{step === 4 ? (loading ? "Generating..." : "Done") : "Continue"}</Text>
         </TouchableOpacity>
         </View>
       )}

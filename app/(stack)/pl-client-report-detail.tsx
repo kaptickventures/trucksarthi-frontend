@@ -254,8 +254,8 @@ export default function PLClientReportDetailScreen() {
                       {item.isCredit ? "CREDIT" : "DEBIT"}
                     </Text>
                   </View>
-                  <Text style={{ color: item.isCredit ? colors.success : colors.destructive, fontWeight: "800" }}>
-                    {item.isCredit ? "+" : "-"}? {Math.abs(item.amount).toLocaleString()}
+                    <Text style={{ color: item.isCredit ? colors.success : colors.destructive, fontWeight: "800" }}>
+                      {item.isCredit ? "+" : "-"}₹ {Math.abs(item.amount).toLocaleString()}
                   </Text>
                 </View>
               </View>

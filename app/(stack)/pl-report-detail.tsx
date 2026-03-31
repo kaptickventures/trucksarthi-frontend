@@ -333,7 +333,7 @@ export default function PLReportDetailScreen() {
             {summary.totalEntries} entries | {summary.approvedEntries} approved
           </Text>
           <Text style={{ color: summary.net >= 0 ? colors.success : colors.destructive, marginTop: 8, fontWeight: "800", fontSize: 16 }}>
-            Net: {summary.net >= 0 ? "+" : "-"}? {Math.abs(summary.net).toLocaleString()}
+            Net: {summary.net >= 0 ? "+" : "-"}₹ {Math.abs(summary.net).toLocaleString()}
           </Text>
         </View>
 
@@ -377,7 +377,7 @@ export default function PLReportDetailScreen() {
                       </Text>
                     </View>
                     <Text style={{ color: isIncome ? colors.success : colors.destructive, fontWeight: "800" }}>
-                      {isIncome ? "+" : "-"}? {Math.abs(Number(tx.amount || 0)).toLocaleString()}
+                      {isIncome ? "+" : "-"}₹ {Math.abs(Number(tx.amount || 0)).toLocaleString()}
                     </Text>
                   </View>
                 </View>

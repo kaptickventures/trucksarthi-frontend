@@ -209,7 +209,7 @@ export default function EditTripModal({
                 >
                   <View className="flex-row items-center flex-1">
                     <Calendar size={20} color={colors.primary} />
-                    <Text className="ml-3 text-base font-bold" style={{ color: colors.foreground }}>{formatDate(rawTripDate.toISOString().split('T')[0])}</Text>
+                    <Text className="ml-3 text-base font-bold" style={{ color: colors.foreground }}>{formatDate(rawTripDate)}</Text>
                   </View>
                   <ChevronDown size={20} color={colors.mutedForeground} />
                 </TouchableOpacity>
@@ -376,7 +376,7 @@ export default function EditTripModal({
                   className="mt-8 h-16 rounded-[22px] items-center justify-center shadow-lg shadow-primary/30"
                   onPress={handleSavePress}
                 >
-                  <Text className="text-white text-lg font-black tracking-wide">SAVE CHANGES</Text>
+                  <Text className="text-lg font-black tracking-wide" style={{ color: colors.primaryForeground }}>SAVE CHANGES</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity

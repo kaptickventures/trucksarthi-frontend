@@ -4,6 +4,7 @@ import API from "../app/api/axiosInstance";
 import useDriverFinance, { DriverLedger } from "../hooks/useDriverFinance";
 import { getCurrentUser, logout as authLogout } from "../hooks/useAuth";
 import useTrips, { Trip } from "../hooks/useTrip";
+import { toLocalYmd } from "../lib/utils";
 import { useTranslation } from "./LanguageContext";
 
 const TRIP_STATUS_MARKER = "[TRIP_STATUS:COMPLETED]";
@@ -275,7 +276,7 @@ export function DriverAppProvider({ children }: { children: React.ReactNode }) {
   }, [sortedTrips]);
 
   const completedToday = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalYmd(new Date());
     return tripHistory.filter((trip) => {
       const dateValue = trip.endTime || trip.startTime;
       return dateValue ? dateValue.startsWith(today) : false;

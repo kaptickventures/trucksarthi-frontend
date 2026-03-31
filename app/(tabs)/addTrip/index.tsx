@@ -383,7 +383,7 @@ export default function AddTrip() {
           >
             <View className="flex-row items-center flex-1">
               <Calendar size={20} color={colors.primary} />
-              <Text className="ml-3 text-base" style={{ color: colors.foreground }}>{formatDate(formData.date.toISOString().split('T')[0])}</Text>
+              <Text className="ml-3 text-base" style={{ color: colors.foreground }}>{formatDate(formData.date)}</Text>
             </View>
             <ChevronDown size={20} color={colors.mutedForeground} />
           </TouchableOpacity>
@@ -620,7 +620,7 @@ export default function AddTrip() {
               ) : (
                 <Plus size={24} color={colors.primaryForeground} strokeWidth={3} />
               )}
-              <Text className="text-white text-xl font-bold ml-2">
+              <Text className="text-xl font-bold ml-2" style={{ color: colors.primaryForeground }}>
                 {isSaving ? "Saving..." : t('recordTrip')}
               </Text>
             </View>
@@ -643,7 +643,7 @@ export default function AddTrip() {
           />
         )}
         handleIndicatorStyle={{ backgroundColor: colors.mutedForeground, opacity: 0.4 }}
-        backgroundStyle={{ backgroundColor: colors.background }}
+        backgroundStyle={{ backgroundColor: colors.card }}
         keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"

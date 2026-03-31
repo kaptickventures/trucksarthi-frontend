@@ -1,5 +1,4 @@
 // components/FilterSection.tsx
-import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   Modal,
   ScrollView,
@@ -12,6 +11,7 @@ import DropDownPicker from "react-native-dropdown-picker";
 import { useThemeStore } from "../hooks/useThemeStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { DatePickerModal } from "./DatePickerModal";
 
 interface Props {
   filters: any;
@@ -109,7 +109,7 @@ export default function TripFilters({
             toggleFilters();
           }}
         >
-          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.overlay45 }} />
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.overlay45 }} />
         </TouchableWithoutFeedback>
 
         <View
@@ -301,22 +301,6 @@ export default function TripFilters({
                       {formatDate(filters.startDate)}
                     </Text>
                   </TouchableOpacity>
-                  {showDatePicker.field === "startDate" && (
-                    <DateTimePicker
-                      value={filters.startDate || new Date()}
-                      mode="date"
-                      display="default"
-                      onChange={(_, selected) => {
-                        setShowDatePicker({ field: null });
-                        if (selected) {
-                          setFilters((prev: any) => ({
-                            ...prev,
-                            startDate: selected,
-                          }));
-                        }
-                      }}
-                    />
-                  )}
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -336,22 +320,6 @@ export default function TripFilters({
                       {formatDate(filters.endDate)}
                     </Text>
                   </TouchableOpacity>
-                  {showDatePicker.field === "endDate" && (
-                    <DateTimePicker
-                      value={filters.endDate || new Date()}
-                      mode="date"
-                      display="default"
-                      onChange={(_, selected) => {
-                        setShowDatePicker({ field: null });
-                        if (selected) {
-                          setFilters((prev: any) => ({
-                            ...prev,
-                            endDate: selected,
-                          }));
-                        }
-                      }}
-                    />
-                  )}
                 </View>
               </View>
 
@@ -400,6 +368,30 @@ export default function TripFilters({
           </ScrollView>
         </View>
       </View>
+
+      <DatePickerModal
+        visible={showDatePicker.field === "startDate"}
+        onClose={() => setShowDatePicker({ field: null })}
+        date={filters.startDate || new Date()}
+        onChange={(selected) => {
+          setFilters((prev: any) => ({
+            ...prev,
+            startDate: selected,
+          }));
+        }}
+      />
+
+      <DatePickerModal
+        visible={showDatePicker.field === "endDate"}
+        onClose={() => setShowDatePicker({ field: null })}
+        date={filters.endDate || new Date()}
+        onChange={(selected) => {
+          setFilters((prev: any) => ({
+            ...prev,
+            endDate: selected,
+          }));
+        }}
+      />
     </Modal>
   );
 }

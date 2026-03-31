@@ -62,7 +62,7 @@ export default function BiltyGeneratedScreen() {
   };
 
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: isDark ? colors.background : colors.muted, padding: 16, justifyContent: "center" }}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background, padding: 16, justifyContent: "center" }}>
       <View
         style={{
           borderWidth: 1,

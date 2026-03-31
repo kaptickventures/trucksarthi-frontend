@@ -28,6 +28,32 @@ export function formatDate(date: Date | string | number | null | undefined): str
   return `${day}/${month}/${year}`;
 }
 
+export function toLocalYmd(date: Date | string | number | null | undefined): string {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function toLocalStartOfDayIso(date: Date | string | number | null | undefined): string {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  return start.toISOString();
+}
+
+export function toLocalEndOfDayIso(date: Date | string | number | null | undefined): string {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+  return end.toISOString();
+}
+
 export function formatSignedAmount(
   amount: number,
   direction: "INCOME" | "EXPENSE" | "CREDIT" | "DEBIT"

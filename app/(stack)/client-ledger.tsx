@@ -159,7 +159,7 @@ export default function ClientLedgerScreen() {
     const missingFields = REQUIRED_FIELDS.filter(f => !String(formData[f as keyof typeof formData] || "").trim());
     if (missingFields.length > 0) {
       const labels = missingFields.map(f => f.replaceAll("_", " ").toUpperCase());
-      Alert.alert(t("missingFields"), `Please fill the following required fields:\n\nÃ¢â‚¬Â¢ ${labels.join("\nÃ¢â‚¬Â¢ ")}`);
+      Alert.alert(t("missingFields"), `Please fill the following required fields:\n\n- ${labels.join("\n- ")}`);
       return;
     }
 

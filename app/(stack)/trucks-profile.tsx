@@ -28,7 +28,7 @@ import BottomSheet from "../../components/BottomSheet";
 
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
-import { formatDate as globalFormatDate } from "../../lib/utils";
+import { formatDate as globalFormatDate, toLocalYmd } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 
 /* ---------------- HELPERS ---------------- */
@@ -317,13 +317,13 @@ export default function TruckProfile() {
         registered_owner_name: truck.registered_owner_name || "",
         container_dimension: truck.container_dimension || "",
         loading_capacity: truck.loading_capacity ? String(truck.loading_capacity) : "",
-        registration_date: truck.registration_date ? new Date(truck.registration_date).toISOString().split('T')[0] : "",
-        fitness_upto: truck.fitness_upto ? new Date(truck.fitness_upto).toISOString().split('T')[0] : "",
-        pollution_upto: truck.pollution_upto ? new Date(truck.pollution_upto).toISOString().split('T')[0] : "",
-        road_tax_upto: truck.road_tax_upto ? new Date(truck.road_tax_upto).toISOString().split('T')[0] : "",
-        insurance_upto: truck.insurance_upto ? new Date(truck.insurance_upto).toISOString().split('T')[0] : "",
-        permit_upto: truck.permit_upto ? new Date(truck.permit_upto).toISOString().split('T')[0] : "",
-        national_permit_upto: truck.national_permit_upto ? new Date(truck.national_permit_upto).toISOString().split('T')[0] : "",
+        registration_date: toLocalYmd(truck.registration_date),
+        fitness_upto: toLocalYmd(truck.fitness_upto),
+        pollution_upto: toLocalYmd(truck.pollution_upto),
+        road_tax_upto: toLocalYmd(truck.road_tax_upto),
+        insurance_upto: toLocalYmd(truck.insurance_upto),
+        permit_upto: toLocalYmd(truck.permit_upto),
+        national_permit_upto: toLocalYmd(truck.national_permit_upto),
       });
     }
   }, [truck]);

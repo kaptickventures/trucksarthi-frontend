@@ -57,16 +57,27 @@ export default function BiltyModal({
   onClose,
   loading = false,
 }: Props) {
-  const { colors, theme } = useThemeStore();
-  const isDark = theme === "dark";
+  const { colors } = useThemeStore();
 
   const handleFormSubmit = () => {
-    if (!String(formData.consignor?.name || "").trim()) {
-      Alert.alert("Missing Fields", "Please enter Consignor name.");
-      return;
-    }
-    if (!String(formData.consignee?.name || "").trim()) {
-      Alert.alert("Missing Fields", "Please enter Consignee name.");
+    const missing: string[] = [];
+
+    if (!String(formData.consignor?.name || "").trim()) missing.push("Consignor Name");
+    if (!String(formData.consignor?.phone || "").trim()) missing.push("Consignor Phone Number");
+    if (!String(formData.consignor?.address || "").trim()) missing.push("Consignor Address Line 1");
+
+    if (!String(formData.consignee?.name || "").trim()) missing.push("Consignee Name");
+    if (!String(formData.consignee?.phone || "").trim()) missing.push("Consignee Phone Number");
+    if (!String(formData.consignee?.address || "").trim()) missing.push("Consignee Address Line 1");
+
+    if (!String(formData.goods_description || "").trim()) missing.push("Goods Description");
+    if (!Number(formData.total_packages || 0)) missing.push("Total Packages");
+    if (!Number(formData.total_weight || 0)) missing.push("Total Weight");
+    if (!Number(formData.goods_value || 0)) missing.push("Goods Value");
+    if (!Number(formData.charges || 0)) missing.push("Charges");
+
+    if (missing.length > 0) {
+      Alert.alert("Missing Fields", `Please fill the following fields:\n\n- ${missing.join("\n- ")}`);
       return;
     }
     onSubmit();
@@ -208,11 +219,11 @@ export default function BiltyModal({
             >
               📤 Consignor Details
             </Text>
-            {renderPartyField("consignor", "name", "Name", "Enter consignor name")}
+            {renderPartyField("consignor", "name", "Name *", "Enter consignor name")}
             {renderPartyField("consignor", "contact_person", "Contact Person", "Enter contact person name")}
-            {renderPartyField("consignor", "phone", "Phone", "Enter phone number", "phone-pad")}
+            {renderPartyField("consignor", "phone", "Phone *", "Enter phone number", "phone-pad")}
             {renderPartyField("consignor", "email", "Email", "Enter email address", "email-address")}
-            {renderPartyField("consignor", "address", "Address", "Enter complete address")}
+            {renderPartyField("consignor", "address", "Address Line 1 *", "Enter address line 1")}
             {renderPartyField("consignor", "gstin", "GSTIN", "Enter GSTIN (optional)")}
           </View>
 
@@ -230,11 +241,11 @@ export default function BiltyModal({
             >
               📥 Consignee Details
             </Text>
-            {renderPartyField("consignee", "name", "Name", "Enter consignee name")}
+            {renderPartyField("consignee", "name", "Name *", "Enter consignee name")}
             {renderPartyField("consignee", "contact_person", "Contact Person", "Enter contact person name")}
-            {renderPartyField("consignee", "phone", "Phone", "Enter phone number", "phone-pad")}
+            {renderPartyField("consignee", "phone", "Phone *", "Enter phone number", "phone-pad")}
             {renderPartyField("consignee", "email", "Email", "Enter email address", "email-address")}
-            {renderPartyField("consignee", "address", "Address", "Enter complete address")}
+            {renderPartyField("consignee", "address", "Address Line 1 *", "Enter address line 1")}
             {renderPartyField("consignee", "gstin", "GSTIN", "Enter GSTIN (optional)")}
           </View>
 
@@ -252,11 +263,11 @@ export default function BiltyModal({
             >
               📦 Goods Details
             </Text>
-            {renderGoodsField("goods_description", "Description", "What is being transported?")}
-            {renderGoodsField("total_packages", "Total Packages", "Number of packages", "numeric")}
-            {renderGoodsField("total_weight", "Total Weight (kg)", "Total weight", "numeric")}
-            {renderGoodsField("goods_value", "Goods Value (₹)", "Estimated value", "numeric")}
-            {renderGoodsField("charges", "Charges (₹)", "Transportation charges", "numeric")}
+            {renderGoodsField("goods_description", "Description *", "What is being transported?")}
+            {renderGoodsField("total_packages", "Total Packages *", "Number of packages", "numeric")}
+            {renderGoodsField("total_weight", "Total Weight (kg) *", "Total weight", "numeric")}
+            {renderGoodsField("goods_value", "Goods Value (₹) *", "Estimated value", "numeric")}
+            {renderGoodsField("charges", "Charges (₹) *", "Transportation charges", "numeric")}
             {renderGoodsField("notes", "Additional Notes", "Add any notes (optional)")}
           </View>
 

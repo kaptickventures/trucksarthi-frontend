@@ -12,6 +12,15 @@ export default function PDFViewerScreen() {
     const router = useRouter();
     const navigation = useNavigation();
     const { colors } = useThemeStore();
+    const resolvedUri = (() => {
+        const raw = String(uri || "");
+        if (!raw) return "";
+        try {
+            return decodeURIComponent(raw);
+        } catch {
+            return raw;
+        }
+    })();
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -42,15 +51,15 @@ export default function PDFViewerScreen() {
                 </TouchableOpacity>
             ),
         });
-    }, [navigation, colors, uri, title]);
+    }, [navigation, colors, resolvedUri, title]);
 
     const handleShare = async () => {
-        if (uri) {
-            await Sharing.shareAsync(uri);
+        if (resolvedUri) {
+            await Sharing.shareAsync(resolvedUri);
         }
     };
 
-    if (!uri) {
+    if (!resolvedUri) {
         return (
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
                 <Text style={{ color: colors.foreground }}>No document found</Text>
@@ -61,7 +70,7 @@ export default function PDFViewerScreen() {
     return (
         <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
             <WebView
-                source={{ uri }}
+                source={{ uri: resolvedUri }}
                 style={{ flex: 1 }}
                 originWhitelist={["*"]}
                 scalesPageToFit={true}

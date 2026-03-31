@@ -104,7 +104,7 @@ export default function PLMiscReportScreen() {
               </View>
               <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: item.net >= 0 ? colors.success + '20' : colors.destructive + '20' }}>
                 <Text style={{ fontSize: 13, fontWeight: "800", color: item.net >= 0 ? colors.success : colors.destructive }}>
-                  {item.net >= 0 ? "+" : "-"}? {Math.abs(item.net).toLocaleString()}
+                    {item.net >= 0 ? "+" : "-"}₹ {Math.abs(item.net).toLocaleString()}
                 </Text>
               </View>
             </View>

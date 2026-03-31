@@ -1,6 +1,6 @@
 ﻿import { Ionicons } from "@expo/vector-icons";
 import { NotificationBadge } from "../../components/NotificationBadge";
-import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
@@ -10,8 +10,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "reac
 import {
   Alert,
   Linking,
-  Modal,
-  Platform,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -24,6 +22,8 @@ import {
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomSheet from "../../components/BottomSheet";
+import { DatePickerModal } from "../../components/DatePickerModal";
+import ProfileAvatar from "../../components/ProfileAvatar";
 
 import { Skeleton } from "../../components/Skeleton";
 import useClients from "../../hooks/useClient";
@@ -35,7 +35,7 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrips, { Trip } from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
-import { formatDate, formatPhoneNumber, normalizeGstinNumber, normalizePanNumber } from "../../lib/utils";
+import { formatDate, formatPhoneNumber, normalizeGstinNumber, normalizePanNumber, toLocalYmd } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 import API from "../../app/api/axiosInstance";
 
@@ -235,7 +235,7 @@ export default function ClientLedgerDetailScreen() {
   }, [locations]);
 
 
-  // âœ… ADD â€” Invoice PDF (same approach as TripLog)
+  // Invoice PDF generation (same approach as TripLog)
   const generateInvoicePDF = async (invoice: Invoice, mode: "share" | "view" = "share") => {
     try {
       const invoiceTrips = invoice.items.map(item => {
@@ -848,17 +848,6 @@ export default function ClientLedgerDetailScreen() {
   };
 
   const openDownloadDatePicker = (field: "start" | "end") => {
-    if (Platform.OS === "android") {
-      DateTimePickerAndroid.open({
-        value: field === "start" ? downloadRange.startDate : downloadRange.endDate,
-        mode: "date",
-        display: "calendar",
-        onChange: (_, selectedDate) => {
-          if (selectedDate) applyDownloadDate(field, selectedDate);
-        },
-      });
-      return;
-    }
     setDownloadDateField(field);
   };
 
@@ -908,7 +897,7 @@ export default function ClientLedgerDetailScreen() {
     await createInvoice({
       client_id: id,
       tripIds: selectedTrips,
-      due_date: invoiceDueDate.toISOString().split("T")[0],
+      due_date: toLocalYmd(invoiceDueDate),
       tax_type: invoiceTaxPercentage === 0 ? "none" : invoiceTaxType,
       tax_percentage: invoiceTaxPercentage,
     });
@@ -1056,7 +1045,7 @@ export default function ClientLedgerDetailScreen() {
 
     if (missingFields.length > 0) {
       const labels = missingFields.map(f => f.replaceAll("_", " ").toUpperCase());
-      Alert.alert("âš ï¸ Missing Fields", `Please fill the following required fields:\n\nâ€¢ ${labels.join("\nâ€¢ ")}`);
+      Alert.alert("Missing Fields", `Please fill the following required fields:\n\n- ${labels.join("\n- ")}`);
       return;
     }
 
@@ -1072,7 +1061,7 @@ export default function ClientLedgerDetailScreen() {
     }
   };
 
-  // Still loading or clients array not yet populated â€” show skeleton
+  // Still loading or clients array not yet populated, show skeleton
   if (userLoading || clientsLoading || !id || (clients.length > 0 && !client)) {
     return (
       <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: colors.background }}>
@@ -1129,7 +1118,6 @@ export default function ClientLedgerDetailScreen() {
     );
   }
 
-  const clientInitial = String(client?.client_name || "C").trim().charAt(0).toUpperCase() || "C";
   const hasGstinInEdit = Boolean(String(editFormData.gstin || "").trim());
   const profileRows = [
     { label: t("contactPerson"), value: String(client.contact_person_name || "").trim() },
@@ -1186,8 +1174,8 @@ export default function ClientLedgerDetailScreen() {
               activeOpacity={0.8}
               style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
             >
-              <View style={{ width: 56, height: 56, backgroundColor: colors.secondary, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '800' }}>{clientInitial}</Text>
+              <View style={{ marginRight: 16 }}>
+                <ProfileAvatar name={client.client_name} size="large" />
               </View>
 
               <View style={{ flex: 1 }}>
@@ -1330,7 +1318,7 @@ export default function ClientLedgerDetailScreen() {
                   <View className="flex-row items-center gap-2">
                     <MapPin size={14} color={colors.mutedForeground} />
                     <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1}>
-                      {locationMap[getId(trip.start_location)]} â†’ {locationMap[getId(trip.end_location)]}
+                      {locationMap[getId(trip.start_location)]} {" -> "} {locationMap[getId(trip.end_location)]}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -1794,7 +1782,7 @@ export default function ClientLedgerDetailScreen() {
           visible={showDownloadSheet}
           onClose={() => {
             setShowDownloadSheet(false);
-            setDownloadDateField(null);
+            closeDownloadDatePicker();
           }}
           title="Download Ledger"
           subtitle="Choose a date range"
@@ -1847,48 +1835,19 @@ export default function ClientLedgerDetailScreen() {
               </TouchableOpacity>
             </View>
 
-            {Platform.OS === "ios" && downloadDateField && (
-              <Modal transparent animationType="slide" visible onRequestClose={closeDownloadDatePicker}>
-                <View style={{ flex: 1, backgroundColor: colors.overlay35, justifyContent: "flex-end" }}>
-                  <View
-                    style={{
-                      backgroundColor: colors.card,
-                      borderTopLeftRadius: 16,
-                      borderTopRightRadius: 16,
-                      paddingBottom: 20,
-                      borderTopWidth: 1,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.border,
-                      }}
-                    >
-                      <TouchableOpacity onPress={closeDownloadDatePicker}>
-                        <Text style={{ color: colors.destructive, fontWeight: "600" }}>Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={closeDownloadDatePicker}>
-                        <Text style={{ color: colors.primary, fontWeight: "700" }}>Done</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <DateTimePicker
-                      value={downloadDateField === "start" ? downloadRange.startDate : downloadRange.endDate}
-                      mode="date"
-                      display="inline"
-                      onChange={(_, selectedDate) => {
-                        if (selectedDate) applyDownloadDate(downloadDateField, selectedDate);
-                      }}
-                    />
-                  </View>
-                </View>
-              </Modal>
-            )}
+            <DatePickerModal
+              visible={downloadDateField === "start"}
+              date={downloadRange.startDate}
+              onClose={closeDownloadDatePicker}
+              onChange={(selectedDate) => applyDownloadDate("start", selectedDate)}
+            />
+
+            <DatePickerModal
+              visible={downloadDateField === "end"}
+              date={downloadRange.endDate}
+              onClose={closeDownloadDatePicker}
+              onChange={(selectedDate) => applyDownloadDate("end", selectedDate)}
+            />
 
             <TouchableOpacity
               onPress={handleDownload}

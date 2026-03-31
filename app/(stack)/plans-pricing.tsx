@@ -84,7 +84,7 @@ export default function PlansPricingScreen() {
   const planStatus = trialExpired ? "free" : rawPlanStatus;
   const trialLabel =
     planStatus === "trial" && trialEndsAt
-      ? `Trial ends in ${trialDaysLeft ?? 0} day(s) â€¢ ${trialEndsAt.toDateString()}`
+      ? `Trial ends in ${trialDaysLeft ?? 0} day(s) | ${trialEndsAt.toDateString()}`
       : null;
 
   const showSavedToast = () => {

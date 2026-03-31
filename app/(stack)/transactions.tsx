@@ -17,7 +17,7 @@ import { Skeleton } from "../../components/Skeleton";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useTranslation } from "../../context/LanguageContext";
-import { formatDate, formatLabel } from "../../lib/utils";
+import { formatDate, formatLabel, toLocalEndOfDayIso, toLocalStartOfDayIso } from "../../lib/utils";
 import useDrivers from "../../hooks/useDriver";
 import useClients from "../../hooks/useClient";
 import useTrucks from "../../hooks/useTruck";
@@ -94,13 +94,9 @@ export default function TransactionsScreen() {
 
   const loadData = useCallback(async (activeFilters: typeof filters) => {
     setRefreshing(true);
-    const start = activeFilters.startDate ? new Date(activeFilters.startDate) : null;
-    if (start) start.setHours(0, 0, 0, 0);
-    const end = activeFilters.endDate ? new Date(activeFilters.endDate) : null;
-    if (end) end.setHours(23, 59, 59, 999);
     await fetchTransactions({
-      startDate: start ? start.toISOString() : undefined,
-      endDate: end ? end.toISOString() : undefined,
+      startDate: activeFilters.startDate ? toLocalStartOfDayIso(activeFilters.startDate) : undefined,
+      endDate: activeFilters.endDate ? toLocalEndOfDayIso(activeFilters.endDate) : undefined,
       direction: activeFilters.direction,
     });
     setRefreshing(false);
@@ -235,7 +231,7 @@ export default function TransactionsScreen() {
             {formatLabel(item.category)}
           </Text>
           <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-            {partyName ? `${partyName} â€¢ ` : ""}{item.notes || formatLabel(item.sourceModule)}
+            {partyName ? `${partyName} | ` : ""}{item.notes || formatLabel(item.sourceModule)}
           </Text>
           <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
             <Text style={{ fontSize: 10, color: colors.mutedForeground }}>
@@ -248,7 +244,7 @@ export default function TransactionsScreen() {
         </View>
         <View style={{ alignItems: "flex-end" }}>
           <Text style={{ fontSize: 16, fontWeight: "bold", color: iconColor }}>
-            {isIncome ? "+" : "-"}? {Number(item.amount || 0).toLocaleString()}
+            {isIncome ? "+" : "-"}₹ {Number(item.amount || 0).toLocaleString()}
           </Text>
           <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginTop: 2 }}>
             Bal: ₹ {Number(item.runningBalance || 0).toLocaleString()}

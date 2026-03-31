@@ -197,7 +197,7 @@ export default function PLMiscReportDetailScreen() {
 
         <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ color: summary.balance >= 0 ? colors.success : colors.destructive, fontWeight: "800", fontSize: 16 }}>
-            Net: {summary.balance >= 0 ? "+" : "-"}? {Math.abs(summary.balance).toLocaleString()}
+            Net: {summary.balance >= 0 ? "+" : "-"}₹ {Math.abs(summary.balance).toLocaleString()}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>
             {summary.approvedCount} approved of {summary.totalCount} entries
@@ -235,7 +235,7 @@ export default function PLMiscReportDetailScreen() {
                       </Text>
                     </View>
                     <Text style={{ color: isIncome ? colors.success : colors.destructive, fontWeight: "800" }}>
-                      {isIncome ? "+" : "-"}? {Math.abs(Number(tx.amount || 0)).toLocaleString()}
+                      {isIncome ? "+" : "-"}₹ {Math.abs(Number(tx.amount || 0)).toLocaleString()}
                     </Text>
                   </View>
                 </View>

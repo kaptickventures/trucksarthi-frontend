@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import useClients from "../../hooks/useClient";
 import { useClientLedger } from "../../hooks/useClientLedger";
 import { useThemeStore } from "../../hooks/useThemeStore";
-import { formatDate } from "../../lib/utils";
+import { formatDate, toLocalEndOfDayIso, toLocalStartOfDayIso } from "../../lib/utils";
 
 const PAYMENT_MODES = ["", "CASH", "BANK"];
 const PAYMENT_TYPES: ("" | "FULL" | "PARTIAL")[] = ["", "FULL", "PARTIAL"];
@@ -39,8 +39,8 @@ export default function ClientPaymentsScreen() {
   const load = useCallback(async () => {
     await fetchPaymentLedger({
       clientId: selectedClientId || undefined,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      startDate: toLocalStartOfDayIso(startDate),
+      endDate: toLocalEndOfDayIso(endDate),
       paymentMode: paymentMode || undefined,
       paymentType: paymentType || undefined,
     });

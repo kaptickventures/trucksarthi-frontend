@@ -372,8 +372,17 @@ export default function NotificationsScreen() {
                     {n.title}
                   </Text>
                   {n.status === "SCHEDULED" && (
-                    <View className="bg-amber-100 px-2 py-0.5 rounded-full">
-                      <Text className="text-amber-700 text-[10px] font-black uppercase">{t("pending")}</Text>
+                    <View
+                      style={{
+                        backgroundColor: colors.warningSoft,
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 999,
+                      }}
+                    >
+                      <Text style={{ color: colors.warning, fontSize: 10, fontWeight: "900", textTransform: "uppercase" }}>
+                        {t("pending")}
+                      </Text>
                     </View>
                   )}
                 </View>

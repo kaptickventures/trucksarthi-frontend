@@ -33,9 +33,50 @@ import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrips, { Trip } from "../../hooks/useTrip";
 import useTrucks from "../../hooks/useTruck";
 import { useUser } from "../../hooks/useUser";
-import { formatDate, formatPhoneNumber } from "../../lib/utils";
+import { formatDate, formatPhoneNumber, normalizeGstinNumber, normalizePanNumber, normalizePhoneInput, toLocalYmd } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 import API from "../../app/api/axiosInstance";
+
+const splitOfficeAddress = (address: string) => {
+  const text = String(address || "").replace(/\s+/g, " ").trim();
+  if (!text) {
+    return {
+      office_address_line_1: "",
+      office_address_line_2: "",
+      office_address_state: "",
+      office_address_pincode: "",
+    };
+  }
+  const parts = text.split(",").map((part) => part.trim()).filter(Boolean);
+  const maybePincode = parts.length ? parts[parts.length - 1] : "";
+  const pincode = /^\d{6}$/.test(maybePincode) ? maybePincode : "";
+  const withoutPincode = pincode ? parts.slice(0, -1) : parts;
+  const state = withoutPincode.length ? withoutPincode[withoutPincode.length - 1] : "";
+  const lineParts = withoutPincode.slice(0, -1);
+  return {
+    office_address_line_1: lineParts[0] || withoutPincode[0] || "",
+    office_address_line_2: lineParts.slice(1).join(", "),
+    office_address_state: state,
+    office_address_pincode: pincode,
+  };
+};
+
+const buildOfficeAddress = (form: {
+  office_address_line_1?: string;
+  office_address_line_2?: string;
+  office_address_state?: string;
+  office_address_pincode?: string;
+}) => {
+  return [
+    form.office_address_line_1,
+    form.office_address_line_2,
+    form.office_address_state,
+    form.office_address_pincode,
+  ]
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .join(", ");
+};
 
 export default function ClientProfile() {
   const router = useRouter();
@@ -90,8 +131,12 @@ export default function ClientProfile() {
     contact_number: "",
     alternate_contact_number: "",
     email_address: "",
-    office_address: "",
+    office_address_line_1: "",
+    office_address_line_2: "",
+    office_address_state: "",
+    office_address_pincode: "",
     gstin: "",
+    pan_number: "",
     gstin_details: undefined as any,
   });
   const translateX = useRef(new Animated.Value(0)).current;
@@ -483,7 +528,7 @@ export default function ClientProfile() {
     await createInvoice({
       client_id: id,
       tripIds: selectedTrips,
-      due_date: new Date().toISOString().split("T")[0],
+      due_date: toLocalYmd(new Date()),
       tax_type: "none",
       tax_percentage: 0,
     });
@@ -558,14 +603,19 @@ export default function ClientProfile() {
 
   const openEditModal = () => {
     if (client) {
+      const splitAddress = splitOfficeAddress(client.office_address || "");
       setEditFormData({
         client_name: client.client_name || "",
         contact_person_name: client.contact_person_name || "",
         contact_number: client.contact_number || "",
         alternate_contact_number: client.alternate_contact_number || "",
         email_address: client.email_address || "",
-        office_address: client.office_address || "",
+        office_address_line_1: splitAddress.office_address_line_1,
+        office_address_line_2: splitAddress.office_address_line_2,
+        office_address_state: splitAddress.office_address_state,
+        office_address_pincode: splitAddress.office_address_pincode,
         gstin: client.gstin || "",
+        pan_number: client.pan_number || "",
         gstin_details: client.gstin_details || undefined,
       });
       setShowEditModal(true);
@@ -584,7 +634,7 @@ export default function ClientProfile() {
         setEditFormData((prev: any) => ({
           ...prev,
           client_name: details.trade_name_of_business || details.legal_name_of_business || prev.client_name,
-          office_address: details.principal_place_address || prev.office_address,
+          ...splitOfficeAddress(details.principal_place_address || ""),
           gstin_details: details
         }));
         Alert.alert("Success", "GSTIN details fetched and applied!");
@@ -604,6 +654,9 @@ export default function ClientProfile() {
     const requiredFields = [
       "client_name",
       "contact_number",
+      "office_address_line_1",
+      "office_address_state",
+      "office_address_pincode",
     ];
 
     const missingFields = requiredFields.filter(f => !editFormData[f as keyof typeof editFormData]);
@@ -617,7 +670,16 @@ export default function ClientProfile() {
     if (!id) return;
 
     try {
-      await updateClient(id, editFormData);
+      const normalizedGstin = normalizeGstinNumber(editFormData.gstin || "");
+      const payload = {
+        ...editFormData,
+        contact_number: normalizePhoneInput(editFormData.contact_number || ""),
+        alternate_contact_number: normalizePhoneInput(editFormData.alternate_contact_number || ""),
+        gstin: normalizedGstin,
+        pan_number: normalizedGstin ? "" : normalizePanNumber(editFormData.pan_number || ""),
+        office_address: buildOfficeAddress(editFormData),
+      };
+      await updateClient(id, payload as any);
       Alert.alert(t('success'), t('updatedSuccessfully'));
       closeEditModal();
       fetchClients();
@@ -853,10 +915,11 @@ export default function ClientProfile() {
                   <TextInput
                     style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
                     value={editFormData.gstin}
-                    onChangeText={(t) => setEditFormData(prev => ({ ...prev, gstin: t }))}
+                    onChangeText={(text) => setEditFormData(prev => ({ ...prev, gstin: normalizeGstinNumber(text) }))}
                     placeholder="e.g. 29ABCDE1234F1Z5"
                     placeholderTextColor={colors.mutedForeground}
                     autoCapitalize="characters"
+                    maxLength={15}
                   />
                 </View>
                 <TouchableOpacity
@@ -871,17 +934,59 @@ export default function ClientProfile() {
                 </TouchableOpacity>
               </View>
             </View>
+            {!editFormData.gstin && (
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>PAN Number</Text>
+                <TextInput
+                  style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                  value={editFormData.pan_number}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, pan_number: normalizePanNumber(text) }))}
+                  placeholder="e.g. ABCDE1234F"
+                  placeholderTextColor={colors.mutedForeground}
+                  autoCapitalize="characters"
+                  maxLength={10}
+                />
+              </View>
+            )}
             <View>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>{t('officeAddress')}</Text>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>Office Address Line 1 *</Text>
               <TextInput
                 style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
-                value={editFormData.office_address}
-                onChangeText={(t) => setEditFormData(prev => ({ ...prev, office_address: t }))}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
+                value={editFormData.office_address_line_1}
+                onChangeText={(text) => setEditFormData(prev => ({ ...prev, office_address_line_1: text }))}
                 placeholderTextColor={colors.mutedForeground}
               />
+            </View>
+            <View>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>Office Address Line 2</Text>
+              <TextInput
+                style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                value={editFormData.office_address_line_2}
+                onChangeText={(text) => setEditFormData(prev => ({ ...prev, office_address_line_2: text }))}
+                placeholderTextColor={colors.mutedForeground}
+              />
+            </View>
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>State *</Text>
+                <TextInput
+                  style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                  value={editFormData.office_address_state}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, office_address_state: text }))}
+                  placeholderTextColor={colors.mutedForeground}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 }}>Pincode *</Text>
+                <TextInput
+                  style={{ backgroundColor: colors.input, color: colors.foreground, padding: 16, borderRadius: 20, fontSize: 16, fontWeight: "600", borderWidth: 1, borderColor: colors.border }}
+                  value={editFormData.office_address_pincode}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, office_address_pincode: text.replace(/[^\d]/g, "").slice(0, 6) }))}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  placeholderTextColor={colors.mutedForeground}
+                />
+              </View>
             </View>
           </View>
 

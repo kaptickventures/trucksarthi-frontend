@@ -138,7 +138,7 @@ export default function PLTruckReportScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "800", color: isPositive ? colors.success : colors.destructive }}>
-                    {isPositive ? "+" : "-"}? {Math.abs(item.balance).toLocaleString()}
+                    {isPositive ? "+" : "-"}₹ {Math.abs(item.balance).toLocaleString()}
                   </Text>
                 </View>
               </View>

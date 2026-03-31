@@ -1,6 +1,5 @@
 ﻿import { Ionicons } from "@expo/vector-icons";
 import { NotificationBadge } from "../../../components/NotificationBadge";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
@@ -20,12 +19,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowDownLeft, ArrowUpRight, Calendar, Filter } from "lucide-react-native";
+import { DatePickerModal } from "../../../components/DatePickerModal";
 import SideMenu from "../../../components/SideMenu";
 import { Skeleton } from "../../../components/Skeleton";
 import useFinance from "../../../hooks/useFinance";
 import { useThemeStore } from "../../../hooks/useThemeStore";
 import { useTranslation } from "../../../context/LanguageContext";
-import { formatDate, formatLabel } from "../../../lib/utils";
+import { formatDate, formatLabel, toLocalEndOfDayIso, toLocalStartOfDayIso } from "../../../lib/utils";
 import useDrivers from "../../../hooks/useDriver";
 import useClients from "../../../hooks/useClient";
 import useTrucks from "../../../hooks/useTruck";
@@ -151,8 +151,8 @@ export default function TransactionsScreen() {
   const loadData = useCallback(async () => {
     setRefreshing(true);
     await fetchTransactions({
-      startDate: filters.startDate ? filters.startDate.toISOString() : undefined,
-      endDate: filters.endDate ? filters.endDate.toISOString() : undefined,
+      startDate: filters.startDate ? toLocalStartOfDayIso(filters.startDate) : undefined,
+      endDate: filters.endDate ? toLocalEndOfDayIso(filters.endDate) : undefined,
       direction: filters.direction,
       paymentMode: filters.paymentMode,
     });
@@ -296,7 +296,7 @@ export default function TransactionsScreen() {
             {formatLabel(item.category)}
           </Text>
           <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-            {partyName ? `${partyName} â€¢ ` : ""}{item.notes || getFriendlyFilterLabel(item.sourceModule)}
+            {partyName ? `${partyName} | ` : ""}{item.notes || getFriendlyFilterLabel(item.sourceModule)}
           </Text>
           <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
             <Text style={{ fontSize: 10, color: colors.mutedForeground }}>
@@ -309,7 +309,7 @@ export default function TransactionsScreen() {
         </View>
         <View style={{ alignItems: "flex-end" }}>
           <Text style={{ fontSize: 16, fontWeight: "bold", color: iconColor }}>
-            {isIncome ? "+" : "-"}? {Number(item.amount || 0).toLocaleString()}
+            {isIncome ? "+" : "-"}₹ {Number(item.amount || 0).toLocaleString()}
           </Text>
           <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginTop: 2 }}>
             Bal: ₹ {Number(item.runningBalance || 0).toLocaleString()}
@@ -479,21 +479,6 @@ export default function TransactionsScreen() {
 	                        {filters.startDate ? formatDate(filters.startDate) : "Start date"}
 	                      </Text>
 	                    </TouchableOpacity>
-	                    {showDatePicker === "start" && (
-	                      <DateTimePicker
-	                        value={filters.startDate || new Date()}
-	                        mode="date"
-	                        display="default"
-	                        onChange={(_, selectedDate) => {
-	                          closeDatePicker();
-	                          if (!selectedDate) return;
-	                          setFilters((prev) => ({
-	                            ...prev,
-	                            startDate: selectedDate,
-	                          }));
-	                        }}
-	                      />
-	                    )}
 	                  </View>
 
 	                  <View style={{ flex: 1 }}>
@@ -515,21 +500,6 @@ export default function TransactionsScreen() {
 	                        {filters.endDate ? formatDate(filters.endDate) : "End date"}
 	                      </Text>
 	                    </TouchableOpacity>
-	                    {showDatePicker === "end" && (
-	                      <DateTimePicker
-	                        value={filters.endDate || new Date()}
-	                        mode="date"
-	                        display="default"
-	                        onChange={(_, selectedDate) => {
-	                          closeDatePicker();
-	                          if (!selectedDate) return;
-	                          setFilters((prev) => ({
-	                            ...prev,
-	                            endDate: selectedDate,
-	                          }));
-	                        }}
-	                      />
-	                    )}
 	                  </View>
 	                </View>
 
@@ -652,6 +622,30 @@ export default function TransactionsScreen() {
                 </View>
               </View>
             </ScrollView>
+
+            <DatePickerModal
+              visible={showDatePicker === "start"}
+              date={filters.startDate || new Date()}
+              onClose={closeDatePicker}
+              onChange={(selectedDate) => {
+                setFilters((prev) => ({
+                  ...prev,
+                  startDate: selectedDate,
+                }));
+              }}
+            />
+
+            <DatePickerModal
+              visible={showDatePicker === "end"}
+              date={filters.endDate || new Date()}
+              onClose={closeDatePicker}
+              onChange={(selectedDate) => {
+                setFilters((prev) => ({
+                  ...prev,
+                  endDate: selectedDate,
+                }));
+              }}
+            />
           </View>
         </View>
       </Modal>

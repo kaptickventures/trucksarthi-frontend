@@ -1,5 +1,4 @@
 ﻿import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams } from "expo-router";
@@ -22,10 +21,11 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import BottomSheet from "../../components/BottomSheet";
+import { DatePickerModal } from "../../components/DatePickerModal";
 import useFinance from "../../hooks/useFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import useTrucks from "../../hooks/useTruck";
-import { formatDate, formatLabel } from "../../lib/utils";
+import { formatDate, formatLabel, toLocalEndOfDayIso, toLocalStartOfDayIso } from "../../lib/utils";
 import { useTranslation } from "../../context/LanguageContext";
 
 const RUNNING_ACTIONS = ["FUEL", "FASTAG", "CHALLAN"] as const;
@@ -66,7 +66,7 @@ export default function DailyKhataDashboardScreen() {
   });
 
   const selectedTruck = useMemo(() => (trucks || []).find((t: any) => String(t._id) === String(truckId)), [trucks, truckId]);
-  const monthStart = useMemo(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(), []);
+  const monthStart = useMemo(() => toLocalStartOfDayIso(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), []);
 
   const loadData = useCallback(async () => {
     if (!truckId) return;
@@ -74,7 +74,7 @@ export default function DailyKhataDashboardScreen() {
       fetchTrucks(),
       fetchTransactions({
         startDate: monthStart,
-        endDate: new Date().toISOString(),
+        endDate: toLocalEndOfDayIso(new Date()),
         direction: "EXPENSE",
         sourceModule: "RUNNING_EXPENSE",
         truckId,
@@ -248,17 +248,6 @@ export default function DailyKhataDashboardScreen() {
   };
 
   const openDownloadDatePicker = (field: "start" | "end") => {
-    if (Platform.OS === "android") {
-      DateTimePickerAndroid.open({
-        value: field === "start" ? downloadRange.startDate : downloadRange.endDate,
-        mode: "date",
-        display: "calendar",
-        onChange: (_, selectedDate) => {
-          if (selectedDate) applyDownloadDate(field, selectedDate);
-        },
-      });
-      return;
-    }
     setDownloadDateField(field);
   };
 
@@ -347,7 +336,7 @@ export default function DailyKhataDashboardScreen() {
           }}
         >
           <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "700", marginBottom: 8, letterSpacing: 0.5 }}>
-            MONTHLY SUMMARY
+            TOTAL EXPENSES
           </Text>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
             <View>
@@ -356,12 +345,6 @@ export default function DailyKhataDashboardScreen() {
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
                 Total daily khata costs
               </Text>
-            </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <View style={{ backgroundColor: colors.warningSoft, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                <Text style={{ color: colors.warning, fontSize: 13, fontWeight: "800" }}> ₹ {totalsByType.FUEL.toLocaleString()} Fuel
-                </Text>
-              </View>
             </View>
           </View>
         </View>
@@ -481,7 +464,7 @@ export default function DailyKhataDashboardScreen() {
                   <Text style={{ fontSize: 12, color: colors.mutedForeground }}>{formatDate(item.date)}</Text>
                 </View>
                 <Text style={{ fontSize: 16, fontWeight: "800", color: colors.destructive }}>
-                  -? {Number(item.amount || 0).toLocaleString()}
+                  -₹ {Number(item.amount || 0).toLocaleString()}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -532,7 +515,7 @@ export default function DailyKhataDashboardScreen() {
           </View>
 
           {/* Amount */}
-          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>AMOUNT (â‚¹)</Text>
+          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>AMOUNT (₹)</Text>
           <TextInput
             placeholder="0"
             placeholderTextColor={colors.mutedForeground + '60'}
@@ -645,7 +628,7 @@ export default function DailyKhataDashboardScreen() {
         visible={showDownloadSheet}
         onClose={() => {
           setShowDownloadSheet(false);
-          setDownloadDateField(null);
+          closeDownloadDatePicker();
         }}
         title="Download Ledger"
         subtitle="Choose a date range"
@@ -698,48 +681,19 @@ export default function DailyKhataDashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          {Platform.OS === "ios" && downloadDateField && (
-            <Modal transparent animationType="slide" visible onRequestClose={closeDownloadDatePicker}>
-              <View style={{ flex: 1, backgroundColor: colors.overlay35, justifyContent: "flex-end" }}>
-                <View
-                  style={{
-                    backgroundColor: colors.card,
-                    borderTopLeftRadius: 16,
-                    borderTopRightRadius: 16,
-                    paddingBottom: 20,
-                    borderTopWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
-                    }}
-                  >
-                    <TouchableOpacity onPress={closeDownloadDatePicker}>
-                      <Text style={{ color: colors.destructive, fontWeight: "600" }}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={closeDownloadDatePicker}>
-                      <Text style={{ color: colors.primary, fontWeight: "700" }}>Done</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <DateTimePicker
-                    value={downloadDateField === "start" ? downloadRange.startDate : downloadRange.endDate}
-                    mode="date"
-                    display="inline"
-                    onChange={(_, selectedDate) => {
-                      if (selectedDate) applyDownloadDate(downloadDateField, selectedDate);
-                    }}
-                  />
-                </View>
-              </View>
-            </Modal>
-          )}
+          <DatePickerModal
+            visible={downloadDateField === "start"}
+            date={downloadRange.startDate}
+            onClose={closeDownloadDatePicker}
+            onChange={(selectedDate) => applyDownloadDate("start", selectedDate)}
+          />
+
+          <DatePickerModal
+            visible={downloadDateField === "end"}
+            date={downloadRange.endDate}
+            onClose={closeDownloadDatePicker}
+            onChange={(selectedDate) => applyDownloadDate("end", selectedDate)}
+          />
 
           <TouchableOpacity
             onPress={handleDownload}

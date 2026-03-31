@@ -188,7 +188,7 @@ export default function PLClientReportScreen() {
                       color: isSettled ? colors.success : hasOutstanding ? colors.warning : colors.mutedForeground,
                     }}
                   >
-                    {isSettled ? `âœ“ ${t('settled').toUpperCase()}` : hasOutstanding ? t('pending').toUpperCase() : t('noActivity').toUpperCase()}
+                    {isSettled ? `Settled` : hasOutstanding ? t('pending').toUpperCase() : t('noActivity').toUpperCase()}
                   </Text>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>

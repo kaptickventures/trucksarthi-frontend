@@ -228,7 +228,7 @@ export default function PLDriverReportDetailScreen() {
 
         <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ color: totals.balance >= 0 ? colors.success : colors.destructive, fontWeight: "800", fontSize: 16 }}>
-            Net Balance: {totals.balance >= 0 ? "+" : "-"}? {Math.abs(totals.balance).toLocaleString()}
+            Net Balance: {totals.balance >= 0 ? "+" : "-"}₹ {Math.abs(totals.balance).toLocaleString()}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{normalized.length} entries</Text>
         </View>
@@ -287,7 +287,7 @@ export default function PLDriverReportDetailScreen() {
                       </Text>
                     </View>
                     <Text style={{ color: isToDriver ? colors.success : colors.destructive, fontWeight: "800" }}>
-                      {isToDriver ? "+" : "-"}? {Math.abs(entry.amount).toLocaleString()}
+                      {isToDriver ? "+" : "-"}₹ {Math.abs(entry.amount).toLocaleString()}
                     </Text>
                   </View>
                 </View>

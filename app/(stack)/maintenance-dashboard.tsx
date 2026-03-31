@@ -1,5 +1,4 @@
 ﻿import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams } from "expo-router";
@@ -20,6 +19,7 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import BottomSheet from "../../components/BottomSheet";
+import { DatePickerModal } from "../../components/DatePickerModal";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
 import QuickActionButton from "../../components/finance/QuickActionButton";
@@ -240,17 +240,6 @@ export default function MaintenanceDashboardScreen() {
   };
 
   const openDownloadDatePicker = (field: "start" | "end") => {
-    if (Platform.OS === "android") {
-      DateTimePickerAndroid.open({
-        value: field === "start" ? downloadRange.startDate : downloadRange.endDate,
-        mode: "date",
-        display: "calendar",
-        onChange: (_, selectedDate) => {
-          if (selectedDate) applyDownloadDate(field, selectedDate);
-        },
-      });
-      return;
-    }
     setDownloadDateField(field);
   };
 
@@ -445,7 +434,7 @@ export default function MaintenanceDashboardScreen() {
                   <Text style={{ fontSize: 12, color: colors.mutedForeground }}>{formatDate(item.date)}</Text>
                 </View>
                 <Text style={{ fontSize: 16, fontWeight: "800", color: colors.destructive }}>
-                  -? {Number(item.amount || 0).toLocaleString()}
+                  -₹ {Number(item.amount || 0).toLocaleString()}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -493,7 +482,7 @@ export default function MaintenanceDashboardScreen() {
           </View>
 
           {/* Amount */}
-          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>AMOUNT (â‚¹)</Text>
+          <Text className="text-[11px] font-black uppercase tracking-widest mb-2.5 ml-1" style={{ color: colors.mutedForeground }}>AMOUNT (₹)</Text>
           <TextInput
             placeholder="0"
             placeholderTextColor={colors.mutedForeground + '60'}
@@ -569,7 +558,7 @@ export default function MaintenanceDashboardScreen() {
         visible={showDownloadSheet}
         onClose={() => {
           setShowDownloadSheet(false);
-          setDownloadDateField(null);
+          closeDownloadDatePicker();
         }}
         title="Download Ledger"
         subtitle="Choose a date range"
@@ -622,48 +611,19 @@ export default function MaintenanceDashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          {Platform.OS === "ios" && downloadDateField && (
-            <Modal transparent animationType="slide" visible onRequestClose={closeDownloadDatePicker}>
-              <View style={{ flex: 1, backgroundColor: colors.overlay35, justifyContent: "flex-end" }}>
-                <View
-                  style={{
-                    backgroundColor: colors.card,
-                    borderTopLeftRadius: 16,
-                    borderTopRightRadius: 16,
-                    paddingBottom: 20,
-                    borderTopWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
-                    }}
-                  >
-                    <TouchableOpacity onPress={closeDownloadDatePicker}>
-                      <Text style={{ color: colors.destructive, fontWeight: "600" }}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={closeDownloadDatePicker}>
-                      <Text style={{ color: colors.primary, fontWeight: "700" }}>Done</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <DateTimePicker
-                    value={downloadDateField === "start" ? downloadRange.startDate : downloadRange.endDate}
-                    mode="date"
-                    display="inline"
-                    onChange={(_, selectedDate) => {
-                      if (selectedDate) applyDownloadDate(downloadDateField, selectedDate);
-                    }}
-                  />
-                </View>
-              </View>
-            </Modal>
-          )}
+          <DatePickerModal
+            visible={downloadDateField === "start"}
+            date={downloadRange.startDate}
+            onClose={closeDownloadDatePicker}
+            onChange={(selectedDate) => applyDownloadDate("start", selectedDate)}
+          />
+
+          <DatePickerModal
+            visible={downloadDateField === "end"}
+            date={downloadRange.endDate}
+            onClose={closeDownloadDatePicker}
+            onChange={(selectedDate) => applyDownloadDate("end", selectedDate)}
+          />
 
           <TouchableOpacity
             onPress={handleDownload}

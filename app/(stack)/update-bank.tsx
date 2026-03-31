@@ -204,33 +204,6 @@ export default function UpdateBankScreen() {
           </TouchableOpacity>
         </View>
 
-        {history.length > 0 && (
-          <View style={{ marginTop: 16 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
-              Previously Used Bank Accounts
-            </Text>
-            <View style={{ gap: 10 }}>
-              {history.map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  onPress={() => setAccountNumber(item)}
-                  style={{
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    backgroundColor: colors.card,
-                    borderRadius: 12,
-                    paddingHorizontal: 14,
-                    paddingVertical: 12,
-                  }}
-                >
-                  <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>{item}</Text>
-                  <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 11 }}>Tap to use</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
-
         {!!user?.is_bank_verified && !!user?.kyc_data?.bank_details && (
           <View
             style={{
@@ -264,6 +237,33 @@ export default function UpdateBankScreen() {
             <Text style={{ color: colors.foreground, fontSize: 12 }}>
               UPI ID: {user?.upiId || "-"}
             </Text>
+          </View>
+        )}
+
+        {history.length > 0 && (
+          <View style={{ marginTop: 16 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 8, textTransform: "uppercase" }}>
+              Previously Used Bank Accounts
+            </Text>
+            <View style={{ gap: 10 }}>
+              {history.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  onPress={() => setAccountNumber(item)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
+                    borderRadius: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                  }}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>{item}</Text>
+                  <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 11 }}>Tap to use</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         )}
       </KeyboardAwareScrollView>

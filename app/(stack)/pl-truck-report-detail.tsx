@@ -233,7 +233,7 @@ export default function PLTruckReportDetailScreen() {
 
         <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ color: summary.balance >= 0 ? colors.success : colors.destructive, fontWeight: "800", fontSize: 16 }}>
-            Net: {summary.balance >= 0 ? "+" : "-"}? {Math.abs(summary.balance).toLocaleString()}
+            Net: {summary.balance >= 0 ? "+" : "-"}₹ {Math.abs(summary.balance).toLocaleString()}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{combinedEntries.length} entries</Text>
         </View>
@@ -269,7 +269,7 @@ export default function PLTruckReportDetailScreen() {
                       </Text>
                     </View>
                     <Text style={{ color: isIncome ? colors.success : colors.destructive, fontWeight: "800" }}>
-                      {isIncome ? "+" : "-"}? {Math.abs(item.amount).toLocaleString()}
+                      {isIncome ? "+" : "-"}₹ {Math.abs(item.amount).toLocaleString()}
                     </Text>
                   </View>
                 </View>

@@ -6,6 +6,7 @@ import {
   Building2,
   Camera,
   CheckCircle2,
+  AlertTriangle,
   Hash,
   Landmark,
   Mail,
@@ -21,6 +22,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   RefreshControl,
   Text,
   TextInput,
@@ -70,6 +72,31 @@ export default function Profile() {
   const [sendingContactOtp, setSendingContactOtp] = useState(false);
   const [verifyingContactOtp, setVerifyingContactOtp] = useState(false);
   const isKycVerified = Boolean(user?.is_pan_verified && user?.is_gstin_verified);
+
+  const splitAddress = (rawAddress: string) => {
+    const compact = String(rawAddress || "").replace(/\s+/g, " ").trim();
+    if (!compact) {
+      return { addressLine1: "", addressLine2: "", state: "", pincode: "" };
+    }
+    const parts = compact
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const maybePincode = parts.length ? parts[parts.length - 1] : "";
+    const isPincode = /^\d{6}$/.test(maybePincode);
+    const pincode = isPincode ? maybePincode : "";
+    const withoutPincode = isPincode ? parts.slice(0, -1) : parts;
+    const state = withoutPincode.length ? withoutPincode[withoutPincode.length - 1] : "";
+    const addressParts = withoutPincode.slice(0, -1);
+    return {
+      addressLine1: addressParts[0] || withoutPincode[0] || "",
+      addressLine2: addressParts.slice(1).join(", "),
+      state,
+      pincode,
+    };
+  };
+
+  const officeAddressParts = splitAddress(formData.address);
 
   useEffect(() => {
     if (user) {
@@ -421,33 +448,14 @@ export default function Profile() {
                 icon={<Mail size={18} color={colors.mutedForeground} />}
                 labelAction={isEditing ? undefined : (sendingContactOtp && contactOtpType === "email" ? "Sending..." : "Verify")}
                 onLabelActionPress={isEditing ? undefined : () => handleRequestSecondaryOtp("email")}
-                rightNode={user?.is_email_verified ? <CheckCircle2 size={18} color={colors.success} /> : undefined}
+                rightNode={
+                  user?.is_email_verified ? (
+                    <CheckCircle2 size={18} color={colors.success} />
+                  ) : (
+                    <AlertTriangle size={18} color={colors.warning} />
+                  )
+                }
               />
-              {contactOtpType === "email" && (
-                <View style={{ gap: 10, marginTop: -8 }}>
-                  <Text style={{ fontSize: 12, color: colors.mutedForeground }}>Enter OTP sent to your email.</Text>
-                  <View style={{ flexDirection: "row", gap: 10 }}>
-                    <View style={{ flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.card }}>
-                      <TextInput
-                        value={contactOtp}
-                        onChangeText={setContactOtp}
-                        keyboardType="number-pad"
-                        placeholder="Enter 6-digit OTP"
-                        placeholderTextColor={colors.mutedForeground}
-                        style={{ paddingHorizontal: 12, paddingVertical: 10, color: colors.foreground, fontSize: 14, fontWeight: "600" }}
-                        maxLength={6}
-                      />
-                    </View>
-                    <TouchableOpacity
-                      onPress={handleVerifySecondaryOtp}
-                      disabled={verifyingContactOtp}
-                      style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 14, justifyContent: "center" }}
-                    >
-                      {verifyingContactOtp ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={{ color: colors.primaryForeground, fontWeight: "700" }}>Verify</Text>}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
 
               <ProfileInput
                 label="Phone Number"
@@ -459,31 +467,6 @@ export default function Profile() {
                 onLabelActionPress={!user?.is_mobile_verified ? () => handleRequestSecondaryOtp("phone") : undefined}
                 rightNode={user?.is_mobile_verified ? <CheckCircle2 size={18} color={colors.success} /> : undefined}
               />
-              {contactOtpType === "phone" && (
-                <View style={{ gap: 10, marginTop: -8 }}>
-                  <Text style={{ fontSize: 12, color: colors.mutedForeground }}>Enter OTP sent to your phone.</Text>
-                  <View style={{ flexDirection: "row", gap: 10 }}>
-                    <View style={{ flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.card }}>
-                      <TextInput
-                        value={contactOtp}
-                        onChangeText={setContactOtp}
-                        keyboardType="number-pad"
-                        placeholder="Enter 6-digit OTP"
-                        placeholderTextColor={colors.mutedForeground}
-                        style={{ paddingHorizontal: 12, paddingVertical: 10, color: colors.foreground, fontSize: 14, fontWeight: "600" }}
-                        maxLength={6}
-                      />
-                    </View>
-                    <TouchableOpacity
-                      onPress={handleVerifySecondaryOtp}
-                      disabled={verifyingContactOtp}
-                      style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 14, justifyContent: "center" }}
-                    >
-                      {verifyingContactOtp ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={{ color: colors.primaryForeground, fontWeight: "700" }}>Verify</Text>}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
 
             </View>
           )}
@@ -512,7 +495,10 @@ export default function Profile() {
                 labelAction="Update PAN"
                 onLabelActionPress={() => router.push("/(stack)/update-pan" as any)}
               />
-              <ProfileInput label="Office Address" value={formData.address} editable={false} icon={<MapPin size={18} color={colors.mutedForeground} />} multiline placeholder="Address Line 1, Address Line 2, State, Pincode" />
+              <ProfileInput label="Office Address Line 1" value={officeAddressParts.addressLine1} editable={false} icon={<MapPin size={18} color={colors.mutedForeground} />} />
+              <ProfileInput label="Office Address Line 2" value={officeAddressParts.addressLine2} editable={false} icon={<MapPin size={18} color={colors.mutedForeground} />} placeholder="Optional" />
+              <ProfileInput label="State" value={officeAddressParts.state} editable={false} icon={<MapPin size={18} color={colors.mutedForeground} />} />
+              <ProfileInput label="Pincode" value={officeAddressParts.pincode} editable={false} icon={<Hash size={18} color={colors.mutedForeground} />} />
             </View>
           )}
 
@@ -542,8 +528,6 @@ export default function Profile() {
                 icon={<QrCode size={18} color={colors.mutedForeground} />}
                 placeholder="example@upi"
                 autoCapitalize="none"
-                labelAction="Update Bank / UPI"
-                onLabelActionPress={() => router.push("/(stack)/update-bank" as any)}
               />
 
             </View>
@@ -573,6 +557,84 @@ export default function Profile() {
           )}
         </View>
       </KeyboardAwareScrollView>
+
+      <Modal
+        visible={Boolean(contactOtpType)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setContactOtpType(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: colors.overlay45, justifyContent: "center", padding: 20 }}>
+          <View
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: 16,
+              padding: 18,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 18 }}>Verify {contactOtpType === "email" ? "Email" : "Phone"}</Text>
+            <Text style={{ color: colors.mutedForeground, marginTop: 4, marginBottom: 14, fontSize: 13 }}>
+              Enter the OTP sent to your {contactOtpType || "contact"}.
+            </Text>
+            <TextInput
+              value={contactOtp}
+              onChangeText={setContactOtp}
+              keyboardType="number-pad"
+              placeholder="Enter 6-digit OTP"
+              placeholderTextColor={colors.mutedForeground}
+              maxLength={6}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.input,
+                color: colors.foreground,
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 12,
+                fontWeight: "700",
+                marginBottom: 14,
+              }}
+            />
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setContactOtpType(null);
+                  setContactOtp("");
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.secondary,
+                  borderRadius: 10,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "700" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleVerifySecondaryOtp}
+                disabled={verifyingContactOtp}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.primary,
+                  borderRadius: 10,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                  opacity: verifyingContactOtp ? 0.7 : 1,
+                }}
+              >
+                {verifyingContactOtp ? (
+                  <ActivityIndicator color={colors.primaryForeground} />
+                ) : (
+                  <Text style={{ color: colors.primaryForeground, fontWeight: "800" }}>Verify OTP</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

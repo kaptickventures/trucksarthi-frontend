@@ -18,7 +18,7 @@ import useTrucks from "../../hooks/useTruck";
 import useLocations from "../../hooks/useLocation";
 import { useInvoices } from "../../hooks/useInvoice";
 import { useBilty } from "../../hooks/useBiltyModule";
-import { formatDate, formatPhoneNumber } from "../../lib/utils";
+import { formatDate, formatPhoneNumber, toLocalYmd } from "../../lib/utils";
 import type { Trip, TripEditHistoryEntry } from "../../types/entity";
 
 const escapeHtml = (value: string) =>
@@ -632,7 +632,7 @@ export default function TripDetail() {
     const html = buildInvoiceHtml(invoice);
     const { uri } = await Print.printToFileAsync({ html });
     const safeId = String(invoice?.invoice_number || invoice?._id || "Invoice").replace(/[^a-zA-Z0-9_-]/g, "");
-    const fileUri = uri;
+    const fileUri = encodeURIComponent(uri);
     router.push({
       pathname: "/(stack)/pdf-viewer",
       params: { uri: fileUri, title: `Invoice #${invoice?.invoice_number || safeId || "-"}` },
@@ -644,7 +644,7 @@ export default function TripDetail() {
     const { uri } = await Print.printToFileAsync({ html });
     router.push({
       pathname: "/(stack)/pdf-viewer",
-      params: { uri, title: "LR Preview" },
+      params: { uri: encodeURIComponent(uri), title: "LR Preview" },
     } as any);
   };
 
@@ -692,7 +692,7 @@ export default function TripDetail() {
       const effectiveTaxType = invoiceTaxType;
       const effectiveTaxPercentage: 0 | 5 | 18 = effectiveTaxType === "none" ? 0 : invoiceTaxPercentage;
       const payload = {
-        due_date: invoiceDueDate.toISOString().split("T")[0],
+        due_date: toLocalYmd(invoiceDueDate),
         tax_type: effectiveTaxType,
         tax_percentage: effectiveTaxPercentage,
       };
@@ -902,11 +902,27 @@ export default function TripDetail() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
-        <View className="mb-4">
-          <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>Trip Detail</Text>
-          <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>
-            {trip.public_id ? `${trip.public_id} â€¢ ` : ""}{trip.trip_date ? formatDate(trip.trip_date) : "No date"}
-          </Text>
+        <View className="mb-4" style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <View style={{ flex: 1, marginRight: 12 }}>
+            <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>Trip Detail</Text>
+            <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>
+              {trip.public_id ? `${trip.public_id} | ` : ""}{trip.trip_date ? formatDate(trip.trip_date) : "No date"}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 2 }}>
+            <TouchableOpacity
+              onPress={() => setShowEditTripModal(true)}
+              style={{ padding: 6 }}
+            >
+              <Edit3 size={18} color={colors.info} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => void handleDeleteTrip()}
+              style={{ padding: 6 }}
+            >
+              <Trash2 size={18} color={colors.destructive} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View className="border rounded-2xl p-4 mb-6" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
@@ -939,20 +955,6 @@ export default function TripDetail() {
             </Text>
           ) : null}
 
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 10 }}>
-            <TouchableOpacity
-              onPress={() => setShowEditTripModal(true)}
-              style={{ padding: 6, marginRight: 4 }}
-            >
-              <Edit3 size={18} color={colors.info} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => void handleDeleteTrip()}
-              style={{ padding: 6 }}
-            >
-              <Trash2 size={18} color={colors.destructive} />
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* INVOICE MANAGEMENT SECTION */}

@@ -1,5 +1,6 @@
 import { View, Text, Image } from "react-native";
 import { useThemeStore } from "../hooks/useThemeStore";
+import { getFileUrl } from "../lib/utils";
 
 interface ProfileAvatarProps {
   name?: string;
@@ -60,6 +61,7 @@ export default function ProfileAvatar({
 
   const initials = getInitials(name);
   const avatarBgColor = getColorFromName(name);
+  const resolvedImageUrl = imageUrl ? getFileUrl(imageUrl) : null;
 
   return (
     <View
@@ -68,7 +70,7 @@ export default function ProfileAvatar({
           width: config.container,
           height: config.container,
           borderRadius: config.container / 2,
-          backgroundColor: imageUrl ? colors.muted : avatarBgColor,
+          backgroundColor: resolvedImageUrl ? colors.muted : avatarBgColor,
           justifyContent: "center",
           alignItems: "center",
           overflow: "hidden",
@@ -78,9 +80,9 @@ export default function ProfileAvatar({
         style,
       ]}
     >
-      {imageUrl ? (
+      {resolvedImageUrl ? (
         <Image
-          source={{ uri: imageUrl }}
+          source={{ uri: resolvedImageUrl, cache: "force-cache" as const }}
           style={{
             width: "100%",
             height: "100%",

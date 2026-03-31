@@ -66,12 +66,12 @@ export function SelectionModal({
                 />
             )}
             handleIndicatorStyle={{ backgroundColor: colors.mutedForeground, opacity: 0.4 }}
-            backgroundStyle={{ backgroundColor: colors.background }}
+            backgroundStyle={{ backgroundColor: colors.card }}
             keyboardBehavior="extend"
             keyboardBlurBehavior="restore"
             android_keyboardInputMode="adjustResize"
         >
-            <BottomSheetView style={[styles.content, { backgroundColor: colors.background }]}> 
+            <BottomSheetView style={[styles.content, { backgroundColor: colors.card }]}> 
                 <View style={styles.header}>
                     <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
                     <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -105,7 +105,7 @@ export function SelectionModal({
                                         borderColor: colors.border,
                                         backgroundColor: isSelected
                                             ? (isDark ? colors.secondary : colors.accent)
-                                            : colors.background,
+                                            : colors.input,
                                     },
                                 ]}
                                 onPress={() => {

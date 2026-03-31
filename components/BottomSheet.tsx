@@ -69,7 +69,7 @@ export default function BottomSheet({
                 />
             )}
             handleIndicatorStyle={{ backgroundColor: colors.mutedForeground, opacity: 0.4 }}
-            backgroundStyle={{ backgroundColor: colors.background }}
+            backgroundStyle={{ backgroundColor: colors.card }}
             keyboardBehavior="extend"
             keyboardBlurBehavior="restore"
             android_keyboardInputMode="adjustResize"

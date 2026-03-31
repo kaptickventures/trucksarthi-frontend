@@ -1,5 +1,4 @@
-﻿import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import * as ImagePicker from "expo-image-picker";
+﻿import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import { useLocalSearchParams } from "expo-router";
@@ -9,8 +8,6 @@ import {
   Alert,
   Image,
   Linking,
-  Modal,
-  Platform,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -23,8 +20,10 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { Calendar, Download, Pencil } from "lucide-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import BottomSheet from "../../components/BottomSheet";
+import { DatePickerModal } from "../../components/DatePickerModal";
 import { Skeleton } from "../../components/Skeleton";
 import FinanceFAB from "../../components/finance/FinanceFAB";
+import ProfileAvatar from "../../components/ProfileAvatar";
 import useDrivers from "../../hooks/useDriver";
 import useDriverFinance, { TransactionNature } from "../../hooks/useDriverFinance";
 import { useThemeStore } from "../../hooks/useThemeStore";
@@ -99,7 +98,7 @@ export default function DriverLedgerDetailScreen() {
         };
       })
       .sort((a: any, b: any) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
-  }, [entries, id]);
+  }, [entries]);
 
   const filtered = useMemo(() => {
     if (activeTab === "ALL") return normalized;
@@ -246,17 +245,6 @@ export default function DriverLedgerDetailScreen() {
   };
 
   const openDownloadDatePicker = (field: "start" | "end") => {
-    if (Platform.OS === "android") {
-      DateTimePickerAndroid.open({
-        value: field === "start" ? downloadRange.startDate : downloadRange.endDate,
-        mode: "date",
-        display: "calendar",
-        onChange: (_, selectedDate) => {
-          if (selectedDate) applyDownloadDate(field, selectedDate);
-        },
-      });
-      return;
-    }
     setDownloadDateField(field);
   };
 
@@ -382,17 +370,11 @@ export default function DriverLedgerDetailScreen() {
                     borderColor: colors.border,
                   }}
                 >
-                  {driver?.profile_picture_url ? (
-                    <Image
-                      source={{ uri: getFileUrl(driver.profile_picture_url) || "" }}
-                      style={{ width: "100%", height: "100%" }}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Text style={{ color: colors.mutedForeground, fontSize: 18, fontWeight: "800" }}>
-                      {String(driver?.driver_name || driver?.name || "D").charAt(0).toUpperCase()}
-                    </Text>
-                  )}
+                  <ProfileAvatar
+                    name={driver?.driver_name || driver?.name || "Driver"}
+                    imageUrl={driver?.profile_picture_url}
+                    size="large"
+                  />
                 </View>
                 <TouchableOpacity
                   onPress={() => handleUpload("PROFILE")}
@@ -756,7 +738,7 @@ export default function DriverLedgerDetailScreen() {
         visible={showDownloadSheet}
         onClose={() => {
           setShowDownloadSheet(false);
-          setDownloadDateField(null);
+          closeDownloadDatePicker();
         }}
         title="Download Ledger"
         subtitle="Choose a date range"
@@ -809,48 +791,19 @@ export default function DriverLedgerDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          {Platform.OS === "ios" && downloadDateField && (
-            <Modal transparent animationType="slide" visible onRequestClose={closeDownloadDatePicker}>
-              <View style={{ flex: 1, backgroundColor: colors.overlay35, justifyContent: "flex-end" }}>
-                <View
-                  style={{
-                    backgroundColor: colors.card,
-                    borderTopLeftRadius: 16,
-                    borderTopRightRadius: 16,
-                    paddingBottom: 20,
-                    borderTopWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
-                    }}
-                  >
-                    <TouchableOpacity onPress={closeDownloadDatePicker}>
-                      <Text style={{ color: colors.destructive, fontWeight: "600" }}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={closeDownloadDatePicker}>
-                      <Text style={{ color: colors.primary, fontWeight: "700" }}>Done</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <DateTimePicker
-                    value={downloadDateField === "start" ? downloadRange.startDate : downloadRange.endDate}
-                    mode="date"
-                    display="inline"
-                    onChange={(_, selectedDate) => {
-                      if (selectedDate) applyDownloadDate(downloadDateField, selectedDate);
-                    }}
-                  />
-                </View>
-              </View>
-            </Modal>
-          )}
+          <DatePickerModal
+            visible={downloadDateField === "start"}
+            date={downloadRange.startDate}
+            onClose={closeDownloadDatePicker}
+            onChange={(selectedDate) => applyDownloadDate("start", selectedDate)}
+          />
+
+          <DatePickerModal
+            visible={downloadDateField === "end"}
+            date={downloadRange.endDate}
+            onClose={closeDownloadDatePicker}
+            onChange={(selectedDate) => applyDownloadDate("end", selectedDate)}
+          />
 
           <TouchableOpacity
             onPress={handleDownload}

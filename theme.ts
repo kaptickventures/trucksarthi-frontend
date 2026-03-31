@@ -80,7 +80,7 @@ const PALETTES = {
       text: "#EDEDED",
 
       // Surfaces
-      surface: "#F7F7F7",
+      surface: "#182229",
       surfaceAlt: "#202C33",
 
       // Brand
@@ -108,8 +108,8 @@ const PALETTES = {
       infoBg: "#111B3C",
 
       // UI Elements
-      border: "#DDE3EA",
-      input: "#F8FAFC",
+      border: "#2E3C46",
+      input: "#24323B",
       ring: "#1FA855",
       transparent: "transparent",
       shadow: "#000000",
@@ -142,7 +142,7 @@ const toLegacyColors = (palette: typeof PALETTES.light) => {
     // Legacy/compat tokens used in existing screens
     background: c.bg,
     foreground: c.text,
-    card: c.input,
+    card: c.surface,
     cardForeground: c.text,
     popover: c.surface,
     popoverForeground: c.text,
