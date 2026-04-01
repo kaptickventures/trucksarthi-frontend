@@ -205,6 +205,7 @@ export default function HomeScreen() {
     truckItems: { name: string; expiry: Date }[];
     expiry: Date;
     count: number;
+    isExpired: boolean;
   };
 
   // Uploaded truck-document reminders
@@ -289,6 +290,7 @@ export default function HomeScreen() {
           truckItems,
           expiry: nextExpiry,
           count: truckItems.length,
+          isExpired: nextExpiry.getTime() < new Date().setHours(0, 0, 0, 0),
         };
       })
       .sort((a, b) => a.expiry.getTime() - b.expiry.getTime())
@@ -556,8 +558,6 @@ export default function HomeScreen() {
 
           {groupedReminderDocs.length > 0 ? (
             groupedReminderDocs.map((item) => {
-              const dateStr = formatDate(item.expiry);
-
               return (
                 <View
                   key={item.key}
@@ -581,7 +581,7 @@ export default function HomeScreen() {
                   </View>
                   <View className="items-end">
                     <Text style={{ color: colors.destructive }} className="font-semibold text-xs">
-                      {dateStr}
+                      {item.isExpired ? "Expired" : formatDate(item.expiry)}
                     </Text>
                   </View>
                 </View>

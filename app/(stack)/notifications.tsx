@@ -111,7 +111,9 @@ export default function NotificationsScreen() {
         return {
           _id: `reminder-${doc._id}`,
           title: `${docLabel} ${isExpired ? "Expired" : "Expiring"}`,
-          message: `Your ${docLabel} for truck ${truckName} is ${isExpired ? "already expired" : "expiring"} on ${formatDate(doc.expiry_date)}.`,
+          message: isExpired
+            ? `Your ${docLabel} for truck ${truckName} has already expired.`
+            : `Your ${docLabel} for truck ${truckName} is expiring on ${formatDate(doc.expiry_date)}.`,
           type: "DOC_EXPIRY",
           status: "REMINDER",
           scheduled_at: new Date().toISOString(),
@@ -151,7 +153,9 @@ export default function NotificationsScreen() {
           return {
             _id: `truck-reminder-${truck._id}-${field.key}`,
             title: `${field.label} ${isExpired ? "Expired" : "Expiring"}`,
-            message: `Your ${field.label} for truck ${truckName} is ${isExpired ? "already expired" : "expiring"} on ${formatDate(expiry)}.`,
+            message: isExpired
+              ? `Your ${field.label} for truck ${truckName} has already expired.`
+              : `Your ${field.label} for truck ${truckName} is expiring on ${formatDate(expiry)}.`,
             type: "DOC_EXPIRY",
             status: "REMINDER",
             scheduled_at: new Date().toISOString(),
@@ -211,6 +215,7 @@ export default function NotificationsScreen() {
         scheduled_at: nextExpiry.toISOString(),
         is_reminder: true,
         daysLeft: minDaysLeft,
+        isExpired,
       };
     });
 
@@ -452,6 +457,11 @@ export default function NotificationsScreen() {
                       <Text className="text-sm font-medium leading-5 mb-2" style={{ color: colors.mutedForeground }}>
                         {n.message}
                       </Text>
+                      {activeTab === "reminders" && n.is_reminder && (n as any).isExpired && (
+                        <Text className="text-xs font-semibold mb-2" style={{ color: colors.destructive }}>
+                          Expired
+                        </Text>
+                      )}
                       {activeTab === "reminders" && Array.isArray((n as any).groupedTruckDetails) && (n as any).groupedTruckDetails.length > 0 && (
                         <View className="mb-2">
                           {(n as any).groupedTruckDetails.map((item: { truckName: string; expiryDate: Date }) => (
