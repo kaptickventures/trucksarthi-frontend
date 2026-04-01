@@ -9,8 +9,7 @@ export default function BiltyGeneratedScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
-  const { biltyId, biltyNumber, tripId, uri } = useLocalSearchParams<{
-    biltyId?: string;
+  const { biltyNumber, tripId, uri } = useLocalSearchParams<{
     biltyNumber?: string;
     tripId?: string;
     uri?: string;
