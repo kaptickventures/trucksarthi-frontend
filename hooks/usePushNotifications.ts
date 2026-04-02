@@ -7,6 +7,9 @@ import API from "../app/api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 
 const isExpoGo = Constants.appOwnership === "expo";
+const projectId =
+  Constants.expoConfig?.extra?.eas?.projectId ||
+  Constants.easConfig?.projectId;
 
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState("");
@@ -39,7 +42,12 @@ export function usePushNotifications() {
       }
       
       try {
-        token = (await Notifications.getExpoPushTokenAsync()).data;
+        if (!projectId) {
+          console.warn("Missing Expo projectId; cannot fetch Expo push token reliably.");
+          return;
+        }
+
+        token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
         console.log("Expo Push Token:", token);
       } catch (e) {
         console.error("Error getting push token:", e);
