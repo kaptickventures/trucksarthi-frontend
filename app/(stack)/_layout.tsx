@@ -43,6 +43,7 @@ export default function StackLayout() {
 
   const backgroundColor = colors.background;
   const foregroundColor = colors.foreground;
+  const canGoBack = typeof router.canGoBack === "function" ? router.canGoBack() : true;
 
   return (
     <BottomSheetModalProvider>
@@ -77,18 +78,20 @@ export default function StackLayout() {
               />
             ),
 
-            headerLeft: () => (
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={{ padding: 6 }}
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={24}
-                  color={foregroundColor}
-                />
-              </TouchableOpacity>
-            ),
+            headerLeft: () =>
+              canGoBack ? (
+                <TouchableOpacity
+                  onPress={() => router.back()}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  style={{ padding: 10, marginLeft: -4 }}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={24}
+                    color={foregroundColor}
+                  />
+                </TouchableOpacity>
+              ) : null,
 
             headerRight: () => (
               <TouchableOpacity

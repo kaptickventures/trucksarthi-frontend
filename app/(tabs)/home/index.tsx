@@ -356,9 +356,10 @@ export default function HomeScreen() {
       headerLeft: () => (
         <TouchableOpacity
           onPress={() => setMenuVisible((prev) => !prev)}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           style={{
-            paddingHorizontal: 6,
-            paddingVertical: 4,
+            paddingHorizontal: 10,
+            paddingVertical: 8,
             justifyContent: "center",
             alignItems: "center",
           }}

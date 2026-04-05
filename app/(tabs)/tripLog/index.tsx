@@ -356,7 +356,8 @@ export default function TripLog() {
       headerLeft: () => (
         <TouchableOpacity
           onPress={() => setMenuVisible((prev) => !prev)}
-          style={{ paddingHorizontal: 6, paddingVertical: 4 }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={{ paddingHorizontal: 10, paddingVertical: 8 }}
         >
           <Ionicons name={menuVisible ? "close" : "menu"} size={24} color={foregroundColor} />
         </TouchableOpacity>

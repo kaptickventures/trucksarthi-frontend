@@ -8,12 +8,13 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { loginWithPhone, postLoginFlow, sendPhoneOtp } from "../../hooks/useAuth";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useAuth as useAuthContext } from "../../context/AuthContext";
@@ -25,6 +26,7 @@ export default function LoginPhone() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const { refreshUser } = useAuthContext();
+  const insets = useSafeAreaInsets();
   const isDark = theme === "dark";
   const canGoBack = typeof router.canGoBack === "function" ? router.canGoBack() : false;
 
@@ -110,20 +112,26 @@ export default function LoginPhone() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <View style={{ flex: 1 }}>
-          {/* Header */}
-          <View style={{ padding: 24, flexDirection: 'row', alignItems: 'center' }}>
-            {canGoBack ? (
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={{ padding: 8, marginLeft: -8 }}
-              >
-                <ChevronLeft size={28} color={colors.foreground} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "space-between" }}
+          keyboardShouldPersistTaps="handled"
+          contentInsetAdjustmentBehavior="never"
+        >
+          <View style={{ flex: 1 }}>
+            {/* Header */}
+            <View style={{ padding: 24, flexDirection: "row", alignItems: "center" }}>
+              {canGoBack ? (
+                <TouchableOpacity
+                  onPress={() => router.back()}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  style={{ padding: 8, marginLeft: -8 }}
+                >
+                  <ChevronLeft size={28} color={colors.foreground} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
 
-          <View style={{ paddingHorizontal: 32, flex: 1, justifyContent: 'center' }}>
+            <View style={{ paddingHorizontal: 32, flex: 1, justifyContent: "center" }}>
             <View style={{ marginBottom: 40 }}>
               <Image
                 source={require("../../assets/Trucksarthi-Graphic.png")}
@@ -291,22 +299,24 @@ export default function LoginPhone() {
               <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: '600' }}>SECURE LOGIN</Text>
               <View style={{ height: 1.5, flex: 1, backgroundColor: colors.border }} />
             </View>
-
           </View>
 
-          <View style={{ padding: 32, alignItems: 'center' }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
-              By continuing, you agree to our{"\n"}
-              <Text onPress={() => void openPolicy("terms")} style={{ fontWeight: 'bold', color: colors.primary }}>
+          <View style={{ paddingHorizontal: 32, paddingTop: 20, paddingBottom: 20 + insets.bottom, alignItems: "center" }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: "center", lineHeight: 18 }}>
+              By continuing, you agree to our
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "center", marginTop: 2 }}>
+              <Text onPress={() => void openPolicy("terms")} style={{ fontWeight: "bold", color: colors.primary, fontSize: 12, lineHeight: 18 }}>
                 Terms of Service
               </Text>
-              {" and "}
-              <Text onPress={() => void openPolicy("privacy")} style={{ fontWeight: 'bold', color: colors.primary }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}> and </Text>
+              <Text onPress={() => void openPolicy("privacy")} style={{ fontWeight: "bold", color: colors.primary, fontSize: 12, lineHeight: 18 }}>
                 Privacy Policy
               </Text>
-            </Text>
+            </View>
           </View>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
