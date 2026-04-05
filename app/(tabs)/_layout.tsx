@@ -11,17 +11,21 @@ import { useAuth } from "../../context/AuthContext";
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { theme, colors } = useThemeStore();
-  const { user, loading } = useAuth();
+  const { user, loading, suspended } = useAuth();
   const router = useRouter();
   const isDark = theme === "dark";
 
   useEffect(() => {
+    if (!loading && suspended) {
+      router.replace("/account-suspended" as any);
+      return;
+    }
     if (!loading && !user) {
       router.replace("/auth/login" as any);
     }
-  }, [user, loading, router]);
+  }, [user, loading, suspended, router]);
 
-  if (loading || !user) {
+  if (loading || !user || suspended) {
     return null; // or a loading spinner
   }
 

@@ -16,6 +16,9 @@ export function getUserRole(user: any): AppUserRole | null {
   return "fleet_owner";
 }
 
+const isSuspendedError = (err: any) =>
+  err?.response?.status === 403 && err?.response?.data?.code === "ACCOUNT_SUSPENDED";
+
 export async function loginWithEmail(email: string, pass: string) {
   try {
     const res = await API.post("/api/auth/login", { email, password: pass });
@@ -23,9 +26,13 @@ export async function loginWithEmail(email: string, pass: string) {
     if (token) {
       await AsyncStorage.setItem("userToken", token);
     }
+    await AsyncStorage.removeItem("accountSuspended");
     return { token, user };
   } catch (err: any) {
     console.error("Login error:", { status: err.response?.status, data: err.response?.data, message: err.message });
+    if (isSuspendedError(err)) {
+      await AsyncStorage.setItem("accountSuspended", "1");
+    }
     if (!err.response) {
       const baseUrl = (API.defaults.baseURL || "").toString();
       const hint = baseUrl
@@ -54,9 +61,13 @@ export async function verifyEmailOtp(email: string, otp: string) {
     if (token) {
       await AsyncStorage.setItem("userToken", token);
     }
+    await AsyncStorage.removeItem("accountSuspended");
     return { token, user };
   } catch (err: any) {
     console.error("Email OTP login error:", err.response?.data || err.message);
+    if (isSuspendedError(err)) {
+      await AsyncStorage.setItem("accountSuspended", "1");
+    }
     throw err.response?.data?.error || err.response?.data?.message || err.message || "OTP login failed";
   }
 }
@@ -78,9 +89,13 @@ export async function loginWithPhone(phone: string, otp: string, userType?: stri
     if (token) {
       await AsyncStorage.setItem("userToken", token);
     }
+    await AsyncStorage.removeItem("accountSuspended");
     return { token, user };
   } catch (err: any) {
     console.error("Phone login error:", err.response?.data || err.message);
+    if (isSuspendedError(err)) {
+      await AsyncStorage.setItem("accountSuspended", "1");
+    }
     throw err.response?.data?.error || err.response?.data?.message || err.message || "Phone login failed";
   }
 }
@@ -92,6 +107,7 @@ export async function registerUser(name: string, email: string, pass: string) {
     if (token) {
       await AsyncStorage.setItem("userToken", token);
     }
+    await AsyncStorage.removeItem("accountSuspended");
     return { token, user };
   } catch (err: any) {
     console.error("Registration error:", err.response?.data || err.message);
@@ -106,8 +122,12 @@ export async function logout() {
 export async function getCurrentUser() {
   try {
     const res = await API.get("/api/auth/me");
+    await AsyncStorage.removeItem("accountSuspended");
     return res.data;
-  } catch {
+  } catch (err: any) {
+    if (isSuspendedError(err)) {
+      await AsyncStorage.setItem("accountSuspended", "1");
+    }
     return null;
   }
 }

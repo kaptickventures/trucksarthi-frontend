@@ -19,21 +19,25 @@ export default function StackLayout() {
   const { t } = useTranslation();
   const isDark = theme === "dark";
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, suspended } = useAuth();
   const pathname = usePathname();
   const allowUnauthed = pathname === "/desktop-qr";
 
   useEffect(() => {
+    if (!loading && suspended) {
+      router.replace("/account-suspended" as any);
+      return;
+    }
     if (!loading && !user && !allowUnauthed) {
       router.replace("/auth/login" as any);
     }
-  }, [user, loading, router, allowUnauthed]);
+  }, [user, loading, suspended, router, allowUnauthed]);
 
-  if (loading && !allowUnauthed) {
+  if ((loading || suspended) && !allowUnauthed) {
     return null;
   }
 
-  if (!user && !allowUnauthed) {
+  if ((!user || suspended) && !allowUnauthed) {
     return null;
   }
 

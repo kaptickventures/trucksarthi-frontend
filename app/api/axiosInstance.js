@@ -29,6 +29,11 @@ API.interceptors.request.use(
 API.interceptors.response.use(
   (response) => response,
   async (error) => {
+    const code = error?.response?.data?.code;
+    if (error.response && error.response.status === 403 && code === "ACCOUNT_SUSPENDED") {
+      await AsyncStorage.setItem("accountSuspended", "1");
+      await AsyncStorage.removeItem("userToken");
+    }
     if (error.response && error.response.status === 401) {
       // Clear token and potentially redirect to login
       await AsyncStorage.removeItem("userToken");

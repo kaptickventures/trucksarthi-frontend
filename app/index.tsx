@@ -9,7 +9,7 @@ import { useThemeStore } from "../hooks/useThemeStore";
 export default function Index() {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
-  const { user, loading } = useAuth();
+  const { user, loading, suspended } = useAuth();
   const { colors } = useThemeStore();
   const isRouterReady = !!rootNavigationState?.key;
 
@@ -18,13 +18,17 @@ export default function Index() {
 
     if (Platform.OS === "web") return;
     if (!loading) {
+      if (suspended) {
+        router.replace("/account-suspended" as any);
+        return;
+      }
       if (user) {
         postLoginFlow(router);
       } else {
         router.replace("/auth/login" as any);
       }
     }
-  }, [user, loading, router, isRouterReady]);
+  }, [user, loading, suspended, router, isRouterReady]);
 
   if (Platform.OS === "web") {
     return <Redirect href="/desktop-qr" />;
