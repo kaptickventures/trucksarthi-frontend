@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
     Camera,
     User,
@@ -31,7 +32,7 @@ import { getFileUrl, normalizeAddressInput, normalizePhoneInput } from "../../li
 export default function BasicDetailsScreen() {
     const router = useRouter();
     const { colors, theme } = useThemeStore();
-    const { user, loading: userLoading, syncUser, uploadProfilePicture, refreshUser } = useUser();
+    const { user, loading: userLoading, syncUser, uploadProfilePicture, refreshUser, checkProfileCompletion } = useUser();
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -60,6 +61,21 @@ export default function BasicDetailsScreen() {
         setAddress(user.address ?? "");
         setProfileUrl(user.profile_picture_url ?? null);
     }, [user]);
+
+    useEffect(() => {
+        let active = true;
+        const guardCompletedProfile = async () => {
+            if (!user || userLoading) return;
+            const completed = await checkProfileCompletion();
+            if (active && completed) {
+                router.replace("/(tabs)/home" as any);
+            }
+        };
+        void guardCompletedProfile();
+        return () => {
+            active = false;
+        };
+    }, [user, userLoading, checkProfileCompletion, router]);
 
     const pickImage = async () => {
         try {
@@ -113,6 +129,14 @@ export default function BasicDetailsScreen() {
                 company_name: company_name.trim(),
                 address: normalizeAddressInput(address)
             });
+            try {
+                await AsyncStorage.setItem(
+                    "profileCompletionStatusV1",
+                    JSON.stringify({ userId: String(user?._id || user?.id || ""), completed: true, checkedAt: Date.now() })
+                );
+            } catch {
+                // ignore
+            }
 
             Alert.alert("Success", "Profile completed! Welcome to Trucksarthi.", [
                 { text: "Get Started", onPress: () => router.replace("/(tabs)/home") }

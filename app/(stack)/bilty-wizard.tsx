@@ -196,6 +196,7 @@ export default function BiltyWizardScreen() {
   const [isClientModalVisible, setIsClientModalVisible] = useState(false);
   const [isTripPreviewModalVisible, setIsTripPreviewModalVisible] = useState(false);
   const [isInsuranceModalVisible, setIsInsuranceModalVisible] = useState(false);
+  const [isWaybillModalVisible, setIsWaybillModalVisible] = useState(false);
   const [isSignaturePadVisible, setIsSignaturePadVisible] = useState(false);
   const [isGoodsModalVisible, setIsGoodsModalVisible] = useState(false);
   const [isTermsModalVisible, setIsTermsModalVisible] = useState(false);
@@ -1025,16 +1026,18 @@ export default function BiltyWizardScreen() {
 
   const previewTripCard = {
     date: linkedTrip?.trip_date ? String(linkedTrip.trip_date).split("T")[0] : shipment.shipment_date,
-    totalCost: Number(charges.freight || 0) + Number(charges.other || 0),
+    totalCost: linkedTrip
+      ? Number(linkedTrip.cost_of_trip || 0) + Number(linkedTrip.miscellaneous_expense || 0)
+      : Number(charges.freight || 0) + Number(charges.other || 0),
     start: linkedTrip ? getLocationNameById(linkedTrip.start_location) : shipment.from_location,
     end: linkedTrip ? getLocationNameById(linkedTrip.end_location) : shipment.to_location,
     client: linkedTrip ? getClientNameById(linkedTrip.client) : (consignee.name || ""),
     truck: linkedTrip ? getTruckNameById(linkedTrip.truck) : shipment.vehicle_number,
     driver: linkedTrip ? getDriverNameById(linkedTrip.driver) : shipment.driver_name,
-    tripCost: Number(charges.freight || 0),
-    advance: Number(charges.advance || 0),
-    misc: Number(charges.other || 0),
-    notes: String(linkedTrip?.notes || ""),
+    tripCost: linkedTrip ? Number(linkedTrip.cost_of_trip || 0) : Number(charges.freight || 0),
+    advance: linkedTrip ? Number(linkedTrip.advance || 0) : Number(charges.advance || 0),
+    misc: linkedTrip ? Number(linkedTrip.miscellaneous_expense || 0) : Number(charges.other || 0),
+    notes: String(linkedTrip?.notes || notes || ""),
     publicId: String(linkedTrip?.public_id || ""),
   };
 
@@ -1068,7 +1071,10 @@ export default function BiltyWizardScreen() {
       setLoading(true);
       const doc = await getBiltyById(id);
       const uri = await createPdfUri(doc);
-      router.push({ pathname: "/(stack)/pdf-viewer", params: { uri, title: "LR Preview" } } as any);
+      router.push({
+        pathname: "/(stack)/pdf-viewer",
+        params: { uri: encodeURIComponent(uri), title: "LR Preview" },
+      } as any);
     } catch {
       Alert.alert("Error", "Failed to open bilty preview.");
     } finally {
@@ -1133,6 +1139,7 @@ export default function BiltyWizardScreen() {
         isClientModalVisible ||
         isTripPreviewModalVisible ||
         isInsuranceModalVisible ||
+        isWaybillModalVisible ||
         isSignaturePadVisible ||
         isGoodsModalVisible ||
         showLrDatePicker ||
@@ -1145,6 +1152,7 @@ export default function BiltyWizardScreen() {
     isClientModalVisible,
     isTripPreviewModalVisible,
     isInsuranceModalVisible,
+    isWaybillModalVisible,
     isSignaturePadVisible,
     isGoodsModalVisible,
     showLrDatePicker,
@@ -1501,7 +1509,7 @@ export default function BiltyWizardScreen() {
             >
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.55 }}>
-                  Party/Customer Name
+                  Trip Details
                 </Text>
                 {tripId ? (
                   <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, backgroundColor: colors.infoSoft }}>
@@ -1509,38 +1517,42 @@ export default function BiltyWizardScreen() {
                   </View>
                 ) : null}
               </View>
-              <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "800", marginBottom: 10 }}>
-                {consignee.name || consignor.name || "-"}
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+                {previewTripCard.start || "-"} {"->"} {previewTripCard.end || "-"}
               </Text>
-
-              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", marginBottom: 5, letterSpacing: 0.55 }}>Route</Text>
-              <View style={{ marginBottom: 9 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-                  <View style={{ width: 7, height: 7, borderRadius: 3.5, borderWidth: 1, borderColor: colors.primary, backgroundColor: "transparent", marginRight: 8 }} />
-                  <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{shipment.from_location || "-"}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginLeft: 5 }}>| {shipment.shipment_date || ""}</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 6 }}>
+                {previewTripCard.date ? new Date(previewTripCard.date).toLocaleDateString() : "No Date"}
+              </Text>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={{ color: colors.mutedForeground, marginBottom: 1, fontSize: 11 }}>Client: {previewTripCard.client || "-"}</Text>
+                  <Text style={{ color: colors.mutedForeground, marginBottom: 1, fontSize: 11 }}>Driver: {previewTripCard.driver || "-"}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Truck: {previewTripCard.truck || "-"}</Text>
                 </View>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.primary, marginRight: 8 }} />
-                  <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{shipment.to_location || "-"}</Text>
-                </View>
-              </View>
-
-              <View style={{ height: 1, backgroundColor: colors.border, opacity: 0.8, marginBottom: 9 }} />
-
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <View>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.45 }}>FREIGHT AMOUNT</Text>
-                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, fontSize: 14 }}>₹{(Number(charges.freight || 0) || 1258).toLocaleString("en-IN")}</Text>
-                </View>
-                <View>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", textAlign: "right", letterSpacing: 0.45 }}>PARTY BALANCE</Text>
-                  <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, textAlign: "right", fontSize: 14 }}>₹{(Number(charges.balance || 0) || 1258).toLocaleString("en-IN")}</Text>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={{ color: colors.mutedForeground, marginBottom: 1, fontSize: 11, fontWeight: "700" }}>
+                    Freight: Rs {previewTripCard.tripCost.toLocaleString("en-IN")}
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, marginBottom: 1, fontSize: 11 }}>
+                    Misc: Rs {previewTripCard.misc.toLocaleString("en-IN")}
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                    Advance: Rs {previewTripCard.advance.toLocaleString("en-IN")}
+                  </Text>
                 </View>
               </View>
-              <View style={{ marginTop: 7 }}>
-                <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.45 }}>ADVANCE</Text>
-                <Text style={{ color: colors.foreground, fontWeight: "800", marginTop: 2, fontSize: 13 }}>₹{Number(charges.advance || 0).toLocaleString("en-IN")}</Text>
+              <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.7, marginTop: 8, marginBottom: 8 }} />
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <Text
+                  style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11, flex: 1, paddingRight: 10 }}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
+                  Notes: {previewTripCard.notes?.trim() ? previewTripCard.notes : "-"}
+                </Text>
+                <Text style={{ color: colors.primary, fontSize: 16, fontWeight: "800" }}>
+                  Total: Rs {previewTripCard.totalCost.toLocaleString("en-IN")}
+                </Text>
               </View>
               <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700", marginTop: 10 }}>Tap to preview trip details</Text>
             </TouchableOpacity>
@@ -1755,7 +1767,7 @@ export default function BiltyWizardScreen() {
                 <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 16 }}>Insurance</Text>
               </View>
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>Optional cover details for this bilty.</Text>
-              <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, backgroundColor: isDark ? colors.input : colors.muted }}>
+              <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, backgroundColor: isDark ? colors.card : colors.primaryForeground }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
                   <Text style={{ color: colors.foreground, fontWeight: "800", flex: 1, paddingRight: 8 }}>
                     {insurance.policy_number ? (insurance.insurer_name || "-") : "No insurance added"}
@@ -1770,7 +1782,7 @@ export default function BiltyWizardScreen() {
                 {insurance.policy_number ? (
                   <>
                     <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Policy: {insurance.policy_number}</Text>
-                    <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: ₹{Number(insurance.coverage_amount || 0).toLocaleString("en-IN")}</Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: â‚¹{Number(insurance.coverage_amount || 0).toLocaleString("en-IN")}</Text>
                     <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Expiry: {insurance.expiry_date || "-"}</Text>
                     <TouchableOpacity
                       onPress={() => setInsurance({ policy_number: "", insurer_name: "", coverage_amount: "", expiry_date: "" })}
@@ -1782,22 +1794,33 @@ export default function BiltyWizardScreen() {
                 ) : (
                   <TouchableOpacity
                     onPress={() => setIsInsuranceModalVisible(true)}
-                    style={{ alignItems: "center", justifyContent: "center", paddingVertical: 10 }}
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      paddingVertical: 14,
+                      borderWidth: 1.5,
+                      borderStyle: "dashed",
+                      borderColor: colors.border,
+                      borderRadius: 12,
+                      backgroundColor: "transparent",
+                    }}
                   >
                     <View
                       style={{
-                        width: 52,
-                        height: 52,
-                        borderRadius: 26,
-                        backgroundColor: colors.success,
+                        width: 42,
+                        height: 42,
+                        borderRadius: 21,
+                        borderWidth: 1.5,
+                        borderColor: colors.primary,
+                        backgroundColor: "transparent",
                         alignItems: "center",
                         justifyContent: "center",
-                        marginBottom: 8,
+                        marginBottom: 7,
                       }}
                     >
-                      <Ionicons name="add" size={30} color={colors.primaryForeground} />
+                      <Ionicons name="add" size={22} color={colors.primary} />
                     </View>
-                    <Text style={{ color: colors.success, fontSize: 13, fontWeight: "800" }}>Add Insurance</Text>
+                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "800" }}>Add Insurance</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1806,9 +1829,61 @@ export default function BiltyWizardScreen() {
             <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12, backgroundColor: isDark ? colors.card : colors.primaryForeground }}>
               <Text style={{ color: colors.foreground, fontWeight: "900", fontSize: 16, marginBottom: 2 }}>Waybill</Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>Invoice and e-waybill references.</Text>
-              <TextInput placeholder="E-Waybill No" placeholderTextColor={colors.mutedForeground} value={shipment.eway_bill_no} onChangeText={(text) => setShipment((prev) => ({ ...prev, eway_bill_no: text }))} style={inputStyle} />
-              <TextInput placeholder="Goods Invoice No" placeholderTextColor={colors.mutedForeground} value={shipment.invoice_no} onChangeText={(text) => setShipment((prev) => ({ ...prev, invoice_no: text }))} style={inputStyle} />
-              <TextInput placeholder="Invoice Value" placeholderTextColor={colors.mutedForeground} value={shipment.invoice_value} onChangeText={(text) => setShipment((prev) => ({ ...prev, invoice_value: text }))} style={inputStyle} keyboardType="numeric" />
+              {shipment.eway_bill_no || shipment.invoice_no || shipment.invoice_value ? (
+                <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, backgroundColor: isDark ? colors.input : colors.muted }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                    <Text style={{ color: colors.foreground, fontWeight: "800", flex: 1, paddingRight: 8 }}>
+                      {shipment.eway_bill_no ? `E-Waybill: ${shipment.eway_bill_no}` : "Waybill details added"}
+                    </Text>
+                    <TouchableOpacity onPress={() => setIsWaybillModalVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="create-outline" size={17} color={colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>
+                    Goods Invoice: {shipment.invoice_no || "-"}
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                    Invoice Value: {shipment.invoice_value ? `Rs ${Number(shipment.invoice_value || 0).toLocaleString("en-IN")}` : "-"}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShipment((prev) => ({ ...prev, eway_bill_no: "", invoice_no: "", invoice_value: "" }))}
+                    style={{ alignSelf: "flex-start", marginTop: 8 }}
+                  >
+                    <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "700" }}>Remove waybill details</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => setIsWaybillModalVisible(true)}
+                  style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingVertical: 14,
+                    borderWidth: 1.5,
+                    borderStyle: "dashed",
+                    borderColor: colors.border,
+                    borderRadius: 12,
+                    backgroundColor: isDark ? colors.input : colors.primaryForeground,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 21,
+                      borderWidth: 1.5,
+                      borderColor: colors.primary,
+                      backgroundColor: "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 7,
+                    }}
+                  >
+                    <Ionicons name="add" size={22} color={colors.primary} />
+                  </View>
+                  <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "800" }}>Add Waybill Details</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 14, backgroundColor: isDark ? colors.card : colors.primaryForeground }}>
@@ -2184,7 +2259,7 @@ export default function BiltyWizardScreen() {
 
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>COVERAGE AMOUNT</Text>
           <TextInput
-            placeholder="₹ Amount"
+            placeholder="â‚¹ Amount"
             placeholderTextColor={colors.mutedForeground}
             value={insurance.coverage_amount}
             onChangeText={(text) => setInsurance((prev) => ({ ...prev, coverage_amount: text.replace(/[^\d.]/g, "") }))}
@@ -2227,6 +2302,62 @@ export default function BiltyWizardScreen() {
       </BottomSheet>
 
       <BottomSheet
+        visible={isWaybillModalVisible}
+        onClose={() => setIsWaybillModalVisible(false)}
+        title="Add Waybill Details"
+        maxHeight="80%"
+        expandedHeight="80%"
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>E-WAYBILL NUMBER</Text>
+          <TextInput
+            placeholder="E-Waybill No"
+            placeholderTextColor={colors.mutedForeground}
+            value={shipment.eway_bill_no}
+            onChangeText={(text) => setShipment((prev) => ({ ...prev, eway_bill_no: text }))}
+            style={inputStyle}
+          />
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>GOODS INVOICE NUMBER</Text>
+          <TextInput
+            placeholder="Goods Invoice No"
+            placeholderTextColor={colors.mutedForeground}
+            value={shipment.invoice_no}
+            onChangeText={(text) => setShipment((prev) => ({ ...prev, invoice_no: text }))}
+            style={inputStyle}
+          />
+
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>INVOICE VALUE</Text>
+          <TextInput
+            placeholder="Rs Amount"
+            placeholderTextColor={colors.mutedForeground}
+            value={shipment.invoice_value}
+            onChangeText={(text) => setShipment((prev) => ({ ...prev, invoice_value: text.replace(/[^\d.]/g, "") }))}
+            style={inputStyle}
+            keyboardType="numeric"
+          />
+
+          <TouchableOpacity
+            onPress={() => setIsWaybillModalVisible(false)}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 10,
+              paddingVertical: 12,
+              alignItems: "center",
+              marginTop: 4,
+            }}
+          >
+            <Text style={{ color: colors.primaryForeground, fontWeight: "800" }}>Save Waybill</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </BottomSheet>
+
+      <BottomSheet
         visible={isSignaturePadVisible}
         onClose={() => {
           setPendingSignatureSave(false);
@@ -2235,6 +2366,8 @@ export default function BiltyWizardScreen() {
         title="Draw Signature"
         maxHeight="68%"
         expandedHeight="76%"
+        disableContentPanningGesture
+        disableHandlePanningGesture
       >
         <View
           style={{
@@ -2334,15 +2467,11 @@ export default function BiltyWizardScreen() {
             marginBottom: 14,
           }}
         >
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6, alignItems: "center" }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
-              {previewTripCard.date ? new Date(previewTripCard.date).toLocaleDateString() : "No Date"}
-            </Text>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: colors.primary }}>{`₹ ${previewTripCard.totalCost.toLocaleString()}`}</Text>
-          </View>
-
           <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground, marginBottom: 8 }}>
             {previewTripCard.start || "-"} {" -> "} {previewTripCard.end || "-"}
+          </Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>
+            {previewTripCard.date ? new Date(previewTripCard.date).toLocaleDateString() : "No Date"}
           </Text>
 
           <View style={{ marginBottom: 8 }}>
@@ -2353,26 +2482,32 @@ export default function BiltyWizardScreen() {
 
           <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 8 }} />
 
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: ₹ {previewTripCard.tripCost.toLocaleString()}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Advance: ₹ {previewTripCard.advance.toLocaleString()}</Text>
+          <View style={{ alignItems: "flex-end", marginBottom: 4 }}>
+            <Text style={{ color: colors.mutedForeground, marginBottom: 1, fontSize: 11, fontWeight: "700" }}>
+              Freight: Rs {previewTripCard.tripCost.toLocaleString("en-IN")}
+            </Text>
+            <Text style={{ color: colors.mutedForeground, marginBottom: 1, fontSize: 11 }}>
+              Misc: Rs {previewTripCard.misc.toLocaleString("en-IN")}
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+              Advance: Rs {previewTripCard.advance.toLocaleString("en-IN")}
+            </Text>
           </View>
 
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: ₹ {previewTripCard.misc.toLocaleString()}</Text>
-          </View>
-
-          {previewTripCard.notes ? (
+          <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 8 }} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <Text
-              style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}
+              style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11, flex: 1, paddingRight: 10 }}
               numberOfLines={2}
               ellipsizeMode="tail"
             >
-              Notes: {previewTripCard.notes}
+              Notes: {previewTripCard.notes?.trim() ? previewTripCard.notes : "-"}
             </Text>
-          ) : null}
+            <Text style={{ color: colors.primary, fontSize: 16, fontWeight: "800" }}>
+              Total: Rs {previewTripCard.totalCost.toLocaleString("en-IN")}
+            </Text>
+          </View>
         </View>
-
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity
             onPress={() => setIsTripPreviewModalVisible(false)}

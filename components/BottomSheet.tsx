@@ -1,7 +1,6 @@
 import { X } from "lucide-react-native";
 import React, { useEffect, useMemo, useRef } from "react";
 import {
-    Platform,
     Text,
     TouchableOpacity,
     View,
@@ -24,6 +23,7 @@ type BottomSheetProps = {
     maxHeight?: number | string;
     expandedHeight?: number | string;
     disableContentPanningGesture?: boolean;
+    disableHandlePanningGesture?: boolean;
 };
 
 export default function BottomSheet({
@@ -35,6 +35,7 @@ export default function BottomSheet({
     maxHeight = "70%",
     expandedHeight = "90%",
     disableContentPanningGesture = false,
+    disableHandlePanningGesture = false,
 }: BottomSheetProps) {
     const { colors } = useThemeStore();
     const insets = useSafeAreaInsets();
@@ -59,6 +60,7 @@ export default function BottomSheet({
             snapPoints={snapPoints}
             enableDynamicSizing={false}
             enableContentPanningGesture={!disableContentPanningGesture}
+            enableHandlePanningGesture={!disableHandlePanningGesture}
             onDismiss={onClose}
             backdropComponent={(props) => (
                 <BottomSheetBackdrop

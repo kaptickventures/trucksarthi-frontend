@@ -209,15 +209,22 @@ export default function UpdateGstinScreen() {
                   }}
                   style={{
                     borderWidth: 1,
-                    borderColor: selectedHistoryGstin === item ? colors.primary : colors.border,
-                    backgroundColor: selectedHistoryGstin === item ? colors.primary + "14" : colors.card,
-                    borderRadius: 12,
-                    paddingHorizontal: 14,
-                    paddingVertical: 12,
+                    borderColor: colors.success,
+                    backgroundColor: colors.successSoft,
+                    borderRadius: 14,
+                    padding: 14,
                   }}
                 >
-                  <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>{item}</Text>
-                  <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 11 }}>Tap to use</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                    <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                    <Text style={{ color: colors.success, fontWeight: "800", marginLeft: 8 }}>
+                      {selectedHistoryGstin === item ? "Selected GSTIN" : "Previous GSTIN"}
+                    </Text>
+                  </View>
+                  <Text style={{ color: colors.foreground, fontSize: 12, marginBottom: 4 }}>GSTIN: {item}</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 12 }}>
+                    {selectedHistoryGstin === item ? "Using this GSTIN in input." : "Tap to use this GSTIN"}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>

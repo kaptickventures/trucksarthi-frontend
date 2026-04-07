@@ -476,7 +476,10 @@ export default function TripLog() {
             <Text className="text-center text-muted-foreground mt-10" style={{ color: colors.mutedForeground }}>{t('noTripsFound')}</Text>
           ) : (
             sortedTrips.map((trip) => {
-              const totalCost = Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense);
+              const freightCost = Number(trip.cost_of_trip || 0);
+              const miscCost = Number(trip.miscellaneous_expense || 0);
+              const advanceCost = Number(trip.advance || 0);
+              const totalCost = freightCost + miscCost;
               return (
                 <View key={trip._id} style={{ marginBottom: 12 }}>
                   <TouchableOpacity
@@ -486,39 +489,41 @@ export default function TripLog() {
                     style={{ backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }}
                   >
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8, alignItems: "flex-start" }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+                          {getLocationName(trip.start_location)}
+                          {" -> "}
+                          {getLocationName(trip.end_location)}
+                        </Text>
+                        <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 6 }}>
+                          {trip.trip_date ? formatDate(trip.trip_date) : t("noDate")}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <View style={{ flex: 1, paddingRight: 12 }}>
-                        <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>{trip.trip_date ? formatDate(trip.trip_date) : t("noDate")}</Text>
-                        <Text style={{ color: colors.foreground, marginBottom: 1, fontSize: 12 }}>Client: {getClientName(trip.client)}</Text>
-                        <Text style={{ color: colors.foreground, marginBottom: 1, fontSize: 12 }}>Driver: {getDriverName(trip.driver)}</Text>
-                        <Text style={{ color: colors.foreground, fontSize: 12 }}>Truck: {getTruckReg(trip.truck)}</Text>
+                        <Text style={{ color: colors.mutedForeground, marginBottom: 1, fontSize: 11 }}>Client: {getClientName(trip.client)}</Text>
+                        <Text style={{ color: colors.mutedForeground, marginBottom: 1, fontSize: 11 }}>Driver: {getDriverName(trip.driver)}</Text>
+                        <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Truck: {getTruckReg(trip.truck)}</Text>
                       </View>
                       <View style={{ alignItems: "flex-end" }}>
-                        <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: "700" }}>Amount</Text>
-                        <Text style={{ fontSize: 18, fontWeight: "800", color: colors.primary, marginBottom: 4 }}>{`Rs ${totalCost.toLocaleString()}`}</Text>
-                        <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Advance: Rs {Number(trip.advance || 0).toLocaleString()}</Text>
-                        <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Misc: Rs {Number(trip.miscellaneous_expense).toLocaleString()}</Text>
+                        <Text style={{ color: colors.mutedForeground, marginBottom: 1, fontSize: 11, fontWeight: "700" }}>Freight: Rs {freightCost.toLocaleString()}</Text>
+                        <Text style={{ color: colors.mutedForeground, marginBottom: 1, fontSize: 11 }}>Misc: Rs {miscCost.toLocaleString()}</Text>
+                        <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Advance: Rs {advanceCost.toLocaleString()}</Text>
                       </View>
                     </View>
-                    <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground, marginBottom: 8 }}>
-                      {getLocationName(trip.start_location)}
-                      {" -> "}
-                      {getLocationName(trip.end_location)}
-                    </Text>
-                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.6, marginVertical: 8 }} />
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trip Cost: Rs {Number(trip.cost_of_trip).toLocaleString()}</Text>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Misc: Rs {Number(trip.miscellaneous_expense).toLocaleString()}</Text>
-                    </View>
-                    <View style={{ marginTop: 4 }}>
-                      {trip.notes ? (
-                        <Text
-                          style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11 }}
-                          numberOfLines={2}
-                          ellipsizeMode="tail"
-                        >
-                          Notes: {trip.notes}
-                        </Text>
-                      ) : null}
+                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, opacity: 0.7, marginTop: 8, marginBottom: 8 }} />
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                      <Text
+                        style={{ fontStyle: "italic", color: colors.mutedForeground, fontSize: 11, flex: 1, paddingRight: 10 }}
+                        numberOfLines={2}
+                        ellipsizeMode="tail"
+                      >
+                        Notes: {trip.notes?.trim() ? trip.notes : "-"}
+                      </Text>
+                      <Text style={{ color: colors.primary, fontSize: 16, fontWeight: "800" }}>
+                        Total: Rs {totalCost.toLocaleString()}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 </View>

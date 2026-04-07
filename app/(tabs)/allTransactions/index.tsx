@@ -264,6 +264,7 @@ export default function TransactionsScreen() {
     const partyName = item.driverId ? driverMap[String(item.driverId)] :
       item.clientId ? clientMap[String(item.clientId)] :
         item.truckId ? truckMap[String(item.truckId)] : "";
+    const RUPEE = "\u20B9";
 
     return (
       <View
@@ -309,10 +310,10 @@ export default function TransactionsScreen() {
         </View>
         <View style={{ alignItems: "flex-end" }}>
           <Text style={{ fontSize: 16, fontWeight: "bold", color: iconColor }}>
-            {isIncome ? "+" : "-"}? {Number(item.amount || 0).toLocaleString()}
+            {isIncome ? "+" : "-"}{RUPEE} {Number(item.amount || 0).toLocaleString()}
           </Text>
           <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginTop: 2 }}>
-            Bal: ? {Number(item.runningBalance || 0).toLocaleString()}
+            Bal: {RUPEE} {Number(item.runningBalance || 0).toLocaleString()}
           </Text>
           <Text style={{ fontSize: 9, color: colors.mutedForeground, marginTop: 1 }}>
             {item.paymentMode || "CASH"}

@@ -52,8 +52,10 @@ export default function NotificationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [completedReminderIds, setCompletedReminderIds] = useState<Set<string>>(new Set());
+  const [completedReminderTruckMap, setCompletedReminderTruckMap] = useState<Record<string, string[]>>({});
   const dismissedStorageKey = "notifications:dismissed";
   const completedReminderStorageKey = "notifications:completed-reminders";
+  const completedReminderTruckStorageKey = "notifications:completed-reminder-trucks";
   const emptyIconColor = colors.mutedForeground;
 
   const { documents, loading: docsLoading, fetchDocuments } = useTruckDocuments();
@@ -251,12 +253,6 @@ export default function NotificationsScreen() {
     await persistSet(dismissedStorageKey, next);
   };
 
-  const markReminderCompleted = async (id: string) => {
-    const next = new Set([...completedReminderIds, id]);
-    setCompletedReminderIds(next);
-    await persistSet(completedReminderStorageKey, next);
-  };
-
   const clearAllNotifications = async () => {
     const ids = sortedNotifications.map((item) => String(item._id));
     const next = new Set([...dismissedIds, ...ids]);
@@ -283,21 +279,31 @@ export default function NotificationsScreen() {
   useEffect(() => {
     const loadLocalState = async () => {
       try {
-        const [dismissedRaw, completedRaw] = await Promise.all([
+        const [dismissedRaw, completedRaw, completedTruckRaw] = await Promise.all([
           AsyncStorage.getItem(dismissedStorageKey),
           AsyncStorage.getItem(completedReminderStorageKey),
+          AsyncStorage.getItem(completedReminderTruckStorageKey),
         ]);
         const parsedDismissed = dismissedRaw ? JSON.parse(dismissedRaw) : [];
         const parsedCompleted = completedRaw ? JSON.parse(completedRaw) : [];
+        const parsedCompletedTruck = completedTruckRaw ? JSON.parse(completedTruckRaw) : {};
         setDismissedIds(new Set(Array.isArray(parsedDismissed) ? parsedDismissed : []));
         setCompletedReminderIds(new Set(Array.isArray(parsedCompleted) ? parsedCompleted : []));
+        setCompletedReminderTruckMap(parsedCompletedTruck && typeof parsedCompletedTruck === "object" ? parsedCompletedTruck : {});
       } catch {
         setDismissedIds(new Set());
         setCompletedReminderIds(new Set());
+        setCompletedReminderTruckMap({});
       }
     };
     void loadLocalState();
   }, []);
+
+  const getVisibleGroupedTruckDetails = (item: any): { truckName: string; expiryDate: Date }[] => {
+    const all = Array.isArray(item?.groupedTruckDetails) ? item.groupedTruckDetails : [];
+    const doneForReminder = completedReminderTruckMap[String(item?._id)] || [];
+    return all.filter((truck: any) => !doneForReminder.includes(String(truck?.truckName || "")));
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -346,23 +352,6 @@ export default function NotificationsScreen() {
           <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('notifications')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Stay updated with your fleet activity</Text>
         </View>
-        {activeTab === "notifications" && (
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 10 }}>
-            <TouchableOpacity
-              onPress={() => void clearAllNotifications()}
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                backgroundColor: colors.card,
-                borderRadius: 999,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-              }}
-            >
-              <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "800" }}>Clear All</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         <View
           style={{
@@ -406,6 +395,23 @@ export default function NotificationsScreen() {
             );
           })}
         </View>
+        {activeTab === "notifications" && (
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 10 }}>
+            <TouchableOpacity
+              onPress={() => void clearAllNotifications()}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+                borderRadius: 999,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "800" }}>Clear All</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {loading || docsLoading ? (
           <View className="flex-1 items-center justify-center mt-32">
@@ -426,7 +432,9 @@ export default function NotificationsScreen() {
           visibleItems
             .filter((n) => !dismissedIds.has(String(n._id)))
             .filter((n) => !(activeTab === "reminders" && completedReminderIds.has(String(n._id))))
+            .filter((n) => !(activeTab === "reminders" && Array.isArray((n as any).groupedTruckDetails) && getVisibleGroupedTruckDetails(n).length === 0))
             .map((n) => {
+              const visibleGroupedTruckDetails = activeTab === "reminders" ? getVisibleGroupedTruckDetails(n) : [];
               return (
                 <View
                   key={n._id}
@@ -484,6 +492,8 @@ export default function NotificationsScreen() {
                                   reminderId: String(n._id),
                                   title: String(n.title || ""),
                                   status: (n as any).isExpired ? "expired" : "expiring",
+                                  docLabel: String(n.title || "").replace(/\s+(Expired|Expiring)\s*$/i, ""),
+                                  trucks: JSON.stringify(visibleGroupedTruckDetails || []),
                                 },
                               } as any)
                             }
@@ -503,9 +513,9 @@ export default function NotificationsScreen() {
                           Expired
                         </Text>
                       )}
-                      {activeTab === "reminders" && Array.isArray((n as any).groupedTruckDetails) && (n as any).groupedTruckDetails.length > 0 && (
+                      {activeTab === "reminders" && visibleGroupedTruckDetails.length > 0 && (
                         <View className="mb-2">
-                          {(n as any).groupedTruckDetails.map((item: { truckName: string; expiryDate: Date }) => (
+                          {visibleGroupedTruckDetails.map((item: { truckName: string; expiryDate: Date }) => (
                             <Text key={`${n._id}-${item.truckName}`} className="text-sm leading-5" style={{ color: colors.mutedForeground }}>
                               * {item.truckName} - {getDaysLeftLabel(item.expiryDate)}
                             </Text>
@@ -523,27 +533,6 @@ export default function NotificationsScreen() {
                       )}
                     </View>
                   </TouchableOpacity>
-                  {activeTab === "reminders" && (
-                    <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 8 }}>
-                      <TouchableOpacity
-                        onPress={() => void markReminderCompleted(String(n._id))}
-                        style={{
-                          borderWidth: 1,
-                          borderColor: colors.success + "55",
-                          backgroundColor: colors.successSoft,
-                          borderRadius: 10,
-                          paddingHorizontal: 10,
-                          paddingVertical: 6,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <Ionicons name="checkmark" size={14} color={colors.success} />
-                        <Text style={{ color: colors.success, fontSize: 11, fontWeight: "800" }}>Mark done</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
                 </View>
               );
             })

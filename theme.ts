@@ -8,6 +8,8 @@ import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
 const base = {
   radius: 10,
 };
+const BRAND_GREEN = "#2F9459";
+const BRAND_GREEN_DARK = "#26784A";
 
 const PALETTES = {
   light: {
@@ -23,7 +25,7 @@ const PALETTES = {
       surfaceAlt: "#ECECEC",
 
       // Brand (WhatsApp style)
-      primary: "#25D366",
+      primary: BRAND_GREEN,
       primaryText: "#FFFFFF",
 
       // Secondary UI
@@ -35,7 +37,7 @@ const PALETTES = {
       accentText: "#128C7E",
 
       // States
-      success: "#25D366",
+      success: BRAND_GREEN,
       warning: "#F4B400",
       error: "#FF4B4B",
       info: "#1D4ED8",
@@ -49,7 +51,7 @@ const PALETTES = {
       // UI Elements
       border: "#DDE3EA",
       input: "#F8FAFC",
-      ring: "#25D366",
+      ring: BRAND_GREEN,
       transparent: "transparent",
       shadow: "#000000",
       shadowSoft: "#00000033",
@@ -67,7 +69,7 @@ const PALETTES = {
       mutedText: "#666666",
 
       // Charts
-      chart: ["#25D366", "#1DAA61", "#F4B400", "#34B7F1", "#FF6D6D"],
+      chart: [BRAND_GREEN, BRAND_GREEN_DARK, "#F4B400", "#34B7F1", "#FF6D6D"],
     },
   },
 
@@ -84,7 +86,7 @@ const PALETTES = {
       surfaceAlt: "#202C33",
 
       // Brand
-      primary: "#1FA855",
+      primary: BRAND_GREEN,
       primaryText: "#FFFFFF",
 
       // Secondary
@@ -96,7 +98,7 @@ const PALETTES = {
       accentText: "#FFFFFF",
 
       // States
-      success: "#1FA855",
+      success: BRAND_GREEN,
       warning: "#F4C430",
       error: "#FF5C5C",
       info: "#3B82F6",
@@ -110,7 +112,7 @@ const PALETTES = {
       // UI Elements
       border: "#2E3C46",
       input: "#24323B",
-      ring: "#1FA855",
+      ring: BRAND_GREEN,
       transparent: "transparent",
       shadow: "#000000",
       shadowSoft: "#00000033",
@@ -128,7 +130,7 @@ const PALETTES = {
       mutedText: "#BFBFBF",
 
       // Charts
-      chart: ["#1FA855", "#3DDC84", "#F4C430", "#7A5CFA", "#FF4F6D"],
+      chart: [BRAND_GREEN, BRAND_GREEN_DARK, "#F4C430", "#7A5CFA", "#FF4F6D"],
     },
   },
 };

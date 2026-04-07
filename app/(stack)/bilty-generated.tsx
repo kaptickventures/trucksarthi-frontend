@@ -33,7 +33,10 @@ export default function BiltyGeneratedScreen() {
       Alert.alert("Preview unavailable", "Bilty was generated but preview file is not available.");
       return;
     }
-    router.push({ pathname: "/(stack)/pdf-viewer", params: { uri: pdfUri, title: "LR Preview" } } as any);
+    router.push({
+      pathname: "/(stack)/pdf-viewer",
+      params: { uri: encodeURIComponent(pdfUri), title: "LR Preview" },
+    } as any);
   };
 
   const sharePdf = async () => {

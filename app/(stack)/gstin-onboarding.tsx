@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ArrowRight, Building2, CheckCircle2, Mail, MapPin, Smartphone, User } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -25,7 +26,7 @@ const normalizeGstin = (value: string) => normalizeGstinNumber(value);
 export default function GstinOnboardingScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
-  const { user, loading: userLoading, syncUser, refreshUser } = useUser();
+  const { user, loading: userLoading, syncUser, refreshUser, checkProfileCompletion } = useUser();
   const { verifyGSTIN, verifyPAN, loading: kycLoading } = useKYC();
 
   const [step, setStep] = useState<Step>("choice");
@@ -74,6 +75,21 @@ export default function GstinOnboardingScreen() {
       setStep("preview");
     }
   }, [user]);
+
+  useEffect(() => {
+    let active = true;
+    const guardCompletedProfile = async () => {
+      if (!user || userLoading) return;
+      const completed = await checkProfileCompletion();
+      if (active && completed) {
+        router.replace("/(tabs)/home" as any);
+      }
+    };
+    void guardCompletedProfile();
+    return () => {
+      active = false;
+    };
+  }, [user, userLoading, checkProfileCompletion, router]);
 
   const isEmailPlaceholder = useMemo(() => {
     const currentEmail = user?.email ?? "";
@@ -177,6 +193,14 @@ export default function GstinOnboardingScreen() {
           ...(registrationType === "non_gst" ? { pan_details: panDetails || user?.kyc_data?.pan_details } : {}),
         },
       });
+      try {
+        await AsyncStorage.setItem(
+          "profileCompletionStatusV1",
+          JSON.stringify({ userId: String(user?._id || user?.id || ""), completed: true, checkedAt: Date.now() })
+        );
+      } catch {
+        // ignore
+      }
 
       Alert.alert("Success", "Profile completed! Welcome to Trucksarthi.", [
         { text: "Go to Dashboard", onPress: () => router.replace("/(tabs)/home") },

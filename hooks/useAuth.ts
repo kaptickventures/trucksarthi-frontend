@@ -3,6 +3,8 @@ import API from "../app/api/axiosInstance";
 import { normalizePhoneInput } from "../lib/utils";
 
 export type AppUserRole = "driver" | "fleet_owner";
+const PROFILE_COMPLETION_CACHE_KEY = "profileCompletionStatusV1";
+const PROFILE_COMPLETION_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
 export function getUserRole(user: any): AppUserRole | null {
   if (!user) return null;
@@ -144,9 +146,34 @@ export async function postLoginFlow(router: any) {
       return;
     }
 
-    const userId = user._id || user.id;
-    const res = await API.get(`/api/users/check-profile/${userId}`);
-    const completed = res.data?.profileCompleted;
+    const userId = String(user._id || user.id || "");
+    let completed: boolean | null = null;
+
+    try {
+      const cachedRaw = await AsyncStorage.getItem(PROFILE_COMPLETION_CACHE_KEY);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw) as { userId?: string; completed?: boolean; checkedAt?: number };
+        const isFresh = Number.isFinite(cached?.checkedAt) && Date.now() - Number(cached.checkedAt) < PROFILE_COMPLETION_CACHE_TTL_MS;
+        if (cached?.userId === userId && typeof cached?.completed === "boolean" && isFresh) {
+          completed = cached.completed;
+        }
+      }
+    } catch {
+      // ignore cache read errors
+    }
+
+    if (completed === null) {
+      const res = await API.get(`/api/users/check-profile/${userId}`);
+      completed = Boolean(res.data?.profileCompleted);
+      try {
+        await AsyncStorage.setItem(
+          PROFILE_COMPLETION_CACHE_KEY,
+          JSON.stringify({ userId, completed, checkedAt: Date.now() })
+        );
+      } catch {
+        // ignore cache write errors
+      }
+    }
 
     if (completed) {
       resetAndReplace("/(tabs)/home");

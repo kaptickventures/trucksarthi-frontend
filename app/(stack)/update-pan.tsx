@@ -16,6 +16,7 @@ export default function UpdatePanScreen() {
 
   const [pan, setPan] = useState("");
   const [history, setHistory] = useState<string[]>([]);
+  const [selectedHistoryPan, setSelectedHistoryPan] = useState("");
 
   const historyKey = useMemo(() => `kyc_history:${user?._id || "anonymous"}`, [user?._id]);
 
@@ -54,6 +55,7 @@ export default function UpdatePanScreen() {
 
   const handleVerify = async () => {
     const normalizedPan = (pan || "").trim().toUpperCase();
+    setSelectedHistoryPan(normalizedPan);
     if (normalizedPan.length !== 10) {
       Alert.alert("Error", "Please enter a valid 10-digit PAN number");
       return;
@@ -189,18 +191,28 @@ export default function UpdatePanScreen() {
               {history.map((item) => (
                 <TouchableOpacity
                   key={item}
-                  onPress={() => setPan(item)}
+                  onPress={() => {
+                    setPan(item);
+                    setSelectedHistoryPan(item);
+                  }}
                   style={{
                     borderWidth: 1,
-                    borderColor: colors.border,
-                    backgroundColor: colors.card,
-                    borderRadius: 12,
-                    paddingHorizontal: 14,
-                    paddingVertical: 12,
+                    borderColor: colors.success,
+                    backgroundColor: colors.successSoft,
+                    borderRadius: 14,
+                    padding: 14,
                   }}
                 >
-                  <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>{item}</Text>
-                  <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 11 }}>Tap to use</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                    <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                    <Text style={{ color: colors.success, fontWeight: "800", marginLeft: 8 }}>
+                      {selectedHistoryPan === item ? "Selected PAN" : "Previous PAN"}
+                    </Text>
+                  </View>
+                  <Text style={{ color: colors.foreground, fontSize: 12, marginBottom: 4 }}>PAN: {item}</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 12 }}>
+                    {selectedHistoryPan === item ? "Using this PAN in input." : "Tap to use this PAN"}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>

@@ -5,10 +5,8 @@ import { useMemo, useState } from "react";
 import { Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import useTruckDocuments from "../../hooks/useTruckDocuments";
-import useTrucks from "../../hooks/useTruck";
 import { useThemeStore } from "../../hooks/useThemeStore";
-import { formatDate, formatLabel } from "../../lib/utils";
+import { formatDate } from "../../lib/utils";
 
 type ReminderRow = {
   truckName: string;
@@ -22,58 +20,57 @@ export default function ReminderDetailScreen() {
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const router = useRouter();
-  const { title, status, reminderId } = useLocalSearchParams<{ title?: string; status?: string; reminderId?: string }>();
-  const { documents } = useTruckDocuments();
-  const { trucks } = useTrucks();
+  const { title, reminderId, trucks, docLabel } = useLocalSearchParams<{ title?: string; status?: string; reminderId?: string; trucks?: string; docLabel?: string }>();
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
 
-  const parseExpiryDate = (value: any): Date | null => {
-    if (!value) return null;
-    const direct = new Date(value);
-    if (!Number.isNaN(direct.getTime())) return direct;
-    return null;
-  };
-
-  const getDaysLeft = (expiry: Date) => {
-    const today = new Date();
-    const expiryStart = new Date(expiry.getFullYear(), expiry.getMonth(), expiry.getDate());
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const diffTime = expiryStart.getTime() - todayStart.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
-
   const rows = useMemo<ReminderRow[]>(() => {
-    const desiredState = status === "expired" ? "expired" : "expiring";
-    return documents
-      .map((doc) => {
-        const expiry = parseExpiryDate(doc.expiry_date);
-        if (!expiry) return null;
-        const daysLeft = getDaysLeft(expiry);
-        const isExpired = daysLeft < 0;
-        if (desiredState === "expired" && !isExpired) return null;
-        if (desiredState === "expiring" && isExpired) return null;
-        const truckId = typeof doc.truck === "object" ? doc.truck?._id : doc.truck;
-        const truck = trucks.find((t) => String(t._id) === String(truckId));
-        return {
-          id: `${doc._id}`,
-          truckName: truck?.registration_number || (typeof doc.truck === "object" ? doc.truck?.registration_number : "N/A"),
-          docLabel: formatLabel(doc.document_type || "Document"),
-          expiryDate: expiry,
-          isExpired,
-        };
-      })
-      .filter(Boolean) as ReminderRow[];
-  }, [documents, trucks, status]);
+    try {
+      const parsed = JSON.parse(String(trucks || "[]"));
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((item: any, idx: number) => {
+          const expiry = new Date(item?.expiryDate);
+          const validExpiry = !Number.isNaN(expiry.getTime()) ? expiry : new Date();
+          const today = new Date();
+          const isExpired = validExpiry.getTime() < new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+          return {
+            id: String(item?.truckName || `truck-${idx}`),
+            truckName: String(item?.truckName || "N/A"),
+            docLabel: String(docLabel || "Document"),
+            expiryDate: validExpiry,
+            isExpired,
+          };
+        })
+        .filter(Boolean) as ReminderRow[];
+    } catch {
+      return [];
+    }
+  }, [trucks, docLabel]);
 
   const markComplete = async (itemId: string) => {
     const next = new Set([...doneIds, itemId]);
     setDoneIds(next);
     try {
+      const truckMapKey = "notifications:completed-reminder-trucks";
       const completedReminderStorageKey = "notifications:completed-reminders";
-      const existing = await AsyncStorage.getItem(completedReminderStorageKey);
-      const parsed = existing ? JSON.parse(existing) : [];
-      const merged = Array.from(new Set([...(Array.isArray(parsed) ? parsed : []), String(reminderId || ""), itemId]));
-      await AsyncStorage.setItem(completedReminderStorageKey, JSON.stringify(merged));
+      const [existingMapRaw, existingDoneRaw] = await Promise.all([
+        AsyncStorage.getItem(truckMapKey),
+        AsyncStorage.getItem(completedReminderStorageKey),
+      ]);
+      const parsedMap = existingMapRaw ? JSON.parse(existingMapRaw) : {};
+      const parsedDone = existingDoneRaw ? JSON.parse(existingDoneRaw) : [];
+
+      const reminderKey = String(reminderId || "");
+      const existingForReminder = Array.isArray(parsedMap?.[reminderKey]) ? parsedMap[reminderKey] : [];
+      const nextForReminder = Array.from(new Set([...existingForReminder, itemId]));
+      const nextMap = { ...(parsedMap || {}), [reminderKey]: nextForReminder };
+      await AsyncStorage.setItem(truckMapKey, JSON.stringify(nextMap));
+
+      const remainingAfterThis = rows.filter((row) => !next.has(row.id));
+      if (remainingAfterThis.length === 0 && reminderKey) {
+        const mergedDone = Array.from(new Set([...(Array.isArray(parsedDone) ? parsedDone : []), reminderKey]));
+        await AsyncStorage.setItem(completedReminderStorageKey, JSON.stringify(mergedDone));
+      }
     } catch {
       // ignore
     }
@@ -148,7 +145,11 @@ export default function ReminderDetailScreen() {
         <TouchableOpacity
           onPress={() => {
             Alert.alert("Done", "Reminder statuses updated.");
-            router.back();
+            if (typeof router.canGoBack === "function" && router.canGoBack()) {
+              router.back();
+              return;
+            }
+            router.replace("/(stack)/notifications?tab=reminders" as any);
           }}
           style={{
             marginTop: 8,
@@ -164,4 +165,3 @@ export default function ReminderDetailScreen() {
     </SafeAreaView>
   );
 }
-

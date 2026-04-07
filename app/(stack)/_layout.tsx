@@ -159,6 +159,25 @@ export default function StackLayout() {
             options={{
               title: "Notifications",
               headerRight: () => null,
+              headerLeft: () => (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (typeof router.canGoBack === "function" && router.canGoBack()) {
+                      router.back();
+                      return;
+                    }
+                    router.replace("/(tabs)/home" as any);
+                  }}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  style={{ padding: 10, marginLeft: -4 }}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={24}
+                    color={foregroundColor}
+                  />
+                </TouchableOpacity>
+              ),
             }}
           />
           <Stack.Screen name="reminder-detail" options={{ title: "Reminder Detail" }} />
@@ -173,6 +192,13 @@ export default function StackLayout() {
           <Stack.Screen name="edit-trip" options={{ title: "Edit Trip" }} />
           <Stack.Screen name="bilty-wizard" options={{ title: "Bilty Wizard" }} />
           <Stack.Screen name="bilty-generated" options={{ title: "Bilty Saved" }} />
+          <Stack.Screen
+            name="pdf-viewer"
+            options={{
+              title: "Document Viewer",
+              headerRight: () => null,
+            }}
+          />
           <Stack.Screen name="driver-ledger" options={{ title: "Driver Khata" }} />
           <Stack.Screen name="driver-ledger-detail" options={{ title: "Driver Khata" }} />
           <Stack.Screen name="client-ledger" options={{ title: "Client Khata" }} />

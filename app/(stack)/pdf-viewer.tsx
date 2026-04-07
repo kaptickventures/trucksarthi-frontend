@@ -15,18 +15,29 @@ export default function PDFViewerScreen() {
     const resolvedUri = (() => {
         const raw = String(uri || "");
         if (!raw) return "";
-        try {
-            const decoded = decodeURIComponent(raw);
-            if (decoded.startsWith("file://") || decoded.startsWith("http://") || decoded.startsWith("https://")) {
-                return decoded;
+
+        const looksLikeAbsoluteUri =
+            raw.startsWith("file://") ||
+            raw.startsWith("http://") ||
+            raw.startsWith("https://") ||
+            raw.startsWith("/");
+
+        const normalized = (() => {
+            if (looksLikeAbsoluteUri) return raw;
+            try {
+                return decodeURIComponent(raw);
+            } catch {
+                return raw;
             }
-            if (decoded.startsWith("/")) {
-                return `file://${decoded}`;
-            }
-            return decoded;
-        } catch {
-            return raw;
+        })();
+
+        if (normalized.startsWith("file://") || normalized.startsWith("http://") || normalized.startsWith("https://")) {
+            return normalized;
         }
+        if (normalized.startsWith("/")) {
+            return `file://${normalized}`;
+        }
+        return normalized;
     })();
 
     const handleShare = useCallback(async () => {
