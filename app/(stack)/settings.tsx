@@ -196,7 +196,7 @@ export default function Settings() {
             <Bell size={20} color={colors.primary} />
             <View>
               <Text className="text-base" style={{ color: colors.foreground }}>{t('pushNotifications')}</Text>
-              <TouchableOpacity onPress={() => router.push("/(stack)/notifications" as any)}>
+              <TouchableOpacity onPress={() => router.replace("/(stack)/notifications" as any)}>
                 <Text style={{ color: colors.primary, fontSize: 10 }}>{t('viewHistory')}</Text>
               </TouchableOpacity>
             </View>
@@ -232,3 +232,4 @@ export default function Settings() {
     </View>
   );
 }
+

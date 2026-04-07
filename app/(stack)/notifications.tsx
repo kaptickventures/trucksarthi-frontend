@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   ScrollView,
@@ -9,8 +10,6 @@ import {
   RefreshControl,
   TouchableOpacity,
   StatusBar,
-  Animated,
-  PanResponder,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "../../global.css";
@@ -37,6 +36,7 @@ type ReminderItem = {
 };
 
 export default function NotificationsScreen() {
+  const router = useRouter();
   const { colors, theme } = useThemeStore();
   const isDark = theme === "dark";
   const { t } = useTranslation();
@@ -51,8 +51,9 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
-  const [swipeAnimations] = useState(() => new Map<string, Animated.Value>());
-  const [panResponders] = useState(() => new Map<string, any>());
+  const [completedReminderIds, setCompletedReminderIds] = useState<Set<string>>(new Set());
+  const dismissedStorageKey = "notifications:dismissed";
+  const completedReminderStorageKey = "notifications:completed-reminders";
   const emptyIconColor = colors.mutedForeground;
 
   const { documents, loading: docsLoading, fetchDocuments } = useTruckDocuments();
@@ -236,18 +237,31 @@ export default function NotificationsScreen() {
 
   const visibleItems = activeTab === "reminders" ? groupedReminders : sortedNotifications;
 
-  const dismissCard = (id: string, slideAnim?: Animated.Value) => {
-    if (slideAnim) {
-      Animated.timing(slideAnim, {
-        toValue: -100,
-        duration: 200,
-        useNativeDriver: false,
-      }).start(() => {
-        setDismissedIds((prev) => new Set([...prev, id]));
-      });
-      return;
+  const persistSet = async (key: string, values: Set<string>) => {
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(Array.from(values)));
+    } catch {
+      // ignore local persistence failure
     }
-    setDismissedIds((prev) => new Set([...prev, id]));
+  };
+
+  const dismissCard = async (id: string) => {
+    const next = new Set([...dismissedIds, id]);
+    setDismissedIds(next);
+    await persistSet(dismissedStorageKey, next);
+  };
+
+  const markReminderCompleted = async (id: string) => {
+    const next = new Set([...completedReminderIds, id]);
+    setCompletedReminderIds(next);
+    await persistSet(completedReminderStorageKey, next);
+  };
+
+  const clearAllNotifications = async () => {
+    const ids = sortedNotifications.map((item) => String(item._id));
+    const next = new Set([...dismissedIds, ...ids]);
+    setDismissedIds(next);
+    await persistSet(dismissedStorageKey, next);
   };
 
   const fetchNotifications = async () => {
@@ -264,6 +278,25 @@ export default function NotificationsScreen() {
 
   useEffect(() => {
     fetchNotifications();
+  }, []);
+
+  useEffect(() => {
+    const loadLocalState = async () => {
+      try {
+        const [dismissedRaw, completedRaw] = await Promise.all([
+          AsyncStorage.getItem(dismissedStorageKey),
+          AsyncStorage.getItem(completedReminderStorageKey),
+        ]);
+        const parsedDismissed = dismissedRaw ? JSON.parse(dismissedRaw) : [];
+        const parsedCompleted = completedRaw ? JSON.parse(completedRaw) : [];
+        setDismissedIds(new Set(Array.isArray(parsedDismissed) ? parsedDismissed : []));
+        setCompletedReminderIds(new Set(Array.isArray(parsedCompleted) ? parsedCompleted : []));
+      } catch {
+        setDismissedIds(new Set());
+        setCompletedReminderIds(new Set());
+      }
+    };
+    void loadLocalState();
   }, []);
 
   const onRefresh = async () => {
@@ -313,6 +346,23 @@ export default function NotificationsScreen() {
           <Text className="text-[24px] font-black" style={{ color: colors.foreground }}>{t('notifications')}</Text>
           <Text className="text-sm opacity-60" style={{ color: colors.foreground }}>Stay updated with your fleet activity</Text>
         </View>
+        {activeTab === "notifications" && (
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 10 }}>
+            <TouchableOpacity
+              onPress={() => void clearAllNotifications()}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+                borderRadius: 999,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "800" }}>Clear All</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View
           style={{
@@ -374,41 +424,13 @@ export default function NotificationsScreen() {
           </View>
         ) : (
           visibleItems
-            .filter(n => !dismissedIds.has(n._id))
+            .filter((n) => !dismissedIds.has(String(n._id)))
+            .filter((n) => !(activeTab === "reminders" && completedReminderIds.has(String(n._id))))
             .map((n) => {
-              // Initialize animation and responder for this notification if not exist
-              if (!swipeAnimations.has(n._id)) {
-                swipeAnimations.set(n._id, new Animated.Value(0));
-                const slideAnim = swipeAnimations.get(n._id)!;
-                panResponders.set(n._id, PanResponder.create({
-                  onStartShouldSetPanResponder: () => true,
-                  onMoveShouldSetPanResponder: (_, { dx, dy }) => Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy),
-                  onPanResponderMove: (_, { dx }) => {
-                    if (dx < 0) {
-                      slideAnim.setValue(Math.max(dx, -80));
-                    }
-                  },
-                  onPanResponderRelease: (_, { dx, vx }) => {
-                    if (dx < -40 || vx < -0.5) {
-                      dismissCard(n._id, slideAnim);
-                    } else {
-                      Animated.spring(slideAnim, {
-                        toValue: 0,
-                        useNativeDriver: false,
-                      }).start();
-                    }
-                  },
-                }));
-              }
-
-              const slideAnim = swipeAnimations.get(n._id)!;
-              const panResponder = panResponders.get(n._id)!;
-
               return (
-                <Animated.View
+                <View
                   key={n._id}
-                  style={{ transform: [{ translateX: slideAnim }], marginBottom: 12 }}
-                  {...panResponder.panHandlers}
+                  style={{ marginBottom: 12 }}
                 >
                   <TouchableOpacity
                     className={`rounded-2xl p-4 flex-row items-start border`}
@@ -445,13 +467,32 @@ export default function NotificationsScreen() {
                             </Text>
                           </View>
                         )}
-                        <TouchableOpacity
-                          onPress={() => dismissCard(n._id, slideAnim)}
-                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                          style={{ marginLeft: 8 }}
-                        >
-                          <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
-                        </TouchableOpacity>
+                        {!n.is_reminder ? (
+                          <TouchableOpacity
+                            onPress={() => void dismissCard(String(n._id))}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            style={{ marginLeft: 8 }}
+                          >
+                            <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() =>
+                              router.push({
+                                pathname: "/(stack)/reminder-detail",
+                                params: {
+                                  reminderId: String(n._id),
+                                  title: String(n.title || ""),
+                                  status: (n as any).isExpired ? "expired" : "expiring",
+                                },
+                              } as any)
+                            }
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            style={{ marginLeft: 8 }}
+                          >
+                            <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
+                          </TouchableOpacity>
+                        )}
                       </View>
 
                       <Text className="text-sm font-medium leading-5 mb-2" style={{ color: colors.mutedForeground }}>
@@ -482,25 +523,28 @@ export default function NotificationsScreen() {
                       )}
                     </View>
                   </TouchableOpacity>
-
-                  {/* Swipe hint */}
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                      bottom: 0,
-                      width: 80,
-                      backgroundColor: colors.destructive,
-                      borderRadius: 16,
-                      justifyContent: "center",
-                      alignItems: "center",
-                      zIndex: -1,
-                    }}
-                  >
-                    <Ionicons name="trash-outline" size={24} color={colors.primaryForeground} />
-                  </View>
-                </Animated.View>
+                  {activeTab === "reminders" && (
+                    <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 8 }}>
+                      <TouchableOpacity
+                        onPress={() => void markReminderCompleted(String(n._id))}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: colors.success + "55",
+                          backgroundColor: colors.successSoft,
+                          borderRadius: 10,
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <Ionicons name="checkmark" size={14} color={colors.success} />
+                        <Text style={{ color: colors.success, fontSize: 11, fontWeight: "800" }}>Mark done</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
               );
             })
         )}

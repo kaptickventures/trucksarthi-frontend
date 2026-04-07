@@ -120,7 +120,7 @@ export default function EditTripScreen() {
       ),
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/(stack)/notifications" as any)}
+          onPress={() => router.replace("/(stack)/notifications" as any)}
           style={{
             paddingHorizontal: 6,
             paddingVertical: 4,
@@ -878,3 +878,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 10,
   },
 });
+

@@ -1,4 +1,4 @@
-﻿import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -1695,10 +1695,12 @@ export default function BiltyWizardScreen() {
                 { id: "gst", label: "CGST + SGST" },
               ].map((item) => {
                 const active = gstType === item.id;
+                const disabled = gstPercentage === "0";
                 return (
                   <TouchableOpacity
                     key={`gst-type-${item.id}`}
                     onPress={() => setGstType(item.id as "gst" | "igst")}
+                    disabled={disabled}
                     style={{
                       flex: 1,
                       paddingVertical: 11,
@@ -1707,6 +1709,7 @@ export default function BiltyWizardScreen() {
                       borderColor: active ? colors.primary : colors.border,
                       backgroundColor: active ? colors.primary : (isDark ? colors.card : colors.primaryForeground),
                       alignItems: "center",
+                      opacity: disabled ? 0.45 : 1,
                     }}
                   >
                     <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: "800" }}>{item.label}</Text>
@@ -1722,7 +1725,10 @@ export default function BiltyWizardScreen() {
                 return (
                   <TouchableOpacity
                     key={`gst-pct-${item}`}
-                    onPress={() => setGstPercentage(item)}
+                    onPress={() => {
+                      setGstPercentage(item);
+                      if (item === "0") setGstType("");
+                    }}
                     style={{
                       flex: 1,
                       paddingVertical: 11,

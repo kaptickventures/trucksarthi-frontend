@@ -16,9 +16,9 @@ import {
 import { useKYC } from "../../hooks/useKYC";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { useUser } from "../../hooks/useUser";
-import { normalizeAddressInput, normalizeGstinNumber, normalizePhoneInput } from "../../lib/utils";
+import { normalizeAddressInput, normalizeGstinNumber, normalizePanNumber, normalizePhoneInput } from "../../lib/utils";
 
-type Step = "gstin" | "preview";
+type Step = "choice" | "gstin" | "pan" | "preview";
 
 const normalizeGstin = (value: string) => normalizeGstinNumber(value);
 
@@ -26,11 +26,14 @@ export default function GstinOnboardingScreen() {
   const router = useRouter();
   const { colors, theme } = useThemeStore();
   const { user, loading: userLoading, syncUser, refreshUser } = useUser();
-  const { verifyGSTIN, loading: kycLoading } = useKYC();
+  const { verifyGSTIN, verifyPAN, loading: kycLoading } = useKYC();
 
-  const [step, setStep] = useState<Step>("gstin");
+  const [step, setStep] = useState<Step>("choice");
+  const [registrationType, setRegistrationType] = useState<"unknown" | "gst" | "non_gst" | "skip">("unknown");
   const [gstin, setGstin] = useState("");
+  const [pan, setPan] = useState("");
   const [gstinDetails, setGstinDetails] = useState<any>(null);
+  const [panDetails, setPanDetails] = useState<any>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -49,6 +52,7 @@ export default function GstinOnboardingScreen() {
     setCompany(user.company_name ?? "");
     setAddress(user.address ?? "");
     setGstin(user.gstin ?? "");
+    setPan(user.pan_number ?? "");
 
     if (user?.gstin && user?.kyc_data?.gstin_details) {
       const details = user.kyc_data.gstin_details;
@@ -58,6 +62,15 @@ export default function GstinOnboardingScreen() {
       setGstinDetails(details);
       setCompany(tradeName || legalName || user.company_name || "");
       setAddress(principalAddress || user.address || "");
+      setRegistrationType("gst");
+      setStep("preview");
+      return;
+    }
+
+    if (user?.pan_number || user?.kyc_data?.pan_details) {
+      setRegistrationType("non_gst");
+      setPan(user?.pan_number || "");
+      setPanDetails(user?.kyc_data?.pan_details || null);
       setStep("preview");
     }
   }, [user]);
@@ -77,6 +90,15 @@ export default function GstinOnboardingScreen() {
     setGstinDetails(details || null);
     if (preferredCompanyName) setCompany(preferredCompanyName);
     if (principalAddress) setAddress(principalAddress);
+  };
+
+  const applyPanDetails = (details: any, normalizedPan: string) => {
+    const registeredName = details?.registered_name || details?.full_name || details?.name || "";
+    setPan(normalizedPan);
+    setPanDetails(details || null);
+    if (registeredName && !company_name.trim()) {
+      setCompany(registeredName);
+    }
   };
 
   const handleVerifyGstin = async () => {
@@ -101,14 +123,32 @@ export default function GstinOnboardingScreen() {
     }
   };
 
+  const handleVerifyPan = async () => {
+    const normalized = normalizePanNumber(pan);
+    if (normalized.length !== 10) {
+      Alert.alert("Input Required", "Please enter a valid PAN number.");
+      return;
+    }
+    try {
+      const result = await verifyPAN(normalized);
+      if (result?.verified) {
+        const details = result?.data || {};
+        applyPanDetails(details, normalized);
+        setStep("preview");
+        Alert.alert("PAN Verified", "We have fetched your PAN details. Please review and continue.");
+      } else {
+        Alert.alert("Verification Failed", result?.message || "Invalid PAN details");
+      }
+    } catch (error: any) {
+      Alert.alert("Error", error.response?.data?.message || "Failed to verify PAN. Please try again.");
+    }
+  };
+
   const validate = () => {
-    if (!gstinDetails) return "Please verify your GSTIN to continue.";
-    if (!name.trim()) return "Full Name is required";
     if (!company_name.trim()) return "Company Name is required";
     const normalizedPhone = normalizePhoneInput(phone);
-    if (normalizedPhone && normalizedPhone.length !== 13) return "Please enter a valid Mobile Number";
-    if (!email.trim() || !email.includes("@")) return "A valid Email Address is required";
-    if (!address.trim()) return "Address is required";
+    if (!normalizedPhone || normalizedPhone.length !== 13) return "Please enter a valid Mobile Number";
+    if (email.trim() && !email.includes("@")) return "Please enter a valid Email Address";
     return null;
   };
 
@@ -122,19 +162,20 @@ export default function GstinOnboardingScreen() {
     try {
       setSaving(true);
       await syncUser({
-        name: name.trim(),
-        email: email.trim(),
+        name: name.trim() || user?.name || "",
+        email: email.trim() || user?.email || "",
         phone: normalizePhoneInput(phone),
         company_name: company_name.trim(),
-        address: normalizeAddressInput(address),
-        gstin: normalizeGstin(gstin),
-        is_gstin_verified: Boolean(gstinDetails),
-        kyc_data: gstinDetails
-          ? {
-              ...(user?.kyc_data || {}),
-              gstin_details: gstinDetails,
-            }
-          : user?.kyc_data,
+        address: normalizeAddressInput(address || user?.address || ""),
+        gstin: registrationType === "gst" ? normalizeGstin(gstin) : "",
+        pan_number: registrationType === "non_gst" ? normalizePanNumber(pan) : (user?.pan_number || ""),
+        is_gstin_verified: registrationType === "gst" ? Boolean(gstinDetails) : false,
+        is_pan_verified: registrationType === "non_gst" ? Boolean(panDetails) : Boolean(user?.is_pan_verified),
+        kyc_data: {
+          ...(user?.kyc_data || {}),
+          ...(registrationType === "gst" ? { gstin_details: gstinDetails || user?.kyc_data?.gstin_details } : {}),
+          ...(registrationType === "non_gst" ? { pan_details: panDetails || user?.kyc_data?.pan_details } : {}),
+        },
       });
 
       Alert.alert("Success", "Profile completed! Welcome to Trucksarthi.", [
@@ -173,17 +214,76 @@ export default function GstinOnboardingScreen() {
             }}
           >
             <Text style={{ fontSize: 30, fontWeight: "900", color: colors.foreground, marginBottom: 8 }}>
-              {step === "gstin" ? "Verify GSTIN" : "Review Details"}
+              {step === "choice" ? "Business Setup" : step === "gstin" ? "Verify GSTIN" : step === "pan" ? "Verify PAN" : "Review Details"}
             </Text>
             <Text style={{ fontSize: 16, color: colors.mutedForeground, lineHeight: 22 }}>
-              {step === "gstin"
+              {step === "choice"
+                ? "Are you registered with GST? Choose one option to continue onboarding."
+                : step === "gstin"
                 ? "Enter your GSTIN to auto-fill your business profile."
+                : step === "pan"
+                ? "Not GST registered? Verify PAN and continue."
                 : "Confirm the details below. Fill anything missing to finish onboarding."}
             </Text>
           </View>
 
           <View style={{ paddingHorizontal: 24, marginTop: -32 }}>
-            {step === "gstin" ? (
+            {step === "choice" ? (
+              <View style={{ gap: 14 }}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setRegistrationType("gst");
+                    setStep("gstin");
+                  }}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
+                    borderRadius: 16,
+                    padding: 16,
+                  }}
+                >
+                  <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "800" }}>Yes, I am GST registered</Text>
+                  <Text style={{ color: colors.mutedForeground, marginTop: 6, fontSize: 13 }}>
+                    Enter GSTIN and fetch your company details.
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setRegistrationType("non_gst");
+                    setStep("pan");
+                  }}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
+                    borderRadius: 16,
+                    padding: 16,
+                  }}
+                >
+                  <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "800" }}>No, I am not GST registered</Text>
+                  <Text style={{ color: colors.mutedForeground, marginTop: 6, fontSize: 13 }}>
+                    Enter PAN and fetch available business details.
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setRegistrationType("skip");
+                    setStep("preview");
+                  }}
+                  style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingVertical: 12,
+                  }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "800" }}>Skip for now</Text>
+                </TouchableOpacity>
+              </View>
+            ) : step === "gstin" ? (
               <View style={{ gap: 18 }}>
                 <CustomInput
                   label="GSTIN NUMBER"
@@ -219,6 +319,56 @@ export default function GstinOnboardingScreen() {
                     </>
                   )}
                 </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setStep("choice")}
+                  style={{ alignItems: "center", marginTop: 4 }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "700" }}>Back</Text>
+                </TouchableOpacity>
+              </View>
+            ) : step === "pan" ? (
+              <View style={{ gap: 18 }}>
+                <CustomInput
+                  label="PAN NUMBER"
+                  value={pan}
+                  onChange={(val: string) => setPan(normalizePanNumber(val))}
+                  colors={colors}
+                  placeholder="ABCDE1234F"
+                  icon={<Building2 size={18} color={colors.mutedForeground} />}
+                  autoCapitalize="characters"
+                  maxLength={10}
+                />
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={kycLoading || normalizePanNumber(pan).length !== 10}
+                  onPress={handleVerifyPan}
+                  style={{
+                    backgroundColor: normalizePanNumber(pan).length === 10 ? colors.foreground : colors.muted,
+                    borderRadius: 18,
+                    paddingVertical: 18,
+                    marginTop: 4,
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  {kycLoading ? (
+                    <ActivityIndicator color={colors.background} />
+                  ) : (
+                    <>
+                      <Text style={{ color: colors.background, fontSize: 16, fontWeight: "800" }}>Verify PAN</Text>
+                      <ArrowRight size={20} color={colors.primary} strokeWidth={3} />
+                    </>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setStep("choice")}
+                  style={{ alignItems: "center", marginTop: 4 }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "700" }}>Back</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={{ gap: 20 }}>
@@ -233,19 +383,19 @@ export default function GstinOnboardingScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 12, fontWeight: "800", color: colors.mutedForeground, letterSpacing: 1 }}>
-                    GSTIN VERIFIED
+                    {registrationType === "gst" ? "GSTIN VERIFIED" : registrationType === "non_gst" ? "PAN VERIFIED" : "SKIPPED VERIFICATION"}
                   </Text>
                   <Text style={{ fontSize: 16, fontWeight: "800", color: colors.foreground }}>
-                    {company_name || gstin}
+                    {company_name || (registrationType === "gst" ? gstin : pan) || "Business Profile"}
                   </Text>
                   <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
-                    {gstin}
+                    {registrationType === "gst" ? gstin : registrationType === "non_gst" ? pan : "You can update GST/PAN later from profile."}
                   </Text>
                   <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
                     {address || "Address not found. Please add below."}
                   </Text>
-                  <TouchableOpacity onPress={() => { setStep("gstin"); setGstinDetails(null); }} style={{ marginTop: 8 }}>
-                    <Text style={{ color: colors.primary, fontWeight: "700" }}>Change GSTIN</Text>
+                  <TouchableOpacity onPress={() => { setStep("choice"); }} style={{ marginTop: 8 }}>
+                    <Text style={{ color: colors.primary, fontWeight: "700" }}>Change Selection</Text>
                   </TouchableOpacity>
                 </View>
 

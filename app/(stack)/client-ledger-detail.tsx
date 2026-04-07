@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { NotificationBadge } from "../../components/NotificationBadge";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -77,7 +77,7 @@ export default function ClientLedgerDetailScreen() {
       ),
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/(stack)/notifications" as any)}
+          onPress={() => router.replace("/(stack)/notifications" as any)}
           style={{ paddingHorizontal: 6, paddingVertical: 4 }}
         >
           <NotificationBadge size={24} color={colors.foreground} />
@@ -586,7 +586,7 @@ export default function ClientLedgerDetailScreen() {
     <div class="bottom-wrap">
       <div class="amount-words">
         <div class="label">Rupees in words</div>
-        <div style="margin-top:4px;">Total Invoice Amount: ₹ ${money(grandTotal)} only</div>
+        <div style="margin-top:4px;">Total Invoice Amount: ? ${money(grandTotal)} only</div>
       </div>
       <div class="totals-box">
         <div class="tot-line">
@@ -692,7 +692,7 @@ export default function ClientLedgerDetailScreen() {
     (t: Trip) => t && getId(t.client) === id
   );
 
-  // ðŸ’° CALCULATED AMOUNTS
+  // 💰 CALCULATED AMOUNTS
   const unbilledAmount = useMemo(() => {
     return clientTrips
       .filter((t) => t && normalizeInvoiceStatus(t.invoiced_status) === "not_invoiced")
@@ -751,8 +751,8 @@ export default function ClientLedgerDetailScreen() {
         .map((entry: any, index: number) => {
           const type = String(entry?.entry_type || "").toLowerCase();
           const isDebit = type === "debit";
-          const debit = isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
-          const credit = !isDebit ? `₹ ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const debit = isDebit ? `? ${Number(entry.amount || 0).toLocaleString()}` : "";
+          const credit = !isDebit ? `? ${Number(entry.amount || 0).toLocaleString()}` : "";
           const title = entry.remarks || (isDebit ? "Invoice" : "Payment Received");
           return `
           <tr>
@@ -768,12 +768,12 @@ export default function ClientLedgerDetailScreen() {
       const totalsHtml = `
           <tr class="totals">
             <td colspan="3">Totals</td>
-            <td class="debit">₹ ${debitTotal.toLocaleString()}</td>
-            <td class="credit">₹ ${creditTotal.toLocaleString()}</td>
+            <td class="debit">? ${debitTotal.toLocaleString()}</td>
+            <td class="credit">? ${creditTotal.toLocaleString()}</td>
           </tr>
           <tr class="difference">
             <td colspan="3">Difference (Debit - Credit)</td>
-            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}₹ ${Math.abs(difference).toLocaleString()}</td>
+            <td colspan="2" class="diff">${difference >= 0 ? "" : "-"}? ${Math.abs(difference).toLocaleString()}</td>
           </tr>`;
 
       const html = `
@@ -806,8 +806,8 @@ export default function ClientLedgerDetailScreen() {
         <div class="client">${escapeHtml(client?.client_name || "Client")}</div>
         <div class="sub">Period: ${escapeHtml(formatDate(downloadRange.startDate))} - ${escapeHtml(formatDate(downloadRange.endDate))}</div>
         <div class="cards">
-          <div class="card"><div class="label">Debit</div><div class="value">₹ ${debitTotal.toLocaleString()}</div></div>
-          <div class="card"><div class="label">Credit</div><div class="value">₹ ${creditTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Debit</div><div class="value">? ${debitTotal.toLocaleString()}</div></div>
+          <div class="card"><div class="label">Credit</div><div class="value">? ${creditTotal.toLocaleString()}</div></div>
         </div>
         <table>
           <thead><tr><th>#</th><th>Date</th><th>Particulars</th><th>Debit</th><th>Credit</th></tr></thead>
@@ -939,7 +939,7 @@ export default function ClientLedgerDetailScreen() {
         if (amount > remainingAmount) {
           Alert.alert(
             t('amountExceedsRemaining'),
-            `Remaining for this invoice is ₹${remainingAmount.toLocaleString()}. Please enter a smaller amount.`
+            `Remaining for this invoice is ?${remainingAmount.toLocaleString()}. Please enter a smaller amount.`
           );
           return;
         }
@@ -1313,7 +1313,7 @@ export default function ClientLedgerDetailScreen() {
                       <Text className="font-bold" style={{ color: colors.foreground }}>Trip #{trip.public_id || getId(trip).slice(-6)}</Text>
                       {trip.trip_date ? <Text className="text-xs" style={{ color: colors.mutedForeground }}>{formatDate(trip.trip_date)}</Text> : null}
                     </View>
-                    <Text className="font-bold text-lg" style={{ color: colors.foreground }}>₹{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
+                    <Text className="font-bold text-lg" style={{ color: colors.foreground }}>?{(Number(trip.cost_of_trip) + Number(trip.miscellaneous_expense || 0)).toLocaleString()}</Text>
                   </View>
                   <View className="flex-row items-center gap-2">
                     <MapPin size={14} color={colors.mutedForeground} />
@@ -1364,11 +1364,11 @@ export default function ClientLedgerDetailScreen() {
                     <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: colors.border + '4D' }}>
                       <View>
                         <Text className="font-bold text-lg" style={{ color: colors.foreground }}>
-                          ₹{remainingAmount.toLocaleString()}
+                          ?{remainingAmount.toLocaleString()}
                         </Text>
                         {remainingAmount < totalAmount && (
                           <Text className="text-[11px]" style={{ color: colors.mutedForeground }}>
-                            Balance due (Total: ₹{totalAmount.toLocaleString()})
+                            Balance due (Total: ?{totalAmount.toLocaleString()})
                           </Text>
                         )}
                         {remainingAmount === totalAmount && (
@@ -1423,7 +1423,7 @@ export default function ClientLedgerDetailScreen() {
                         {(entry.payment_type === "PARTIAL" || paymentCountsByInvoice[getId((entry as any).invoice || (entry as any).invoice_id)] > 1) ? "PARTIAL" : "FULL"}
                       </Text>
                     </View>
-                    <Text className="font-bold" style={{ color: colors.success }}>₹{Number(entry.amount).toLocaleString()}</Text>
+                    <Text className="font-bold" style={{ color: colors.success }}>?{Number(entry.amount).toLocaleString()}</Text>
                   </View>
                 </View>
               ))
@@ -1877,7 +1877,7 @@ function SummaryCard({ label, value, green }: any) {
   return (
     <View style={{ backgroundColor: colors.card }} className="flex-1 p-4 rounded-2xl border border-border/50">
       <Text className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{label}</Text>
-      <Text style={{ color: green ? colors.success : colors.foreground }} className="text-lg font-bold">₹{Number(value).toLocaleString()}</Text>
+      <Text style={{ color: green ? colors.success : colors.foreground }} className="text-lg font-bold">?{Number(value).toLocaleString()}</Text>
     </View>
   );
 }
@@ -1896,3 +1896,4 @@ function EmptyState({ message }: { message: string }) {
     </View>
   );
 }
+

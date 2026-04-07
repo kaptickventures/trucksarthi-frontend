@@ -18,6 +18,7 @@ export default function UpdateBankScreen() {
   const [ifsc, setIfsc] = useState("");
   const [upiId, setUpiId] = useState("");
   const [history, setHistory] = useState<string[]>([]);
+  const [selectedHistoryBank, setSelectedHistoryBank] = useState("");
 
   const historyKey = useMemo(() => `kyc_history:${user?._id || "anonymous"}`, [user?._id]);
 
@@ -58,6 +59,7 @@ export default function UpdateBankScreen() {
 
   const handleVerify = async () => {
     const cleanAccount = (accountNumber || "").replace(/\s+/g, "");
+    setSelectedHistoryBank(cleanAccount);
     const cleanIfsc = (ifsc || "").trim().toUpperCase();
     const cleanUpi = (upiId || "").trim();
 
@@ -249,11 +251,14 @@ export default function UpdateBankScreen() {
               {history.map((item) => (
                 <TouchableOpacity
                   key={item}
-                  onPress={() => setAccountNumber(item)}
+                  onPress={() => {
+                    setAccountNumber(item);
+                    setSelectedHistoryBank(item);
+                  }}
                   style={{
                     borderWidth: 1,
-                    borderColor: colors.border,
-                    backgroundColor: colors.card,
+                    borderColor: selectedHistoryBank === item ? colors.primary : colors.border,
+                    backgroundColor: selectedHistoryBank === item ? colors.primary + "14" : colors.card,
                     borderRadius: 12,
                     paddingHorizontal: 14,
                     paddingVertical: 12,

@@ -16,6 +16,7 @@ export default function UpdateGstinScreen() {
 
   const [gstin, setGstin] = useState("");
   const [history, setHistory] = useState<string[]>([]);
+  const [selectedHistoryGstin, setSelectedHistoryGstin] = useState("");
 
   const historyKey = useMemo(() => `kyc_history:${user?._id || "anonymous"}`, [user?._id]);
 
@@ -54,6 +55,7 @@ export default function UpdateGstinScreen() {
 
   const handleVerify = async () => {
     const normalizedGstin = (gstin || "").trim().toUpperCase();
+    setSelectedHistoryGstin(normalizedGstin);
     if (normalizedGstin.length !== 15) {
       Alert.alert("Error", "Please enter a valid 15-digit GSTIN");
       return;
@@ -201,11 +203,14 @@ export default function UpdateGstinScreen() {
               {history.map((item) => (
                 <TouchableOpacity
                   key={item}
-                  onPress={() => setGstin(item)}
+                  onPress={() => {
+                    setGstin(item);
+                    setSelectedHistoryGstin(item);
+                  }}
                   style={{
                     borderWidth: 1,
-                    borderColor: colors.border,
-                    backgroundColor: colors.card,
+                    borderColor: selectedHistoryGstin === item ? colors.primary : colors.border,
+                    backgroundColor: selectedHistoryGstin === item ? colors.primary + "14" : colors.card,
                     borderRadius: 12,
                     paddingHorizontal: 14,
                     paddingVertical: 12,

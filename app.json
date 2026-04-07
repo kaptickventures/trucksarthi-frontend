@@ -4,7 +4,7 @@
     "slug": "trucksarthi-frontend",
     "version": "1.0.2",
     "orientation": "portrait",
-    "icon": "./assets/images/Trucksarthi-Logo.png",
+    "icon": "./assets/images/1.png",
     "scheme": "trucksarthifrontend",
     "userInterfaceStyle": "automatic",
     "jsEngine": "hermes",
@@ -29,7 +29,7 @@
         "android.permission.READ_MEDIA_VIDEO"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Trucksarthi-Logo.png",
+        "foregroundImage": "./assets/images/1.png",
         "backgroundColor": "#E6F4FE"
       },
       "edgeToEdgeEnabled": true,
@@ -57,7 +57,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "splash": {
-      "image": "./assets/Trucksarthi-Graphic.png",
+      "image": "./assets/images/2.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -67,7 +67,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/Trucksarthi-Graphic.png",
+          "image": "./assets/images/2.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

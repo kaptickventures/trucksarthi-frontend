@@ -373,7 +373,7 @@ export default function HomeScreen() {
       ),
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/(stack)/notifications" as any)}
+          onPress={() => router.replace("/(stack)/notifications" as any)}
           style={{
             paddingHorizontal: 6,
             paddingVertical: 4,
@@ -551,7 +551,7 @@ export default function HomeScreen() {
           <View className="flex-row justify-between items-center mb-3">
             <Text style={{ color: colors.foreground }} className="font-semibold text-lg">{t('reminders')}</Text>
             {totalReminderCount > 0 && (
-              <TouchableOpacity onPress={() => router.push("/(stack)/notifications?tab=reminders" as any)}>
+              <TouchableOpacity onPress={() => router.replace("/(stack)/notifications?tab=reminders" as any)}>
                 <Text className="text-muted-foreground text-sm">{t('viewAll')} →</Text>
               </TouchableOpacity>
             )}
@@ -677,3 +677,4 @@ export default function HomeScreen() {
     </>
   );
 }
+

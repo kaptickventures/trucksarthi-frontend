@@ -95,7 +95,7 @@ export default function StackLayout() {
 
             headerRight: () => (
               <TouchableOpacity
-                onPress={() => router.push("/(stack)/notifications" as any)}
+                onPress={() => router.replace("/(stack)/notifications" as any)}
                 style={{ padding: 6 }}
               >
                 <NotificationBadge size={24} color={foregroundColor} />
@@ -161,6 +161,7 @@ export default function StackLayout() {
               headerRight: () => null,
             }}
           />
+          <Stack.Screen name="reminder-detail" options={{ title: "Reminder Detail" }} />
           <Stack.Screen name="transactions" options={{ title: "Transactions" }} />
           <Stack.Screen name="create-invoice" options={{ title: "Create Invoice" }} />
           <Stack.Screen name="expense-manager" options={{ title: "Expense Manager" }} />
@@ -184,3 +185,4 @@ export default function StackLayout() {
     </BottomSheetModalProvider>
   );
 }
+

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
-import { useLayoutEffect } from "react";
-import { View, TouchableOpacity, Text, Share } from "react-native";
+import { useCallback, useLayoutEffect } from "react";
+import { View, TouchableOpacity, Text } from "react-native";
 import { WebView } from "react-native-webview";
 import { useThemeStore } from "../../hooks/useThemeStore";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,11 +16,24 @@ export default function PDFViewerScreen() {
         const raw = String(uri || "");
         if (!raw) return "";
         try {
-            return decodeURIComponent(raw);
+            const decoded = decodeURIComponent(raw);
+            if (decoded.startsWith("file://") || decoded.startsWith("http://") || decoded.startsWith("https://")) {
+                return decoded;
+            }
+            if (decoded.startsWith("/")) {
+                return `file://${decoded}`;
+            }
+            return decoded;
         } catch {
             return raw;
         }
     })();
+
+    const handleShare = useCallback(async () => {
+        if (resolvedUri) {
+            await Sharing.shareAsync(resolvedUri);
+        }
+    }, [resolvedUri]);
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -51,13 +64,7 @@ export default function PDFViewerScreen() {
                 </TouchableOpacity>
             ),
         });
-    }, [navigation, colors, resolvedUri, title]);
-
-    const handleShare = async () => {
-        if (resolvedUri) {
-            await Sharing.shareAsync(resolvedUri);
-        }
-    };
+    }, [navigation, colors, resolvedUri, title, handleShare, router]);
 
     if (!resolvedUri) {
         return (
@@ -74,6 +81,13 @@ export default function PDFViewerScreen() {
                 style={{ flex: 1 }}
                 originWhitelist={["*"]}
                 scalesPageToFit={true}
+                allowFileAccess
+                allowUniversalAccessFromFileURLs
+                allowingReadAccessToURL="file://"
+                onError={() => {
+                    // Keep a user-visible hint for Android file URI errors.
+                    console.log("Failed to open PDF URI:", resolvedUri);
+                }}
             />
         </SafeAreaView>
     );

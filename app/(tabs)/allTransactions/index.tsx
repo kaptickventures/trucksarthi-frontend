@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { NotificationBadge } from "../../../components/NotificationBadge";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
@@ -139,7 +139,7 @@ export default function TransactionsScreen() {
       ),
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => router.push("/(stack)/notifications" as any)}
+          onPress={() => router.replace("/(stack)/notifications" as any)}
           style={{ paddingHorizontal: 6, paddingVertical: 4 }}
         >
           <NotificationBadge size={24} color={colors.foreground} />
@@ -309,10 +309,10 @@ export default function TransactionsScreen() {
         </View>
         <View style={{ alignItems: "flex-end" }}>
           <Text style={{ fontSize: 16, fontWeight: "bold", color: iconColor }}>
-            {isIncome ? "+" : "-"}₹ {Number(item.amount || 0).toLocaleString()}
+            {isIncome ? "+" : "-"}? {Number(item.amount || 0).toLocaleString()}
           </Text>
           <Text style={{ fontSize: 10, color: colors.mutedForeground, fontWeight: "600", marginTop: 2 }}>
-            Bal: ₹ {Number(item.runningBalance || 0).toLocaleString()}
+            Bal: ? {Number(item.runningBalance || 0).toLocaleString()}
           </Text>
           <Text style={{ fontSize: 9, color: colors.mutedForeground, marginTop: 1 }}>
             {item.paymentMode || "CASH"}
@@ -654,4 +654,5 @@ export default function TransactionsScreen() {
     </SafeAreaView>
   );
 }
+
 
