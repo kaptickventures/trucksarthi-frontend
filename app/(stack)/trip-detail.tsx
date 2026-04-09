@@ -4,7 +4,7 @@ import { ActivityIndicator, Platform, Alert, ScrollView, StatusBar, Text, Toucha
 import { Ionicons } from "@expo/vector-icons";
 import { Edit3, Trash2 } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import * as Print from "expo-print";
+import * as FileSystem from "expo-file-system/legacy";
 
 import API from "../api/axiosInstance";
 import BottomSheet from "../../components/BottomSheet";
@@ -18,6 +18,7 @@ import useLocations from "../../hooks/useLocation";
 import { useInvoices } from "../../hooks/useInvoice";
 import { useBilty } from "../../hooks/useBiltyModule";
 import { buildBiltyPreviewHtml } from "../../lib/biltyPreviewTemplate";
+import { createAndPersistPdfFromHtml } from "../../lib/pdfStorage";
 import { formatDate, formatPhoneNumber, toLocalYmd } from "../../lib/utils";
 import type { Trip, TripEditHistoryEntry } from "../../types/entity";
 
@@ -314,8 +315,8 @@ export default function TripDetail() {
   <meta charset="utf-8" />
   <style>
     @page { size: A4; margin: 10mm; }
-    body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-size: 10px; line-height: 1.25; }
-    .page { width: 100%; }
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-size: 10px; line-height: 1.25; background: #ececec; padding: 8px 0; }
+    .page { width: 190mm; margin: 0 auto 8px; background: #fff; box-sizing: border-box; box-shadow: 0 0 0 1px #ddd; }
     .page-break { page-break-before: always; }
     .invoice-frame { border: 1.2px solid #111; }
     .row { display: flex; width: 100%; }
@@ -357,6 +358,10 @@ export default function TripDetail() {
     .annexure { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1px solid #111; }
     .annexure th, .annexure td { border: 1px solid #111; padding: 5px 6px; font-size: 9.6px; }
     .annexure th { background: #f7f7f7; text-transform: uppercase; font-size: 8.6px; letter-spacing: 0.3px; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page { width: 100%; margin: 0; box-shadow: none; }
+    }
   </style>
 </head>
 <body>
@@ -493,11 +498,31 @@ export default function TripDetail() {
     });
   };
 
+  const openHtmlPreview = async (html: string, title: string) => {
+    const fileName = `${title.replace(/[^a-zA-Z0-9_-]/g, "_")}-${Date.now()}.html`;
+    const uri = `${FileSystem.cacheDirectory}${fileName}`;
+    await FileSystem.writeAsStringAsync(uri, html, { encoding: FileSystem.EncodingType.UTF8 });
+    router.push({
+      pathname: "/(stack)/pdf-viewer",
+      params: { uri: encodeURIComponent(uri), title },
+    } as any);
+  };
+
   const openInvoicePdf = async (invoice: any) => {
     const html = buildInvoiceHtml(invoice);
-    const { uri } = await Print.printToFileAsync({ html });
     const safeId = String(invoice?.invoice_number || invoice?._id || "Invoice").replace(/[^a-zA-Z0-9_-]/g, "");
-    const fileUri = encodeURIComponent(uri);
+    const { persistedUri } = await createAndPersistPdfFromHtml(html, {
+      type: "invoice",
+      identifier: safeId || "Invoice",
+      createdAt: invoice?.createdAt || new Date(),
+    });
+
+    if (Platform.OS === "android") {
+      await openHtmlPreview(html, `Invoice #${invoice?.invoice_number || "Preview"}`);
+      return;
+    }
+
+    const fileUri = encodeURIComponent(persistedUri);
     router.push({
       pathname: "/(stack)/pdf-viewer",
       params: { uri: fileUri, title: `Invoice #${invoice?.invoice_number || safeId || "-"}` },
@@ -506,10 +531,20 @@ export default function TripDetail() {
 
   const openBiltyPdf = async (doc: any) => {
     const html = buildBiltyHtml(doc);
-    const { uri } = await Print.printToFileAsync({ html });
+    const { persistedUri } = await createAndPersistPdfFromHtml(html, {
+      type: "bilty",
+      identifier: String(doc?.bilty_number || doc?._id || "LR"),
+      createdAt: doc?.createdAt || new Date(),
+    });
+
+    if (Platform.OS === "android") {
+      await openHtmlPreview(html, "LR Preview");
+      return;
+    }
+
     router.push({
       pathname: "/(stack)/pdf-viewer",
-      params: { uri: encodeURIComponent(uri), title: "LR Preview" },
+      params: { uri: encodeURIComponent(persistedUri), title: "LR Preview" },
     } as any);
   };
 

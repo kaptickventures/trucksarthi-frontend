@@ -155,8 +155,8 @@ export const buildBiltyPreviewHtml = (doc: any, options?: BuildBiltyPreviewHtmlO
   return `
 <!DOCTYPE html><html><head><meta charset="utf-8" /><style>
 @page { size: A4; margin: 6mm; }
-body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-size: 10px; background: #fff; }
-.page { width: 100%; }
+body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-size: 10px; background: #ececec; padding: 8px 0; }
+.page { width: 198mm; margin: 0 auto 8px; background: #fff; box-sizing: border-box; box-shadow: 0 0 0 1px #ddd; }
 .page-break { page-break-before: always; }
 .copy-pill { display: inline-block; border: 1px solid #333; border-radius: 999px; padding: 3px 8px; font-weight: 700; margin: 0 0 6px 0; font-size: 9px; }
 .sheet { border: 2px solid #111; padding: 8px; }
@@ -195,5 +195,9 @@ body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; font-s
 .terms { padding: 4px; border-right: 1px solid #111; min-height: 60px; }
 .signature { padding: 4px; min-height: 60px; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
 .sign-line { font-size: 8px; margin-top: 2px; }
+@media print {
+  body { background: #fff; padding: 0; }
+  .page { width: 100%; margin: 0; box-shadow: none; }
+}
 </style></head><body>${buildCopyPage("Consignor LR")}<div class="page-break"></div>${buildCopyPage("Consignee LR")}</body></html>`;
 };

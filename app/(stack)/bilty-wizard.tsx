@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import * as Print from "expo-print";
+import * as FileSystem from "expo-file-system/legacy";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SvgXml } from "react-native-svg";
@@ -33,7 +33,8 @@ import useDrivers from "../../hooks/useDriver";
 import useLocations from "../../hooks/useLocation";
 import useTrucks from "../../hooks/useTruck";
 import { buildBiltyPreviewHtml } from "../../lib/biltyPreviewTemplate";
-import { formatPhoneNumber, normalizeGstinNumber, normalizePanNumber, normalizePhoneInput, toLocalYmd } from "../../lib/utils";
+import { createAndPersistPdfFromHtml } from "../../lib/pdfStorage";
+import { formatCurrencyINR, formatPhoneNumber, normalizeGstinNumber, normalizePanNumber, normalizePhoneInput, toLocalYmd } from "../../lib/utils";
 
 const formatLrNumber = (value: string) => {
   const cleaned = String(value || "")
@@ -588,8 +589,22 @@ export default function BiltyWizardScreen() {
 
   const createPdfUri = async (doc: any) => {
     const html = buildBiltyHtml(doc);
-    const { uri } = await Print.printToFileAsync({ html });
-    return uri;
+    const { persistedUri } = await createAndPersistPdfFromHtml(html, {
+      type: "bilty",
+      identifier: String(doc?.bilty_number || doc?._id || "LR"),
+      createdAt: doc?.createdAt || new Date(),
+    });
+    return persistedUri;
+  };
+
+  const openBiltyHtmlPreview = async (doc: any) => {
+    const html = buildBiltyHtml(doc);
+    const uri = `${FileSystem.cacheDirectory}bilty-preview-${Date.now()}.html`;
+    await FileSystem.writeAsStringAsync(uri, html, { encoding: FileSystem.EncodingType.UTF8 });
+    router.push({
+      pathname: "/(stack)/pdf-viewer",
+      params: { uri: encodeURIComponent(uri), title: "LR Preview" },
+    } as any);
   };
 
   const persistCompanyProfile = async (showSuccess = false) => {
@@ -1070,6 +1085,10 @@ export default function BiltyWizardScreen() {
     try {
       setLoading(true);
       const doc = await getBiltyById(id);
+      if (Platform.OS === "android") {
+        await openBiltyHtmlPreview(doc);
+        return;
+      }
       const uri = await createPdfUri(doc);
       router.push({
         pathname: "/(stack)/pdf-viewer",
@@ -1782,7 +1801,7 @@ export default function BiltyWizardScreen() {
                 {insurance.policy_number ? (
                   <>
                     <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Policy: {insurance.policy_number}</Text>
-                    <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: â‚¹{Number(insurance.coverage_amount || 0).toLocaleString("en-IN")}</Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 2 }}>Coverage: {formatCurrencyINR(Number(insurance.coverage_amount || 0))}</Text>
                     <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Expiry: {insurance.expiry_date || "-"}</Text>
                     <TouchableOpacity
                       onPress={() => setInsurance({ policy_number: "", insurer_name: "", coverage_amount: "", expiry_date: "" })}

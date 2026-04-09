@@ -59,7 +59,17 @@ export function formatSignedAmount(
   direction: "INCOME" | "EXPENSE" | "CREDIT" | "DEBIT"
 ): string {
   const sign = direction === "INCOME" || direction === "CREDIT" ? "+" : "-";
-  return `${sign}₹ ${Math.abs(Number(amount || 0)).toLocaleString()}`;
+  return `${sign}${formatCurrencyINR(Math.abs(Number(amount || 0)))}`;
+}
+
+export function formatCurrencyINR(amount: number, options?: { fallbackToRs?: boolean }): string {
+  const value = Number(amount || 0).toLocaleString("en-IN");
+  const useAsciiPrefix = options?.fallbackToRs !== false;
+  if (useAsciiPrefix) return `Rs ${value}`;
+
+  // Use escaped unicode for rupee so source-file encoding never corrupts it.
+  const prefix = "\u20B9";
+  return `${prefix} ${value}`;
 }
 
 export function formatLabel(label: string | null | undefined): string {
