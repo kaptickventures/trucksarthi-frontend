@@ -14,7 +14,8 @@
       "bundleIdentifier": "com.trucksarthi.app",
       "buildNumber": "1.0.0",
       "infoPlist": {
-        "NSCameraUsageDescription": "Allow Trucksarthi to access your camera to scan QR codes for desktop login."
+        "NSCameraUsageDescription": "Allow Trucksarthi to access your camera to scan QR codes for desktop login.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
